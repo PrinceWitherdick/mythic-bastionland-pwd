@@ -902,7 +902,8 @@ const RALLY_SELECTOR = "[data-rally]";
 
 /**
  * A blow that costs its maker d6 Damage should the foe stay up (p54): a card
- * offers it to whoever can deal it.
+ * offers it to whoever can deal it, posted for all to see whatever mode the
+ * poster rolls in, so a Referee rolling privately doesn't hide it from them.
  * @param {string} attackerUuid
  * @param {Actor} target
  */
@@ -913,7 +914,7 @@ async function offerBacklash(attackerUuid, target) {
 		icon: "fa-solid fa-hourglass-half",
 		text: t("damage.backlash", { name: attacker.name, target: target.name }),
 		action: { data: "backlash", icon: "fa-solid fa-dice-d6", label: t("damage.backlashRoll") }
-	}, { flags: { [SYSTEM_ID]: { backlash: attacker.uuid } } });
+	}, { mode: "public", flags: { [SYSTEM_ID]: { backlash: attacker.uuid } } });
 }
 
 /**
@@ -929,7 +930,7 @@ async function offerRally(attackerUuid, target) {
 		icon: "fa-solid fa-dove",
 		text: t("damage.rally", { name: attacker.name, target: target.name }),
 		action: { data: "rally", icon: "fa-solid fa-sun", label: t("damage.rallyButton") }
-	}, { flags: { [SYSTEM_ID]: { rally: attacker.uuid } } });
+	}, { mode: "public", flags: { [SYSTEM_ID]: { rally: attacker.uuid } } });
 }
 
 /**
@@ -973,8 +974,10 @@ export function registerAbilityBlows() {
 	});
 	registerCardButtons({
 		selector: RALLY_SELECTOR,
+		// The Referee's alone, who owns every ally and so restores them all at once, whoever posted it.
+		gmOnly: true,
+		fromPlayers: true,
 		once: true,
-		mayPress: (_message, user) => Boolean(user?.isGM),
 		handler: async (_button, message) => {
 			const attacker = fromUuidSync(message?.flags?.[SYSTEM_ID]?.rally ?? "");
 			const allies = attacker ? rallied(attacker).filter((ally) => ally.isOwner) : [];

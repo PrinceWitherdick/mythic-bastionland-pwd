@@ -1,6 +1,6 @@
-import { askActiveGM } from "../ask-gm.js";
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
+import { gmAsker } from "../gm-asker.js";
 import { postCard, t } from "../chat/cards.js";
-import { queryAsker } from "../compat.js";
 import { spendUse } from "./abilities.js";
 import { isUsedUp } from "../rules/restock.js";
 import { parseDice } from "../rules/attack.js";
@@ -157,13 +157,23 @@ function woundedIn(victim, dealer, combat) {
 export async function temperWeapon(dealer, itemId, victim) {
 	const die = temperFor(dealer, itemId);
 	if (!die || !combatantOf(dealer)) return false;
-	const gm = game.users.activeGM;
-	const kept = gm?.isSelf
-		? await keepTemper(dealer, itemId, victim)
-		: Boolean(gm) && Boolean(await askActiveGM(TEMPER_QUERY, { dealer: dealer.uuid, item: itemId, victim: victim?.uuid }, `Couldn't temper ${dealer.name}'s weapon`));
+	const kept = game.users.activeGM?.isSelf ? await keepTemper(dealer, itemId, victim) : await askTemper(dealer, itemId, victim);
 	if (!kept) return false;
 	await postCard(dealer, "note", { icon: "fa-solid fa-hammer", text: t("ability.tempered", { name: dealer.name, ability: die.label, weapon: die.itemName, faces: die.faces }) });
 	return true;
+}
+
+/**
+ * Ask the active GM to give a weapon its tempered die, telling this user when
+ * nobody can, or the GM didn't.
+ * @param {Actor} dealer
+ * @param {string} itemId
+ * @param {Actor|null} victim
+ * @returns {Promise<boolean>}
+ */
+async function askTemper(dealer, itemId, victim) {
+	const asked = { dealer: dealer.uuid, item: itemId, victim: victim?.uuid };
+	return Boolean(await askActiveGMOrWarn(TEMPER_QUERY, asked, `Couldn't temper ${dealer.name}'s weapon`, { absent: "ability.temperNeedsGM", refused: "ability.temperRefused", data: { name: dealer.name } }));
 }
 
 /**
@@ -174,8 +184,8 @@ export async function temperWeapon(dealer, itemId, victim) {
  * @returns {Promise<boolean>}
  */
 export async function onTemperQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const read = (uuid) => (typeof uuid === "string" ? fromUuidSync(uuid) : null);
 	const dealer = read(data?.dealer);
 	const victim = read(data?.victim);

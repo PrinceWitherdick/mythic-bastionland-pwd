@@ -9,7 +9,7 @@ import { chooseCompany } from "./time.js";
 import { escapeHTML } from "../rules/text.js";
 import { isKnight } from "../rules/knight-types.js";
 import { COMPANION_FLAG, FOLLOWER_FLAG } from "./property.js";
-import { sharedOwnership } from "./squires.js";
+import { shareMade, sharedOwnership } from "./belonging.js";
 import { deletionEntry } from "../compat.js";
 
 /**
@@ -128,6 +128,7 @@ export async function takeSteed(knight) {
 	});
 	if (!steed) return null;
 	await knight.update({ "system.steed": steed.uuid });
+	await shareMade([steed], knight);
 	steed.sheet.render({ force: true });
 	return steed;
 }
@@ -156,8 +157,9 @@ function riddenByAnother(npc, riders) {
 /**
  * Make an NPC already in the world the steed a Knight rides (p12). A steed
  * another Knight rides is taken from them, and one this Knight rides now is
- * replaced, each asked first; a Slain steed is simply replaced. Given by the
- * Referee, the steed is owned as the Knight is.
+ * replaced, each asked first; a Slain steed is simply replaced. Only whoever
+ * may write the steed can take it. It's then owned as the Knight is, by the
+ * Referee or, for a player, by the Referee they ask.
  * @param {Actor} knight
  * @param {Actor} steed
  * @returns {Promise<Actor|null>} The steed, or null where nothing changed.
@@ -170,8 +172,9 @@ export async function rideSteed(knight, steed) {
 	// whoever rode them; otherwise it would be one Knight's and ride under another.
 	const led = steed.getFlag(SYSTEM_ID, COMPANION_FLAG);
 	const leader = led && led !== knight.id ? game.actors.get(led) ?? null : null;
-	if (leader && !steed.isOwner) {
-		ui.notifications.warn(t("steed.ledBy", { steed: steed.name, from: leader.name }));
+	// A steed this user can't write would be ridden without ever being theirs to play, as a follower can't be taken.
+	if (!steed.isOwner) {
+		ui.notifications.warn(leader ? t("steed.ledBy", { steed: steed.name, from: leader.name }) : t("steed.notYours", { steed: steed.name }));
 		return null;
 	}
 	const current = steedOf(knight);
@@ -182,10 +185,11 @@ export async function rideSteed(knight, steed) {
 
 	await knight.update({ "system.steed": steed.uuid });
 	for (const rider of riders) await rider.update({ "system.steed": "" });
-	const shared = steed.isOwner ? sharedOwnership(steed, knight) : {};
+	const shared = sharedOwnership(steed, knight);
 	// Theirs now, so replacing the other Knight's gear never sweeps it away.
-	if (led && led !== knight.id && steed.isOwner) Object.assign(shared, Object.fromEntries([COMPANION_FLAG, FOLLOWER_FLAG].map((flag) => deletionEntry(`flags.${SYSTEM_ID}.${flag}`))));
+	if (led && led !== knight.id) Object.assign(shared, Object.fromEntries([COMPANION_FLAG, FOLLOWER_FLAG].map((flag) => deletionEntry(`flags.${SYSTEM_ID}.${flag}`))));
 	if (Object.keys(shared).length) await steed.update(shared);
+	await shareMade([steed], knight);
 	return steed;
 }
 
@@ -220,6 +224,7 @@ export async function takeFollower(knight, npc) {
 		[`flags.${SYSTEM_ID}.${FOLLOWER_FLAG}`]: true,
 		...sharedOwnership(npc, knight)
 	});
+	await shareMade([npc], knight);
 	for (const rider of riders) await rider.update({ "system.steed": "" });
 	ui.notifications.info(t("follower.joined", { name: npc.name, knight: knight.name }));
 	return npc;
@@ -338,7 +343,7 @@ export async function gallop() {
  * A steed given a name of its Knight's own — at the window, by the pencil on
  * the Knight's sheet, or on its own sheet — keeps what the book called it as
  * the line under the name, unless it has a line of its own already, or the
- * new name says what it is.
+ * new name says what it is. Called during init.
  */
 export function registerSteedNames() {
 	Hooks.on("preUpdateActor", (actor, changes) => {

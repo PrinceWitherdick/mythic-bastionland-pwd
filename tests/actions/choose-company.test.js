@@ -103,6 +103,20 @@ describe("chooseCompany, Squires and companions", () => {
 		expect(asked.context.members.map(({ name, included }) => [name, included])).toEqual([["Tal", true], ["Moss", true], ["Bayard", true], ["The Guide", true]]);
 	});
 
+	it("shows a player only their own, unless the whole Company is wanted, and then not Knights who don't ride with it", async () => {
+		game.user.isGM = false;
+		const bram = { ...knight("bram", "Bram"), isOwner: false };
+		const spare = { ...knight("spare", "Spare"), isOwner: false, hasPlayerOwner: false };
+		const bayard = { uuid: "Actor.bayard", name: "Bayard", type: "npc", isOwner: false, system: { virtues: {} } };
+		game.actors.push(bram, spare);
+		riding = { bram: [bayard] };
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", companions: true });
+		expect(asked.context.members.map(({ name }) => name)).toEqual(["Tal", "Moss"]);
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", companions: true, wholeCompany: true });
+		expect(asked.context.members.map(({ name }) => name)).toEqual(["Tal", "Moss", "Bram", "Bayard"]);
+	});
+
 	it("lists no companions unless asked", async () => {
 		riding = { tal: [{ uuid: "Actor.bayard", name: "Bayard", type: "npc", isOwner: true, system: { virtues: {} } }] };
 		answer = {};

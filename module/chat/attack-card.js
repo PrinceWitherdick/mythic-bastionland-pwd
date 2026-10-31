@@ -40,8 +40,7 @@ import { damageReach } from "../rules/property-tab.js";
 import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { ATTACK_FLAG, attackOf } from "./attack-flag.js";
-import { queryAsker } from "../compat.js";
+import { ATTACK_FLAG, attackOf, ownsAnAttacker } from "./attack-flag.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, slay, spendUse } from "../actions/abilities.js";
@@ -51,16 +50,17 @@ import { KNIGHT_TYPES } from "../rules/knight-types.js";
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
  * same target join in, then Deny, Gambits, and the Damage applied to the
- * targets. Only a message's author and GMs can update it, so a player who
- * joins, Denies or applies Damage on somebody else's card asks the active GM
- * to record it.
+ * targets. With a GM here, the active GM records every change, so two made at
+ * once are both kept; without one, only the card's author can.
  */
 
 const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 
 /**
- * Changes a player may ask the GM to record on a card they don't own, each
- * with what it takes of them: the change to record, or null when it's refused.
+ * Changes a user may ask the active GM to record, each with what it takes of
+ * them: the change to record, or null when it's refused. With a GM here the
+ * card's author asks too (statefulCard), so each allows what the author's
+ * own client lets them do.
  * A Deny must come from an actor the player owns, and so must a joiner, a
  * Focus, and the Gambits spent from the pooled dice of an Attack they roll in.
  * @type {Record<string, (change: object, attack: import("../rules/attack.js").AttackState, user: User) => object|null>}
@@ -218,16 +218,6 @@ function waitingTargets(attack) {
 }
 
 /**
- * @param {import("../rules/attack.js").AttackState} attack
- * @param {User} [user] Whoever asks; this user when left out.
- * @returns {boolean} Whether they own one of those making the Attack, whose
- *   dice, pooled in a joint Attack, any of them may spend on Gambits (p8).
- */
-function ownsAnAttacker(attack, user = game.user) {
-	return attackersOf(attack).some((uuid) => fromUuidSync(uuid)?.testUserPermission?.(user, "OWNER"));
-}
-
-/**
  * @param {string} uuid
  * @param {User} user
  * @returns {Document|null} The document, when the user owns it.
@@ -253,20 +243,12 @@ function ownsMarkedFoe(change, attack, user) {
 }
 
 /**
- * The active GM records a change for a player, as CHANGE_GUARDS lets them.
- * @param {{messageId: string, change: object}} data
- * @param {{user?: User}} context
- * @returns {Promise<boolean>}
+ * The active GM records a change for a player, as CHANGE_GUARDS lets them,
+ * the card's author included: the guards already allow what the author's own
+ * client does, and some, such as a forced withdraw, are the GM's alone.
+ * @type {(data: {messageId?: string, change?: object}, context: {user?: User}) => Promise<boolean>}
  */
-async function onChangeQuery({ messageId, change }, context) {
-	const user = queryAsker(context);
-	if (!user) return false;
-	const message = game.messages.get(messageId);
-	const attack = attackOf(message);
-	if (!attack || !Object.hasOwn(CHANGE_GUARDS, change?.type)) return false;
-	const allowed = CHANGE_GUARDS[change.type](change, attack, user);
-	return allowed ? attackCard.commit(message, allowed) : false;
-}
+const onChangeQuery = attackCard.answer((change, attack, user) => (Object.hasOwn(CHANGE_GUARDS, change.type) ? CHANGE_GUARDS[change.type](change, attack, user) : null));
 
 /**
  * The Attack cards this user can see, read for the weapons foes have shown.
@@ -794,6 +776,8 @@ async function applyFrom(message, event) {
 	const attack = attackOf(message);
 	// A card at nobody lands once, on whoever its first reader targets.
 	if (!attack.targets.length && attack.appliedTo.length) return warn("attack.alreadyApplied");
+	// Nobody could mark the card, so it would stay to be applied again.
+	if (!message.isOwner && !game.users.activeGM) return warn("attack.needsGM");
 	// Tokens deleted before the Damage reached them are dealt with, so the card can settle.
 	const gone = unappliedTargets(attack).filter(({ uuid }) => !fromUuidSync(uuid)).map(({ uuid }) => uuid);
 	const waiting = waitingTargets(attack);
@@ -808,14 +792,35 @@ async function applyFrom(message, event) {
 	const names = [];
 	const tokens = [];
 	const actors = [];
+	let skipped = 0;
 	for (const { actor, token } of owned) {
+		// Somebody else may have applied it while the window stood open, or while the last target took theirs.
+		const now = attackOf(message);
+		if (!stillWaiting(now, token)) {
+			skipped += 1;
+			continue;
+		}
 		// Taken as the card has it unless something wants judging; Shift opens the Damage window regardless.
-		if (!(await takeAttack(actor, attack, { except: [message.id], quick: !event?.shiftKey }))) continue;
+		if (!(await takeAttack(actor, now, { except: [message.id], quick: !event?.shiftKey }))) continue;
 		names.push(actor.name);
 		actors.push(actor.uuid);
 		if (token) tokens.push(token);
 	}
 	if (names.length) await saveChange(message, { type: "applied", names, tokens: [...tokens, ...gone], actors });
+	else if (skipped === owned.length) warn("attack.alreadyApplied");
+}
+
+/**
+ * Whether the card, as it stands now, still waits on a target: the Token
+ * named, or for a card at nobody, whoever its reader targets.
+ * @param {import("../rules/attack.js").AttackState|null} attack
+ * @param {string|null} token The target's Token UUID, null on a card at nobody.
+ * @returns {boolean}
+ */
+function stillWaiting(attack, token) {
+	if (!attack) return false;
+	if (!token) return !attack.appliedTo.length;
+	return unappliedTargets(attack).some(({ uuid }) => uuid === token);
 }
 
 /**
@@ -1070,7 +1075,9 @@ function activateAttackCard(message, html) {
 		if (attackAction === "deny") denyButton = button;
 		if (attackAction === "join") joinButton = button;
 		if (attackAction === "apply" || attackAction === "greater") {
-			button.hidden = attack.targets.length > 0 && !targetActors(attack).some((actor) => actor.isOwner);
+			// Those making the Attack may write in some other Greater effect too, as onGreater offers them.
+			const theirs = targetActors(attack).some((actor) => actor.isOwner) || (attackAction === "greater" && ownsAnAttacker(attack));
+			button.hidden = attack.targets.length > 0 && !theirs;
 		}
 		// Shown to whoever owns the Knight whose Ability or rune it is.
 		if (attackAction === "reroll") button.hidden = !poolRerollers(attack).some(({ actor }) => actor.isOwner);

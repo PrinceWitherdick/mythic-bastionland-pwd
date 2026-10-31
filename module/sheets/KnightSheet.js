@@ -8,7 +8,8 @@ import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../act
 import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
 import { changesKind, servedBySquire, setKnightKind } from "../actions/npc-knights.js";
 import { makeSeer } from "../actions/seers.js";
-import { claimSquire, companySizeNow, isChoosingKnight, knightSquire, releaseSquire, servingSquire, takeSquire } from "../actions/squires.js";
+import { claimSquire, companySizeNow, isChoosingKnight, knightSquire, releaseSquire, takeSquire } from "../actions/squires.js";
+import { servingSquire } from "../actions/belonging.js";
 import { dropCompanion, renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
 import { rollLuck } from "../actions/referee-rolls.js";
@@ -615,8 +616,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 				ui.notifications.warn(t("domain.fromDirectory"));
 				return null;
 			}
-			await linkKnightDomain(this.actor, actor);
-			return actor;
+			return (await linkKnightDomain(this.actor, actor)) ? actor : null;
 		}
 		const squire = isKnight(actor) && actor.system.isSquire && !this.actor.system.isSquire;
 		if (isKnight(actor) && !squire) {

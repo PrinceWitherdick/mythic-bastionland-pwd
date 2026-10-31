@@ -29,7 +29,7 @@ import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actio
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { addNewMythButton, newOwnMyth } from "./module/actions/own-myths.js";
-import { watchCompanySize } from "./module/actions/squires.js";
+import { watchCompanySize, registerCompanionQueries } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
@@ -149,7 +149,7 @@ import { watchQuerySenders } from "./module/compat.js";
 import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
-import { restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
+import { restAfterCombat, warnDyingAfterCombat, registerRemedyQuery } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
 import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
@@ -543,6 +543,11 @@ Hooks.once("init", () => {
 
 	// A steed renamed by its Knight keeps what the book called it under the name.
 	registerSteedNames();
+
+	// What the Referee finishes for a player's companions: sharing those they made,
+	// parting a Knight and Squire, and restoring the Company members a Remedy reaches.
+	registerCompanionQueries();
+	registerRemedyQuery();
 
 	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
 	registerWelcome();

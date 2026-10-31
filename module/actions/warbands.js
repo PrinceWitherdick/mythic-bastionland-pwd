@@ -19,6 +19,7 @@ import {
 import { SYSTEM_ID } from "../system-id.js";
 import { causedBy } from "./ledger.js";
 import { timelineDismissed, timelineMustered } from "./timeline-events.js";
+import { shareMade } from "./belonging.js";
 
 /**
  * Raising soldiers and keeping them (p11). A Holding musters its Warbands
@@ -166,11 +167,13 @@ export async function musterWarband(domain) {
 			...data.flags,
 			[SYSTEM_ID]: { ...data.flags?.[SYSTEM_ID], [MUSTERED_FLAG]: domain.id, [ORIGIN_FLAG]: choice.origin }
 		},
-		// Players who can see the Domain can see its Warbands. Only a GM may hand ownership to others.
+		// Players who can see the Domain can see its Warbands. Only a GM may hand ownership to others,
+		// so a player asks the Referee to once it's made.
 		...(game.user.isGM ? { ownership: foundry.utils.deepClone(domain.ownership) } : {})
 	});
 	if (!warband) return null;
 	await Promise.all([
+		shareMade([warband], domain),
 		timelineMustered(domain, warband, t(`warband.origins.${choice.origin}.label`)),
 		postCard(domain, "report", {
 			title: t("warband.muster.title"),

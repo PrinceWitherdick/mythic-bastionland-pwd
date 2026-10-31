@@ -1,3 +1,6 @@
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
+import { gmAsker } from "../gm-asker.js";
+import { registerShareQuery, servingSquire, shareMade, sharedOwnership } from "./belonging.js";
 import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import {
@@ -15,8 +18,7 @@ import {
 	ponySystem,
 	squireEquipment,
 	squireItems,
-	squireSystem,
-	stillServes
+	squireSystem
 } from "../rules/squires.js";
 import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
@@ -92,20 +94,6 @@ export function watchCompanySize() {
 }
 
 /**
- * The Squire a Knight's sheet names, while they still serve that Knight: not
- * Knighted since, nor taken by another Knight, nor, unless the dead are
- * wanted too, Slain.
- * @param {Actor} knight
- * @param {object} [options] As stillServes takes them.
- * @returns {Actor|null}
- */
-export function servingSquire(knight, options) {
-	const uuid = knight?.system?.isSquire ? "" : knight?.system?.squire;
-	const squire = uuid ? fromUuidSync(uuid) : null;
-	return squire?.documentName === "Actor" && stillServes(squire.system, knight.uuid, options) ? squire : null;
-}
-
-/**
  * Only small Companies may take Squires (p7), but the Referee may bend that:
  * a player is told so, and the Referee asked.
  * @returns {Promise<boolean>} Whether a Knight may be given a Squire.
@@ -122,26 +110,6 @@ async function squireAllowed() {
 		icon: "fa-solid fa-people-group",
 		message: t("squire.largeCompany", { count })
 	});
-}
-
-/**
- * The ownership a Knight's companion is given when the Referee links them:
- * what they had, raised to whatever the Knight's players have, so a player
- * can see and play the Squire, steed or follower their Knight was given.
- * @param {Actor} companion
- * @param {Actor} knight
- * @returns {object} An update, empty for a player, who can't hand ownership on.
- */
-export function sharedOwnership(companion, knight) {
-	if (!game.user.isGM) return {};
-	const ownership = { ...companion.ownership };
-	let changed = false;
-	for (const [user, level] of Object.entries(knight.ownership ?? {})) {
-		if (user === "default" || (ownership[user] ?? 0) >= level) continue;
-		ownership[user] = level;
-		changed = true;
-	}
-	return changed ? { ownership } : {};
 }
 
 /**
@@ -168,12 +136,17 @@ export async function claimSquire(knight, squire) {
 		return null;
 	}
 	if (knight.system.squire === squire.uuid && squire.system.serves === knight.uuid) return squire;
+	// Both sides of the link are written, so a Squire this user can't write isn't taken half-way.
+	if (!squire.isOwner) {
+		ui.notifications.warn(t("squire.notYours", { name: squire.name }));
+		return null;
+	}
 
 	const served = squire.system.serves && squire.system.serves !== knight.uuid ? fromUuidSync(squire.system.serves) : null;
 	const master = served?.documentName === "Actor" ? served : null;
 	// Only a link the old Knight still keeps needs undoing on their side.
 	const masterKeeps = master?.system?.squire === squire.uuid;
-	if ((master && !squire.isOwner) || (masterKeeps && !master.isOwner)) {
+	if (masterKeeps && !master.isOwner) {
 		ui.notifications.warn(t("squire.servesAnother", { name: squire.name, knight: master.name }));
 		return null;
 	}
@@ -188,7 +161,8 @@ export async function claimSquire(knight, squire) {
 	if (!had && !(await squireAllowed())) return null;
 
 	await knight.update({ "system.squire": squire.uuid });
-	if (squire.isOwner) await squire.update({ "system.serves": knight.uuid, ...sharedOwnership(squire, knight) });
+	await squire.update({ "system.serves": knight.uuid, ...sharedOwnership(squire, knight) });
+	await shareMade([squire], knight);
 	if (masterKeeps) await master.update({ "system.squire": "" });
 	if (before?.isOwner && before.system.serves === knight.uuid) await before.update({ "system.serves": "" });
 	// On both threads, as taking a new Squire writes it.
@@ -196,20 +170,71 @@ export async function claimSquire(knight, squire) {
 	return squire;
 }
 
+/** The query a player sends to part a Knight and Squire when they can't write the other side. */
+const RELEASE_QUERY = `${SYSTEM_ID}.releaseSquire`;
+
+/**
+ * @param {Actor} actor A Knight or Squire.
+ * @param {Actor} linked The one they were linked to.
+ * @returns {object|null} The update that clears the link `actor` holds to `linked`, or null where it holds none.
+ */
+function partingUpdate(actor, linked) {
+	if (actor.system.isSquire) return actor.system.serves === linked.uuid ? { "system.serves": "" } : null;
+	return actor.system.squire === linked.uuid ? { "system.squire": "" } : null;
+}
+
 /**
  * Part a Knight and their Squire, from either one's sheet: both sides of the
- * link go, where this user may write the other one.
+ * link go. Where this user can't write the other side, the active GM is asked
+ * to, since a Squire with nobody named to serve still reads as the Knight's.
  * @param {Actor} actor The Knight or the Squire.
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} Whether both sides were parted.
  */
 export async function releaseSquire(actor) {
 	const { isSquire } = actor.system;
 	const uuid = isSquire ? actor.system.serves : actor.system.squire;
-	const linked = uuid ? fromUuidSync(uuid) : null;
+	const found = uuid ? fromUuidSync(uuid) : null;
+	const linked = found?.documentName === "Actor" ? found : null;
 	await actor.update({ [isSquire ? "system.serves" : "system.squire"]: "" });
-	if (linked?.documentName !== "Actor" || !linked.isOwner) return;
-	if (isSquire && linked.system.squire === actor.uuid) await linked.update({ "system.squire": "" });
-	if (!isSquire && linked.system.serves === actor.uuid) await linked.update({ "system.serves": "" });
+	const update = linked ? partingUpdate(linked, actor) : null;
+	if (!update) return true;
+	if (linked.isOwner) {
+		await linked.update(update);
+		return true;
+	}
+	const notice = { absent: "squire.releaseNeedsReferee", data: { name: linked.name, other: actor.name } };
+	return Boolean(await askActiveGMOrWarn(RELEASE_QUERY, { actorId: actor.id, linkedId: linked.id }, `Couldn't part ${actor.name} and ${linked.name}`, notice));
+}
+
+/**
+ * A player's parting of a Knight and Squire, finished by the GM who was asked:
+ * only where the asker owns one of the two, and only the links they hold to each other.
+ * @param {{actorId?: string, linkedId?: string}} data
+ * @param {object} context
+ * @returns {Promise<boolean>}
+ */
+export async function onReleaseQuery(data = {}, context = {}) {
+	const asker = gmAsker(context);
+	if (!asker) return false;
+	const pair = [data?.actorId, data?.linkedId].map((id) => game.actors.get(String(id ?? "")));
+	if (!pair.every(isKnight) || pair[0] === pair[1] || !pair.some((actor) => actor.testUserPermission(asker, "OWNER"))) return false;
+	// One of the two is the Squire, the other the Knight they served.
+	if (Boolean(pair[0].system.isSquire) === Boolean(pair[1].system.isSquire)) return false;
+	const updates = [[pair[0], pair[1]], [pair[1], pair[0]]].flatMap(([one, other]) => {
+		const update = partingUpdate(one, other);
+		return update ? [{ _id: one.id, ...update }] : [];
+	});
+	if (updates.length) await Actor.implementation.updateDocuments(updates);
+	return true;
+}
+
+/**
+ * Answer players' sharing of what they've made, and their parting of a Knight
+ * and Squire, which the Referee finishes for them. Called during init.
+ */
+export function registerCompanionQueries() {
+	registerShareQuery();
+	CONFIG.queries[RELEASE_QUERY] = onReleaseQuery;
 }
 
 /**
@@ -227,6 +252,25 @@ export async function takeSquire(knight) {
 		existing.sheet.render({ force: true });
 		return existing;
 	}
+	// The Knight names their Squire only once both are made, so a second click meanwhile makes nothing.
+	if (takingSquire.has(knight.uuid)) return null;
+	takingSquire.add(knight.uuid);
+	try {
+		return await makeSquire(knight);
+	} finally {
+		takingSquire.delete(knight.uuid);
+	}
+}
+
+/** The Knights whose new Squire is being made. */
+const takingSquire = new Set();
+
+/**
+ * Roll and make a new Squire and their pony for a Knight who has none, as takeSquire says.
+ * @param {Actor} knight
+ * @returns {Promise<Actor|null>} The Squire.
+ */
+async function makeSquire(knight) {
 	if (!game.user.can("ACTOR_CREATE")) {
 		ui.notifications.warn(t("squire.cantCreate"));
 		return null;
@@ -268,6 +312,7 @@ export async function takeSquire(knight) {
 	}
 	if (pony) lines.push({ label: t("steed.label"), value: pony.name });
 	await knight.update({ "system.squire": squire.uuid });
+	await shareMade([squire, pony], knight);
 	await Promise.all([
 		timelineSquireTaken(knight, squire),
 		postCard(knight, "creation", {

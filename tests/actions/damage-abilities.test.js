@@ -397,7 +397,7 @@ describe("a steed brought down (p10)", () => {
 		globalThis.CONFIG = { queries: {} };
 		globalThis.DOMParser = class {
 			parseFromString(html) {
-				return { querySelectorAll: () => ({ length: html.split("data-unhorsed").length - 1 }) };
+				return { querySelectorAll: () => Array.from({ length: html.split("data-unhorsed").length - 1 }, () => ({ dataset: {} })) };
 			}
 		};
 		try {
@@ -405,7 +405,7 @@ describe("a steed brought down (p10)", () => {
 			actors["Actor.kay"] = { testUserPermission: (user, level) => level === "OWNER" && user.id === "kay-player" };
 			const card = { id: "m1", isOwner: true, content: "<button data-unhorsed></button>", flags: { [SYSTEM_ID]: { unhorsed: "Actor.kay" } }, setFlag: vi.fn(async () => {}) };
 			game.messages = new Map([["m1", card]]);
-			const ask = (id) => CONFIG.queries[`${SYSTEM_ID}.spendButton`]({ messageId: "m1", key: "[data-unhorsed]#0" }, { user: { id } });
+			const ask = (id) => CONFIG.queries[`${SYSTEM_ID}.spendButton`]({ messageId: "m1", keys: ["[data-unhorsed]#0"] }, { user: { id } });
 			expect(await ask("another-player")).toBe(false);
 			expect(card.setFlag).not.toHaveBeenCalled();
 			expect(await ask("kay-player")).toBe(true);
@@ -413,6 +413,43 @@ describe("a steed brought down (p10)", () => {
 		} finally {
 			for (const key of ["Hooks", "CONFIG", "DOMParser"]) delete globalThis[key];
 		}
+	});
+});
+
+describe("the backlash and rally cards (players' audit)", () => {
+	/** The cards' wiring, and what drawing one shows this user. */
+	const drawn = async (selector, author) => {
+		const { registerAbilityBlows } = await import("../../module/actions/damage.js");
+		const hooks = [];
+		globalThis.Hooks = { on: (name, fn) => hooks.push(fn) };
+		globalThis.CONFIG = { queries: {} };
+		registerAbilityBlows();
+		const button = { dataset: {}, removed: false, remove() { this.removed = true; }, closest: () => null };
+		const html = { querySelector: (wanted) => (wanted === selector ? button : null), querySelectorAll: (wanted) => (wanted === selector ? [button] : []), addEventListener: () => {} };
+		for (const hook of hooks) hook({ id: "m1", isOwner: true, author, flags: {} }, html);
+		return button;
+	};
+
+	afterEach(() => {
+		for (const key of ["Hooks", "CONFIG"]) delete globalThis[key];
+	});
+
+	it("gives the rally to the Referee alone, even on a card a player posted", async () => {
+		game.user = { isGM: false };
+		expect((await drawn("[data-rally]", { isGM: false })).removed).toBe(true);
+		game.user = { isGM: true };
+		expect((await drawn("[data-rally]", { isGM: false })).removed).toBe(false);
+	});
+
+	it("posts a backlash for all to see, however the poster rolls", async () => {
+		const amber = character({ uuid: "Actor.amber", name: "Amber", type: "knight" });
+		actors["Actor.amber"] = amber;
+		const boar = character({ guard: 0, vig: 12, armour: 0 });
+		inputDialog.mockResolvedValue({ damage: "2", armour: "0" });
+		postCard.mockClear();
+		await takeAttack(boar, { attacker: "Actor.amber", backlash: true, dice: [{ faces: 6, result: 2 }], gambits: [], feats: [], targets: [], appliedTo: [] });
+		const offered = postCard.mock.calls.find(([, , context]) => context.action?.data === "backlash");
+		expect(offered?.[3]).toMatchObject({ mode: "public" });
 	});
 });
 

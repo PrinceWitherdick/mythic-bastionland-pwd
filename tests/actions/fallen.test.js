@@ -119,6 +119,15 @@ describe("whoRodeWith", () => {
 });
 
 describe("announceFallenKnight", () => {
+	it("posts the card for all to see, even while the Referee rolls privately", async () => {
+		const knight = fallenKnight();
+		game.actors = [knight];
+		game.settings.get = () => "gm";
+		ChatMessage.implementation.applyMode = vi.fn();
+		await announceFallenKnight(knight, "slain");
+		expect(ChatMessage.implementation.applyMode).toHaveBeenCalledWith(expect.anything(), "public");
+	});
+
 	it("offers all three ways on where a Squire and a follower rode with them", async () => {
 		const knight = fallenKnight();
 		const squire = actor({ id: "s1", name: "Ned", type: "knight", system: { isSquire: true, serves: knight.uuid } });

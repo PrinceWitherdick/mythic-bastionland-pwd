@@ -4,7 +4,7 @@ import { createCustomTag, worldCustomTags } from "../actions/timeline-tags.js";
 import { yearsOnHeading } from "../actions/travels.js";
 import { companyPicture } from "../actions/company.js";
 import { read } from "../client-settings.js";
-import { COMPANY_TRACK, KIND_GROUPS, addEntry, documentUuid, isSeasonTurn, moveEntry, patchEntry, readEntries, realmSceneId, removeEntry } from "../rules/timeline.js";
+import { COMPANY_TRACK, KIND_GROUPS, documentUuid, isSeasonTurn, readEntries, realmSceneId } from "../rules/timeline.js";
 import { CUSTOM_TAG_ICON, DEFAULT_TAG_COLOUR, KIND_ICONS, TAG_NAME_MAX, TIMELINE_TAGS_FLAG, cleanColour, isKindTag, kindColourProperty, readKindColours } from "../rules/timeline-tags.js";
 import { boardView, defaultHiddenTracks, hiddenCount, kindMenu, periodChoices, threadGroups, threadMenu, trackView } from "../rules/timeline-view.js";
 import { clampScale, scrubTicks } from "../rules/timeline-scroll.js";
@@ -596,13 +596,13 @@ async function pickThread(tracks) {
 }
 
 /**
- * Run one of rules/timeline.js's changes on a thread, saying so if it fails.
+ * Write on a thread, saying so if it fails.
  * @param {{trackId: string}} track
- * @param {(entries: object[]) => object} edit
+ * @param {import("../rules/timeline.js").TrackWrite} change
  */
-async function write(track, edit) {
+async function write(track, change) {
 	try {
-		return await mutateTrack(track, edit, { create: true });
+		return await mutateTrack(track, change, { create: true });
 	} catch (error) {
 		console.error(`${SYSTEM_ID} | Timeline write failed`, error);
 		warn("timeline.writeFailed");
@@ -633,7 +633,7 @@ const entryOf = (track, id) => Object.values(findTrackPage(track.trackId)?.syste
 async function writeNew(track, season) {
 	const entry = await promptTimelineEntry(null, { season });
 	if (!entry) return null;
-	return write(track, (entries) => addEntry(entries, { ...entry, source: "hand", createdAt: Date.now(), authorId: game.user.id }, foundry.utils.randomID));
+	return write(track, { rows: [{ entry: { ...entry, source: "hand", createdAt: Date.now(), authorId: game.user.id } }] });
 }
 
 /** The Referee's colours, chosen but not yet saved, by kind; null puts a kind back to its own. */
@@ -706,12 +706,12 @@ export async function onTimelineAction(event, target) {
 	const track = trackOf(target);
 	const id = target.closest("[data-entry-id]")?.dataset.entryId;
 	if (!track || !id) return null;
-	if (what === "earlier" || what === "later") return write(track, (entries) => moveEntry(entries, id, what === "earlier" ? -1 : 1));
+	if (what === "earlier" || what === "later") return write(track, { edits: [{ op: "move", id, delta: what === "earlier" ? -1 : 1 }] });
 	const entry = entryOf(track, id);
 	if (!entry) return null;
 	if (what === "edit") {
 		const edited = await promptTimelineEntry(entry);
-		return edited ? write(track, (entries) => patchEntry(entries, id, edited)) : null;
+		return edited ? write(track, { edits: [{ op: "patch", id, changes: edited }] }) : null;
 	}
 	if (what === "remove") {
 		const sure = await confirmDialog({
@@ -719,7 +719,7 @@ export async function onTimelineAction(event, target) {
 			icon: "fa-solid fa-trash",
 			message: escapeHTML(t("timeline.removeEntry.body", { title: entry.title || t("timeline.removeEntry.untitled"), thread: track.name }))
 		});
-		return sure ? write(track, (entries) => removeEntry(entries, id)) : null;
+		return sure ? write(track, { edits: [{ op: "remove", id }] }) : null;
 	}
 	return null;
 }

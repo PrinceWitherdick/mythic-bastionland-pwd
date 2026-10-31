@@ -222,6 +222,8 @@ describe("system boot", () => {
 		expect(hooks.renderChatMessageHTML).toBeTypeOf("function");
 		expect(CONFIG.queries[`${SYSTEM_ID}.changeAttack`]).toBeTypeOf("function");
 		expect(CONFIG.queries[`${SYSTEM_ID}.changeDuel`]).toBeTypeOf("function");
+		// The Referee finishes a player's sharing, parting of a Squire, and Remedies.
+		for (const name of ["shareOwnership", "releaseSquire", "remedy"]) expect(CONFIG.queries[`${SYSTEM_ID}.${name}`], name).toBeTypeOf("function");
 		expect(() => hooks.renderChatMessageHTML({ flags: {} }, { querySelector: () => null, querySelectorAll: () => [] })).not.toThrow();
 	});
 

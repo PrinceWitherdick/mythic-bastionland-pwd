@@ -1,4 +1,7 @@
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
+import { gmAsker } from "../gm-asker.js";
 import { postCard, t } from "../chat/cards.js";
+import { SYSTEM_ID } from "../system-id.js";
 import { afflictionsAt, tollsByKind, withAffliction } from "../rules/afflictions.js";
 import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
@@ -47,26 +50,94 @@ export function afflictionsUpdate(actor, afflictions) {
 }
 
 /**
+ * @param {object[]} inflicts What a source causes, as its sheet keeps them.
+ * @returns {object[]} The same, without their ids, as afflictionsUpdate takes them.
+ */
+const withoutIds = (inflicts) => inflicts.map(({ id: _id, ...affliction }) => affliction);
+
+/**
+ * Give each victim the afflictions they don't carry yet: everything each takes
+ * in one write, and every victim at once.
+ * @param {Actor[]} victims
+ * @param {object[]} inflicts Without ids.
+ * @returns {Promise<string[]>} A line for each affliction taken.
+ */
+async function afflictEach(victims, inflicts) {
+	const given = victims.map((victim) => [victim, afflictionsUpdate(victim, inflicts)]);
+	await updateActors(given.filter(([, { took }]) => took.length).map(([victim, { update }]) => [victim, update]), causedBy("hardship"));
+	return given.flatMap(([, { took }]) => took);
+}
+
+/** The query a player's Afflict sends, so the Referee afflicts the targets the player can't write. */
+const AFFLICT_QUERY = `${SYSTEM_ID}.afflict`;
+
+/**
+ * Have the active GM afflict the targets a player can't write, each named by
+ * a Token of theirs the player targeted. Without a Referee to ask, or
+ * refused, the player is told who was left untouched.
+ * @param {Actor} source
+ * @param {Actor[]} victims
+ * @param {Token[]} targeted The Tokens the player targeted.
+ * @returns {Promise<string[]>} A line for each affliction taken.
+ */
+async function afflictByReferee(source, victims, targeted) {
+	if (!victims.length) return [];
+	const tokenUuids = victims.map((victim) => targeted.find((token) => token.actor === victim)?.document?.uuid).filter(Boolean);
+	const asked = { sourceUuid: source.uuid, afflictionIds: source.system.inflicts.map(({ id }) => id), tokenUuids };
+	const notice = { absent: "afflictions.othersNeedReferee", data: { names: victims.map((victim) => victim.name).join(", ") } };
+	const answer = await askActiveGMOrWarn(AFFLICT_QUERY, asked, `Couldn't afflict ${source.name}'s targets`, notice);
+	return Array.isArray(answer) ? answer.map(String) : [];
+}
+
+/**
+ * A player's Afflict, finished by the GM who was asked: only for a source the
+ * asker owns, only with afflictions it really causes, and only on Tokens the
+ * player could have targeted: on the Scene they're looking at, not hidden,
+ * with the source there too.
+ * @param {{sourceUuid?: string, afflictionIds?: string[], tokenUuids?: string[]}} data
+ * @param {object} context
+ * @returns {Promise<string[]|false>} A line for each affliction taken.
+ */
+export async function onAfflictQuery(data = {}, context = {}) {
+	const asker = gmAsker(context);
+	if (!asker) return false;
+	const source = fromUuidSync(String(data?.sourceUuid ?? ""));
+	if (source?.documentName !== "Actor" || !source.testUserPermission(asker, "OWNER")) return false;
+	const ids = new Set((Array.isArray(data?.afflictionIds) ? data.afflictionIds : []).map(String));
+	const inflicts = withoutIds((source.system.inflicts ?? []).filter(({ id }) => ids.has(id)));
+	if (!inflicts.length) return false;
+	const scene = game.scenes?.get(asker.viewedScene);
+	if (!scene || !(source.token?.parent === scene || scene.tokens.some((token) => token.actorId === source.id))) return false;
+	const tokens = (Array.isArray(data?.tokenUuids) ? data.tokenUuids : []).map((uuid) => fromUuidSync(String(uuid)));
+	const victims = tokens.filter((token) => token?.documentName === "Token" && token.parent === scene && !token.hidden).map((token) => token.actor);
+	const reached = [...new Set(victims)].filter((victim) => victim?.documentName === "Actor");
+	return reached.length ? afflictEach(reached, inflicts) : false;
+}
+
+/**
  * One of the Cast passes on what it causes to everybody this user has
  * targeted, such as infection to those it touched, unless they already carry
  * it. Whether they caught it at all, a VIG Save for the Plague, is the
- * Referee's to settle first.
+ * Referee's to settle first. A player's targets they can't write are
+ * afflicted by the active GM.
  * @param {Actor} source The NPC that causes it.
  * @returns {Promise<string[]|null>} Who took it, or null with nobody targeted.
  */
 export async function afflictTargets(source) {
-	const inflicts = (source?.system.inflicts ?? []).map(({ id: _id, ...affliction }) => affliction);
+	const inflicts = withoutIds(source?.system.inflicts ?? []);
 	if (!inflicts.length) return null;
 	// Once each, though two of the Tokens targeted are one linked actor.
-	const victims = [...new Set([...game.user.targets].map((token) => token.actor).filter(Boolean))];
+	const targeted = [...game.user.targets].filter((token) => token.actor);
+	const victims = [...new Set(targeted.map((token) => token.actor))];
 	if (!victims.length) {
 		ui.notifications.warn(t("afflictions.noTargets"));
 		return null;
 	}
-	// Everything each victim takes in one write, and every victim at once.
-	const given = victims.map((victim) => [victim, afflictionsUpdate(victim, inflicts)]);
-	await updateActors(given.filter(([, { took }]) => took.length).map(([victim, { update }]) => [victim, update]), causedBy("hardship"));
-	const took = given.flatMap(([, { took }]) => took);
+	const [mine, theirs] = await Promise.all([
+		afflictEach(victims.filter((victim) => victim.isOwner), inflicts),
+		afflictByReferee(source, victims.filter((victim) => !victim.isOwner), targeted)
+	]);
+	const took = [...mine, ...theirs];
 	if (took.length) await postCard(source, "note", { icon: "fa-solid fa-virus", text: took.join(" ") });
 	return took;
 }
@@ -202,7 +273,8 @@ async function onTurnChange(combat) {
 	if (taken.lines.length) await postToll(actor, taken);
 }
 
-/** Called during init. */
+/** Take the toll as turns change, and answer the afflicting a player asks the Referee to finish. Called during init. */
 export function registerAfflictionHooks() {
 	Hooks.on("combatTurnChange", (combat) => onTurnChange(combat));
+	CONFIG.queries[AFFLICT_QUERY] = onAfflictQuery;
 }

@@ -1,6 +1,7 @@
 import { VIRTUES } from "../rules/virtues.js";
 import { askActiveGM } from "../ask-gm.js";
 import { applyMessageMode, currentMessageMode, queryAsker } from "../compat.js";
+import { keyedSerialWrites } from "../rules/queue.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 /**
@@ -124,17 +125,22 @@ export function onCardClick(element, selector, handler) {
  * @param {boolean} [card.fromPlayers] Whether the Referee's buttons work on a card a player posted too,
  *   as Ask the Referee's does.
  * @param {(button: HTMLElement, message: ChatMessage) => unknown} card.handler What a press does.
- * @param {boolean} [card.once]    Whether each button does its work once only: a press whose handler
- *   returns something truthy is kept on the message, and the button is gone from then on, for everybody.
+ * @param {boolean} [card.once]    Whether each button does its work once only. A press is marked on the
+ *   message before its handler runs, so nobody else can press it meanwhile, and the mark is taken back
+ *   if the handler returns something falsy or throws. The Referee's own (`gmOnly`) buttons are marked
+ *   only once the handler returns something truthy. Once kept, the button is gone for everybody.
  *   Buttons sharing a `data-once-group` are one choice: pressing one takes them all off.
- * @param {(message: ChatMessage, user: User) => boolean} [card.mayPress] Whether a user who asks the
- *   active GM to keep their press could have done its work, such as owning the actor the card names.
+ * @param {boolean} [card.oneChoice] Whether all of a card's buttons of this kind are one choice, as if
+ *   they shared a `data-once-group`, which works on cards posted before the template said so.
+ * @param {(message: ChatMessage, user: User, button: HTMLElement|null) => boolean} [card.mayPress] Whether
+ *   somebody besides the Referee may press a once-only button, such as by owning the actor the card names.
+ *   Asked on the presser's client, and again by the active GM who keeps the press for them.
  * @returns {void}
  */
-export function registerCardButtons({ selector, gmOnly = false, fromPlayers = false, handler, once = false, mayPress = () => true }) {
+export function registerCardButtons({ selector, gmOnly = false, fromPlayers = false, handler, once = false, oneChoice = false, mayPress = () => true }) {
 	if (once) {
 		CONFIG.queries[SPEND_QUERY] ??= onSpendQuery;
-		if (!gmOnly) askedSpends.set(selector, mayPress);
+		onceButtons.set(selector, { gmOnly, mayPress });
 	}
 	Hooks.on("renderChatMessageHTML", (message, html) => {
 		if (!html.querySelector(selector)) return;
@@ -144,16 +150,17 @@ export function registerCardButtons({ selector, gmOnly = false, fromPlayers = fa
 		const keys = new Map([...html.querySelectorAll(selector)].map((button, index) => [button, `${selector}#${index}`]));
 		dropButtons(html, selector, (button) => spent.includes(keys.get(button)));
 		onCardClick(html, selector, async (button) => {
-			const key = keys.get(button);
-			if (spentButtons(message).includes(key)) return;
+			// Spent since the card was drawn: it's on its way off, so the press does nothing.
+			if (spentButtons(message).includes(keys.get(button))) return;
 			// Nobody could keep it spent, so it would do its work again after a reload.
 			if (!message.isOwner && !game.users.activeGM) return warn("cardButtons.needsGM");
+			if (!gmOnly && !game.user.isGM && !mayPress(message, game.user, button)) return warn("cardButtons.notYours");
 			// Each button of a choice is spent with the one pressed, so the others can't be pressed after it, nor while it works.
-			const group = button.dataset?.onceGroup;
-			const choice = group ? [...keys.keys()].filter((other) => other.dataset?.onceGroup === group) : [button];
+			const choice = choiceOf(button, [...keys.keys()], oneChoice);
+			const choiceKeys = choice.map((other) => keys.get(other));
 			for (const other of choice) other.disabled = true;
 			try {
-				if (await handler(button, message)) await spendButtons(message, choice.map((other) => keys.get(other)));
+				await pressOnce(message, choiceKeys, () => handler(button, message), { gmOnly });
 			} finally {
 				for (const other of choice) other.disabled = false;
 			}
@@ -161,11 +168,110 @@ export function registerCardButtons({ selector, gmOnly = false, fromPlayers = fa
 	});
 }
 
+/**
+ * The buttons spent together with the one pressed: those of its choice.
+ * @param {HTMLElement} button
+ * @param {HTMLElement[]} buttons All of that kind on the card.
+ * @param {boolean} oneChoice Whether they're all one choice.
+ * @returns {HTMLElement[]}
+ */
+function choiceOf(button, buttons, oneChoice) {
+	if (oneChoice) return buttons;
+	const group = button.dataset?.onceGroup;
+	return group ? buttons.filter((other) => other.dataset?.onceGroup === group) : [button];
+}
+
+/** The Referee's own once-only presses under way on this client, by message and button key. */
+const pressing = new Set();
+
+/**
+ * Do the work of a press of the Referee's own buttons, then mark them spent.
+ * Nobody else sees them, so this client keeping the press to itself while it
+ * works is enough, and a press that comes to nothing writes nothing.
+ * @param {ChatMessage} message
+ * @param {string[]} keys
+ * @param {() => unknown} work The handler.
+ * @returns {Promise<void>}
+ */
+async function pressThenMark(message, keys, work) {
+	const held = keys.map((key) => `${message.id} ${key}`);
+	if (held.some((key) => pressing.has(key))) return warn("cardButtons.alreadyPressed");
+	for (const key of held) pressing.add(key);
+	try {
+		if (await work()) await markButtons(message, keys);
+	} finally {
+		for (const key of held) pressing.delete(key);
+	}
+}
+
+/** How many times a press's mark is asked to be taken back, and how long apart, before the presser is told. */
+const RELEASE_TRIES = 3;
+const RELEASE_WAIT = 2000;
+
+/**
+ * Take back the mark on buttons whose work came to nothing, asking again a
+ * little later if it couldn't be, as when the Referee has just left.
+ * @param {ChatMessage} message
+ * @param {string[]} keys
+ * @returns {Promise<boolean>} Whether they can be pressed again.
+ */
+async function releaseButtons(message, keys) {
+	for (let tries = 1; ; tries++) {
+		try {
+			if (await markButtons(message, keys, { release: true })) return true;
+		} catch (error) {
+			console.warn(`${SYSTEM_ID} | Couldn't free the button again`, error);
+		}
+		if (tries >= RELEASE_TRIES) return false;
+		await new Promise((resolve) => setTimeout(resolve, RELEASE_WAIT));
+	}
+}
+
+/**
+ * Mark buttons spent, do their work, and take the mark back if it came to
+ * nothing. Marked first, so two people pressing at once can't both do it.
+ * Where the mark can't be taken back, the presser is told. The Referee's own
+ * buttons are marked once their work is done.
+ * @param {ChatMessage} message
+ * @param {string[]} keys
+ * @param {() => unknown} work The handler.
+ * @param {{gmOnly?: boolean}} [options]
+ * @returns {Promise<void>}
+ */
+async function pressOnce(message, keys, work, { gmOnly = false } = {}) {
+	if (gmOnly) return pressThenMark(message, keys, work);
+	if (!(await markButtons(message, keys))) {
+		warn(writesCard(message) ? "cardButtons.alreadyPressed" : "cardButtons.notKept");
+		return;
+	}
+	let done = false;
+	try {
+		done = Boolean(await work());
+	} finally {
+		if (!done && !(await releaseButtons(message, keys))) warn("cardButtons.stuck");
+	}
+}
+
 /** Where a card keeps the buttons that have done their work for good. */
 const SPENT_FLAG = "spentButtons";
 
-/** The GM query that keeps a pressed button on a card its presser can't update. */
+/** The GM query that marks a card's buttons pressed, or takes the mark back, for whoever pressed them. */
 const SPEND_QUERY = `${SYSTEM_ID}.spendButton`;
+
+/** Each card's writes, one at a time, so two at once each start from the other's. */
+const cardWrites = keyedSerialWrites();
+
+/**
+ * Whether this client writes a card's changes itself. With a GM here, only
+ * the active GM's client writes cards, so two people's changes at once are
+ * kept one after the other; without one, the card's owner writes it.
+ * @param {ChatMessage} message
+ * @returns {boolean}
+ */
+function writesCard(message) {
+	const gm = game.users?.activeGM;
+	return gm ? Boolean(gm.isSelf) : Boolean(message.isOwner);
+}
 
 /**
  * @param {ChatMessage} message
@@ -174,37 +280,59 @@ const SPEND_QUERY = `${SYSTEM_ID}.spendButton`;
 const spentButtons = (message) => message?.flags?.[SYSTEM_ID]?.[SPENT_FLAG] ?? [];
 
 /**
- * Keep on a card that some of its buttons have done their work, asking the
- * active GM where the presser can't update the card.
+ * Mark buttons spent, or with `release` take back the mark on buttons whose work came to nothing, so they can
+ * be pressed again: here where this client writes the card, else by asking the active GM.
  * @param {ChatMessage} message
  * @param {string[]} keys
- * @returns {Promise<unknown>} False where the GM couldn't keep one.
+ * @param {{release?: boolean}} [options]
+ * @returns {Promise<boolean>} False when one was spent already, or the GM didn't keep them.
  */
-async function spendButtons(message, keys) {
-	if (message.isOwner) return message.setFlag(SYSTEM_ID, SPENT_FLAG, [...new Set([...spentButtons(message), ...keys])]);
-	// One at a time, so each is kept beside the one before rather than written over it.
-	let kept = true;
-	for (const key of keys) kept = (await askActiveGM(SPEND_QUERY, { messageId: message.id, key }, "Couldn't keep the button pressed")) !== false && kept;
-	return kept;
+async function markButtons(message, keys, { release = false } = {}) {
+	if (writesCard(message)) return writeMarks(message, keys, release);
+	const asked = { messageId: message.id, keys, ...(release ? { release: true } : {}) };
+	const failure = release ? "Couldn't free the button again" : "Couldn't keep the button pressed";
+	return (await askActiveGM(SPEND_QUERY, asked, failure)) === true;
 }
 
 /**
- * The selectors, as a key begins, of the once-only buttons somebody besides
- * the Referee may press, each with who may. The Referee can update any card,
- * so never asks.
- * @type {Map<string, (message: ChatMessage, user: User) => boolean>}
+ * Mark buttons spent on the card, in its queue, unless one of them is already;
+ * or, released, take the mark off them.
+ * @param {ChatMessage} message
+ * @param {string[]} keys
+ * @param {boolean} release
+ * @returns {Promise<boolean>}
  */
-const askedSpends = new Map();
+function writeMarks(message, keys, release) {
+	return cardWrites(message.id)(async () => {
+		const spent = spentButtons(message);
+		const marked = keys.some((key) => spent.includes(key));
+		if (release) {
+			if (marked) await message.setFlag(SYSTEM_ID, SPENT_FLAG, spent.filter((key) => !keys.includes(key)));
+			return true;
+		}
+		if (marked) return false;
+		await message.setFlag(SYSTEM_ID, SPENT_FLAG, [...spent, ...keys]);
+		return true;
+	});
+}
 
 /**
- * How many of a kind of button a card holds, read from its HTML as posted.
- * @param {ChatMessage} message
- * @param {string} selector
- * @returns {number}
+ * The selectors, as a key begins, of every once-only button, each with
+ * whether it's the Referee's alone and who else may press it.
+ * @type {Map<string, {gmOnly: boolean, mayPress: (message: ChatMessage, user: User, button: HTMLElement|null) => boolean}>}
  */
-function buttonCount(message, selector) {
-	const content = new DOMParser().parseFromString(String(message.content ?? ""), "text/html");
-	return content.querySelectorAll(selector).length;
+const onceButtons = new Map();
+
+/**
+ * One of a kind of button on a card, read from its HTML as posted.
+ * @param {Document} content The card's HTML, parsed.
+ * @param {string} selector
+ * @param {number} index
+ * @returns {HTMLElement|null} Null where the card holds no such button.
+ */
+function buttonAt(content, selector, index) {
+	const buttons = content.querySelectorAll(selector);
+	return index < buttons.length ? (buttons[index] ?? null) : null;
 }
 
 /**
@@ -217,28 +345,45 @@ function buttonCount(message, selector) {
 const seesCard = (message, user) => !message.whisper?.length || message.author?.id === user.id || message.whisper.includes(user.id);
 
 /**
- * A user's press of a once-only button, kept for them by the active GM. A
- * button only the Referee has is never spent by asking, nor one on a card the
- * asker can't see, nor one whose work they couldn't have done, nor one the card
- * doesn't hold.
- * @param {{messageId: string, key: string}} data
- * @param {object} [context]
- * @returns {Promise<boolean>}
+ * Whether a user may mark one of a card's once-only buttons, or take the mark
+ * back: never one only the Referee has unless they're a GM, nor one on a card
+ * they can't see, nor one whose work they couldn't do, nor one the card doesn't hold.
+ * @param {ChatMessage} message
+ * @param {Document} content Its HTML, parsed.
+ * @param {User} user
+ * @param {unknown} key
+ * @returns {boolean}
  */
-async function onSpendQuery({ messageId, key } = {}, context = {}) {
-	const user = queryAsker(context);
-	if (!user) return false;
-	const message = game.messages.get(messageId);
-	if (!message || typeof key !== "string") return false;
+function mayAskSpend(message, content, user, key) {
+	if (typeof key !== "string") return false;
 	const at = key.lastIndexOf("#");
 	const selector = key.slice(0, at);
 	const index = key.slice(at + 1);
-	const mayPress = askedSpends.get(selector);
-	if (at < 0 || !mayPress || !/^\d{1,3}$/.test(index)) return false;
-	if (!seesCard(message, user) || !mayPress(message, user)) return false;
-	if (Number(index) >= buttonCount(message, selector)) return false;
-	await spendButtons(message, [key]);
-	return true;
+	const kind = onceButtons.get(selector);
+	if (at < 0 || !kind || !/^\d{1,3}$/.test(index)) return false;
+	const button = buttonAt(content, selector, Number(index));
+	if (!button || !seesCard(message, user)) return false;
+	if (user.isGM) return true;
+	return !kind.gmOnly && Boolean(kind.mayPress(message, user, button));
+}
+
+/**
+ * A user's press of a once-only button, marked for them by the active GM, or
+ * its mark taken back when its work came to nothing. Each card's are kept one
+ * at a time, so of two pressing at once only the first is kept.
+ * @param {{messageId: string, keys?: string[], release?: boolean}} data
+ * @param {object} [context]
+ * @returns {Promise<boolean>} False when refused, or already pressed.
+ */
+async function onSpendQuery(data = {}, context = {}) {
+	const user = queryAsker(context);
+	if (!user) return false;
+	const message = game.messages.get(data?.messageId);
+	const keys = Array.isArray(data?.keys) ? data.keys : [];
+	if (!message || !keys.length) return false;
+	const content = new DOMParser().parseFromString(String(message.content ?? ""), "text/html");
+	if (!keys.every((key) => mayAskSpend(message, content, user, key))) return false;
+	return writeMarks(message, keys, data.release === true);
 }
 
 /**
@@ -256,9 +401,12 @@ function dropButtons(html, selector, which = () => true) {
 }
 
 /**
- * A card that keeps its state in a flag and re-renders as it changes. Only a
- * message's author and GMs can update it, so a user who can't asks the active
- * GM to record the change, through a query the caller registers.
+ * A card that keeps its state in a flag and re-renders as it changes. With a
+ * GM here, every change is recorded by the active GM, the card's author's too,
+ * through the query `answer` builds, so changes made at once are kept one
+ * after the other rather than written over each other. Its judge must allow
+ * whatever the author's own client lets them change. Without a GM, the card's
+ * owner records their own changes.
  * @template State
  * @param {object} options
  * @param {string} options.flag    Key of the state under the system's flags.
@@ -280,28 +428,34 @@ export function statefulCard({ flag, query, notices, change, render, queryable =
 	const stateOf = (message) => message?.flags?.[SYSTEM_ID]?.[flag] ?? null;
 
 	/**
+	 * Write a change, after any already being written to this card, from the
+	 * state as those left it.
 	 * @param {ChatMessage} message
 	 * @param {object} delta
 	 * @returns {Promise<boolean>} False if the card no longer allows the change.
 	 */
-	async function commit(message, delta) {
-		if (!fits(message, delta)) return false;
-		const state = change(stateOf(message), delta);
-		if (!state) return false;
-		await message.update({ ...alsoUpdate(message, delta), content: await render(state), [`flags.${SYSTEM_ID}.${flag}`]: state });
-		return true;
+	function commit(message, delta) {
+		return cardWrites(message.id)(async () => {
+			const card = game.messages?.get(message.id) ?? message;
+			if (!fits(card, delta)) return false;
+			const state = change(stateOf(card), delta);
+			if (!state) return false;
+			await card.update({ ...alsoUpdate(card, delta), content: await render(state), [`flags.${SYSTEM_ID}.${flag}`]: state });
+			return true;
+		});
 	}
 
 	/**
-	 * Record a change on the card, asking the GM when this user can't.
+	 * Record a change on the card, asking the active GM unless this client writes it.
 	 * @param {ChatMessage} message
 	 * @param {object} delta
 	 * @returns {Promise<boolean>} Whether it was recorded.
 	 */
 	async function save(message, delta) {
 		let saved = false;
-		if (message.isOwner) saved = await commit(message, delta);
-		else if (queryable(delta)) {
+		if (writesCard(message)) saved = await commit(message, delta);
+		// The author asks too, so a change of theirs is written in turn with everybody else's.
+		else if (message.isOwner || queryable(delta)) {
 			if (!game.users.activeGM) {
 				warn(`${notices}.needsGM`);
 				return false;
@@ -312,5 +466,25 @@ export function statefulCard({ flag, query, notices, change, render, queryable =
 		return Boolean(saved);
 	}
 
-	return { stateOf, commit, save };
+	/**
+	 * The query the active GM answers for a change asked of it, to register
+	 * under `query`. The card's judge says what of the change to record, told
+	 * whether the asker is the card's author, whose own client recorded it
+	 * when no GM was here.
+	 * @param {(change: object, state: State, user: User, card: {message: ChatMessage, authored: boolean}) => object|null} judge
+	 *   The change to record, or null when it's refused.
+	 * @returns {(data: {messageId?: string, change?: object}, context: object) => Promise<boolean>}
+	 */
+	function answer(judge) {
+		return async (data, context) => {
+			const user = queryAsker(context);
+			const message = game.messages?.get(data?.messageId);
+			const state = stateOf(message);
+			if (!user || !state || !data.change) return false;
+			const allowed = judge(data.change, state, user, { message, authored: message.author?.id === user.id });
+			return allowed ? commit(message, allowed) : false;
+		};
+	}
+
+	return { stateOf, commit, save, answer };
 }

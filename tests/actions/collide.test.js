@@ -64,6 +64,8 @@ describe("collide", () => {
 		const [, , context, options] = vi.mocked(postCard).mock.calls[1];
 		expect(context.action).toMatchObject({ data: "collision" });
 		expect(options.flags[SYSTEM_ID].collision).toEqual({ ship: "Actor.theirs", damage: 3 });
+		// Seen by the other ship's player however the roller rolls, since its button is theirs.
+		expect(options.mode).toBe("public");
 	});
 
 	it("rolls nothing when the question is closed", async () => {

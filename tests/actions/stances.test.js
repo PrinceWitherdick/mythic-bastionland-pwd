@@ -81,7 +81,7 @@ describe("a stance a Move Gambit takes up (p40)", () => {
 		expect(askActiveGM).toHaveBeenCalledWith(expect.stringContaining("stanceOnMove"), { actor: "Actor.kay", message: "m1", die: 0, end: false }, expect.any(String));
 		expect(theirs.updateEmbeddedDocuments).not.toHaveBeenCalled();
 
-		const kay = knight([willow()]);
+		const kay = { ...knight([willow()]), testUserPermission: (user) => user.id === "ann" };
 		globalThis.fromUuidSync = (uuid) => (uuid === "Actor.kay" ? kay : null);
 		const ask = (data) => onStanceQuery({ actor: "Actor.kay", message: "m1", die: 0, end: false, ...data }, { user: { id: "ann" } });
 		// No card, or a card with no Move from that die: nothing.
@@ -96,6 +96,39 @@ describe("a stance a Move Gambit takes up (p40)", () => {
 		game.messages.set("m1", card([]));
 		expect(await ask({ end: true })).toBe(true);
 		expect(kay.items[0].system.inEffect).toBe(false);
+	});
+
+	it("is put in effect only for somebody who plays the Knight, or one of those making the Attack", async () => {
+		const kay = { ...knight([willow()]), testUserPermission: () => false };
+		const tal = { uuid: "Actor.tal", testUserPermission: (user) => user.id === "ann" };
+		globalThis.fromUuidSync = (uuid) => ({ "Actor.kay": kay, "Actor.tal": tal })[uuid] ?? null;
+		const moved = card([{ die: 0, key: "move" }]);
+		game.messages.set("m1", moved);
+		const ask = (id) => onStanceQuery({ actor: "Actor.kay", message: "m1", die: 0, end: false }, { user: { id } });
+		expect(await ask("ann")).toBe(false);
+		expect(kay.items[0].system.inEffect).toBe(false);
+		// Tal joined the Attack, so Ann may spend the pooled die Kay rolled.
+		moved.flags[SYSTEM_ID].attack.joined = [{ actor: "Actor.tal" }];
+		expect(await ask("stranger")).toBe(false);
+		expect(await ask("ann")).toBe(true);
+		expect(kay.items[0].system.inEffect).toBe(true);
+	});
+
+	it("tells the player when no Referee is here to change the Knight's stance, or the Referee didn't", async () => {
+		globalThis.ui = { notifications: { warn: vi.fn() } };
+		try {
+			const theirs = knight([willow()], false);
+			game.users.activeGM = null;
+			await takeStanceOnMove(theirs, { message: "m1", die: 0 });
+			expect(askActiveGM).not.toHaveBeenCalled();
+			expect(ui.notifications.warn).toHaveBeenLastCalledWith("bastionland.stance.needsGM");
+			game.users.activeGM = { isSelf: false };
+			askActiveGM.mockResolvedValueOnce(false);
+			await takeStanceOnMove(theirs, { message: "m1", die: 0 });
+			expect(ui.notifications.warn).toHaveBeenLastCalledWith("bastionland.stance.refused");
+		} finally {
+			delete globalThis.ui;
+		}
 	});
 
 	it("is the GM's to answer only", async () => {

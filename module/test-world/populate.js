@@ -73,7 +73,7 @@ import { normaliseOwnMyth } from "../rules/own-myths.js";
 import { createRandom } from "../rules/random.js";
 import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
 import { crisisRollsDue } from "../rules/season-log.js";
-import { COMPANY_TRACK, addEntry } from "../rules/timeline.js";
+import { COMPANY_TRACK } from "../rules/timeline.js";
 import { TIMELINE_TAGS_FLAG } from "../rules/timeline-tags.js";
 import { hexKey, sameHex } from "../rules/realm-geometry.js";
 import { sightable } from "../rules/sighted.js";
@@ -673,7 +673,7 @@ class TestGame {
 		const tag = rumour ? await this.rumours() : "";
 		const entry = { season: timelineNow(), title, place: place || at?.name || "", placeUuid: at?.uuid ?? "", body, tag, source: "hand", createdAt: Date.now(), authorId: game.user.id };
 		try {
-			await mutateTrack(track, (entries) => addEntry(entries, entry, foundry.utils.randomID), { create: true });
+			await mutateTrack(track, { rows: [{ entry }] }, { create: true });
 		} catch (error) {
 			console.warn(`${SYSTEM_ID} | Couldn't write "${title}" on the Timeline`, error);
 		}

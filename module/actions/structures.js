@@ -55,7 +55,7 @@ const collisionDamage = (damage) => ({ damage, ranged: false, harm: { structure:
 /**
  * Roll a collision's Damage for one ship and have it take it. A ship this user
  * can't change has its Damage offered on the card instead, for its owner or the
- * Referee to take.
+ * Referee to take, posted for all to see so a private roll doesn't hide it from them.
  * @param {Actor} ship
  * @param {boolean} muchLarger
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null where the Damage was only offered.
@@ -69,7 +69,7 @@ async function takeCollision(ship, muchLarger) {
 			icon: "fa-solid fa-sailboat",
 			text,
 			action: { data: "collision", icon: "fa-solid fa-burst", label: t("structure.collide.take") }
-		}, { rolls: [roll], flags: { [SYSTEM_ID]: { collision: { ship: ship.uuid, damage: roll.total } } } });
+		}, { rolls: [roll], mode: "public", flags: { [SYSTEM_ID]: { collision: { ship: ship.uuid, damage: roll.total } } } });
 		return null;
 	}
 	await postCard(ship, "note", { icon: "fa-solid fa-sailboat", text }, { rolls: [roll] });

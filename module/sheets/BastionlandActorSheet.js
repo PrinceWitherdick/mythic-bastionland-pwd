@@ -25,6 +25,7 @@ import { etchRune, rollChance, sufferLoss, throwToChance } from "../actions/abil
 import { etchedNumber } from "../rules/ability-uses.js";
 import { blowHorn, stanceRowLabel, toggleStance } from "../actions/stances.js";
 import { hasStance } from "../rules/stances.js";
+import { canBrowseFiles } from "../book-art/files.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -233,6 +234,8 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			armourTip: this.#armourTip(),
 			// Foundry's placeholder has nothing worth enlarging, so it gets no data-name and no preview.
 			hasArt: Boolean(actor.img) && actor.img !== Actor.implementation.DEFAULT_ICON,
+			// A picture can be chosen only by whoever may edit the sheet and browse files for one.
+			canPickImage: this.isEditable && canBrowseFiles(),
 			enrichedNotes: await this._enrich(system.notes)
 		});
 	}

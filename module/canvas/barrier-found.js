@@ -7,11 +7,11 @@ import { secretsKeptOn } from "../actions/solo.js";
 import { advancePhase } from "../actions/time.js";
 import { askActiveGM } from "../ask-gm.js";
 import { t, warn } from "../chat/cards.js";
-import { queryAsker } from "../compat.js";
 import { setBarrier } from "../rules/realm-edits.js";
 import { hexAt, hexKey, inRealm, parseEdgeKey, sameHex, barrierEdges } from "../rules/realm-geometry.js";
 import { barriersMet, realmMoveProblem } from "../rules/realm-movement.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { gmAsker } from "../gm-asker.js";
 
 /** A player's Token turned back by a Barrier, told to the active GM. */
 const TURNED_BACK_QUERY = `${SYSTEM_ID}.turnedBack`;
@@ -33,9 +33,10 @@ const BARRIER_FOUND = "barrierFound";
  * @param {string[]} turned.edges The hidden Barriers' edge keys.
  * @param {{col: number, row: number}|null} [turned.from] The hex the Token was turned back into, where the Barrier is noted.
  * @param {{col: number, row: number}|null} [turned.to] The hex it tried to reach.
+ * @param {{col: number, row: number}[]} [turned.via] The hexes the move came through before `from`, the first where it set off.
  * @param {boolean} [turned.company] Whether the Token turned back was the Company's.
  */
-export function reportTurnedBack(scene, { edges, from = null, to = null, company = false }) {
+export function reportTurnedBack(scene, { edges, from = null, to = null, via = [], company = false }) {
 	if (game.user.isGM) {
 		const attempt = company ? { from, to } : null;
 		// Played alone, the Referee's own Company finds the Barrier as a player's would.
@@ -52,38 +53,58 @@ export function reportTurnedBack(scene, { edges, from = null, to = null, company
 		warn("realm.movement.needsGM");
 		return;
 	}
-	askActiveGM(TURNED_BACK_QUERY, { sceneId: scene.id, edges, from, to, company: Boolean(company) }, "Couldn't tell the Referee of the Barrier");
+	askActiveGM(TURNED_BACK_QUERY, { sceneId: scene.id, edges, from, to, via, company: Boolean(company) }, "Couldn't tell the Referee of the Barrier");
 }
 
 /** @returns {boolean} Whether a message's hex is one. */
 const isHex = (hex) => Number.isInteger(hex?.col) && Number.isInteger(hex?.row);
 
+/** The most waypoints a report's move is followed through: more than any drag across a Realm has. */
+const MAX_VIA = 64;
+
+/**
+ * The hexes a report says its move came through before the barred leg.
+ * @param {object} g
+ * @param {unknown} via
+ * @returns {{col: number, row: number}[]|null} Null where any isn't a hex of the Realm.
+ */
+function viaHexes(g, via) {
+	if (via === undefined) return [];
+	if (!Array.isArray(via) || via.length > MAX_VIA) return null;
+	const hexes = via.map((hex) => (isHex(hex) ? { col: hex.col, row: hex.row } : null));
+	return hexes.every((hex) => inRealm(g, hex)) ? hexes : null;
+}
+
 /**
  * What a player's report of a Token turned back holds that's true, or null
  * where it can't be. The move it names must be one every way of which is
- * barred, set off from where a Token the asker may move stands, or a move
- * away from it that nothing bars; for the Company, a Token that moves as it.
- * Only the Barriers that move runs into are taken.
+ * barred, reached from where a Token the asker may move stands through the
+ * waypoints it names, every leg of which nothing bars; for the Company, a
+ * Token that moves as it. Only the Barriers that move runs into are taken.
  * @param {Scene} scene
  * @param {User} user Who asked.
- * @param {{edges?: unknown, from?: unknown, to?: unknown, company?: unknown}} data
+ * @param {{edges?: unknown, from?: unknown, to?: unknown, via?: unknown, company?: unknown}} data
  * @returns {{edges: string[], from: {col: number, row: number}, company: {from: object, to: object}|null}|null}
  */
 function turnedBackFor(scene, user, data) {
 	const g = sceneGeometry(scene);
 	const from = isHex(data?.from) ? { col: data.from.col, row: data.from.row } : null;
 	const to = isHex(data?.to) ? { col: data.to.col, row: data.to.row } : null;
-	if (!Array.isArray(data?.edges) || !inRealm(g, from) || !inRealm(g, to)) return null;
+	const via = viaHexes(g, data?.via);
+	if (!Array.isArray(data?.edges) || !inRealm(g, from) || !inRealm(g, to) || !via) return null;
 	const barriers = barrierEdges(getRealm(scene).realm);
 	if (realmMoveProblem(g, barriers, from, to) !== "barrier") return null;
 
+	// Each leg up to the barred one, as the drag went: those after the first are the same whichever Token set off.
+	const ahead = [...via, from];
+	if (!ahead.slice(1).every((hex, index) => realmMoveProblem(g, barriers, ahead[index], hex) === null)) return null;
 	const company = data.company === true;
 	const setOff = (token) => {
 		// Whoever may move it: on v13 a Token with no Actor, such as the Company's, may be moved by anyone without being
 		// anyone's to own, so ownership would turn every player's report of the Company away.
 		if (!token.canUserModify?.(user, "update") || (company && !movesAsCompany(token))) return false;
 		const here = hexAt(g, token.getCenterPoint());
-		return inRealm(g, here) && realmMoveProblem(g, barriers, here, from) === null;
+		return inRealm(g, here) && realmMoveProblem(g, barriers, here, ahead[0]) === null;
 	};
 	if (!scene.tokens?.some(setOff)) return null;
 
@@ -103,8 +124,8 @@ function turnedBackFor(scene, user, data) {
  * @returns {Promise<boolean>}
  */
 export async function onTurnedBackQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const scene = game.scenes.get(data?.sceneId);
 	if (!isRealmScene(scene)) return false;
 	const turned = turnedBackFor(scene, asker, data);

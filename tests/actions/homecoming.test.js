@@ -30,7 +30,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 // A point is the hex it names.
 vi.mock("../../module/rules/realm-geometry.js", async (importOriginal) => ({ ...(await importOriginal()), hexAt: (_g, point) => point }));
 
-const { holdingChoices, markLongAbsences, oneDomainPerHolding, seatWithHolding, welcomeHome } = await import("../../module/actions/homecoming.js");
+const { FOUNDED_OPTION, holdingChoices, holdingOptions, markLongAbsences, oneDomainPerHolding, registerHomecoming, seatWithHolding, welcomeHome } = await import("../../module/actions/homecoming.js");
 const { crisisRoll } = await import("../../module/actions/dominion.js");
 
 const HOME = { col: 3, row: 2 };
@@ -129,6 +129,22 @@ describe("holdingChoices", () => {
 		expect(choices.blank).toContain("domain.holding.byName");
 		expect(holdingChoices(makeDomain({ holding: "Scene.s1.Tile.t1" })).options[0].selected).toBe(true);
 	});
+
+	it("doesn't offer a player a Holding another Domain rules, but keeps their Domain's own", () => {
+		game.user.isGM = false;
+		const realms = [{ sceneId: "s1", holdings: [{ id: "t1", hex: HOME, name: "Hollowmere" }, { id: "t2", hex: HOME, name: "Bree" }, { id: "t3", hex: HOME, name: "Carn" }] }];
+		const mine = { ...makeDomain({ holding: "Scene.s1.Tile.t3" }), name: "Mine" };
+		// Another Domain was given t2, and another rules t1 by its name; both also name t3, which this Domain has already.
+		const theirs = { ...makeDomain({ holding: "Scene.s1.Tile.t2" }), name: "Theirs" };
+		const named = makeDomain();
+		const alsoThree = { ...makeDomain({ holding: "Scene.s1.Tile.t3" }), name: "Also" };
+		game.actors.push(mine, theirs, named, alsoThree);
+		expect(holdingChoices(mine, realms).options.map(({ value }) => value)).toEqual(["Scene.s1.Tile.t3"]);
+		// Founding a new Domain, none of them is offered; the Referee is offered every one.
+		expect(holdingOptions("Scene.s1.Tile.t2", realms)).toEqual([]);
+		game.user.isGM = true;
+		expect(holdingOptions("", realms)).toHaveLength(3);
+	});
 });
 
 describe("a ruler away (p14, p20)", () => {
@@ -210,5 +226,30 @@ describe("a Holding chosen on the Domain's sheet (p20–21)", () => {
 		expect(Actor.implementation.updateDocuments).toHaveBeenCalledWith([{ _id: "d2", "system.holding": "" }]);
 		game.users.activeGM.isSelf = false;
 		expect(await oneDomainPerHolding(mine, { system: { holding: "Scene.s1.Tile.t1" } })).toEqual([]);
+	});
+
+	it("has a Domain founded on a ruled Holding take it from the other, as giving it on the sheet does", async () => {
+		const hooks = {};
+		globalThis.Hooks = { on: (name, fn) => (hooks[name] = fn) };
+		registerHomecoming();
+		const theirs = { ...makeDomain({ holding: "Scene.s1.Tile.t1" }), id: "d2" };
+		const founded = { ...makeDomain({ holding: "Scene.s1.Tile.t1" }), id: "d1" };
+		game.actors.push(theirs, founded);
+		hooks.createActor(founded, { [FOUNDED_OPTION]: true });
+		await vi.waitFor(() => expect(Actor.implementation.updateDocuments).toHaveBeenCalledWith([{ _id: "d2", "system.holding": "" }]));
+		delete globalThis.Hooks;
+	});
+
+	it("leaves the Holding with its Domain when a copy of that Domain is made, by Duplicate or import", async () => {
+		const hooks = {};
+		globalThis.Hooks = { on: (name, fn) => (hooks[name] = fn) };
+		registerHomecoming();
+		const original = { ...makeDomain({ holding: "Scene.s1.Tile.t1" }), id: "d2" };
+		const copy = { ...makeDomain({ holding: "Scene.s1.Tile.t1" }), id: "d1" };
+		game.actors.push(original, copy);
+		hooks.createActor(copy, {});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(Actor.implementation.updateDocuments).not.toHaveBeenCalled();
+		delete globalThis.Hooks;
 	});
 });

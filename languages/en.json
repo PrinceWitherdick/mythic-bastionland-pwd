@@ -476,7 +476,9 @@
         "shortbow": "Shortbow",
         "shield": "Shield",
         "javelins": "Javelins"
-      }
+      },
+      "notYours": "Only the Referee can make {name} your Knight’s Squire, as you don’t own them.",
+      "releaseNeedsReferee": "{other} is let go, but only the Referee can change {name}, so their sheet still names them. Ask the Referee to finish it."
     },
     "age": {
       "label": "Age",
@@ -813,7 +815,8 @@
       "leaves": "{steed} goes with {from} now, and would go with {knight} instead.",
       "ledBy": "{steed} goes with {from}. Only the Referee can take it from them.",
       "trample": "Trample",
-      "cannotCreate": "You can’t make new actors, so {names} stayed on the sheet as Property. Ask the Referee to make them NPCs, then drag the steed onto the Steed box."
+      "cannotCreate": "You can’t make new actors, so {names} stayed on the sheet as Property. Ask the Referee to make them NPCs, then drag the steed onto the Steed box.",
+      "notYours": "Only the Referee can make {steed} your Knight’s steed, as you don’t own it."
     },
     "remedy": {
       "use": "Use Remedy ({virtue})",
@@ -822,7 +825,8 @@
       "passPhase": "Move on a Phase for the Remedy",
       "hint": "A Remedy takes a whole Phase to use, and its Virtue comes back before anything the Phase brings, Omens included.",
       "limit": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. Give it to somebody else to carry.",
-      "limitSteed": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. {steed} could carry it."
+      "limitSteed": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. {steed} could carry it.",
+      "othersNeedReferee": "{names} weren’t restored, as only the Referee can change characters you don’t own. Ask the Referee to restore them."
     },
     "ability": {
       "label": "Ability",
@@ -2021,7 +2025,9 @@
         "removeConfirmSeated": "Does {name} leave the Court? Their seat as {seat} stands empty, and what was written about this {role} goes with them.",
         "holdsLeverage": "Holds leverage over the ruler: {leverage}",
         "noLeverage": "Holds no leverage over the ruler, which is the ruler’s good fortune.",
-        "emptyHint": "Nobody serves in the Court yet, so there is nobody for the drama to fall to."
+        "emptyHint": "Nobody serves in the Court yet, so there is nobody for the drama to fall to.",
+        "leverageNeedsReferee": "The Referee isn’t here to be told what leverage {name}’s courtier holds. Tell them when they’re back.",
+        "leverageRefused": "The Referee couldn’t be told what leverage {name}’s courtier holds. Tell them yourself."
       },
       "authority": "Authority",
       "muster": "Can muster {count} Warbands. The Marshal decides their training and armament.",
@@ -2036,7 +2042,8 @@
       "found": "Found a New Domain",
       "newName": "{knight}’s Domain",
       "cantCreate": "Founding a Domain creates it, so it needs a user who is allowed to create actors. Ask the Referee, or drag an existing Domain onto this sheet.",
-      "fromDirectory": "Drag the Domain from the Actors tab rather than a compendium."
+      "fromDirectory": "Drag the Domain from the Actors tab rather than a compendium.",
+      "notYoursToRule": "Only the Referee can make {knight} the ruler of {domain}, as you don’t own it."
     },
     "goods": {
       "itemsPack": "Arms & Goods",
@@ -2702,7 +2709,9 @@
           "label": "Season",
           "tooltip": "Slide to a Season"
         }
-      }
+      },
+      "deleteRefused": "Only the Referee can delete the Timeline.",
+      "pageDeleteRefused": "Only the Referee can delete a thread from the Timeline. Anyone can still write on it."
     },
     "gmToolkit": {
       "name": "Referee Toolkit",
@@ -3209,7 +3218,8 @@
         "roll": "Roll",
         "rollHint": "Roll Unresolved Situations for this one.",
         "remove": "Take this situation off the list",
-        "unnamed": "A situation left unresolved"
+        "unnamed": "A situation left unresolved",
+        "share": "Show the players"
       },
       "crises": {
         "title": "Crisis Rolls still owed",
@@ -3888,7 +3898,8 @@
       "damageLabelIgnores": "{name}: {loss} Damage {when}, ignoring Armour",
       "damageHint": "Take its toll now: Damage, which can Wound.",
       "washOff": "Washed off: it burns no more",
-      "burns": "{affliction} burns on: {amount} on {dice}."
+      "burns": "{affliction} burns on: {amount} on {dice}.",
+      "othersNeedReferee": "{names} weren’t afflicted, as only the Referee can change characters you don’t own. Ask the Referee to."
     },
     "deathWard": {
       "title": "Take the Mortal Wound?",
@@ -5190,7 +5201,11 @@
       "cantCreate": "Making a new Knight creates an actor, so it needs a user who is allowed to create actors. Ask the Referee."
     },
     "cardButtons": {
-      "needsGM": "A Referee needs to be logged in to use this button on somebody else’s card."
+      "needsGM": "A Referee needs to be logged in to use this button on somebody else’s card.",
+      "alreadyPressed": "Somebody pressed that button first.",
+      "notKept": "The Referee didn’t keep that press, so nothing was done. Somebody may have pressed it first.",
+      "notYours": "That button is for whoever plays the one this card names, or the Referee.",
+      "stuck": "That button did nothing, but it couldn’t be freed to press again. Ask the Referee to do what it does by hand."
     },
     "hexTarget": {
       "hint": "Point at it to ring the hex on the map. Click to go there.",
@@ -5505,7 +5520,8 @@
       "save": "Save",
       "reset": "Start Over",
       "loadFailed": "This picture couldn't be loaded to frame.",
-      "video": "A moving picture can't be framed."
+      "video": "A moving picture can't be framed.",
+      "cantBrowse": "Choosing a picture needs permission to browse files. Ask the Referee."
     },
     "artPopout": {
       "showPlayers": "Show Players",
@@ -5707,6 +5723,9 @@
         "doom": "A Mortal Wound this Season Slays instead.",
         "humiliation": "Once revenge is had, a max GD of 12 or under goes up by d6."
       }
+    },
+    "share": {
+      "needsReferee": "Only you can see {names} for now. The Referee needs to be here to share them with the other players."
     }
   }
 }

@@ -32,11 +32,13 @@ vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }) })
 
 /** Where the Company Token stands, or null with none on the map. */
 let standing = null;
+vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => true) }));
 vi.mock("../../module/actions/company.js", () => ({ findCompanyToken: () => (standing ? {} : null), companyTokenHex: () => standing }));
 
 const { foundDomain, offerRulerDomain, seatCourtiers } = await import("../../module/actions/found-domain.js");
 const { addCourtMember } = await import("../../module/actions/court.js");
 const { linkKnightDomain } = await import("../../module/actions/dominion.js");
+const { askActiveGM } = await import("../../module/ask-gm.js");
 
 const knight = (id, name, player = true) => ({ id, name, type: "knight", visible: true, hasPlayerOwner: player, folder: null, ownership: player ? { default: 0, [`u-${id}`]: 3 } : { default: 0 }, system: {} });
 
@@ -45,6 +47,8 @@ beforeEach(() => {
 	asked = [];
 	created = [];
 	actors = [knight("k1", "Tal"), knight("k2", "Moss"), knight("k3", "Brand", false)];
+	actors.get = (id) => actors.find((actor) => actor.id === id);
+	vi.mocked(askActiveGM).mockClear();
 	vi.mocked(linkKnightDomain).mockClear();
 	vi.mocked(addCourtMember).mockClear();
 	globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { NONE: 0, OBSERVER: 2, OWNER: 3 } };
@@ -64,7 +68,7 @@ beforeEach(() => {
 		return out;
 	} } };
 	globalThis.Actor = { implementation: { create: vi.fn(async (data) => {
-		const domain = { ...data, sheet: { render: vi.fn() } };
+		const domain = { id: `d${created.length}`, ownership: { [game.user.id]: 3 }, ...data, sheet: { render: vi.fn() } };
 		created.push(domain);
 		return domain;
 	}) } };
@@ -91,6 +95,22 @@ describe("foundDomain", () => {
 		actors.push({ ...knight("s1", "Pip"), system: { isSquire: true } }, { ...knight("k4", "Ash"), system: { slain: true } });
 		await foundDomain(actors[0]);
 		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss", "Brand"]);
+	});
+
+	it("lets the players of the Knights in its Circle look at it, as well as the ruler’s own", async () => {
+		formData = { holding: "", name: "Ashford", "circle.k2": true };
+		const domain = await foundDomain(actors[0]);
+		expect(domain.ownership).toEqual({ default: 0, "u-k1": 3, "u-k2": 2 });
+		expect(askActiveGM).not.toHaveBeenCalled();
+	});
+
+	it("has a player who founds one ask the Referee to share it as they would have", async () => {
+		game.user = { id: "u-k1", isGM: false, can: () => true };
+		game.users.activeGM = {};
+		formData = { holding: "", name: "Ashford", "circle.k2": true };
+		const domain = await foundDomain(actors[0]);
+		expect(domain.ownership).toEqual({ "u-k1": 3 });
+		expect(askActiveGM).toHaveBeenCalledWith(expect.stringMatching(/.shareOwnership$/), { fromId: "k1", actorIds: [domain.id] }, expect.any(String));
 	});
 
 	it("founds nothing when the window is closed", async () => {

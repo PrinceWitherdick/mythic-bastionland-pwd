@@ -20,9 +20,9 @@ vi.mock("../../module/apps/ui.js", () => ({
 	confirmDialog: vi.fn(async () => confirmed),
 	inputDialog: vi.fn(async () => formData)
 }));
-vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => answered) }));
+// Like the real one, with no GM there is nobody to answer.
+vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => (globalThis.game?.users?.activeGM ? answered : false)) }));
 vi.mock("../../module/compat.js", () => ({ queryAsker: (context) => context?.user ?? null }));
-vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null }));
 vi.mock("../../module/chat/cards.js", () => ({
 	postCard: vi.fn(async (_actor, _template, context, options) => ({ context, options })),
 	registerCardButtons: vi.fn(),
@@ -158,6 +158,33 @@ describe("who may take a Domain (p7, p21)", () => {
 	});
 });
 
+describe("a Knight dropped on a Domain (p20)", () => {
+	it("lets a player make their Knight the ruler only of a Domain they own or that names them already", async () => {
+		game.user = { isGM: false };
+		const tal = knight("k1", "Tal");
+		const theirs = domain("d1", "Ashford", { ruler: "Moss" }, { isOwner: false });
+		const named = domain("d2", "Bree", { ruler: "Tal" }, { isOwner: false });
+		const mine = domain("d3", "Carn");
+		world(tal, theirs, named, mine);
+		expect(await dominion.linkKnightDomain(tal, theirs)).toBe(false);
+		expect(tal.update).not.toHaveBeenCalled();
+		expect(warn).toHaveBeenCalledWith("domain.notYoursToRule", { knight: "Tal", domain: "Ashford" });
+		expect(await dominion.linkKnightDomain(tal, named)).toBe(true);
+		expect(tal.system.domain).toBe("Actor.d2");
+		expect(await dominion.linkKnightDomain(tal, mine)).toBe(true);
+		expect(tal.system.domain).toBe("Actor.d3");
+		expect(mine.system.ruler).toBe("Tal");
+	});
+
+	it("lets the Referee link any Knight to any Domain", async () => {
+		const tal = knight("k1", "Tal");
+		const theirs = domain("d1", "Ashford", { ruler: "Moss" }, { isOwner: false });
+		world(tal, theirs);
+		expect(await dominion.linkKnightDomain(tal, theirs)).toBe(true);
+		expect(tal.system.domain).toBe("Actor.d1");
+	});
+});
+
 describe("a new ruler (p20–21)", () => {
 	it("moves the Knights' links, and takes the new ruler out of the Circle", async () => {
 		const tal = knight("k1", "Tal", { domain: "Actor.d1" });
@@ -276,6 +303,23 @@ describe("Drama in Court's leverage (p21)", () => {
 		await dominion.dramaInCourt(ashford);
 		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.courtLeverage`, { domainId: "d1", memberId: "c1" }, expect.any(String));
 		expect(postCard.mock.calls.some(([, template]) => template === "note")).toBe(false);
+	});
+
+	it("tells a player the Referee wasn't told, with nobody to ask or a refusal", async () => {
+		game.user = { isGM: false };
+		const ashford = domain("d1", "Ashford", { court });
+		world(ashford);
+		game.users.activeGM = null;
+		expect(await dominion.tellLeverage(ashford, "c1")).toBeNull();
+		expect(warn).toHaveBeenLastCalledWith("domain.court.leverageNeedsReferee", { name: "Ashford" });
+		game.users.activeGM = { isSelf: false };
+		answered = false;
+		expect(await dominion.tellLeverage(ashford, "c1")).toBeNull();
+		expect(warn).toHaveBeenLastCalledWith("domain.court.leverageRefused", { name: "Ashford" });
+		answered = true;
+		warn.mockClear();
+		expect(await dominion.tellLeverage(ashford, "c1")).toBe(true);
+		expect(warn).not.toHaveBeenCalled();
 	});
 
 	it("whispers for a player only of a Domain they own", async () => {

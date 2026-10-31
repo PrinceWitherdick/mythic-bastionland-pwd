@@ -142,6 +142,17 @@ describe("a weapon tempered by a Wound (p98)", () => {
 		postCard.mockClear();
 		expect(await temperWeapon(actor, "guisarme", foe())).toBe(false);
 		expect(postCard).not.toHaveBeenCalled();
+		// The player is told the Referee didn't, rather than nothing happening.
+		expect(warnings).toEqual(["bastionland.ability.temperRefused"]);
+	});
+
+	it("tells the player when no Referee is here to temper the weapon", async () => {
+		const actor = smith();
+		fighting(actor, foe());
+		game.users = { activeGM: null };
+		expect(await temperWeapon(actor, "guisarme", foe())).toBe(false);
+		expect(askActiveGM).not.toHaveBeenCalled();
+		expect(warnings).toEqual(["bastionland.ability.temperNeedsGM"]);
 	});
 
 	it("is done by the GM only, read off the dealer's own sheet, and only for a Wound there to see", async () => {

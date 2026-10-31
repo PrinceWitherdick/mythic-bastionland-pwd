@@ -18,10 +18,12 @@ vi.mock("../../module/actions/knights.js", () => ({ COMPANY_KNIGHT_FLAG: "compan
 vi.mock("../../module/actions/solo.js", () => ({ SOLO_CHANGED_HOOK: "soloChanged", isSolo: () => false }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineKnighted: vi.fn(), timelineSquireTaken: vi.fn() }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null }));
+vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => true) }));
 
 const { dropCompanion, takeSteed } = await import("../../module/actions/steeds.js");
 const { chooseActor } = await import("../../module/apps/actor-pick.js");
 const { confirmDialog, inputDialog } = await import("../../module/apps/ui.js");
+const { askActiveGM } = await import("../../module/ask-gm.js");
 
 /**
  * One actor as the drop reads and writes it.
@@ -188,6 +190,37 @@ describe("dropCompanion", () => {
 		role = "follower";
 		expect(await dropCompanion(sir, guide)).toBeNull();
 		expect(guide.update).not.toHaveBeenCalled();
+	});
+
+	it("won’t let a player make a steed of somebody they don’t own", async () => {
+		game.user.isGM = false;
+		const sir = knight();
+		const bayard = actor({ id: "h1", name: "Bayard", items: trample, isOwner: false });
+		world(sir, bayard);
+		expect(await dropCompanion(sir, bayard)).toBeNull();
+		expect(sir.update).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalledWith(expect.stringContaining("steed.notYours"));
+	});
+
+	it("has a player who takes a steed ask the Referee to share it with the Knight’s other players", async () => {
+		game.user = { id: "alys", isGM: false, can: () => true };
+		game.users = { activeGM: {} };
+		const sir = knight("k1", { ownership: { default: 0, alys: 3, ben: 3 } });
+		const bayard = actor({ id: "h1", name: "Bayard", items: trample, ownership: { alys: 3 } });
+		world(sir, bayard);
+		expect(await dropCompanion(sir, bayard)).toBe(bayard);
+		expect(bayard.update).not.toHaveBeenCalled();
+		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.shareOwnership`, { fromId: "k1", actorIds: ["h1"] }, expect.any(String));
+	});
+
+	it("asks nothing where the Knight has no other players to share with", async () => {
+		game.user = { id: "alys", isGM: false, can: () => true };
+		game.users = { activeGM: {} };
+		const sir = knight();
+		const bayard = actor({ id: "h1", name: "Bayard", items: trample, ownership: { alys: 3 } });
+		world(sir, bayard);
+		await dropCompanion(sir, bayard);
+		expect(askActiveGM).not.toHaveBeenCalled();
 	});
 
 	it("brings a hireling from a compendium into the world first", async () => {

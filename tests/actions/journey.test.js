@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { COMPANY_MOVED_HOOK, COMPANY_PLACED_HOOK, JOURNEY_FLAG, forgetHexVisits, forgetMoveVisits, getJourney, heldBack, heldBackFrom, legHexes, markHexVisited, movesAsCompany, recordHexVisits, registerJourneyHooks, setHeldBack, COMPANY_MOVE_UNDONE_HOOK } from "../../module/actions/journey.js";
+import { COMPANY_MOVED_HOOK, COMPANY_PLACED_HOOK, JOURNEY_FLAG, forgetHexVisits, forgetMoveVisits, getJourney, heldBack, heldBackFrom, legHexes, markHexVisited, movesAsCompany, recordHexVisits, registerJourneyHooks, setHeldBack, COMPANY_MOVE_UNDONE_HOOK, realmKnownToPlayers } from "../../module/actions/journey.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
+import { REALM_DRAWING_FLAG } from "../../module/rules/realm-drawing.js";
 import { edgeKey, hexCentre, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 import { UNDOES_MOVE } from "../../module/canvas/undone-moves.js";
@@ -55,6 +56,28 @@ beforeEach(() => {
 afterEach(() => {
 	delete globalThis.game;
 	delete globalThis.foundry;
+});
+
+describe("realmKnownToPlayers", () => {
+	const unseen = () => false;
+
+	it("knows the Realm on show, one the players may glimpse, and one the Company has travelled", async () => {
+		const scene = realmScene();
+		expect(realmKnownToPlayers(scene, unseen)).toBe(false);
+		expect(realmKnownToPlayers({ ...scene, active: true }, unseen)).toBe(true);
+		expect(realmKnownToPlayers(scene, () => true)).toBe(true);
+		await recordHexVisits(scene, [hex(2, 2)]);
+		expect(realmKnownToPlayers(scene, unseen)).toBe(true);
+	});
+
+	it("never knows a Realm still being drawn by hand, nor a Scene that isn't a Realm", () => {
+		const scene = realmScene();
+		scene.flags[SYSTEM_ID][REALM_DRAWING_FLAG] = true;
+		scene.active = true;
+		expect(realmKnownToPlayers(scene, () => true)).toBe(false);
+		expect(realmKnownToPlayers({ active: true, getFlag: () => null }, () => true)).toBe(false);
+		expect(realmKnownToPlayers(null, () => true)).toBe(false);
+	});
 });
 
 describe("recordHexVisits", () => {

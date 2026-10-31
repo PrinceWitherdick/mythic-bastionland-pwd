@@ -1,5 +1,6 @@
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
+import { gmAsker } from "../gm-asker.js";
 import { t } from "../chat/cards.js";
-import { queryAsker } from "../compat.js";
 import { HEX_SHARED_FLAG, HEX_SHARED_VERSION, forgetBarrierMet, forgetPartyNote, forgetShared, forgetTold, normaliseShared, normaliseSharedRecord, recordBarrierMet, recordTold, setPartyNote, keepBarriersMet } from "../rules/hex-shared.js";
 import { hexKey, inRealm } from "../rules/realm-geometry.js";
 import { knownToPlayers } from "../rules/travels.js";
@@ -10,7 +11,6 @@ import { getHexVisits } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { sightedMarkAt } from "./sighted.js";
 import { timelineNoteForgotten, timelinePartyNote } from "./timeline-events.js";
-import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 
 /**
  * What the players hold about each hex: what the Referee told them, and the
@@ -176,8 +176,8 @@ export async function writePartyNote(scene, hex, text) {
  * @returns {Promise<boolean>}
  */
 export async function onPartyNoteQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const scene = game.scenes.get(data.sceneId);
 	if (!scene || !isRealmScene(scene) || typeof data.text !== "string") return false;
 	const hex = { col: data.hex?.col, row: data.hex?.row };

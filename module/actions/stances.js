@@ -4,9 +4,9 @@ import { WILD_HORN_FLAG, hornBlownFor } from "./damage.js";
 import { combatantOf } from "./lasting-dice.js";
 import { hasStance, lapsedUpdates, onMoveUpdates } from "../rules/stances.js";
 import { causedBy } from "./ledger.js";
-import { askActiveGM } from "../ask-gm.js";
-import { attackOf } from "../chat/attack-flag.js";
-import { queryAsker } from "../compat.js";
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
+import { attackOf, ownsAnAttacker } from "../chat/attack-flag.js";
+import { gmAsker } from "../gm-asker.js";
 
 /** The query asking the GM to take up, or end, a stance a Move Gambit brought, for a user who can't (p40). */
 const STANCE_QUERY = `${SYSTEM_ID}.stanceOnMove`;
@@ -31,6 +31,20 @@ function moveOnCard(by, actorUuid) {
 	if (!attack) return null;
 	const spent = attack.gambits?.find((gambit) => gambit.die === by.die);
 	return spent?.key === "move" && (attack.dice?.[by.die]?.actor ?? attack.attacker) === actorUuid;
+}
+
+/**
+ * Whether a user may have the GM change a Knight's stance from a card: they
+ * own the Knight, or one of those making the card's Attack.
+ * @param {User} user
+ * @param {Actor} actor
+ * @param {{message?: string}} by
+ * @returns {boolean}
+ */
+function mayAskStance(user, actor, by) {
+	if (actor?.testUserPermission?.(user, "OWNER")) return true;
+	const attack = attackOf(game.messages?.get(by?.message));
+	return Boolean(attack) && ownsAnAttacker(attack, user);
 }
 
 /**
@@ -87,10 +101,23 @@ export function stanceRowLabel({ type, system }) {
 export async function takeStanceOnMove(actor, by = {}) {
 	if (!actor?.items || !onMoveUpdates(actor.items.contents).length) return;
 	if (!actor.isOwner) {
-		if (stampOf(by) && game.users.activeGM) await askActiveGM(STANCE_QUERY, { actor: actor.uuid, message: by.message, die: by.die, end: false }, `Couldn't put ${actor.name}'s stance into effect`);
+		if (stampOf(by)) await askStance(actor, by, false);
 		return;
 	}
 	await putStanceOnMove(actor, by);
+}
+
+/**
+ * Ask the active GM to take up, or end, a stance for a Knight this user can't
+ * change, telling them when nobody can.
+ * @param {Actor} actor
+ * @param {{message?: string, die?: number|null}} by
+ * @param {boolean} end
+ * @returns {Promise<boolean>} Whether the GM did it.
+ */
+async function askStance(actor, by, end) {
+	const asked = { actor: actor.uuid, message: by.message, die: by.die, end };
+	return Boolean(await askActiveGMOrWarn(STANCE_QUERY, asked, `Couldn't change ${actor.name}'s stance`, { absent: "stance.needsGM", refused: "stance.refused", data: { name: actor.name } }));
 }
 
 /**
@@ -119,7 +146,7 @@ export async function endStanceFromMove(actor, by) {
 	const stamp = stampOf(by);
 	if (!actor?.items || !stamp || !takenBy(actor, stamp).length) return;
 	if (actor.isOwner) await dropStanceFromMove(actor, stamp);
-	else if (game.users.activeGM) await askActiveGM(STANCE_QUERY, { actor: actor.uuid, message: by.message, die: by.die, end: true }, `Couldn't end ${actor.name}'s stance`);
+	else await askStance(actor, by, true);
 }
 
 /**
@@ -144,17 +171,20 @@ async function dropStanceFromMove(actor, stamp) {
 
 /**
  * The GM taking up, or ending, a stance a Move Gambit brought, for whoever
- * spent or took back the die: only as the card shows it.
+ * spent or took back the die: only as the card shows it, and only for somebody
+ * who plays the Knight or one of those making the Attack, whose pooled dice any
+ * of them may spend (p8).
  * @param {{actor?: string, message?: string, die?: number, end?: boolean}} data
  * @param {object} context
  * @returns {Promise<boolean>}
  */
 export async function onStanceQuery(data = {}, context = {}) {
-	if (!queryAsker(context) || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const actor = typeof data?.actor === "string" ? fromUuidSync(data.actor) : null;
 	const by = { message: data?.message, die: data?.die };
 	const stamp = stampOf(by);
-	if (!actor?.items || !stamp) return false;
+	if (!actor?.items || !stamp || !mayAskStance(asker, actor, by)) return false;
 	const shown = moveOnCard(by, actor.uuid);
 	if (data.end) return shown === false ? dropStanceFromMove(actor, stamp) : false;
 	return shown === true ? putStanceOnMove(actor, by) : false;

@@ -6,6 +6,7 @@ import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
 import { isKnight } from "../rules/knight-types.js";
+import { shareMade } from "./belonging.js";
 
 /**
  * The world setup step that reads older Knights' Property into weapons and
@@ -90,6 +91,8 @@ export async function makeCompanions(items, { folder = null, ownership, id } = {
 			}
 		}
 	})));
+	// A player who made them asks the Referee to share them as the Knight is shared, once the Knight is made.
+	if (id) await shareMade(made, game.actors.get(id));
 	return {
 		made,
 		steed: made[carried.findIndex((entry) => entry.steed)]?.uuid ?? null,

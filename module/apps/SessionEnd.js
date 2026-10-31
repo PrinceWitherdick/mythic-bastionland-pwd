@@ -71,6 +71,9 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** Whether the recap goes on the Timeline too, which everyone reads, as well as in the Season's notes. */
 	#shareRecap = true;
 
+	/** Whether the table's card tells what became of the situations, which are the Referee's own until they say. */
+	#shareSituations = false;
+
 	/** Why a step is offered before one is picked: "promised", or null. */
 	#offered = null;
 
@@ -115,6 +118,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				...situation,
 				text: situation.result ? t(`refereeRolls.tables.unresolved.results.${situation.result}`) : null
 			})),
+			shareSituations: this.#shareSituations,
 			awards: GLORY_BUTTONS.map((key) => ({
 				key,
 				label: t(`glory.awards.${key}.label`),
@@ -139,6 +143,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 		root.querySelector("[name=plans]")?.addEventListener("input", (event) => { this.#plans = event.target.value; });
 		root.querySelector("[name=recap]")?.addEventListener("input", (event) => { this.#recap = event.target.value; });
 		root.querySelector("[name=shareRecap]")?.addEventListener("change", (event) => { this.#shareRecap = event.target.checked; });
+		root.querySelector("[name=shareSituations]")?.addEventListener("change", (event) => { this.#shareSituations = event.target.checked; });
 		root.querySelector(".bastionland-session-end__situations")?.addEventListener("input", (event) => {
 			if (!event.target.matches("[name=situation]")) return;
 			const row = this.#row(event.target);
@@ -249,6 +254,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				step: this.#step,
 				passed: t(`sessionEnd.time.steps.${this.#step}.card`),
 				situations: this.#situations.filter((situation) => situation.result),
+				shareSituations: this.#shareSituations,
 				glory: this.#glory.map(({ key, names }) => t("sessionEnd.glory.awarded", { award: t(`glory.awards.${key}.label`), names })),
 				plans: this.#plans,
 				recap: this.#recap,

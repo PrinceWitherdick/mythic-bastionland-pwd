@@ -1,7 +1,7 @@
 <div class="bastionland-page bastionland-page--tabbed">
 	<header class="bastionland-header">
 		<figure class="bastionland-portrait" {{#unless hasArt}}data-tooltip="{{localize 'bastionland.sheet.portrait'}}"{{/unless}}>
-			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if portraitStyle}}style="{{portraitStyle}}"{{/if}} {{#if hasArt}}data-name="{{portraitName}}"{{/if}} {{#if (or hasArt editable)}}data-action="openPortrait"{{/if}}>
+			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if portraitStyle}}style="{{portraitStyle}}"{{/if}} {{#if hasArt}}data-name="{{portraitName}}"{{/if}} {{#if (or hasArt canPickImage)}}data-action="openPortrait"{{/if}}>
 		</figure>
 		<div class="bastionland-header__text">
 			<div class="bastionland-title-row">
@@ -254,10 +254,10 @@
 			<p class="bastionland-hint">{{localize "bastionland.seer.unnamed"}}</p>
 			{{/unless}}
 			<div class="bastionland-seer__body">
-				{{#if (or system.seerImg editable)}}
+				{{#if (or system.seerImg canPickImage)}}
 				<figure class="bastionland-seer__portrait">
 					{{#if system.seerImg}}
-					<img src="{{system.seerImg}}" alt="{{system.seer}}" {{#if editable}}data-action="pickSeerImage" data-tooltip="{{localize 'bastionland.seer.portrait'}}"{{/if}}>
+					<img src="{{system.seerImg}}" alt="{{system.seer}}" {{#if canPickImage}}data-action="pickSeerImage" data-tooltip="{{localize 'bastionland.seer.portrait'}}"{{/if}}>
 					{{else}}
 					<button type="button" class="bastionland-seer__pick" data-action="pickSeerImage"><i class="fa-solid fa-image" inert></i> {{localize "bastionland.seer.portrait"}}</button>
 					{{/if}}

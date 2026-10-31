@@ -1,6 +1,6 @@
 import { chooseDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
-import { awayFromHome, cameHome, findDomainHolding, holdingLands, holdingRef, parseHoldingRef, rulingKnightOf } from "../rules/dominion.js";
+import { awayFromHome, cameHome, findDomainHolding, holdingLands, holdingRef, holdingRulers, parseHoldingRef, rulingKnightOf } from "../rules/dominion.js";
 import { soloRealm } from "../rules/solo.js";
 import { realmKnown } from "./solo.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -40,14 +40,15 @@ function domainHolding(domain, realms = realmHoldings()) {
 
 /**
  * What the Domain sheet's Holding list offers: every Realm's Holdings, the
- * Realm named where there's more than one.
+ * Realm named where there's more than one. A player isn't offered those
+ * another Domain rules.
  * @param {Actor} domain
  * @param {import("../rules/dominion.js").RealmHoldings[]} [realms]
  * @returns {{options: {value: string, label: string, selected: boolean}[], blank: string}}
  */
 export function holdingChoices(domain, realms = realmHoldings()) {
 	const named = domain.system.holding ? null : domainHolding(domain, realms);
-	return { options: holdingOptions(domain.system.holding, realms), blank: named ? t("domain.holding.byName", { name: holdingName(named.holding, t) }) : t("domain.holding.none") };
+	return { options: holdingOptions(domain.system.holding, realms, { domain }), blank: named ? t("domain.holding.byName", { name: holdingName(named.holding, t) }) : t("domain.holding.none") };
 }
 
 /**
@@ -79,16 +80,23 @@ export function domainLands(domain, realms = realmHoldings()) {
 }
 
 /**
- * Every Realm's Holdings as a list to pick from, the Realm named where there's more than one.
+ * Every Realm's Holdings as a list to pick from, the Realm named where there's
+ * more than one. One Domain rules a Holding, and giving it to another takes it
+ * from the first, which only the Referee may do: a player isn't offered a
+ * Holding another Domain rules, unless it's the one this Domain has already.
  * @param {string} selected From holdingRef.
  * @param {import("../rules/dominion.js").RealmHoldings[]} [realms]
  * @param {object} [options]
  * @param {Actor|null} [options.domain] The Domain choosing, or none for one still to be founded.
  * @returns {{value: string, label: string, selected: boolean}[]}
  */
-export function holdingOptions(selected, realms = realmHoldings()) {
+export function holdingOptions(selected, realms = realmHoldings(), { domain = null } = {}) {
 	const many = realms.length > 1;
-	return realms.flatMap(({ sceneId, holdings }) => holdings.filter((holding) => holding.id).map((holding) => {
+	const own = domain?.system.holding ?? "";
+	const domains = game.user.isGM ? [] : worldDomains();
+	const open = ({ sceneId, holding }) => game.user.isGM || (own && holdingRef(sceneId, holding.id) === own)
+		|| holdingRulers(realms, domains, sceneId, holding.id).every((ruler) => ruler === domain);
+	return realms.flatMap(({ sceneId, holdings }) => holdings.filter((holding) => holding.id && open({ sceneId, holding })).map((holding) => {
 		const value = holdingRef(sceneId, holding.id);
 		const label = `${holdingName(holding, t)} ${t("realm.readout.coordinates", holding.hex)}`;
 		return { value, label: many ? `${label}, ${game.scenes.get(sceneId)?.name ?? ""}` : label, selected: value === selected };
@@ -233,11 +241,29 @@ export async function oneDomainPerHolding(actor, changes) {
 	return others;
 }
 
-/** Follow the Company home, and keep each Holding with one Domain. Called during init. */
+/**
+ * @param {Actor} actor
+ * @param {object} changes
+ */
+function keepOneDomain(actor, changes) {
+	oneDomainPerHolding(actor, changes).catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep a Holding with one Domain`, error));
+}
+
+/**
+ * The create option a Domain founded on a Holding is made with, so it takes the
+ * Holding from any other; a Domain duplicated or imported carries its Holding
+ * without it, and leaves the Domain it was copied from ruling.
+ */
+export const FOUNDED_OPTION = `${SYSTEM_ID}Founded`;
+
+/**
+ * Follow the Company home, and keep each Holding with one Domain, whether it's
+ * given on a Domain's sheet or a Domain is founded on it. Called during init.
+ */
 export function registerHomecoming() {
 	Hooks.on(COMPANY_MOVED_HOOK, noticeMove);
 	Hooks.on("preUpdateActor", (actor, changes) => seatWithHolding(actor, changes));
-	Hooks.on("updateActor", (actor, changes) => {
-		oneDomainPerHolding(actor, changes).catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep a Holding with one Domain`, error));
-	});
+	Hooks.on("updateActor", keepOneDomain);
+	// A Domain founded on a Holding is given it as it's made, which no update says.
+	Hooks.on("createActor", (actor, options) => options?.[FOUNDED_OPTION] && keepOneDomain(actor, { system: { holding: actor.system?.holding } }));
 }

@@ -1,5 +1,4 @@
 import { seasonKey } from "../rules/time.js";
-import { upsertByKey } from "../rules/timeline.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
 import { mutateTrack, removeKeyEverywhere, trackFor } from "./timeline-store.js";
@@ -73,9 +72,8 @@ export async function recordOnTrack(target, milestones, { when } = {}) {
 	try {
 		const season = when ?? timelineNow();
 		const stamp = { createdAt: Date.now(), authorId: game.user?.id ?? "" };
-		return await mutateTrack(track, (entries) => ({
-			entries: list.reduce((current, { refresh = [], about: _about, ...milestone }) => upsertByKey(current, { season, ...stamp, ...milestone }, { refresh, makeId: foundry.utils.randomID }).entries, entries)
-		}), { create: true });
+		const rows = list.map(({ refresh = [], about: _about, ...milestone }) => ({ entry: { season, ...stamp, ...milestone }, refresh }));
+		return await mutateTrack(track, { rows }, { create: true });
 	} catch (error) {
 		warnOnce(error);
 		return null;

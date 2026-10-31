@@ -1,4 +1,4 @@
-import { pickImageInto } from "../book-art/files.js";
+import { canBrowseFiles, pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { FrameButtonsMixin } from "../compat.js";
 import { slugify } from "../rules/book-art.js";
@@ -83,8 +83,9 @@ export class PortraitPopout extends ArtPopout {
 	_getFrameButtons(options) {
 		const buttons = super._getFrameButtons(options);
 		if (this.actor?.isOwner) {
+			// Choosing another picture opens the FilePicker, which stays shut for a user who may not browse files.
 			buttons.unshift(
-				{ action: "changePicture", icon: "fa-solid fa-image", label: "bastionland.portrait.change" },
+				...(canBrowseFiles() ? [{ action: "changePicture", icon: "fa-solid fa-image", label: "bastionland.portrait.change" }] : []),
 				{ action: "framePortrait", icon: "fa-solid fa-crop-simple", label: "bastionland.portrait.frame" }
 			);
 		}

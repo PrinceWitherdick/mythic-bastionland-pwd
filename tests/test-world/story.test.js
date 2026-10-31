@@ -175,8 +175,9 @@ vi.mock("../../module/actions/timeline-store.js", () => ({
 		if (target === "company") return { trackId: "company", kind: "company", name: "The Company" };
 		return target?.id ? { trackId: target.id, kind: target.type ?? "realm", name: target.name } : null;
 	},
-	mutateTrack: vi.fn(async (track, change) => {
-		const result = change(world.timeline[track.trackId]?.entries ?? []);
+	mutateTrack: vi.fn(async (track, write) => {
+		const { applyTrackWrite } = await import("../../module/rules/timeline.js");
+		const result = applyTrackWrite(world.timeline[track.trackId]?.entries ?? [], write, () => foundry.utils.randomID());
 		world.timeline[track.trackId] = { kind: track.kind, name: track.name, entries: result.entries };
 		return result;
 	})

@@ -4,7 +4,7 @@ import { keepHexSparks, keepTableRoll, throwSparkDice, wildernessHexTables } fro
 import { keepHexPerson, namesForHex, postPerson, rollPersonTables } from "../actions/people.js";
 import { isRealmScene } from "../actions/realm.js";
 import { rollSpark } from "../actions/referee-rolls.js";
-import { loadArtIndex } from "../book-art/art-index.js";
+import { loadArtIndex, ART_INDEX_HOOK } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { read, reducesMotion } from "../client-settings.js";
 import { noPicks, pickRow, pickTablesView } from "../rules/gm-toolkit.js";
@@ -186,6 +186,11 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {{scene: Scene, hex: {col: number, row: number}}|null} The hex the wilderness rows were taken for, from the first one taken. */
 	#takenFor = null;
 
+	constructor(options) {
+		super(options);
+		// One window serves the whole session, so an Import PDF run since it opened brings in the new tables.
+		Hooks.on(ART_INDEX_HOOK, () => this.reindex());
+	}
 	/**
 	 * Where the Wilderness Hex page's Save keeps what's taken: the hex it was
 	 * taken for, so a Places turned to another hex since doesn't

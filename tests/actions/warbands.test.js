@@ -16,9 +16,11 @@ vi.mock("../../module/apps/ui.js", () => ({
 }));
 
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineDismissed: vi.fn(async () => null), timelineMustered: vi.fn(async () => null) }));
+vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => true) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");
 const timeline = await import("../../module/actions/timeline-events.js");
+const { askActiveGM } = await import("../../module/ask-gm.js");
 const { MUSTERED_FLAG, ORIGIN_FLAG, dismissWarband, musterView, musterWarband, strainWarband, warbandsOf, wearWarbandDown } =
 	await import("../../module/actions/warbands.js");
 
@@ -284,6 +286,16 @@ describe("musterWarband", () => {
 		const { confirmDialog } = await import("../../module/apps/ui.js");
 		expect(await musterWarband(fakeDomain({ muster: 2 }))).not.toBeNull();
 		expect(confirmDialog).not.toHaveBeenCalled();
+	});
+
+	it("has a player who musters one ask the Referee to share it with the Domain’s other players", async () => {
+		mustered = { warband: "blank", origin: "vassals" };
+		game.user = { id: "alys", isGM: false, can: () => true };
+		game.users = { activeGM: {} };
+		Actor.implementation.create = vi.fn(async (data) => ({ ...data, id: "w9", ownership: { alys: 3 }, sheet: { render: vi.fn() } }));
+		const domain = { ...fakeDomain(), ownership: { default: 0, alys: 3, ben: 2 } };
+		await musterWarband(domain);
+		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.shareOwnership`, { fromId: "d1", actorIds: ["w9"] }, expect.any(String));
 	});
 
 	it("raises nobody when the dialog is closed", async () => {

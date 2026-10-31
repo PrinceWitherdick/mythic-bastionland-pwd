@@ -2,7 +2,6 @@ import { askActiveGM } from "../ask-gm.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
-import { queryAsker } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import {
 	CRISES,
@@ -31,6 +30,8 @@ import { namedHeirOf } from "./succession.js";
 import { seenOrChosen, worldKnights } from "./knights.js";
 import { timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
 import { isKnight } from "../rules/knight-types.js";
+import { gmAsker } from "../gm-asker.js";
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -347,14 +348,17 @@ function whisperLeverage(domain, id) {
 /**
  * Tell the Referee alone what leverage the courtier at the heart of the Drama
  * holds. Leverage is the Referee's to know, so a player who rolled asks the
- * active GM to whisper it, since their own whisper would show it to them.
+ * active GM to whisper it, since their own whisper would show it to them. A
+ * player is told when nobody could be asked, or the Referee wasn't told, so
+ * they know to say it aloud.
  * @param {Actor} domain
  * @param {string} id The courtier's id in its Court.
+ * @returns {Promise<unknown>} The whisper, the GM's answer, or null when the Referee wasn't told.
  */
 export async function tellLeverage(domain, id) {
 	if (game.user.isGM) return whisperLeverage(domain, id);
-	if (!game.users.activeGM) return null;
-	return askActiveGM(LEVERAGE_QUERY, { domainId: domain.id, memberId: id }, `Couldn't tell the Referee the leverage at ${domain.name}'s Court`);
+	const notice = { absent: "domain.court.leverageNeedsReferee", refused: "domain.court.leverageRefused", data: { name: domain.name } };
+	return (await askActiveGMOrWarn(LEVERAGE_QUERY, { domainId: domain.id, memberId: id }, `Couldn't tell the Referee the leverage at ${domain.name}'s Court`, notice)) || null;
 }
 
 /**
@@ -365,8 +369,8 @@ export async function tellLeverage(domain, id) {
  * @returns {Promise<boolean>}
  */
 export async function onLeverageQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const domain = game.actors.get(data?.domainId);
 	if (domain?.type !== "domain" || !domain.testUserPermission(asker, "OWNER")) return false;
 	return Boolean(await whisperLeverage(domain, String(data?.memberId ?? "")));
@@ -491,8 +495,8 @@ async function moveRulerLinks(domain, knight) {
  * @returns {Promise<boolean>}
  */
 export async function onRulerQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const domain = game.actors.get(data?.domainId);
 	if (domain?.type !== "domain" || !domain.testUserPermission(asker, "OWNER")) return false;
 	const knight = data?.knightId ? game.actors.get(data.knightId) : null;
@@ -730,13 +734,19 @@ export function knightDomain(knight) {
  * @returns {boolean}
  */
 export const mayRuleDomain = (knight, domain) => Boolean(game.user.isGM || domain.isOwner || isSameName(domain.system.ruler, knight.name));
+
 /**
  * Make a Domain the one a Knight rules, writing the Knight in as its ruler if
- * nobody is yet.
+ * nobody is yet. A player who may not is told so, and nothing changes.
  * @param {Actor} knight
  * @param {Actor} domain
+ * @returns {Promise<boolean>} Whether the Knight rules it now.
  */
 export async function linkKnightDomain(knight, domain) {
+	if (!mayRuleDomain(knight, domain)) {
+		warn("domain.notYoursToRule", { knight: knight.name, domain: domain.name });
+		return false;
+	}
 	await knight.update({ "system.domain": domain.uuid });
 	if (!domain.system.ruler.trim() && domain.isOwner) await domain.update({ "system.ruler": knight.name });
 	return true;
@@ -781,7 +791,7 @@ export async function openKnightDomain(knight) {
 	}
 
 	if (domain) {
-		await linkKnightDomain(knight, domain);
+		if (!(await linkKnightDomain(knight, domain))) return null;
 	} else {
 		// Founding one asks which Holding it rules and who sits in its Circle, and closing that window founds nothing.
 		const { foundDomain } = await import("./found-domain.js");

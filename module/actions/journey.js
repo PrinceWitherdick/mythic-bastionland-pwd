@@ -6,8 +6,8 @@ import { calendarLabel, getCalendar } from "./calendar.js";
 import { COMPANY_FLAG, NOT_A_MOVE, findCompanyToken, forcedMove, wentSomewhere } from "./company.js";
 import { hexFlagEditor } from "./hex-flags.js";
 import { sidesWithCompany } from "./knights.js";
-import { timelineArrivals } from "./timeline-events.js";
 import { getRealm, isDrawingRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { timelineArrivals } from "./timeline-events.js";
 import { nameUndoneMoves, undoneMove } from "../canvas/undone-moves.js";
 
 /**
@@ -41,6 +41,7 @@ export function realmKnownToPlayers(scene, glimpsed = glimpsedBy(game.user)) {
 	if (!isRealmScene(scene) || isDrawingRealm(scene)) return false;
 	return Boolean(scene.active) || glimpsed(scene) || travelledAny(scene);
 }
+
 /**
  * @param {User} user
  * @returns {(scene: Scene) => boolean} Whether that user may glimpse a Scene.

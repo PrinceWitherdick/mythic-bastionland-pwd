@@ -218,6 +218,31 @@ Each is an Ability or item setting that can also be ticked by hand. A Knight cho
 - [ ] **T-173** After play has begun (a Domain ruling a Holding, a seen-from-afar mark, a Barrier met, a Courtier Company at the Seat), Reroll the Realm: the confirm names the Domain and what stays. Afterwards the marks are gone, the Barrier-met line is gone from Places, the Company stands at the new Seat, and the Scenes directory shows the new map. (p14)
 - [ ] **T-174** Resolve Myth 1, then roll a Ruin's echo several times on fresh Ruins: Myth 1 can come up, a Myth still being played out never does, and the card says the Realm isn't playing it out now. (p14)
 
+### What players can do audit (2026-10-30)
+Not a rules audit: each item needs the Referee and at least one player, each on their own browser.
+- [ ] **T-175** An NPC hits a player's Knight with a die left unspent. The Referee presses Apply and leaves "apply anyway?" open; the player presses Apply and takes the Damage; then the Referee confirms. The Knight takes it once, and the Referee is told it's already applied. With no Referee logged in, a player pressing Apply on another player's card is warned before any Damage lands.
+- [ ] **T-176** Two players press Join (or each adds a Gambit) on one Attack card at the same moment: both show on the card. In a duel, both duelists roll at once: both Attacks show and the duel goes on.
+- [ ] **T-177** The Referee and a player press a backlash or unhorsed button together: one roll, and the other is told somebody pressed it first. A Rally card is public, only the Referee sees its button, and pressing it restores every ally. A player pressing "New Knight" on a Fallen card makes one Knight, and the other ways on vanish.
+- [ ] **T-178** The Referee sets rolls to private and brings down a player's Knight: the player still sees the Fallen card and its buttons. The same for a Revenge card, a backlash card and a collision card.
+- [ ] **T-179** A player's Knight lands a Strong Gambit on the Referee's NPC: the player sees Greater effect and can write in something else.
+- [ ] **T-180** Two players bring down two NPCs of one side at the same moment: one group Morale card appears.
+- [ ] **T-181** With the Referee logged out, an ally spends a Willow Knight's die on a Move, or a player tempers a weapon: each is told a Referee is needed. A player with nothing on an Attack card who asks for a stance change is refused.
+- [ ] **T-182** A player drags another's Domain onto their Knight: warned, and the Knight's Domain is unchanged. Their own Domain's Holding list leaves out Holdings other Domains rule, but keeps its own. Founding a Domain on a ruled Holding takes it off the old Domain.
+- [ ] **T-183** A player uses a Remedy with two players' Knights present: both are listed and both restored, on one card. With the Referee logged out, only their own, and a warning names the rest. (p9)
+- [ ] **T-184** A player who owns a Plague NPC targets another player's Knight and presses Afflict: the Knight is afflicted and the card posts.
+- [ ] **T-185** A Squire's player (not the master's) presses × on the Squire's Knight line: the master's sheet no longer shows the Squire. Double-clicking Take a Squire makes one Squire and one pony. Dropping a Squire or an NPC steed the player doesn't own is refused with a warning.
+- [ ] **T-186** On a Knight two players share, player A takes a steed: player B sees it too. A player founds a Domain with another player's Knight in the Circle: that player can open the Domain.
+- [ ] **T-187** A plain Player (not Trusted) opens their Knight: no portrait-pick click, no Seer picture button, no Change Picture in the portrait window, and no picture choice in Domain arms.
+- [ ] **T-188** A player rolls Drama in Court with the Referee logged out: they're told to pass the leverage on themselves.
+- [ ] **T-189** A player right-clicks the Campaign Timeline journal and deletes it, or deletes one of its pages: refused with a warning. They can still write on any thread.
+- [ ] **T-190** A Realm that isn't active, has no journey and isn't shown to players is missing from a player's Places list and has no Timeline lane or Filter entry. Activate it: both appear. A Realm being drawn never shows.
+- [ ] **T-191** A player takes a Squire with the Referee logged in: the Squire's Timeline thread has one page, and the row is signed by the player.
+- [ ] **T-192** A player drags the Company with waypoints round a known Barrier, then across a hidden one: the Referee reveals it and is offered the wasted Phase. (p18)
+- [ ] **T-193** With the Referee logged out, a player drags the Company Token: refused with a warning. Their own Knight's Token still moves.
+- [ ] **T-194** A player clicks a hex chip naming a Realm they haven't been shown: a warning, and their map stays put.
+- [ ] **T-195** End the Session with an unresolved situation and **Show the players** unticked: the public card leaves it out, and the Referee gets it in a whisper. Ticked, it's on the public card. (p17)
+- [ ] **T-196** With only an Assistant GM logged in on a new world: no upload errors in the console, and players can't yet create Actors. Once a full Gamemaster logs in, players can.
+
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
 

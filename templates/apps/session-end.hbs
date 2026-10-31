@@ -51,6 +51,11 @@
 			<button type="button" class="bastionland-button" data-action="addSituation">
 				<i class="fa-solid fa-plus" inert></i> {{localize "bastionland.sessionEnd.situations.add"}}
 			</button>
+			{{!-- The situations are the Referee's own: the table's card tells what came of them only when ticked. --}}
+			<label class="bastionland-check">
+				<input type="checkbox" name="shareSituations" {{checked shareSituations}}>
+				<span class="bastionland-check__label">{{localize "bastionland.sessionEnd.situations.share"}}</span>
+			</label>
 		</section>
 		{{/if}}
 

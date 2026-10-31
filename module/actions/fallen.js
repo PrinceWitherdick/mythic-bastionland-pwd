@@ -120,6 +120,7 @@ export async function announceFallenKnight(knight, outcome) {
 	const paths = fallenPaths({ squire: Boolean(squire), followers: followers.length, successor: Boolean(heir) });
 	await timelineFallen(knight);
 
+	// The whole table sees a Knight fall, and their player needs its buttons, however the poster rolls.
 	return postCard(knight, "fallen", {
 		title: t("fallen.title"),
 		tagline: t("fallen.tagline", { name: knight.name }),
@@ -135,7 +136,7 @@ export async function announceFallenKnight(knight, outcome) {
 				follower: "fa-solid fa-people-group"
 			}[path]
 		}))
-	});
+	}, { mode: "public" });
 }
 
 /**

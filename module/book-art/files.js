@@ -7,15 +7,28 @@
 export const filePicker = () => foundry.applications.apps.FilePicker.implementation;
 
 /**
+ * Whether this user may browse files for a picture. Foundry's FilePicker
+ * quietly stays shut without the Browse File Explorer permission, which plain
+ * Players lack unless the Referee grants it, so buttons that open it are hidden.
+ * @returns {boolean}
+ */
+export const canBrowseFiles = () => Boolean(globalThis.game?.user?.can("FILES_BROWSE"));
+
+/**
  * Let the user choose a picture for one of a document's fields, starting at
- * the one it holds now.
+ * the one it holds now. A user who may not browse files is told so, rather
+ * than nothing happening.
  * @param {foundry.abstract.Document} document
  * @param {string} [field] The path the chosen picture is written to.
  * @param {string} [type] A FilePicker type, such as "image" for a picture that can't be a video.
  * @param {object} [also] Anything else written with the picture.
- * @returns {Promise<Application>}
+ * @returns {Promise<Application>|null} Null where the picker can't open.
  */
 export function pickImageInto(document, field = "img", type = "imagevideo", also = {}) {
+	if (!canBrowseFiles()) {
+		ui.notifications.warn("bastionland.portrait.cantBrowse", { localize: true });
+		return null;
+	}
 	const picker = new (filePicker())({
 		type,
 		current: foundry.utils.getProperty(document, field),

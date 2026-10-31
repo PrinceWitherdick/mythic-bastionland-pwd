@@ -332,6 +332,31 @@ describe("a player who brings down one of their own", () => {
 		expect(postCard).toHaveBeenCalledWith(null, "morale-group", expect.anything(), expect.anything());
 		delete globalThis.fromUuidSync;
 	});
+
+	it("posts one card for a side, when two players bring down two of it at once", async () => {
+		const ann = fakeNpc("Actor.ann", { vig: 0, slain: true });
+		const bo = fakeNpc("Actor.bo", { vig: 0, slain: true });
+		for (const actor of [ann, bo]) actor.testUserPermission = () => true;
+		const combat = fakeCombat([fakeCombatant("c1", ann), fakeCombatant("c2", bo), fakeCombatant("c3", fakeNpc("Actor.cole"))]);
+		combat.id = "combat-1";
+		// Marking the Combat takes a moment, as a flag written to the server does.
+		const mark = combat.setFlag.getMockImplementation();
+		combat.setFlag.mockImplementation(async (...args) => {
+			await new Promise((resolve) => setTimeout(resolve, 5));
+			return mark(...args);
+		});
+		game.combats = [combat];
+		globalThis.fromUuidSync = (uuid) => ({ "Actor.ann": ann, "Actor.bo": bo })[uuid] ?? null;
+		try {
+			await Promise.all([
+				onGroupMoraleQuery({ uuid: "Actor.ann" }, { user: { id: "p1" } }),
+				onGroupMoraleQuery({ uuid: "Actor.bo" }, { user: { id: "p2" } })
+			]);
+			expect(postCard.mock.calls.filter(([, template]) => template === "morale-group")).toHaveLength(1);
+		} finally {
+			delete globalThis.fromUuidSync;
+		}
+	});
 });
 
 describe("going down for good", () => {

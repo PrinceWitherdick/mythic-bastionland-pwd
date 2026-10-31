@@ -7,6 +7,7 @@ import { letGoOf } from "../actions/leading.js";
 import { keepsMoraleMark, rollMorale } from "../actions/saves.js";
 import { offerRevenge } from "../actions/scars.js";
 import { BREAK_ICONS, GROUP_ORDER, downOf, downedPlace, groupHalved, isMoraleBreak, moraleRollers, skipsBrokenTurn } from "../rules/morale.js";
+import { keyedSerialWrites } from "../rules/queue.js";
 import { outOfFight } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { onCardClick, postCard, t, warn } from "./cards.js";
@@ -72,7 +73,21 @@ export async function promptGroupMorale(actor) {
 	const combat = own?.parent;
 	const disposition = own?.token?.disposition;
 	if (disposition === undefined) return null;
+	// One side's weighing at a time in each Combat, so two blows at once ask only once, and neither side's mark is lost.
+	return groupMoraleWrites(combat.id)(() => askSide(combat, disposition));
+}
 
+/** Each Combat's group Morale prompts, one at a time. */
+const groupMoraleWrites = keyedSerialWrites();
+
+/**
+ * Post a side's group Morale card, once half of it is down and it hasn't been asked before.
+ * @param {Combat} combat
+ * @param {number} disposition The side's Token disposition.
+ * @returns {Promise<ChatMessage|null>}
+ */
+async function askSide(combat, disposition) {
+	// Read again in the queue, as the prompt before may have marked this side.
 	const prompted = combat.getFlag(SYSTEM_ID, PROMPTED_FLAG) ?? [];
 	if (prompted.includes(disposition)) return null;
 

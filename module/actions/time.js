@@ -68,7 +68,8 @@ import { announceFallenKnight, companionsOf } from "./fallen.js";
  * present and every Knight or Squire whose Token is selected are listed ticked,
  * then every other, ticked when they ride with the Company. NPCs and NPC
  * Knights are listed only when given. Players see only the characters they
- * own, since those are all they can change. The Slain take no part, so a Season
+ * own, since those are all they can change, unless the whole Company is
+ * wanted, as for a Remedy everybody present shares. The Slain take no part, so a Season
  * that restores Virtues doesn't raise them. With pursuits, each picks one too,
  * and says beside it what a pursuit that makes something made (p17); a Squire
  * isn't offered those only a Knight can follow. As an Age turns, each who has a
@@ -86,16 +87,18 @@ import { announceFallenKnight, companionsOf } from "./fallen.js";
  * @param {boolean} [options.aging] Ask who grows a stage older, as an Age turns.
  * @param {boolean} [options.onlyGiven] List only those given, not the selected Tokens or the world's Knights.
  * @param {boolean} [options.companions] List each Knight's steed and followers too, from companionsOf.
+ * @param {boolean} [options.wholeCompany] Show a player the Company's Knights, and those given, that they don't own too.
  * @returns {Promise<{actor: Actor, pursuit: string|null, making: string|null, older: boolean}[]|null>}
  *   Those ticked, or null if closed. `making` is one of the pursuit's PURSUIT_MAKINGS, or null where not said yet.
  */
-export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false, companions = false }) {
+export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false, companions = false, wholeCompany = false }) {
 	const candidates = [];
 	const seen = new Set();
 	const add = (actor, included, given = false) => {
 		if (!actor?.system?.virtues || actor.system.slain || seen.has(actor.uuid)) return;
 		if (given ? knightsOnly && !isKnight(actor) : !isCompanyKnight(actor)) return;
-		if (!game.user.isGM && !actor.isOwner) return;
+		// Another player's Knight is offered only while they ride with the Company, not every Knight in the world.
+		if (!game.user.isGM && !actor.isOwner && !(wholeCompany && (given || inCompany(actor)))) return;
 		seen.add(actor.uuid);
 		candidates.push({ actor, included });
 	};

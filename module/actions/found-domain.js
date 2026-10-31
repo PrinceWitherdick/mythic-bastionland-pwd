@@ -5,13 +5,14 @@ import { canHoldPost, holdingRef, holdingRulers, parseHoldingRef } from "../rule
 import { escapeHTML } from "../rules/text.js";
 import { addCourtMember } from "./court.js";
 import { linkKnightDomain, worldDomains } from "./dominion.js";
-import { holdingOptions, realmHoldings } from "./homecoming.js";
+import { FOUNDED_OPTION, holdingOptions, realmHoldings } from "./homecoming.js";
 import { realmSeats } from "../rules/realm.js";
 import { getRealm } from "./realm.js";
 import { companyTokenHex } from "./company.js";
 import { sameHex } from "../rules/realm-geometry.js";
 import { inCompany, playersOf, seenOrChosen, worldKnights } from "./knights.js";
 import { timelineFounded } from "./timeline-events.js";
+import { domainOwnership, shareMade } from "./belonging.js";
 
 /**
  * Founding a Knight's Domain (Dominion, p20): which Holding it rules, what it's
@@ -79,16 +80,19 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
  * @returns {Promise<Actor|null>}
  */
 export async function createDomain(knight, { name, holding = "", seat = false, circle = [] }) {
-	// Players who can see the Knight can see their Domain. Only a GM may hand ownership to others.
+	// Players who can see the Knight can see their Domain, and those whose Knights sit in its Circle look on.
+	// Only a GM may hand ownership to others, so a player asks the Referee to once it's made.
+	const seated = circle.map((id) => game.actors.get(id)).filter(Boolean);
 	const domain = await Actor.implementation.create({
 		name,
 		type: "domain",
 		folder: knight.folder?.id ?? null,
 		system: { ruler: knight.name, holding, seat, council: { circle } },
-		...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
-	});
+		...(game.user.isGM ? { ownership: domainOwnership(knight, seated) } : {})
+	}, { [FOUNDED_OPTION]: true });
 	if (!domain) return null;
 	await linkKnightDomain(knight, domain);
+	await shareMade([domain], knight);
 	await timelineFounded(knight, domain, game.scenes?.get(parseHoldingRef(holding)?.sceneId) ?? null);
 	return domain;
 }

@@ -120,6 +120,8 @@ function renderCard(state, dataset = {}) {
 		join: find("join"),
 		reroll: find("reroll"),
 		sigil: find("sigil"),
+		greater: find("greater"),
+		apply: find("apply"),
 		hover: () => listeners.pointerenter?.(),
 		click: (action) => listeners.click?.({ target: find(action), preventDefault() {} })
 	};
@@ -938,5 +940,60 @@ describe("Deny, combat audit of 2026-10-29", () => {
 		const { deny } = renderCard(attackState({ duel: "duel-1" }));
 		expect(deny.disabled).toBe(true);
 		expect(deny.dataset.tooltip).toBe("bastionland.attack.cantDeny");
+	});
+});
+
+describe("what players can do, audit of 2026-10-30", () => {
+	it("lands nothing on a target somebody else applied it to while the window stood open", async () => {
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay" }) };
+		const card = renderCard(attackState());
+		confirmDialog.mockImplementationOnce(async () => {
+			card.message.flags[SYSTEM_ID].attack = attackState({ appliedTo: ["Ser Kay"], appliedTokens: ["Scene.s.Token.k"] });
+			return true;
+		});
+		await card.click("apply");
+		expect(takeAttack).not.toHaveBeenCalled();
+		expect(card.message.update).not.toHaveBeenCalled();
+		expect(warnings).toEqual(["bastionland.attack.alreadyApplied"]);
+	});
+
+	it("lands nothing on another's card while no Referee is here to mark it applied", async () => {
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", fatigued: true }) };
+		const card = renderCard(attackState({ dice: [{ faces: 6, result: 3, label: "d6", deniedBy: null }] }));
+		card.message.isOwner = false;
+		await card.click("apply");
+		expect(takeAttack).not.toHaveBeenCalled();
+		expect(warnings).toEqual(["bastionland.attack.needsGM"]);
+	});
+
+	it("shows the Greater effect to whoever plays an attacker, who may write one in", () => {
+		game.user.isGM = false;
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", isOwner: false }) };
+		const strong = attackState({ gambits: [{ key: "repel", die: 0, strong: "greater", bonus: null, save: null, dismissed: false }] });
+		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: () => false };
+		expect(renderCard(strong).greater.hidden).toBe(true);
+		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: (user) => user === game.user };
+		const card = renderCard(strong);
+		expect(card.greater.hidden).toBe(false);
+		// Applying the Damage stays with the target's player.
+		expect(card.apply.hidden).toBe(true);
+	});
+
+	it("records the attacker's own Gambit when their card's changes go through the GM", async () => {
+		const author = { id: "player-1" };
+		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: (user) => user === author };
+		const card = renderCard(attackState());
+		expect(await CONFIG.queries[`${SYSTEM_ID}.changeAttack`]({ messageId: "message-1", change: { type: "gambit", die: 0, key: "bolster" } }, { user: author })).toBe(true);
+		expect(savedState(card.message).gambits).toEqual([expect.objectContaining({ key: "bolster", die: 0 })]);
+	});
+
+	it("sends even the author's own change to the active GM, so one client writes the card", async () => {
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", fatigued: true }) };
+		game.users.activeGM = { isSelf: false, query: vi.fn(async () => true) };
+		const card = renderCard(attackState({ dice: [{ faces: 6, result: 3, label: "d6", deniedBy: null }] }));
+		await card.click("apply");
+		expect(takeAttack).toHaveBeenCalledOnce();
+		expect(game.users.activeGM.query).toHaveBeenCalledWith(`${SYSTEM_ID}.changeAttack`, expect.objectContaining({ change: expect.objectContaining({ type: "applied" }) }), { timeout: 10000 });
+		expect(card.message.update).not.toHaveBeenCalled();
 	});
 });

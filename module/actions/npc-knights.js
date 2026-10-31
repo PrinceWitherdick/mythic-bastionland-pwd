@@ -1,8 +1,8 @@
 import { findByRoll } from "../book-art/art-index.js";
 import { knightWithLists } from "../book-art/myth-tables.js";
-import { askActiveGM } from "../ask-gm.js";
-import { t, warn } from "../chat/cards.js";
-import { deletionEntry, queryAsker, replacementEntry } from "../compat.js";
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
+import { t } from "../chat/cards.js";
+import { deletionEntry, replacementEntry } from "../compat.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
 import { KNIGHT_TYPE, NPC_KNIGHT_START, NPC_KNIGHT_TYPE, becomesNpcKnight, isKnight, isNpcKnight, kindStamp } from "../rules/knight-types.js";
 import { rollKnightName } from "../rules/knight-names.js";
@@ -13,6 +13,7 @@ import { findFlaggedFolder, flaggedFolder } from "./folders.js";
 import { COMPANY_KNIGHT_FLAG, worldKnights } from "./knights.js";
 import { withoutLedger } from "./ledger.js";
 import { createKnightWithCompanions, rollStartScores } from "./new-knight.js";
+import { gmAsker } from "../gm-asker.js";
 
 /**
  * Knights the Referee plays: NPC Knights, an Actor type of their own. One of
@@ -114,13 +115,8 @@ const JOIN_QUERY = `${SYSTEM_ID}.npcKnightJoins`;
 export async function joinCompany(actor) {
 	if (!isNpcKnight(actor)) return true;
 	if (game.user.isGM) return setKnightKind(actor, false);
-	if (!game.users.activeGM) {
-		warn("npcKnight.joinNeedsReferee", { name: actor.name });
-		return false;
-	}
-	if (await askActiveGM(JOIN_QUERY, { actorId: actor.id }, `Couldn't make ${actor.name} a Knight of the Company's`)) return true;
-	warn("npcKnight.joinRefused", { name: actor.name });
-	return false;
+	const notice = { absent: "npcKnight.joinNeedsReferee", refused: "npcKnight.joinRefused", data: { name: actor.name } };
+	return Boolean(await askActiveGMOrWarn(JOIN_QUERY, { actorId: actor.id }, `Couldn't make ${actor.name} a Knight of the Company's`, notice));
 }
 
 /**
@@ -131,8 +127,8 @@ export async function joinCompany(actor) {
  * @returns {Promise<boolean>}
  */
 export async function onJoinQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const actor = game.actors.get(data?.actorId);
 	if (!isNpcKnight(actor) || !actor.testUserPermission(asker, "OWNER")) return false;
 	return setKnightKind(actor, false);

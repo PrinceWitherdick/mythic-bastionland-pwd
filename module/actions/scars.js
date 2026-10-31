@@ -262,7 +262,8 @@ export async function resolveScar(actor, item) {
 /**
  * Somebody brought down may be a Knight's revenge (p9). Each Knight whose
  * Humiliation names them gets a card asking whether it is, and its button
- * settles the Scar. Whether it counts is the table's to say, so nothing
+ * settles the Scar. The card is posted for all to see, whatever mode the
+ * poster rolls in, since its button is for the Knight's player. Whether it counts is the table's to say, so nothing
  * settles by itself.
  * @param {Actor} foe Whoever was just Mortally Wounded, Slain or routed.
  * @returns {Promise<ChatMessage[]>}
@@ -277,7 +278,7 @@ export async function offerRevenge(foe) {
 			tagline: t("revenge.tagline", { name: knight.name, scar: item.name }),
 			text: t("revenge.text", { foe: foe.name, name: knight.name }),
 			uuid: item.uuid
-		}));
+		}, { mode: "public" }));
 	}
 	return cards;
 }
