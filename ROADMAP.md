@@ -186,6 +186,14 @@ Each is an Ability or item setting that can also be ticked by hand. A Knight cho
 - [ ] **T-149** As a player, open a Domain with Court leverage: no leverage on the sheet or in the member window, and saving keeps what the Referee wrote. Drama in Court's card shows no leverage; the Referee gets it as a whisper, even when a player rolls. (p21)
 - [ ] **T-150** Increased Collections rolling a 1 with a Circle opens the Circle window, and the card says how misrule ends. With no Steward it says the seat is empty, and on 2–6 in Debt it offers to resolve Debt. A second Crisis Roll or Drama in Court in one Season asks first. A Week Council task's card says it falls due at the next Morning. (p20, p21)
 
+### Travel and movement audit (2026-10-30)
+- [ ] **T-151** On Foundry v13, a player drags the Company Token into a hidden Barrier: the Barrier is revealed, and the Referee is offered the wasted Phase (it used to be refused, as nobody owns the Company Token on v13). (p18)
+- [ ] **T-152** Ctrl+Z after the Company went round a Barrier puts it back with no warning and no wasted-Phase window. The visit marks and the Phase's pace from that move are forgotten; what it found stays found. A second Ctrl+Z takes back the move before. After Stay, Ctrl+Z forgets nothing twice. (p18)
+- [ ] **T-153** Drag the Company two hexes, where the straight line crosses a Barrier but another shortest way doesn't: the visit marks fall on the open way, not across the Barrier. (p18)
+- [ ] **T-154** Delete the Company Token and press the card's button to stand it again: the hex's visit count doesn't go up.
+- [ ] **T-155** Drag the Company Token on a Realm: beside the distance, Foundry's ruler shows Trek, Gallop, Cruise or "Too far for one Phase", counting the hexes already come into this Phase, and the path's hexes take that pace's ink. A Knight's own Token on a Realm with a Company Token, and Tokens on other Scenes, show Foundry's plain ruler. (p18)
+- [ ] **T-156** Every Company move that stops in a new hex posts the Referee's arrival card with "Hexes travelled this Phase" and **End the Phase**, which opens the Phase's end window ticked as travelling. Closing it leaves the button; a card from an earlier Phase only says the Phase has ended. Not offered while dire weather may be holding the Company back. (p18)
+
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
 

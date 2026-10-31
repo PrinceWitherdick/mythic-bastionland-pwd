@@ -69,6 +69,7 @@ import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { BastionlandToken, registerTokenHeraldryHooks } from "./module/canvas/BastionlandToken.js";
+import { registerRealmTokenRuler } from "./module/canvas/realm-token-ruler.js";
 import { registerRoundTokenHooks } from "./module/canvas/round-tokens.js";
 import { registerSoloPlaceables } from "./module/canvas/solo-placeables.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
@@ -427,6 +428,8 @@ Hooks.once("init", () => {
 	RealmLayer.listenForPaintAgain();
 	registerRealmHooks();
 	CONFIG.Token.objectClass = BastionlandToken;
+	// Foundry's Token ruler, which on a Realm tells the Company's pace as it's dragged.
+	registerRealmTokenRuler();
 	// Solo play keeps the Realm's secrets off the Referee's map too.
 	registerSoloPlaceables();
 	registerTokenHeraldryHooks();

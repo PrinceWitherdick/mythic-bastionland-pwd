@@ -160,7 +160,7 @@ describe("carrying the Company to a hex", () => {
 		await vi.waitFor(() => expect(scene.createEmbeddedDocuments).toHaveBeenCalled());
 
 		const corner = hexTopLeft(g, hex);
-		expect(scene.createEmbeddedDocuments).toHaveBeenCalledWith("Token", [expect.objectContaining({ x: Math.round(corner.x), y: Math.round(corner.y) })]);
+		expect(scene.createEmbeddedDocuments).toHaveBeenCalledWith("Token", [expect.objectContaining({ x: Math.round(corner.x), y: Math.round(corner.y) })], {});
 		expect(click.stopImmediatePropagation).toHaveBeenCalled();
 		expect(isPlacingCompany()).toBe(false);
 		expect(ui.notifications.remove).toHaveBeenCalledWith(note);

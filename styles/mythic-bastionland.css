@@ -9353,3 +9353,19 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-visited-marks-window .form-footer button {
 	flex: 1;
 }
+
+/* The Company's pace on Foundry's Token ruler as it's dragged on a Realm
+   (realm-token-ruler.js): a pill in the ink its stretch of the path is drawn
+   in, beside the distance, which the label sets as --pace-ink. White letters
+   on each ink, so it reads the same in Foundry's light and dark themes. */
+#measurement .waypoint-label .bastionland-ruler-pace {
+	--pill-pad: 0.35em;
+	padding: var(--pill-padding-top, 0.2em) 0.5em var(--pill-padding-bottom, 0.2em);
+	border: var(--pill-border, 1px) solid rgb(255 255 255 / 35%);
+	border-radius: 4px;
+	background: var(--pace-ink);
+	color: #fff;
+	font-size: 16px;
+	line-height: 1;
+	white-space: nowrap;
+}

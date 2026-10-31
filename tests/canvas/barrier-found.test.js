@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyRealm } from "../../module/rules/realm.js";
-import { edgeKey, hexCentre, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
+import { edgeKey, hexCentre, realmGeometry } from "../../module/rules/realm-geometry.js";
 
 const g = realmGeometry();
 const hidden = edgeKey({ col: 1, row: 1 }, { col: 2, row: 1 });
@@ -64,7 +64,9 @@ const to = { col: 2, row: 1 };
 const token = (hex, { owners = ["player"], company = false } = {}) => ({
 	company,
 	getCenterPoint: () => hexCentre(g, hex),
-	testUserPermission: (user, level) => level === "OWNER" && owners.includes(user.id)
+	canUserModify: (user, action) => action === "update" && owners.includes(user.id),
+	// Nobody owns the Company Token on v13, though anybody may move it.
+	testUserPermission: () => false
 });
 
 const scene = { id: "realm1", tokens: [] };
@@ -291,6 +293,14 @@ describe("a Company turned back by a Barrier", () => {
 		expect(edits).toHaveLength(1);
 		expect(asked).toHaveLength(1);
 		expect(recordBarriersMet).toHaveBeenCalledWith(scene, [{ hex: from, edges: [hidden] }], "Alys");
+	});
+
+	it("is taken from a player who may move the Company Token without owning it, as on v13", async () => {
+		game.user.isGM = true;
+		scene.tokens = [token(from, { company: true })];
+		expect(await answerAs(report([hidden], { company: true }))).toBe(true);
+		expect(edits).toHaveLength(1);
+		expect(asked).toHaveLength(1);
 	});
 
 	it("offers nothing for a Token that isn't the Company, or a move nothing barred", async () => {

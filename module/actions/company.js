@@ -130,15 +130,17 @@ export async function rememberCompany(scene, token) {
 export async function standCompanyAgain(scene) {
 	if (!game.user.isGM || findCompanyToken(scene)) return null;
 	const hex = lastCompanyHex(scene);
-	return hex ? setCompanyHex(scene, hex) : null;
+	// Back where it stood, which isn't coming into the hex again.
+	return hex ? setCompanyHex(scene, hex, { restored: true }) : null;
 }
 
 /**
  * What a Company Token is made of.
  *
- * It has no Actor on purpose. Foundry gives a Token without one to everybody
- * as its owner, so every player can move the Company without any actor being
- * made, owned or shared out — and the Knights' own sheets stay where the book
+ * It has no Actor on purpose. Foundry lets everybody move a Token without one
+ * (v14 makes everybody its owner; v13 only lets anybody update it, so ask
+ * canUserModify, never ownership), so every player can move the Company without
+ * any actor being made, owned or shared out — and the Knights' own sheets stay where the book
  * keeps them, one per Knight.
  *
  * @param {object} g
@@ -173,9 +175,10 @@ function companyTokenData(g, hex, { img, name }) {
  * @param {string} [looks.img]  Only used when the Token is made. Defaults to the picture chosen with the Realm.
  * @param {string} [looks.name] Only used when the Token is made.
  * @param {boolean} [looks.forced] A move the Company didn't choose, such as a drift when travelling blind.
+ * @param {boolean} [looks.restored] A Token made again where the Company stood when it went, which is no visit.
  * @returns {Promise<TokenDocument|null>}
  */
-export async function setCompanyHex(scene, hex, { img, name, forced = false } = {}) {
+export async function setCompanyHex(scene, hex, { img, name, forced = false, restored = false } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene) || !hex) return null;
 	const g = sceneGeometry(scene);
 	const standing = findCompanyToken(scene);
@@ -187,7 +190,7 @@ export async function setCompanyHex(scene, hex, { img, name, forced = false } = 
 	}
 
 	const data = companyTokenData(g, hex, { img: img || companyPicture(scene), name: name || t("company.name") });
-	const [made] = await scene.createEmbeddedDocuments("Token", [data]);
+	const [made] = await scene.createEmbeddedDocuments("Token", [data], restored ? { [NOT_A_MOVE]: true } : {});
 	// A Company stood on a Realm made without one is on it now, and offered back if its Token goes.
 	if (made && scene.getFlag?.(SYSTEM_ID, NO_COMPANY_FLAG)) await scene.unsetFlag(SYSTEM_ID, NO_COMPANY_FLAG);
 	return made ?? null;

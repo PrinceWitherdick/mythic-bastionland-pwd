@@ -1,23 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-	COMPANY_MOVED_HOOK,
-	COMPANY_PLACED_HOOK,
-	JOURNEY_FLAG,
-	forgetHexVisits,
-	forgetMoveVisits,
-	getJourney,
-	heldBack,
-	heldBackFrom,
-	legHexes,
-	markHexVisited,
-	movesAsCompany,
-	recordHexVisits,
-	registerJourneyHooks,
-	setHeldBack
-} from "../../module/actions/journey.js";
+import { COMPANY_MOVED_HOOK, COMPANY_PLACED_HOOK, JOURNEY_FLAG, forgetHexVisits, forgetMoveVisits, getJourney, heldBack, heldBackFrom, legHexes, markHexVisited, movesAsCompany, recordHexVisits, registerJourneyHooks, setHeldBack, COMPANY_MOVE_UNDONE_HOOK } from "../../module/actions/journey.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
-import { hexCentre, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { edgeKey, hexCentre, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
+import { UNDOES_MOVE } from "../../module/canvas/undone-moves.js";
 
 const g = realmGeometry();
 const hex = (col, row) => ({ col, row });
@@ -122,6 +108,59 @@ describe("a move taken back", () => {
 		await expect(forgetMoveVisits(scene, [hex(2, 2)])).resolves.toBe(false);
 		expect(getJourney(scene).hexes["2,2"].count).toBe(1);
 	});
+
+	it("tells what follows the Company the ids of the Tokens' moves that made a move, for an Undo to name", async () => {
+		vi.useFakeTimers();
+		const hooks = new Map();
+		globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll: vi.fn() };
+		try {
+			registerJourneyHooks();
+			const company = { ...token("c", { company: true }), getCenterPoint: (position) => position ?? hexCentre(g, hex(3, 4)) };
+			company.parent = Object.assign(realmScene([company]), { tiles: [], drawings: [] });
+			// A long move, handed over a leg at a time under the one id.
+			const leg = { id: "move1", method: "dragging", origin: hexCentre(g, hex(3, 6)), passed: { waypoints: [hexCentre(g, hex(3, 5))] }, pending: { waypoints: [hexCentre(g, hex(3, 4))] } };
+			hooks.get("moveToken")(company, leg, {});
+			hooks.get("moveToken")(company, { ...leg, origin: hexCentre(g, hex(3, 5)), passed: { waypoints: [hexCentre(g, hex(3, 4))] }, pending: { waypoints: [] } }, {});
+			await vi.runAllTimersAsync();
+			expect(Hooks.callAll).toHaveBeenCalledWith(COMPANY_MOVED_HOOK, company.parent, expect.objectContaining({ movements: ["move1"] }));
+		} finally {
+			vi.useRealTimers();
+			delete globalThis.Hooks;
+		}
+	});
+
+	it("with Undo tells what follows the Company of the hex it was put back in, and counts no visit", async () => {
+		vi.useFakeTimers();
+		const hooks = new Map();
+		globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll: vi.fn() };
+		try {
+			registerJourneyHooks();
+			const company = { ...token("c", { company: true }), getCenterPoint: (position) => position ?? hexCentre(g, hex(3, 4)) };
+			company.parent = realmScene([company]);
+			const undo = { method: "undo", origin: hexCentre(g, hex(3, 5)), passed: { waypoints: [hexCentre(g, hex(3, 4))] }, pending: { waypoints: [] } };
+
+			hooks.get("moveToken")(company, undo, {});
+			await vi.runAllTimersAsync();
+			expect(Hooks.callAll).toHaveBeenCalledWith(COMPANY_MOVE_UNDONE_HOOK, company.parent, hex(3, 4), null);
+			expect(Hooks.callAll).toHaveBeenCalledTimes(1);
+			expect(company.parent.update).not.toHaveBeenCalled();
+
+			// An Undo naming the move it takes back says which, though it leaves the Company in its hex.
+			Hooks.callAll.mockClear();
+			hooks.get("moveToken")(company, { ...undo, origin: hexCentre(g, hex(3, 4)) }, { [UNDOES_MOVE]: { c: "move1" } });
+			expect(Hooks.callAll).toHaveBeenCalledWith(COMPANY_MOVE_UNDONE_HOOK, company.parent, hex(3, 4), "move1");
+
+			// Nor for a Token that isn't the Company, or an Undo that leaves it in its hex.
+			Hooks.callAll.mockClear();
+			const other = { ...token("k"), parent: company.parent, getCenterPoint: company.getCenterPoint };
+			hooks.get("moveToken")(other, undo, {});
+			hooks.get("moveToken")(company, { ...undo, origin: hexCentre(g, hex(3, 4)) }, {});
+			expect(Hooks.callAll).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+			delete globalThis.Hooks;
+		}
+	});
 });
 
 describe("heldBack", () => {
@@ -221,6 +260,17 @@ describe("legHexes", () => {
 		expect(entered.at(-1)).toBe("5,2");
 	});
 
+	it("comes into the hexes of the way round a Barrier across a straight drag", () => {
+		const movement = { method: "dragging", origin: at(2, 2), passed: { waypoints: [at(5, 6)] } };
+		const straight = legHexes(company, movement, g).map(hexKey);
+		const barriers = new Set([edgeKey(hex(3, 3), hex(3, 4))]);
+		const round = legHexes(company, movement, g, barriers).map(hexKey);
+		expect(straight).toContain("3,4");
+		expect(round).not.toContain("3,4");
+		expect(round).toHaveLength(straight.length);
+		expect(round.at(-1)).toBe("5,6");
+	});
+
 	it("comes into only the end of a move that isn't walked, such as the Hex panel's", () => {
 		const movement = { method: "api", origin: at(1, 1), passed: { waypoints: [at(2, 1), at(3, 1), at(6, 6)] } };
 		expect(legHexes(company, movement, g).map(hexKey)).toEqual(["6,6"]);
@@ -251,5 +301,19 @@ describe("the Company set down", () => {
 		await vi.runAllTimersAsync();
 		expect(Hooks.callAll).toHaveBeenCalledWith(COMPANY_PLACED_HOOK, company.parent, [hex(3, 4)]);
 		expect(Hooks.callAll).not.toHaveBeenCalledWith(COMPANY_MOVED_HOOK, expect.anything(), expect.anything());
+	});
+
+	it("counts no visit for a Token made again where the Company stood when it went", async () => {
+		vi.useFakeTimers();
+		const hooks = new Map();
+		globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll: vi.fn() };
+		registerJourneyHooks();
+		const company = { ...token("c", { company: true }), getCenterPoint: () => hexCentre(g, hex(3, 4)) };
+		company.parent = realmScene([company]);
+
+		hooks.get("createToken")(company, { bastionlandNotAMove: true });
+		await vi.runAllTimersAsync();
+		expect(Hooks.callAll).not.toHaveBeenCalled();
+		expect(company.parent.update).not.toHaveBeenCalled();
 	});
 });

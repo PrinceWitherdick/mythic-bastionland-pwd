@@ -2,7 +2,7 @@
  * Moving across a Realm. A Barrier can't be crossed by ordinary means (p18), and nobody walks off the edge of the map. Pure, so it can be tested
  * without Foundry.
  */
-import { edgeKey, hexAt, hexDistance, hexKey, inRealm, neighbours, sameHex } from "./realm-geometry.js";
+import { edgeKey, hexAt, hexDistance, hexKey, hexLine, inRealm, neighbours, sameHex } from "./realm-geometry.js";
 
 /** Why a move is refused. Wording lives under `bastionland.realm.movement`. */
 export const MOVE_PROBLEMS = Object.freeze(["offMap", "barrier"]);
@@ -45,6 +45,8 @@ export function barriersMet(g, barriers, from, to) {
 function shortestWays(g, barriers, from, to) {
 	const distance = hexDistance(g, from, to);
 	const met = new Set();
+	// Each hex reached, by its key, with the hex it was first reached from.
+	const cameFrom = new Map();
 	let reached = [from];
 	for (let step = 1; step <= distance; step++) {
 		const next = new Map();
@@ -52,14 +54,40 @@ function shortestWays(g, barriers, from, to) {
 			for (const { hex: beside } of neighbours(g, hex)) {
 				if (hexDistance(g, beside, to) !== distance - step) continue;
 				const edge = edgeKey(hex, beside);
-				if (barriers.has(edge)) met.add(edge);
-				else next.set(hexKey(beside), beside);
+				if (barriers.has(edge)) {
+					met.add(edge);
+					continue;
+				}
+				const key = hexKey(beside);
+				if (next.has(key)) continue;
+				next.set(key, beside);
+				cameFrom.set(key, hex);
 			}
 		}
 		if (!next.size) return { blocked: true, met: [...met] };
 		reached = [...next.values()];
 	}
-	return { blocked: false, met: [...met] };
+	const way = [];
+	for (let hex = to; hex && !sameHex(hex, from); hex = cameFrom.get(hexKey(hex))) way.unshift(hex);
+	return { blocked: false, met: [...met], way };
+}
+
+/**
+ * The hexes a walked move between two hexes comes into: the straight line
+ * where no Barrier crosses it, otherwise the first of the shortest ways round
+ * that crosses none, since that is the way a move let past a Barrier went
+ * (realmMoveProblem). Where every shortest way is barred, as a move the Company
+ * didn't choose may be, the straight line still.
+ * @param {object} g From realmGeometry.
+ * @param {Set<string>|null} barriers Edge keys.
+ * @param {{col: number, row: number}} from
+ * @param {{col: number, row: number}} to
+ * @returns {{col: number, row: number}[]} From the hex after `from` up to and including `to`.
+ */
+export function openWay(g, barriers, from, to) {
+	const line = hexLine(g, from, to);
+	if (!barriers?.size || line.every((hex, index) => !barriers.has(edgeKey(index ? line[index - 1] : from, hex)))) return line;
+	return shortestWays(g, barriers, from, to).way ?? line;
 }
 
 /**

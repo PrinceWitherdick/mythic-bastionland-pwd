@@ -55,7 +55,7 @@ describe("setCompanyHex", () => {
 		const made = await setCompanyHex(scene, hex, { img: "company.webp", name: "The Company" });
 		expect(made).toMatchObject({ x: Math.round(corner.x), y: Math.round(corner.y), width: 1, height: 1 });
 		expect(made.x).not.toBe(Math.round(g.radius * (1.5 * (hex.col - 1) + 1) - (g.size / 2)));
-		expect(scene.createEmbeddedDocuments).toHaveBeenCalledWith("Token", [made]);
+		expect(scene.createEmbeddedDocuments).toHaveBeenCalledWith("Token", [made], {});
 	});
 
 	it("carries the picture chosen with the Realm when the Referee places the Company later", async () => {
@@ -116,6 +116,8 @@ describe("a Company Token deleted", () => {
 		const back = await standCompanyAgain(scene);
 		expect(back).toMatchObject({ texture: { src: "systems/mythic-bastionland-pwd/assets/icons/company/cavalry.svg" } });
 		expect(back).toMatchObject({ x: Math.round(hexTopLeft(g, hex).x), y: Math.round(hexTopLeft(g, hex).y) });
+		// Made again where it stood, so the hex counts no new visit.
+		expect(scene.createEmbeddedDocuments.mock.calls.at(-1)[2]).toEqual({ bastionlandNotAMove: true });
 	});
 
 	it("puts nobody back while the Company still stands on the Realm", async () => {

@@ -1329,7 +1329,10 @@
       "holding": "They reached the Holding at {hex}. Roll its Local Mood to see how things stand there.",
       "mood": "Local Mood",
       "realmGone": "That Realm is no longer in this world.",
-      "movedOn": "The Company has moved since, so that choice no longer applies."
+      "movedOn": "The Company has moved since, so that choice no longer applies.",
+      "travelled": "Hexes travelled this {phase}: {count}. Travelling takes the whole Phase, so end it once the Company stops.",
+      "endPhase": "End the {phase}",
+      "phaseGone": "That Phase has already ended."
     },
     "phaseEnd": {
       "title": "The {phase} Ends",
@@ -4540,7 +4543,14 @@
         "wasted": {
           "text": "The Company tried to cross a Barrier, from {from} to {to}. The {phase} is lost to it, and the Wilderness Roll is still made.",
           "waste": "Waste the {phase}"
-        }
+        },
+        "travelNeedsGM": "The Company can’t travel until a Referee is logged in: nothing of the journey would be kept."
+      },
+      "ruler": {
+        "trek": "Trek",
+        "gallop": "Gallop: each steed loses d6 VIG",
+        "cruise": "Cruise: by boat or true road",
+        "beyond": "Too far for one Phase"
       },
       "controls": {
         "title": "Realm"

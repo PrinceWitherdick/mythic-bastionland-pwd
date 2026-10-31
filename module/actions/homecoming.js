@@ -82,6 +82,8 @@ export function domainLands(domain, realms = realmHoldings()) {
  * Every Realm's Holdings as a list to pick from, the Realm named where there's more than one.
  * @param {string} selected From holdingRef.
  * @param {import("../rules/dominion.js").RealmHoldings[]} [realms]
+ * @param {object} [options]
+ * @param {Actor|null} [options.domain] The Domain choosing, or none for one still to be founded.
  * @returns {{value: string, label: string, selected: boolean}[]}
  */
 export function holdingOptions(selected, realms = realmHoldings()) {

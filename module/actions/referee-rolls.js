@@ -51,6 +51,8 @@ export function direWeatherRisk() {
 /**
  * Roll a d6 on one of the Referee's tables and post what it gives.
  * @param {string} key One of REFEREE_TABLES.
+ * @param {object} [options]
+ * @param {string} [options.mode] The card's chat mode, such as "gm"; the Referee's own mode when not given.
  * @returns {Promise<{d6: number, result: string, side: string|null}|null>} Null for a table that doesn't exist.
  */
 export async function rollRefereeTable(key) {

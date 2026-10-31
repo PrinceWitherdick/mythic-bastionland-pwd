@@ -1,24 +1,11 @@
-import {
-	REALM_HISTORY_HOOK,
-	REALM_LOOK_FLAG,
-	REALM_LOOK_HOOK,
-	forgetRealm,
-	forgetRealmHistory,
-	getRealm,
-	isDrawingRealm,
-	isRealmScene,
-	realmWritesSettled,
-	sceneGeometry,
-	syncRealmScene
-} from "../actions/realm.js";
+import { REALM_HISTORY_HOOK, REALM_LOOK_FLAG, REALM_LOOK_HOOK, forgetRealm, forgetRealmHistory, getRealm, isDrawingRealm, isRealmScene, realmWritesSettled, syncRealmScene } from "../actions/realm.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { realmSceneChanges } from "../actions/scene-changes.js";
 import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
-import { forcedMove } from "../actions/company.js";
-import { JOURNEY_FLAG, movesAsCompany } from "../actions/journey.js";
+import { JOURNEY_FLAG } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
@@ -30,11 +17,10 @@ import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
 import { refreshHexEditor } from "../apps/HexEditor.js";
 import { refreshPlaces, registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
 import { registerVisitedMarksMenu } from "../apps/VisitedMarks.js";
-import { t } from "../chat/cards.js";
-import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { registerTurnedBackQuery, reportTurnedBack } from "./barrier-found.js";
+import { registerTurnedBackQuery } from "./barrier-found.js";
+import { allowRealmMove } from "./realm-move.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
@@ -42,45 +28,6 @@ import { drawHoldingArms, drawHoldingArmsSoon, registerHoldingArmsHooks } from "
 import { registerTravelsClick } from "./travels-click.js";
 import { refreshTravelsButtons } from "./travels-controls.js";
 import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.js";
-
-/**
- * Refuse a Token's move across a Barrier (p18) or off the edge of a Realm. It
- * runs on the mover's own client before the move is sent. A GM with Foundry's
- * Unconstrained Movement on, which lets Tokens through walls, passes Barriers
- * too, as does a move the Company didn't choose, such as a blind drift: it
- * goes where the rules put it.
- * @param {TokenDocument} token
- * @param {object} movement The pending movement from `preMoveToken`.
- * @param {object} [operation] The update that moves it.
- * @returns {boolean} False to refuse the move.
- */
-function allowRealmMove(token, movement, operation) {
-	const scene = token?.parent;
-	if (!isRealmScene(scene) || movement?.constrainOptions?.ignoreWalls || forcedMove(operation)) return true;
-	const entry = getRealm(scene);
-	if (!entry) return true;
-
-	const waypoints = [movement.origin, ...(movement.passed?.waypoints ?? []), ...(movement.pending?.waypoints ?? [])].filter(Boolean);
-	const points = waypoints.map((waypoint) => token.getCenterPoint(waypoint));
-	const g = sceneGeometry(scene);
-	const barriers = new Set(entry.realm.barriers.map((barrier) => barrier.edge));
-	const problem = movePathProblem(g, barriers, points);
-	if (!problem) return true;
-
-	ui.notifications.warn(t(`realm.movement.${problem.reason}`));
-	// A hidden Barrier found by walking into it isn't hidden any more, and the
-	// Company's attempt wastes the Phase.
-	if (problem.reason === "barrier") {
-		const hidden = new Set(entry.realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
-		reportTurnedBack(scene, {
-			edges: barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)),
-			from: problem.from,
-			to: problem.to,
-			company: movesAsCompany(token)
-		});
-	}
-	return false;
-}
 
 /**
  * Scenes whose Realm changed since the palette, Places, readout and highlight

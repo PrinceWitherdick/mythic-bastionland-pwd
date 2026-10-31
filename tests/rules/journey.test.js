@@ -1,18 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	JOURNEY_VERSION,
-	cameFrom,
-	changedHexes,
-	emptyJourney,
-	forgetVisit,
-	forgetVisits,
-	hexesEntered,
-	lastOfEach,
-	normaliseJourney,
-	recordVisits,
-	visitedNewestFirst,
-	visitsAt
-} from "../../module/rules/journey.js";
+import { JOURNEY_VERSION, cameFrom, changedHexes, emptyJourney, forgetVisit, forgetVisits, hexesEntered, lastOfEach, normaliseJourney, recordVisits, visitedNewestFirst, visitsAt, paceSoFar } from "../../module/rules/journey.js";
 import { realmGeometry } from "../../module/rules/realm-geometry.js";
 
 const hex = (col, row) => ({ col, row });
@@ -214,5 +201,17 @@ describe("visitedNewestFirst", () => {
 		expect(visitedNewestFirst(journey).map(({ key }) => key)).toEqual(["1,1", "3,1", "2,1"]);
 		expect(visitedNewestFirst(journey)[0]).toMatchObject({ hex: hex(1, 1), count: 2 });
 		expect(visitedNewestFirst(null)).toEqual([]);
+	});
+});
+
+describe("paceSoFar", () => {
+	const now = { age: 1, year: 1, season: "spring", day: 3, phase: "afternoon" };
+
+	it("reads the hexes kept this Phase, and none kept in another", () => {
+		expect(paceSoFar({ when: { ...now }, count: 2 }, now)).toBe(2);
+		expect(paceSoFar({ when: { ...now, phase: "morning" }, count: 2 }, now)).toBe(0);
+		expect(paceSoFar(null, now)).toBe(0);
+		expect(paceSoFar({ when: { ...now }, count: "nonsense" }, now)).toBe(0);
+		expect(paceSoFar({ when: { ...now }, count: -3 }, now)).toBe(0);
 	});
 });

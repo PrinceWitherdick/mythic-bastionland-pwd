@@ -103,6 +103,6 @@ describe("solo play's secrets on the Referee's own screens", () => {
 	});
 
 	it("lets a move the Company didn't choose pass a Barrier, as Unconstrained Movement does", () => {
-		expect(read("module/canvas/realm-hooks.js")).toContain("movement?.constrainOptions?.ignoreWalls || forcedMove(operation)");
+		expect(read("module/canvas/realm-move.js")).toContain("Boolean(movement?.constrainOptions?.ignoreWalls) || forcedMove(operation)");
 	});
 });

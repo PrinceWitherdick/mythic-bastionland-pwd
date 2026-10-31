@@ -9,7 +9,7 @@ import { askActiveGM } from "../ask-gm.js";
 import { t, warn } from "../chat/cards.js";
 import { queryAsker } from "../compat.js";
 import { setBarrier } from "../rules/realm-edits.js";
-import { hexAt, hexKey, inRealm, parseEdgeKey, sameHex } from "../rules/realm-geometry.js";
+import { hexAt, hexKey, inRealm, parseEdgeKey, sameHex, barrierEdges } from "../rules/realm-geometry.js";
 import { barriersMet, realmMoveProblem } from "../rules/realm-movement.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -74,14 +74,16 @@ function turnedBackFor(scene, user, data) {
 	const from = isHex(data?.from) ? { col: data.from.col, row: data.from.row } : null;
 	const to = isHex(data?.to) ? { col: data.to.col, row: data.to.row } : null;
 	if (!Array.isArray(data?.edges) || !inRealm(g, from) || !inRealm(g, to)) return null;
-	const barriers = new Set(getRealm(scene).realm.barriers.map((barrier) => barrier.edge));
+	const barriers = barrierEdges(getRealm(scene).realm);
 	if (realmMoveProblem(g, barriers, from, to) !== "barrier") return null;
 
 	const company = data.company === true;
 	const setOff = (token) => {
-		if (!token.testUserPermission?.(user, "OWNER") || (company && !movesAsCompany(token))) return false;
-		const at = hexAt(g, token.getCenterPoint());
-		return inRealm(g, at) && realmMoveProblem(g, barriers, at, from) === null;
+		// Whoever may move it: on v13 a Token with no Actor, such as the Company's, may be moved by anyone without being
+		// anyone's to own, so ownership would turn every player's report of the Company away.
+		if (!token.canUserModify?.(user, "update") || (company && !movesAsCompany(token))) return false;
+		const here = hexAt(g, token.getCenterPoint());
+		return inRealm(g, here) && realmMoveProblem(g, barriers, here, from) === null;
 	};
 	if (!scene.tokens?.some(setOff)) return null;
 
