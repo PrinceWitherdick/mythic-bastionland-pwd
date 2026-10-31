@@ -38,8 +38,8 @@ The group decides, and you click the matching pill. Hover a pill to see what it 
 
 **Click Uncertain** when the group can't agree. It rolls the Passage of Time table (the card goes to chat) and the window shows the result under the pills and picks the step for you:
 
-- If the die says time turns now, the window picks **Months**, or **Years** when it is Winter, since a new Age starts in Spring.
-- If the die says time turns after the next session, the window picks **None** and remembers the promise. The next time anyone opens the window, it already has **Months** (or **Years**) picked, with a line at the top saying a roll last session called for it.
+- If the die says time turns now, the window picks **Months**. In Winter that moves on to Spring in the same Age; a new Age begins only when you pick **Years** yourself.
+- If the die says time turns after the next session, the window picks **None** and remembers the promise. The next time anyone opens the window, it already has **Months** picked, with a line at the top saying a roll last session called for it.
 - Otherwise it picks **None**.
 
 You can still click a different pill after rolling. Picking a step other than the one the die chose drops any promise the roll made.

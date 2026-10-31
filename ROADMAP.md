@@ -200,6 +200,14 @@ Each is an Ability or item setting that can also be ticked by hand. A Knight cho
 - [ ] **T-159** Ending a Phase in a Myth's own hex posts the Wilderness card with a line saying the Knights catch the Omen before it catches them. The Omen revealed from the arrival card's button, as the Company comes in, has no such line. (p18)
 - [ ] **T-160** A Courtier Start on a Realm whose nearest Myth to the Seat is resolved sends news of the next nearest Myth's Omen instead. (p6, p27)
 
+### Time and Seasons audit (2026-10-30)
+- [ ] **T-161** A Knight left Mortally Wounded, Fatigued and at 1 GD is ticked as Months Pass: the Season restores their Virtues, clears the Mortal Wound, fills GD and lifts Fatigue and Exposed, and the next Phase's end no longer lists them as dying. A Knight sworn to a quest keeps their GD down. An NPC whose Virtues are whole still gets GD and Fatigue back. (p8, p9, p94)
+- [ ] **T-162** A Knight left unticked as the Season turns, with a Mutilation Scar, has it settled anyway: their max GD rises, the Season card lists them with the Scar line, and their Timeline thread records it. (p9)
+- [ ] **T-163** Set a Council task to "a Week", then Weeks Pass: the seasonal event's card lists the task as due, with any Knight's table that comes round each Night or Day. (p20)
+- [ ] **T-164** In Winter, with Dire Weather set to "In Winter", roll Looming, then Looming again in the next Phase: dire. Roll Looming, end a Phase in a Holding, then roll Looming: not dire. Roll Looming, then Weeks Pass: no dire weather carries over, and the Morning the weeks land on rolls its own Dire Weather card. Months Pass into Winter rolls one too; Months Pass into Spring doesn't. (p18)
+- [ ] **T-165** Tick Deprived for a Knight as a Night ends, then Months Pass: the next Night's end doesn't tick Deprived. A Night ended with nobody ticked as with the Company forgets the ticks too. (p18)
+- [ ] **T-166** In Winter, End the Session's Uncertain roll comes up 1: the window picks Months, not Years, and Winter gives way to Spring in the same Age. A 2-3 promises Months for the next session. (p17)
+
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
 

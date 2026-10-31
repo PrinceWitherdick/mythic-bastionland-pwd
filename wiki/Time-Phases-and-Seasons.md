@@ -155,7 +155,7 @@ Without FXMaster, no button is shown. A Referee whose world doesn't have it gets
 
 ### Dire Weather
 
-The world setting **Dire Weather** says when the land suffers it: **Never**, **In Winter, as in most Realms** (the default) or **All year round**. While it applies, the Dire Weather table is rolled each time Next Phase begins a new Phase, unless the Company is in a Holding or isn't on a Realm. Two looming results in a row count as dire. A dire result rolled during a Night means nobody outdoors gets proper sleep, which The Night Ends lists in its rules.
+The world setting **Dire Weather** says when the land suffers it: **Never**, **In Winter, as in most Realms** (the default) or **All year round**. While it applies, the Dire Weather table is rolled each time Next Phase begins a new Phase, unless the Company is in a Holding or isn't on a Realm. Two looming results in a row count as dire, but only when the second is rolled in the Phase straight after the first. A Phase with no roll, such as one spent in a Holding, breaks the run, and so do Weeks Pass, Months Pass, A Year Passes and a journey to a distant Realm. Those time skips roll the table for the Morning they land on, when it's due. A dire result rolled during a Night means nobody outdoors gets proper sleep, which The Night Ends lists in its rules.
 
 You can also roll it by hand: **Roll Dire Weather** in the travel rules beside the map, or **Referee Rolls** at the top of the Roll Tables sidebar.
 

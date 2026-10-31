@@ -16,6 +16,7 @@ import { isRealmScene } from "./realm.js";
  * kept for the Referee alone.
  */
 
+/** A write to a thread a player's browser can't make or write, asked of the active Referee. */
 /** The Timeline's entry's id as last found: a render asks for it many times, and each search goes through every journal. */
 let timelineJournalId = null;
 

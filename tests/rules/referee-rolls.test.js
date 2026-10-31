@@ -31,11 +31,44 @@ describe("readRefereeTable", () => {
 });
 
 describe("weatherAfter", () => {
-	it("treats a second Looming threat in a row as dire weather", () => {
-		expect(weatherAfter("looming", "looming")).toEqual({ result: "dire", streak: true });
-		expect(weatherAfter("looming", "fine")).toEqual({ result: "looming", streak: false });
-		expect(weatherAfter("looming", null)).toEqual({ result: "looming", streak: false });
-		expect(weatherAfter("fine", "looming")).toEqual({ result: "fine", streak: false });
+	const at = (phase, day = 1, more = {}) => ({ age: 1, year: 1, season: "winter", day, phase, ...more });
+	const kept = (rolled, when, before = null) => ({ when, rolled, result: rolled, before });
+
+	it("treats a second Looming threat in a row as dire weather (p18)", () => {
+		expect(weatherAfter("looming", kept("looming", at("morning")), at("afternoon"))).toMatchObject({ result: "dire", streak: true });
+		expect(weatherAfter("looming", kept("fine", at("morning")), at("afternoon"))).toMatchObject({ result: "looming", streak: false });
+		expect(weatherAfter("looming", null, at("afternoon"))).toMatchObject({ result: "looming", streak: false, before: null });
+		expect(weatherAfter("fine", kept("looming", at("morning")), at("afternoon"))).toMatchObject({ result: "fine", streak: false });
+	});
+
+	it("runs on from one Day's Night to the next Day's Morning", () => {
+		expect(weatherAfter("looming", kept("looming", at("night", 4)), at("morning", 5))).toMatchObject({ result: "dire", streak: true });
+	});
+
+	it("keeps the run going through a third Looming, read against what the die gave", () => {
+		const second = kept("looming", at("afternoon"), { when: at("morning"), rolled: "looming" });
+		expect(weatherAfter("looming", second, at("night"))).toMatchObject({ result: "dire", streak: true });
+	});
+
+	it("breaks the run where a Phase went by with no roll, as one spent in a Holding", () => {
+		expect(weatherAfter("looming", kept("looming", at("morning")), at("night"))).toMatchObject({ result: "looming", streak: false });
+	});
+
+	it("breaks the run across Seasons and years: last Winter's Looming isn't this Winter's", () => {
+		const lastWinter = kept("looming", at("night", 30));
+		expect(weatherAfter("looming", lastWinter, at("morning", 1, { year: 2 }))).toMatchObject({ result: "looming", streak: false });
+	});
+
+	it("reads a roll made again in the same Phase against the Phase before, so two rolls at once make no run", () => {
+		const morning = kept("looming", at("morning"), null);
+		expect(weatherAfter("looming", morning, at("morning"))).toMatchObject({ result: "looming", streak: false, before: null });
+		const afternoon = kept("fine", at("afternoon"), { when: at("morning"), rolled: "looming" });
+		expect(weatherAfter("looming", afternoon, at("afternoon"))).toMatchObject({ result: "dire", streak: true, before: { when: at("morning"), rolled: "looming" } });
+	});
+
+	it("keeps the earlier roll it was read against, without that roll's own earlier one", () => {
+		const earlier = kept("looming", at("morning"), { when: at("night", 0), rolled: "fine" });
+		expect(weatherAfter("fine", earlier, at("afternoon")).before).toEqual({ when: at("morning"), rolled: "looming" });
 	});
 });
 

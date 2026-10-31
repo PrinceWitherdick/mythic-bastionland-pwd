@@ -13,7 +13,8 @@ const DIRE_WEATHER_SETTING = "direWeather";
 /**
  * The Dire Weather table's last roll: in which Phase, what the die gave, and
  * what that came to, so a second Looming in a row reads as dire (p18):
- * {when, rolled, result}, or null.
+ * {when, rolled, result, before}, or null. `before` is the earlier Phase's
+ * roll it was read against, from weatherAfter.
  */
 const WEATHER_NOW_SETTING = "weatherNow";
 
@@ -42,6 +43,16 @@ export function weatherIn(calendar) {
 	return samePhase(now?.when, calendar) ? now.result ?? null : null;
 }
 
+/**
+ * Forget the weather table's last roll, as time skips ahead by weeks or more:
+ * the next roll starts a run of its own, and no Phase still reads as dire. GMs only.
+ * @returns {Promise<unknown>}
+ */
+export async function forgetWeatherRun() {
+	if (!game.user.isGM || !game.settings.get(SYSTEM_ID, WEATHER_NOW_SETTING)) return null;
+	return game.settings.set(SYSTEM_ID, WEATHER_NOW_SETTING, null);
+}
+
 /** @returns {string} When the lands suffer dire weather, one of DIRE_WEATHER_RISKS. */
 export function direWeatherRisk() {
 	const risk = game.settings.get(SYSTEM_ID, DIRE_WEATHER_SETTING);
@@ -64,10 +75,12 @@ export async function rollRefereeTable(key) {
 	let streak = false;
 	if (key === "weather") {
 		const rolled = read.result;
-		({ result: read.result, streak } = weatherAfter(rolled, game.settings.get(SYSTEM_ID, WEATHER_NOW_SETTING)?.rolled ?? null));
+		const when = { ...getCalendar() };
+		let before;
+		({ result: read.result, streak, before } = weatherAfter(rolled, game.settings.get(SYSTEM_ID, WEATHER_NOW_SETTING) ?? null, when));
 		// What was rolled is kept, so a third Looming in a row is still a second one in a row, and kept
 		// with its Phase, so the Night's end knows whether dire weather kept the Company from sleep.
-		if (game.user.isGM) await game.settings.set(SYSTEM_ID, WEATHER_NOW_SETTING, { when: { ...getCalendar() }, rolled, result: read.result });
+		if (game.user.isGM) await game.settings.set(SYSTEM_ID, WEATHER_NOW_SETTING, { when, rolled, result: read.result, before });
 	}
 	const text = (part, data) => t(`refereeRolls.tables.${key}.${part}`, data);
 	await postCard(null, "referee-roll", {

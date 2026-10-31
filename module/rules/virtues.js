@@ -56,6 +56,28 @@ export const slainUpdate = (actor, fate) => ({ ...SLAIN_UPDATE, ...unwrittenFate
 export const fullVirtues = (system) => Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
 
 /**
+ * What a moment of peace restores (Recovery, p9): GD to full and Fatigue gone,
+ * and with their guard back up, a marked Exposed goes too (p8). A Knight sworn
+ * to a quest gets no GD back until it's done (p94).
+ * @param {{guard?: {max: number}}} system
+ * @param {{sworn?: boolean}} [options]
+ * @returns {object} The update.
+ */
+export const restedUpdate = (system, { sworn = false } = {}) => ({
+	...(sworn || !system?.guard ? {} : { "system.guard.value": system.guard.max }),
+	"system.fatigued": false,
+	"system.exposed": false
+});
+
+/**
+ * @param {{guard?: {value: number, max: number}, fatigued?: boolean, exposed?: boolean}} system
+ * @param {{sworn?: boolean}} [options]
+ * @returns {boolean} Whether a moment of peace would change anything for them.
+ */
+export const needsRest = (system, { sworn = false } = {}) =>
+	Boolean(system?.fatigued || system?.exposed || (!sworn && system?.guard && system.guard.value < system.guard.max));
+
+/**
  * Keep a Virtue inside the range the rules allow.
  * @param {number} value
  * @returns {number}

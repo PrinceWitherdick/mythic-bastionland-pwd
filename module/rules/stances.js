@@ -1,3 +1,4 @@
+import { restedUpdate } from "./virtues.js";
 /**
  * Stances some Knights' Abilities let them take up: dug in behind a doubled
  * shield (p78), fighting in deep water (p82), counting as Armour 4 after a
@@ -71,6 +72,22 @@ export function stanceOf(items) {
  * @returns {boolean}
  */
 export const questSworn = (items) => (items ?? []).some((item) => inEffect(item) && item.system.oath);
+
+/**
+ * @param {{items?: Iterable<object>}} actor
+ * @returns {boolean} Whether a quest they've sworn holds their GD back (p94).
+ */
+export const swornToQuest = (actor) => questSworn(actor.items?.contents ?? [...(actor.items ?? [])]);
+
+/**
+ * What a moment's calm and rest restores (Recovery, p9): GD back to full and
+ * Fatigue gone. With their guard back up they've remedied being caught with it
+ * down, so a marked Exposed goes too (p8), though CLA 0 Exposes them still. A
+ * Knight sworn to a quest gets no GD back until it's done (p94).
+ * @param {{system: object, items?: Iterable<object>}} actor
+ * @returns {object} The Actor update.
+ */
+export const restedActorUpdate = (actor) => restedUpdate(actor.system, { sworn: swornToQuest(actor) });
 
 /**
  * The stances that end as their Knight's next turn starts (p40, p78).

@@ -7,7 +7,7 @@ import { VIRTUES, isDying } from "../rules/virtues.js";
 import { advancePhase, chooseCompany } from "./time.js";
 import { askReferee } from "./ask-referee.js";
 import { countAfter, isCounted } from "../rules/restock.js";
-import { questSworn } from "../rules/stances.js";
+import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
 
 /**
  * Restore one Virtue of each of them to its most, all in one write.
@@ -35,35 +35,14 @@ async function spendRemedy(item) {
 }
 
 /**
- * What a short rest restores once the fighting is over (Recovery, p9):
- * GD returns to full and Fatigue is removed. With their guard back up they've
- * remedied being caught with it down, so a marked Exposed goes too (p8).
- * CLA 0 Exposes them still, until their CLA comes back. A Knight sworn to a
- * quest gets no GD back until it's done (p94).
- * @param {Actor} actor
- * @returns {object} The Actor update.
- */
-const restUpdate = (actor) => ({
-	...(sworn(actor) ? {} : { "system.guard.value": actor.system.guard.max }),
-	"system.fatigued": false,
-	"system.exposed": false
-});
-
-/**
- * @param {Actor} actor
- * @returns {boolean} Whether a quest they've sworn holds their GD back (p94).
- */
-const sworn = (actor) => questSworn(actor.items?.contents ?? []);
-
-/**
  * A moment's calm and rest: GD returns to full, Fatigue is removed, and they
  * are no longer Exposed (Recovery, p9).
  * @param {Actor} actor
  */
 export async function rest(actor) {
-	const held = sworn(actor);
+	const held = swornToQuest(actor);
 	const value = held ? actor.system.guard.value : actor.system.guard.max;
-	await actor.update(restUpdate(actor), causedBy("recovery"));
+	await actor.update(restedActorUpdate(actor), causedBy("recovery"));
 	// The moment of peace ends a stance held only for the fight (p40, p78). Fetched here, since
 	// stances.js reaches Damage, which reaches back here.
 	await (await import("./stances.js")).lapseStances(actor);
@@ -109,8 +88,8 @@ export async function restAfterCombat(combat) {
 	const names = actors.map((actor) => actor.name).join(", ");
 	const confirmed = await confirmDialog({ title: t("recovery.afterCombatTitle"), icon: "fa-solid fa-mug-hot", message: t("recovery.afterCombat", { names: foundry.utils.escapeHTML(names) }) });
 	if (!confirmed) return null;
-	await updateActors(actors.map((actor) => [actor, restUpdate(actor)]), causedBy("recovery"));
-	const held = actors.filter(sworn).map((actor) => actor.name);
+	await updateActors(actors.map((actor) => [actor, restedActorUpdate(actor)]), causedBy("recovery"));
+	const held = actors.filter(swornToQuest).map((actor) => actor.name);
 	const text = t("recovery.restedAfterCombat", { names }) + (held.length ? ` ${t("recovery.swornHeld", { names: held.join(", ") })}` : "");
 	await postCard(null, "note", { icon: "fa-solid fa-mug-hot", text });
 	return actors;

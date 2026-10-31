@@ -26,6 +26,16 @@ import { companyKnights, inCompany } from "./knights.js";
 /** The Knights deprived of essential needs last Morning, by id, so the next asks after them first. */
 const DEPRIVED_SETTING = "deprived";
 
+/**
+ * Forget who went without, as a Night ends with nobody of the Company to ask
+ * about or as weeks go by: last Morning's ticks are for the next Morning only. GMs only.
+ * @returns {Promise<unknown>}
+ */
+export async function forgetDeprived() {
+	if (!game.user.isGM || !(game.settings.get(SYSTEM_ID, DEPRIVED_SETTING) ?? []).length) return null;
+	return game.settings.set(SYSTEM_ID, DEPRIVED_SETTING, []);
+}
+
 /** Register who went without last Morning. Called during init. */
 export function registerPhaseEndSettings() {
 	game.settings.register(SYSTEM_ID, DEPRIVED_SETTING, { scope: "world", config: false, type: Array, default: [] });

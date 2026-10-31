@@ -66,9 +66,10 @@ export function stageLabel(stage, season) {
  * @param {string} season One of SEASONS.
  * @param {object} [options]
  * @param {boolean} [options.weeks] Whether weeks passed to reach it.
+ * @param {string[]} [options.due] What else falls due with it, listed after the collection.
  * @returns {Promise<unknown>}
  */
-export function announceSeasonEvent(event, season, { weeks = false } = {}) {
+export function announceSeasonEvent(event, season, { weeks = false, due = [] } = {}) {
 	const domains = event.collection ? worldDomains() : [];
 	const prompt = t(`time.events.kinds.${event.key}.prompt`);
 	return postCard(null, "report", {
@@ -78,7 +79,7 @@ export function announceSeasonEvent(event, season, { weeks = false } = {}) {
 		tagline: stageLabel(event.stage, season),
 		// The event's line is the book's, so before Import PDF has read it the Season's name stands alone.
 		entries: [{ name: t(`time.seasonBynames.${season}`), lines: [t(`time.events.kinds.${event.key}.text`)].filter(Boolean) }],
-		due: domains.length ? [t("time.events.collected", { domains: domains.map((domain) => domain.name).join(", ") })] : [],
+		due: [...(domains.length ? [t("time.events.collected", { domains: domains.map((domain) => domain.name).join(", ") })] : []), ...due],
 		hint: [weeks ? t("time.events.weeksPassed") : null, prompt].filter(Boolean).join(" "),
 		hintAside: true
 	});
@@ -92,9 +93,10 @@ export function announceSeasonEvent(event, season, { weeks = false } = {}) {
  * @param {object} [options]
  * @param {boolean} [options.weeks]    Whether weeks passed to reach it.
  * @param {boolean} [options.announce] Whether to post its card.
+ * @param {string[]} [options.due] What else falls due with it, for its card.
  * @returns {Promise<object|null>} The event, or null if it isn't this Season's or has already passed.
  */
-export async function markSeasonEvent(key, { weeks = false, announce = true } = {}) {
+export async function markSeasonEvent(key, { weeks = false, announce = true, due = [] } = {}) {
 	if (!game.user.isGM) return null;
 	const calendar = getCalendar();
 	const { key: thisSeason, passed } = seasonEventsNow(calendar);
@@ -107,7 +109,7 @@ export async function markSeasonEvent(key, { weeks = false, announce = true } = 
 	await ensureGmToolkit();
 	await writeSeasonEvents(thisSeason, withEventPassed(calendar.season, key, passed));
 	const event = findEvent(key);
-	if (announce) await announceSeasonEvent(event, calendar.season, { weeks });
+	if (announce) await announceSeasonEvent(event, calendar.season, { weeks, due });
 	return event;
 }
 

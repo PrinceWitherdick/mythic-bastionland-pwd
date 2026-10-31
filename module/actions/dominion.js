@@ -350,7 +350,6 @@ function whisperLeverage(domain, id) {
  * active GM to whisper it, since their own whisper would show it to them.
  * @param {Actor} domain
  * @param {string} id The courtier's id in its Court.
- * @returns {Promise<unknown>}
  */
 export async function tellLeverage(domain, id) {
 	if (game.user.isGM) return whisperLeverage(domain, id);
@@ -722,6 +721,15 @@ export function knightDomain(knight) {
 	return domain?.documentName === "Actor" && domain.type === "domain" ? domain : null;
 }
 
+/**
+ * Whether this user may make a Knight the ruler of a Domain. Ruling it hands
+ * the Knight its arms, its succession and its homecoming, so a player may
+ * only for a Domain they own, or one that names this Knight its ruler already.
+ * @param {Actor} knight
+ * @param {Actor} domain
+ * @returns {boolean}
+ */
+export const mayRuleDomain = (knight, domain) => Boolean(game.user.isGM || domain.isOwner || isSameName(domain.system.ruler, knight.name));
 /**
  * Make a Domain the one a Knight rules, writing the Knight in as its ruler if
  * nobody is yet.

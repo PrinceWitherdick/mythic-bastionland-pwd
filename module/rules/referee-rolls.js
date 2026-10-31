@@ -6,6 +6,7 @@
  * Wording lives in the language file under `bastionland.refereeRolls.tables`.
  * Pure, so it can be tested without Foundry.
  */
+import { isCalendar, nextPhase, samePhase } from "./time.js";
 
 /** Tables in book order, with the page each is printed on. The Luck Roll's card carries no page link. */
 export const REFEREE_TABLES = Object.freeze([
@@ -48,15 +49,30 @@ export function readRefereeTable(key, d6) {
 }
 
 /**
- * Dire Weather read against the roll before it: a Looming threat rolled a
- * second consecutive time is treated as dire weather (p18).
- * @param {string} result The result just rolled on the weather table.
- * @param {string|null} previous The one rolled before it, if any.
- * @returns {{result: string, streak: boolean}} `streak` when a second Looming made it dire.
+ * @typedef {object} WeatherRoll The Dire Weather table's last roll, as kept.
+ * @property {import("./time.js").Calendar} when The Phase it was rolled in.
+ * @property {string} rolled What the die gave, before a run of Looming made it dire.
+ * @property {WeatherRoll|null} [before] The roll in an earlier Phase it was read against.
  */
-export function weatherAfter(result, previous) {
-	const streak = result === "looming" && previous === "looming";
-	return { result: streak ? "dire" : result, streak };
+
+/**
+ * Dire Weather read against the roll before it: a Looming threat rolled a
+ * second consecutive time is treated as dire weather (p18). The table is rolled
+ * as each Phase begins, so only a roll in the Phase straight before counts as
+ * the one before: a Phase with no roll, or weeks gone by, breaks the run. A
+ * roll made again in the same Phase is read against what that Phase's own roll
+ * was read against, so rolling twice never makes a run by itself.
+ * @param {string} result The result just rolled on the weather table.
+ * @param {WeatherRoll|null} previous The last roll kept, if any.
+ * @param {import("./time.js").Calendar} now The Phase it's rolled in.
+ * @returns {{result: string, streak: boolean, before: WeatherRoll|null}} `streak` when a
+ *   second Looming made it dire. `before` is the earlier roll it was read against, to keep with it.
+ */
+export function weatherAfter(result, previous, now) {
+	const earlier = previous && samePhase(previous.when, now) ? previous.before ?? null : previous ?? null;
+	const before = isCalendar(earlier?.when) ? { when: earlier.when, rolled: earlier.rolled } : null;
+	const streak = result === "looming" && before?.rolled === "looming" && samePhase(nextPhase(before.when), now);
+	return { result: streak ? "dire" : result, streak, before };
 }
 
 /**

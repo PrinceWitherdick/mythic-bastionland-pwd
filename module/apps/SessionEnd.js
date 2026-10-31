@@ -6,7 +6,7 @@ import { endTheSession, getSessionEnd } from "../actions/session-end.js";
 import { t } from "../chat/cards.js";
 import { GLORY_BUTTONS } from "../rules/glory.js";
 import { crisisRollsDue } from "../rules/season-log.js";
-import { calendarTurn, offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
+import { offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { timelineShown } from "./timeline-ui.js";
 
@@ -181,7 +181,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	static async #onRollPassage() {
 		const rolled = await rollRefereeTable("passage");
 		if (!rolled) return;
-		const { step, promised } = passageStep(rolled.result, calendarTurn(getCalendar().season));
+		const { step, promised } = passageStep(rolled.result);
 		this.#passage = { d6: rolled.d6, result: rolled.result };
 		this.#step = step;
 		this.#promised = promised;
