@@ -1,6 +1,6 @@
 import { t } from "../chat/cards.js";
 import { JOURNEY_VERSION, WALKED_METHODS, forgetVisit, forgetVisits, hexesEntered, lastOfEach, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
-import { hexAt, hexKey, parseHexKey, barrierEdges } from "../rules/realm-geometry.js";
+import { barrierEdges, hexAt, hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { COMPANY_FLAG, NOT_A_MOVE, findCompanyToken, forcedMove, wentSomewhere } from "./company.js";

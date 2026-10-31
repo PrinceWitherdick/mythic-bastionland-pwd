@@ -40,7 +40,9 @@ export function barriersMet(g, barriers, from, to) {
 
 /**
  * Walk every shortest way from one hex of a Realm to another, a hex at a time.
- * @returns {{blocked: boolean, met: string[]}} Whether every way is barred, and the Barriers found on the way.
+ * @returns {{blocked: boolean, met: string[], way: {col: number, row: number}[]|null}} Whether every
+ *   way is barred, the Barriers found on the way, and the first way that crosses none: from the
+ *   hex after `from` up to and including `to`, or null when every way is barred.
  */
 function shortestWays(g, barriers, from, to) {
 	const distance = hexDistance(g, from, to);
@@ -64,7 +66,7 @@ function shortestWays(g, barriers, from, to) {
 				cameFrom.set(key, hex);
 			}
 		}
-		if (!next.size) return { blocked: true, met: [...met] };
+		if (!next.size) return { blocked: true, met: [...met], way: null };
 		reached = [...next.values()];
 	}
 	const way = [];

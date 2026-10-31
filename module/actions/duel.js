@@ -7,8 +7,8 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 /**
  * Duels & Jousts (p10). A duel card follows two duelists through each
  * exchange: both roll their Attack as normal, then the two are resolved
- * together. Only a message's author and GMs can update it, so a duelist who
- * doesn't own the card asks the active GM to record their Attack.
+ * together. With a GM here, the active GM records every change, the card's
+ * author's too, so two made at once are both kept.
  */
 
 export const DUEL_QUERY = `${SYSTEM_ID}.changeDuel`;

@@ -225,6 +225,11 @@ describe("endTheSession", () => {
 		}
 	});
 
+	it("rolls a situation in the Referee's whisper unless they share the situations", () => {
+		const window = readFileSync(join(root, "module/apps/SessionEnd.js"), "utf8");
+		expect(window).toContain(`rollRefereeTable("unresolved", this.#shareSituations ? {} : { mode: "gm" })`);
+	});
+
 	it("posts the one card to the table when the situations are shown the players", async () => {
 		await endTheSession({ step: "months", situations: [{ name: "The siege", d6: 4, result: "worse" }], shareSituations: true });
 		expect(cards).toHaveLength(1);

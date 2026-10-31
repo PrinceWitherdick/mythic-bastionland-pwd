@@ -31,6 +31,14 @@ describe("normaliseRealmSetup", () => {
 		expect(normaliseRealmSetup({ ownSize: true, cols: 99, rows: 1 })).toMatchObject({ cols: 60, rows: 3 });
 	});
 
+	it("scales a map of the GM's own size to its hexes, as p202 divides by four for a 6 by 6 map", () => {
+		const setup = normaliseRealmSetup({ ownSize: true, cols: 6, rows: 6, holdings: 9 });
+		expect(setup).toMatchObject({ ignoreRules: false, ownSize: true, cols: 6, rows: 6, holdings: 1, myths: 2, landmarks: { min: 1, max: 1, types: {} } });
+		expect(normaliseRealmSetup(setup)).toEqual(setup);
+		// On the book's own size, the book's numbers.
+		expect(normaliseRealmSetup({ ownSize: true, cols: 12, rows: 12 })).toMatchObject({ holdings: 4, myths: 6, landmarks: { min: 3, max: 4 } });
+	});
+
 	it("lets a map with no hexes on it run further than the rules ignored, but to no more hexes in all", () => {
 		expect(OWN_SIZE_LIMITS.cols.max).toBeGreaterThan(SETUP_LIMITS.cols.max);
 		expect(OWN_SIZE_LIMITS.hexes).toBe(SETUP_LIMITS.cols.max * SETUP_LIMITS.rows.max);

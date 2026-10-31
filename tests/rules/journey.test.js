@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { JOURNEY_VERSION, cameFrom, changedHexes, emptyJourney, forgetVisit, forgetVisits, hexesEntered, lastOfEach, normaliseJourney, recordVisits, visitedNewestFirst, visitsAt, paceSoFar } from "../../module/rules/journey.js";
+import {
+	JOURNEY_VERSION,
+	cameFrom,
+	changedHexes,
+	emptyJourney,
+	forgetVisit,
+	forgetVisits,
+	hexesEntered,
+	lastOfEach,
+	normaliseJourney,
+	paceSoFar,
+	recordVisits,
+	visitedNewestFirst,
+	visitsAt
+} from "../../module/rules/journey.js";
 import { realmGeometry } from "../../module/rules/realm-geometry.js";
 
 const hex = (col, row) => ({ col, row });

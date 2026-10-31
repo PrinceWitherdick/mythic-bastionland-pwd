@@ -177,14 +177,17 @@ describe("noticeArrival", () => {
 		expect(lastCard().actions.map(({ key }) => key)).toEqual(["endPhase"]);
 	});
 
-	it("keeps the Company in its hex in dire weather, and gauges a Holding's mood on arriving (p18)", async () => {
+	it("gauges a Holding's mood on arriving (p18)", async () => {
+		await noticeArrival(scene, { entered: [hex(2, 2)], ended: true, from: hex(2, 3) });
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["mood", "endPhase"]);
+	});
+
+	it("keeps the Company in its hex in dire weather, with no mood for a Holding it may not have reached", async () => {
 		weather = "dire";
 		await noticeArrival(scene, { entered: [hex(2, 2)], ended: true, from: hex(2, 3) });
-		expect(lastCard().actions).toEqual([
-			expect.objectContaining({ key: "stay", hex: "2,3" }),
-			expect.objectContaining({ key: "mood" })
-		]);
+		expect(lastCard().actions).toEqual([expect.objectContaining({ key: "stay", hex: "2,3" })]);
 	});
+
 
 	it("leaves a move the Company didn't choose alone", async () => {
 		weather = "dire";
@@ -391,6 +394,19 @@ describe("a move followed", () => {
 			expect(rollFirstArrival).toHaveBeenCalledWith({ scene, hex: hex(8, 6) });
 			expect(welcomeHome).toHaveBeenCalledWith(scene, [hex(8, 6)]);
 			expect(lastCard().actions).toEqual([expect.objectContaining({ key: "omen", hex: "8,6" })]);
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("gauges the mood of a Holding dire weather let the Company on into, played alone", async () => {
+		solo = true;
+		try {
+			weather = "dire";
+			await noticeArrival(scene, { entered: [hex(2, 2)], ended: true, from: hex(2, 3) });
+			expect(lastCard().actions.map(({ key }) => key)).toEqual(["stay", "onward"]);
+			await press("onward");
+			expect(lastCard().actions.map(({ key }) => key)).toEqual(["mood"]);
 		} finally {
 			solo = false;
 		}

@@ -14,6 +14,7 @@ export const ATTACK_FLAG = "attack";
  * @returns {import("../rules/attack.js").AttackState|null} The Attack the card holds, if it's an Attack card.
  */
 export const attackOf = (message) => message?.flags?.[SYSTEM_ID]?.[ATTACK_FLAG] ?? null;
+
 /**
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {User} [user] Whoever asks; this user when left out.

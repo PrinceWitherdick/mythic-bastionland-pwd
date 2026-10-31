@@ -4,8 +4,15 @@
  * per d6 and kept in roll order, as the Knights' table on p26 lists them. A
  * Seer that counts as a structure is one. Pure, so it can be tested without Foundry.
  */
+import { SYSTEM_ID } from "../system-id.js";
 import { actorFromStatBlock } from "./stat-blocks.js";
 import { midSentence, paragraphs } from "./text.js";
+
+/**
+ * The flag marking a Seer's Actor with their roll on the Knights table, such as
+ * "3-07", so one brought in from the compendium is the one Make Seer finds.
+ */
+export const SEER_FLAG = "seer";
 
 /**
  * @typedef {object} SeerNpcWords
@@ -20,7 +27,7 @@ import { midSentence, paragraphs } from "./text.js";
  * @param {object} seer From the art index, with `stats`.
  * @param {object|null} knight The Knight sharing their roll, from the art index.
  * @param {SeerNpcWords} words
- * @returns {{name: string, type: string, img?: string, prototypeToken?: object, system: object, items: object[], sort: number}}
+ * @returns {{name: string, type: string, img?: string, prototypeToken?: object, system: object, items: object[], flags: object, sort: number}}
  */
 export function seerActor(seer, knight, words) {
 	const block = { name: seer.name, stats: seer.stats, lines: seer.lines ?? [] };
@@ -32,6 +39,7 @@ export function seerActor(seer, knight, words) {
 		...(seer.path ? { img: seer.path, prototypeToken: { texture: { src: seer.path } } } : {}),
 		system: { ...system, notes: system.notes + paragraphs(knighted) },
 		items,
+		flags: { [SYSTEM_ID]: { [SEER_FLAG]: seer.roll } },
 		sort: (seer.d6 * 100) + seer.d12
 	};
 }

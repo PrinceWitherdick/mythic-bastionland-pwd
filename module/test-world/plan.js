@@ -9,7 +9,7 @@
 import { CHARGE_SCALE, tintCharge } from "../rules/heraldry-charges.js";
 import { FESS_POINT, SHIELD_HEIGHT, SHIELD_PATH, SHIELD_WIDTH, divisionOf, tinctureColor } from "../rules/heraldry.js";
 import { LAKE, featureAt, terrainAt } from "../rules/realm.js";
-import { edgeKey, hexDistance, hexKey, neighbours, sameHex } from "../rules/realm-geometry.js";
+import { barrierEdges, edgeKey, hexDistance, hexKey, neighbours, sameHex } from "../rules/realm-geometry.js";
 
 export { armourKind, companionActorData, isSteed, propertyItems } from "../rules/property.js";
 
@@ -120,7 +120,7 @@ export function pickPlaces(realm, g) {
  */
 export function realmRoad(realm, g, from, to) {
 	if (sameHex(from, to)) return [];
-	const barriers = new Set(realm.barriers.map((barrier) => barrier.edge));
+	const barriers = barrierEdges(realm);
 	const search = (dry) => {
 		const cameFrom = new Map([[hexKey(from), null]]);
 		const queue = [from];

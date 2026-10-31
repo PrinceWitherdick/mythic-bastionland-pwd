@@ -81,6 +81,8 @@ describe("foundDomain", () => {
 		const domain = await foundDomain(actors[0]);
 		expect(domain).toMatchObject({ name: "Mill", type: "domain", system: { ruler: "Tal", holding: "Scene.s1.Tile.h1", seat: false, council: { circle: ["k2"] } } });
 		expect(linkKnightDomain).toHaveBeenCalledWith(actors[0], domain);
+		// Founded, so it takes the Holding from any Domain that ruled it; a copy wouldn't.
+		expect(Actor.implementation.create.mock.calls[0][1]).toEqual({ founded: true });
 		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss", "Brand"]);
 	});
 

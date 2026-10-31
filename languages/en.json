@@ -2411,7 +2411,7 @@
         "tagline": "Rolled up at",
         "personNamed": "{name}, {number} of {count}",
         "kept": "Someone here, {number} of {count} (p181)",
-        "noMyths": "This Realm has no Myths yet, so nobody here has heard of one.",
+        "noMyths": "This Realm has no Myths left unresolved, so nobody here has heard of one.",
         "none": "There’s no Holding in this hex to roll up.",
         "missing": "Run Import PDF with your rulebook to bring in the Civilisation and People Spark Tables."
       }
@@ -4838,6 +4838,8 @@
       "monumentIntro": "A Phase spent at the Monument restores {virtue} in full, as a Sacrament would. Tick everybody who takes part.",
       "monumentHint": "The Phase is spent here, so its end comes next.",
       "hazardWhich": "Pushing through costs d6 of a Virtue, most often VIG. Which does this Hazard take?",
+      "hazardPick": "Choose who pushes through",
+      "offerGone": "That Landmark has been taken away or changed since the card was posted, so it no longer offers this.",
       "goBack": {
         "done": "The Company goes back the way it came, to {hex}. Travelling there takes the Phase as usual.",
         "noToken": "Only the Company’s own Token can be sent back. Move the Company’s Tokens back by hand.",
@@ -5215,6 +5217,7 @@
       "here": "in this very Hex",
       "away": "{distance} Hexes to the {direction}",
       "awayOne": "the next Hex to the {direction}",
+      "way": "off to the {direction}",
       "mark": "Mark it on the players’ map",
       "marked": "Marked on the players’ map: {count}.",
       "markedNothing": "The players’ map already shows all of it.",

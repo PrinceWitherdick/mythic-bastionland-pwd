@@ -9,6 +9,7 @@ vi.mock("../../module/actions/referee-rolls.js", () => ({ rollSpark: vi.fn() }))
 vi.mock("../../module/actions/succession.js", () => ({ namedHeirOf: () => null }));
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
 vi.mock("../../module/actions/timeline-events.js", () => ({
+	timelineCollections: vi.fn(),
 	timelineCrisisResolved: vi.fn(),
 	timelineCrisisRoll: vi.fn(),
 	timelineDrama: vi.fn(),

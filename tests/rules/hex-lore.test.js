@@ -285,9 +285,9 @@ describe("wildernessSparkSet", () => {
 		expect(wildernessSparkSet(page(9)).map(({ index }) => index)).toEqual([0, 3, 6]);
 	});
 
-	it("falls back to the first three of a page the import couldn't read whole", () => {
-		expect(wildernessSparkSet(page(4)).map(({ index }) => index)).toEqual([0, 1, 2]);
-		expect(wildernessSparkSet(page(2)).map(({ index }) => index)).toEqual([0, 1]);
+	it("gives nothing from a page the import couldn't read whole, rather than other tables under these names", () => {
+		expect(wildernessSparkSet(page(4))).toEqual([]);
+		expect(wildernessSparkSet(page(8))).toEqual([]);
 	});
 
 	it("gives nothing for a page that was never read", () => {

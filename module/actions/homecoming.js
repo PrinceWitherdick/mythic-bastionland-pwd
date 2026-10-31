@@ -32,7 +32,7 @@ export function realmHoldings() {
  * @param {import("../rules/dominion.js").RealmHoldings[]} [realms]
  * @returns {{scene: Scene, holding: object}|null}
  */
-function domainHolding(domain, realms = realmHoldings()) {
+export function domainHolding(domain, realms = realmHoldings()) {
 	const found = findDomainHolding(realms, domain);
 	const scene = found ? game.scenes.get(found.sceneId) : null;
 	return scene ? { scene, holding: found.holding } : null;

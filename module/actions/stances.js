@@ -1,4 +1,5 @@
 import { postCard, t, warn } from "../chat/cards.js";
+import { gmAsker } from "../gm-asker.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { WILD_HORN_FLAG, hornBlownFor } from "./damage.js";
 import { combatantOf } from "./lasting-dice.js";
@@ -6,7 +7,6 @@ import { hasStance, lapsedUpdates, onMoveUpdates } from "../rules/stances.js";
 import { causedBy } from "./ledger.js";
 import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 import { attackOf, ownsAnAttacker } from "../chat/attack-flag.js";
-import { gmAsker } from "../gm-asker.js";
 
 /** The query asking the GM to take up, or end, a stance a Move Gambit brought, for a user who can't (p40). */
 const STANCE_QUERY = `${SYSTEM_ID}.stanceOnMove`;

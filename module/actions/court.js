@@ -1,6 +1,6 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { deletionUpdate } from "../compat.js";
-import { loadArtIndex } from "../book-art/art-index.js";
+import { loadArtIndex, seerEntry } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { t } from "../chat/cards.js";
 import { SEER_PROMPTS_VERSION } from "../rules/book-art.js";
@@ -90,11 +90,12 @@ export async function addCourtMember(domain, role, fields = {}) {
  * their leverage and a note.
  * @param {import("../rules/court.js").CourtMember} member As they stand.
  * @param {string} held The seat they hold themselves, if any.
- * @param {{title: string, ok: string, others?: string[]}} wording `others` are
+ * @param {{title: string, ok: string, others?: string[], domain?: Actor}} wording `others` are
  *   the rest of the Court's names, which the name's die rolls only once no other is left.
+ *   `domain` is the Court's, whose Realm's Seers the die offers a Seer.
  * @returns {Promise<object|null>} The answers, or null if the window was closed.
  */
-async function askAboutMember(member, held, { title, ok, others = [] }) {
+async function askAboutMember(member, held, { title, ok, others = [], domain = null }) {
 	const notePlaceholder = (role) => t(`domain.court.roles.${role}.notePlaceholder`);
 	return inputDialog({
 		title,
@@ -122,7 +123,7 @@ async function askAboutMember(member, held, { title, ok, others = [] }) {
 		ok: { label: ok, icon: "fa-solid fa-check" },
 		render: (_event, dialog) => {
 			followTheRole(dialog);
-			offerBookNames(dialog, others);
+			offerBookNames(dialog, others, domain);
 		}
 	});
 }
@@ -143,15 +144,39 @@ async function namesFromTheBook() {
 }
 
 /**
+ * The Seers whose Sanctums stand in the Realm where the Domain rules its Holding,
+ * by name: those who may visit its Court (p20). The Realm's Landmarks are the
+ * Referee's to know (p14), so only they are offered them, and a Referee playing
+ * alone only those whose Sanctums have been found.
+ * @param {Actor|null} domain
+ * @returns {Promise<string[]>} Empty where there's no such Realm, or no Seer the book names in it.
+ */
+export async function realmSeerNames(domain) {
+	if (!domain || !game.user?.isGM) return [];
+	const index = await loadArtIndex();
+	if (!index?.seers?.length) return [];
+	// Loaded only when asked, as the Realm's modules lead back to the Court's.
+	const [{ domainHolding }, { getRealm }, { realmKnown }] = await Promise.all([import("./homecoming.js"), import("./realm.js"), import("./solo.js")]);
+	const scene = domainHolding(domain)?.scene;
+	const realm = scene ? realmKnown(getRealm(scene)?.realm, scene) : null;
+	const seers = (realm?.landmarks ?? []).filter((landmark) => landmark.type === "sanctum" && landmark.seer).map((landmark) => seerEntry(index, landmark.seer));
+	return [...new Set(seers.filter((seer) => seer.entry).map((seer) => seer.name))];
+}
+
+/**
  * Let the die beside the name fill it with one of the book's names: never the
- * name already there, nor another of the Court's while any is left.
+ * name already there, nor another of the Court's while any is left. A Seer is
+ * given one of the Realm's Seers, while it has any.
  * @param {foundry.applications.api.DialogV2} dialog
  * @param {string[]} others The rest of the Court's names.
+ * @param {Actor|null} [domain] The Court's.
  */
-function offerBookNames(dialog, others) {
+function offerBookNames(dialog, others, domain = null) {
 	const input = dialog.element.querySelector("[name='name']");
+	const role = dialog.element.querySelector("[name='role']");
 	dialog.element.querySelector("[data-roll-name]")?.addEventListener("click", async () => {
-		const name = rollFreeName(await namesFromTheBook(), Math.random, [input?.value, ...others]);
+		const seers = role?.value === "seer" ? await realmSeerNames(domain) : [];
+		const name = rollFreeName(seers.length ? seers : await namesFromTheBook(), Math.random, [input?.value, ...others]);
 		if (!name) return ui.notifications.warn(t("domain.court.rollNameUnread"));
 		if (!input) return;
 		input.value = name;
@@ -213,7 +238,7 @@ function memberFromAnswers(data, member) {
 export async function takeIntoCourt(domain) {
 	if (!domain?.isOwner) return null;
 	const fresh = newCourtMember(SERVES_A_SEAT, Date.now());
-	const data = await askAboutMember(fresh, "", { title: t("domain.court.addTitle"), ok: t("domain.court.add"), others: courtNames(domain) });
+	const data = await askAboutMember(fresh, "", { title: t("domain.court.addTitle"), ok: t("domain.court.add"), others: courtNames(domain), domain });
 	const member = data ? memberFromAnswers(data, fresh) : null;
 	if (!member) return null;
 	const id = foundry.utils.randomID();
@@ -236,7 +261,8 @@ export async function editCourtMember(domain, id) {
 	const data = await askAboutMember(member, held, {
 		title: t("domain.court.editTitle", { name: member.name || t(`domain.court.roles.${member.role}.one`) }),
 		ok: t("domain.court.save"),
-		others: courtNames(domain, id)
+		others: courtNames(domain, id),
+		domain
 	});
 	const answered = data ? memberFromAnswers(data, member) : null;
 	if (!answered) return false;

@@ -1,4 +1,5 @@
 import { findByRoll } from "../book-art/art-index.js";
+import { gmAsker } from "../gm-asker.js";
 import { knightWithLists } from "../book-art/myth-tables.js";
 import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 import { t } from "../chat/cards.js";
@@ -13,7 +14,6 @@ import { findFlaggedFolder, flaggedFolder } from "./folders.js";
 import { COMPANY_KNIGHT_FLAG, worldKnights } from "./knights.js";
 import { withoutLedger } from "./ledger.js";
 import { createKnightWithCompanions, rollStartScores } from "./new-knight.js";
-import { gmAsker } from "../gm-asker.js";
 
 /**
  * Knights the Referee plays: NPC Knights, an Actor type of their own. One of

@@ -1,7 +1,20 @@
 import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 import { gmAsker } from "../gm-asker.js";
 import { t } from "../chat/cards.js";
-import { HEX_SHARED_FLAG, HEX_SHARED_VERSION, forgetBarrierMet, forgetPartyNote, forgetShared, forgetTold, normaliseShared, normaliseSharedRecord, recordBarrierMet, recordTold, setPartyNote, keepBarriersMet } from "../rules/hex-shared.js";
+import {
+	HEX_SHARED_FLAG,
+	HEX_SHARED_VERSION,
+	forgetBarrierMet,
+	forgetPartyNote,
+	forgetShared,
+	forgetTold,
+	keepBarriersMet,
+	normaliseShared,
+	normaliseSharedRecord,
+	recordBarrierMet,
+	recordTold,
+	setPartyNote
+} from "../rules/hex-shared.js";
 import { hexKey, inRealm } from "../rules/realm-geometry.js";
 import { knownToPlayers } from "../rules/travels.js";
 import { SYSTEM_ID } from "../system-id.js";

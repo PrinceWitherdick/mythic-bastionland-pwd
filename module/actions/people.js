@@ -13,11 +13,13 @@ import {
 	sparkDiceCount,
 	takenTraits
 } from "../rules/people.js";
+import { nearestMyths } from "../rules/exploration.js";
 import { rollKnightName } from "../rules/knight-names.js";
 import { featureAt, holdingName } from "../rules/realm.js";
 import { midSentence } from "../rules/text.js";
 import { getCalendar } from "./calendar.js";
 import { getHexRecord, keepHexSparkRecords } from "./hex-lore.js";
+import { liveRealm } from "./myth-notes.js";
 import { toldWhere } from "./told-where.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { mythKeptFromMe } from "./solo.js";
@@ -148,7 +150,8 @@ export function keepHexPerson(scene, hex, person, name) {
 /**
  * Roll up a Holding in one go, as the Referee does on a short break (p181):
  * the Holding itself on the Civilisation tables, two or three people there,
- * and for each of them one of the Realm's Myths, at random, they've heard of (p200).
+ * and for each of them the Myth nearest the Holding, which is the one a Vassal
+ * has heard of (p19). Resolved Myths aren't told of.
  * Everything is kept in the hex, and the GMs are whispered one card. GMs only.
  * @param {object} options
  * @param {Scene} options.scene
@@ -174,9 +177,10 @@ export async function rollUpHolding({ scene, hex }) {
 
 	const count = await new Roll(HOLDING_PEOPLE).evaluate();
 	const folk = count.total;
-	const myths = realm.myths ?? [];
+	// Several Myths as near as each other are settled by a die for each person, as Gathering Folklore does.
+	const myths = nearestMyths(liveRealm(scene, realm), sceneGeometry(scene), hex);
 	const tables = [...set.map(({ table }) => table), ...Array.from({ length: folk }, () => people.tables).flat()];
-	const { roll, d12s, others } = await throwTables(tables, myths.length ? Array.from({ length: folk }, () => `1d${myths.length}`) : []);
+	const { roll, d12s, others } = await throwTables(tables, myths.length > 1 ? Array.from({ length: folk }, () => `1d${myths.length}`) : []);
 
 	const rolled = dealSparkDice(tables, d12s);
 	const place = rolled.slice(0, set.length).filter(({ prompt }) => prompt);
@@ -186,7 +190,7 @@ export async function rollUpHolding({ scene, hex }) {
 	const persons = Array.from({ length: folk }, (_, number) => {
 		const start = set.length + number * people.tables.length;
 		const traits = personTraits(rolled.slice(start, start + people.tables.length));
-		const myth = myths.length ? heardOfMyth(realm, others[number]) : null;
+		const myth = heardOfMyth(myths, others[number]);
 		// Played alone, a Myth not yet met is heard of by its number and the way it lies, not its name (p19).
 		const unmet = mythKeptFromMe(myth, scene)
 			? t("people.heardOfUnmet", { number: myth.number, where: toldWhere(sceneGeometry(scene), hex, myth.hex) })

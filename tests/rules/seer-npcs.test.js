@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { seerActor, seerFolders } from "../../module/rules/seer-npcs.js";
+import { SEER_FLAG, seerActor, seerFolders } from "../../module/rules/seer-npcs.js";
+import { SYSTEM_ID } from "../../module/system-id.js";
 
 // Names here are invented so no book text lives in the repository.
 
@@ -58,6 +59,10 @@ describe("seerActor", () => {
 
 	it("makes a Structure of a Seer with only GD that counts as one", () => {
 		expect(seerActor(statue, null, words)).toMatchObject({ type: "structure", system: { guard: { value: 6, max: 6 }, armour: 3 } });
+	});
+
+	it("marks them with their roll, so Make Seer knows one brought in from the compendium", () => {
+		expect(seerActor(glass, null, words).flags).toEqual({ [SYSTEM_ID]: { [SEER_FLAG]: "1-02" } });
 	});
 
 	it("leaves the picture to the default without one", () => {

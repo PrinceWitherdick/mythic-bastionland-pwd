@@ -19,7 +19,7 @@ import {
 import { SYSTEM_ID } from "../system-id.js";
 import { causedBy } from "./ledger.js";
 import { timelineDismissed, timelineMustered } from "./timeline-events.js";
-import { shareMade } from "./belonging.js";
+import { MUSTERED_FLAG, shareMade } from "./belonging.js";
 
 /**
  * Raising soldiers and keeping them (p11). A Holding musters its Warbands
@@ -29,8 +29,8 @@ import { shareMade } from "./belonging.js";
  * rolled and told to the table.
  */
 
-/** Marks a Warband as one a Domain has raised. Kept as its id, as companions are. */
-export const MUSTERED_FLAG = "musteredBy";
+/** Marks a Warband as one a Domain has raised: kept in belonging.js, beside who may see it. */
+export { MUSTERED_FLAG };
 
 /** Where a Warband was drawn from, kept so the sheet and cards can say. */
 export const ORIGIN_FLAG = "warbandOrigin";

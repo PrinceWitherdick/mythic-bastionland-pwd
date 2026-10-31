@@ -1,4 +1,5 @@
 import { hexLabel } from "../actions/hex-names.js";
+import { gmAsker } from "../gm-asker.js";
 import { getCalendar } from "../actions/calendar.js";
 import { recordBarriersMet } from "../actions/hex-shared.js";
 import { movesAsCompany } from "../actions/journey.js";
@@ -8,10 +9,9 @@ import { advancePhase } from "../actions/time.js";
 import { askActiveGM } from "../ask-gm.js";
 import { t, warn } from "../chat/cards.js";
 import { setBarrier } from "../rules/realm-edits.js";
-import { hexAt, hexKey, inRealm, parseEdgeKey, sameHex, barrierEdges } from "../rules/realm-geometry.js";
+import { barrierEdges, hexAt, hexKey, inRealm, parseEdgeKey, sameHex } from "../rules/realm-geometry.js";
 import { barriersMet, realmMoveProblem } from "../rules/realm-movement.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { gmAsker } from "../gm-asker.js";
 
 /** A player's Token turned back by a Barrier, told to the active GM. */
 const TURNED_BACK_QUERY = `${SYSTEM_ID}.turnedBack`;

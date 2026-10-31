@@ -363,6 +363,25 @@ describe("an Attack recorded on a duel card", () => {
 		expect(adaAttack()).toBe("ada-attack");
 	});
 
+	it("takes any change from the card's author, as their own client would with no GM here", async () => {
+		duelMessage.author = { id: "ada-player" };
+		// Ada's player doesn't own Bram, so only being the author lets the duel end.
+		expect(await onDuelQuery({ messageId: "duel-1", change: { type: "end", victor: null } }, { user: { id: "ada-player" } })).toBe(true);
+		expect(duelMessage.flags[SYSTEM_ID].duel.ended).toBe(true);
+	});
+
+	it("refuses an ending from a player who neither wrote the card nor owns both duelists", async () => {
+		duelMessage.author = { id: "gm" };
+		expect(await onDuelQuery({ messageId: "duel-1", change: { type: "end", victor: null } }, { user: { id: "ada-player" } })).toBe(false);
+		expect(duelMessage.update).not.toHaveBeenCalled();
+	});
+
+	it("still refuses another card swapped in by the card's author", async () => {
+		duelMessage.author = { id: "ada-player" };
+		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("dragon-attack") }, { user: { id: "ada-player" } })).toBe(false);
+		expect(adaAttack()).toBeNull();
+	});
+
 	it("refuses an Attack for somebody who doesn't own the duelist, or with nobody asking", async () => {
 		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, { user: { id: "bram-player" } })).toBe(false);
 		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, {})).toBe(false);

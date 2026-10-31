@@ -1,10 +1,10 @@
 import { hexLabel } from "./hex-names.js";
-import { chooseDialog } from "../apps/ui.js";
+import { inputDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry, pageNote } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { MYTH_PROMPTS_VERSION } from "../rules/book-art.js";
-import { LANDMARK_EFFECTS, hasBookPrompt, landmarkEffect, landmarkPrompt, offCourseShown, offCourseState, throwsOffCourse } from "../rules/landmarks.js";
+import { LANDMARK_EFFECTS, hasBookPrompt, landmarkEffect, landmarkOffers, landmarkPrompt, offCourseShown, offCourseState, throwsOffCourse } from "../rules/landmarks.js";
 import { cameFrom } from "../rules/journey.js";
 import { BLOG_LANDMARKS_URL, GUARDED_LANDMARK, featureAt, isBlogLandmark, isLandmarkVariant } from "../rules/realm.js";
 import { editFeature } from "../rules/realm-edits.js";
@@ -15,6 +15,7 @@ import { companyTokenHex, setCompanyHex } from "./company.js";
 import { rollFreeMyth } from "./gm-toolkit.js";
 import { getJourney } from "./journey.js";
 import { liveRealm } from "./myth-notes.js";
+import { mythRollTaken } from "../rules/gm-toolkit.js";
 import { editRealm, editRealmByHand, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { advancePhase, chooseCompany, virtueLoss } from "./time.js";
@@ -96,7 +97,9 @@ export async function restoreAtMonument() {
 		title: t("realm.landmarks.effects.monument.offer"),
 		icon: LANDMARK_EFFECTS.monument.icon,
 		intro: t("realm.landmarks.monumentIntro", { virtue: abbr }),
-		ok: t("recovery.restore", { virtue: abbr })
+		ok: t("recovery.restore", { virtue: abbr }),
+		// Every traveller there, steeds and followers too, as a Remedy reaches the whole Company (p9).
+		companions: true
 	});
 	if (!company) return null;
 
@@ -112,31 +115,33 @@ export async function restoreAtMonument() {
 }
 
 /**
- * Push through a Hazard (p14): everybody who does loses d6 of a Virtue, most
- * often VIG. The Referee is asked which, since the book leaves it to the moment. GMs
- * only.
+ * Push through a Hazard (p14): everybody who does, steeds and followers among
+ * them, loses d6 of a Virtue, most often VIG. The Referee is asked which, from a
+ * list with VIG first, since the book leaves it to the moment. GMs only.
  * @returns {Promise<object[]|null>}
  */
 export async function pushThroughHazard() {
 	if (!game.user.isGM) return null;
 	const usual = LANDMARK_EFFECTS.hazard.virtue;
-	const virtue = await chooseDialog({
-		title: t("realm.landmarks.effects.hazard.offer"),
-		icon: LANDMARK_EFFECTS.hazard.icon,
-		message: t("realm.landmarks.hazardWhich"),
-		buttons: VIRTUES.map((key) => ({
-			action: key,
-			label: t(`virtues.${key}.label`),
-			default: key === usual
-		}))
+	const title = t("realm.landmarks.effects.hazard.offer");
+	const icon = LANDMARK_EFFECTS.hazard.icon;
+	const order = [usual, ...VIRTUES.filter((key) => key !== usual)];
+	const picked = await inputDialog({
+		title,
+		icon,
+		template: "virtue-pick",
+		context: { legend: t("realm.landmarks.hazardWhich"), virtues: order.map((key) => ({ id: key, name: t(`virtues.${key}.label`) })) },
+		ok: { label: t("realm.landmarks.hazardPick"), icon }
 	});
+	const virtue = picked?.virtue;
 	if (!VIRTUES.includes(virtue)) return null;
 
 	const company = await whoTakesPart({
 		title: t("realm.landmarks.effects.hazard.offer"),
 		icon: LANDMARK_EFFECTS.hazard.icon,
 		intro: `${t("realm.landmarks.hazardIntro", { virtue: t(`virtues.${virtue}.abbr`) })} ${t("time.hardship.intro")}`,
-		ok: t("time.hardship.roll")
+		ok: t("time.hardship.roll"),
+		companions: true
 	});
 	if (!company) return null;
 	// No hardship of the book's list, but the same d6 in a Virtue (p14).
@@ -195,8 +200,10 @@ export async function echoRuin(scene, hex = null) {
 	if (!game.user.isGM || !scene) return null;
 	const { realm } = getRealm(scene);
 	const ruin = hex ? featureAt(realm, hex).landmark : null;
-	const kept = ruin?.type === "ruin" ? ruin.echo ?? null : null;
 	const live = liveRealm(scene, realm);
+	// A kept echo stands until its Myth comes into the Realm: then the Ruin hints at another.
+	const echoed = ruin?.type === "ruin" ? ruin.echo ?? null : null;
+	const kept = echoed && !mythRollTaken(live, echoed) ? echoed : null;
 	// Unless it already echoes one, any Myth the Realm isn't playing out now (p14): one the group
 	// resolved is over there, and may come back, as a Ruin's Myth may.
 	const rolled = kept ? null : await rollFreeMyth(live);
@@ -286,7 +293,8 @@ export async function renameLandmark(scene, hex, name, { byHand = true } = {}) {
 }
 
 /**
- * Carry out what a Landmark offers, by the offer's own name.
+ * Carry out what a Landmark offers, by the offer's own name. Given a hex, the
+ * Landmark there must still offer it.
  * @param {string} offer One of LANDMARK_OFFERS.
  * @param {object} [options]
  * @param {Scene} [options.scene] The Realm, which a Ruin's echo needs.
@@ -294,7 +302,14 @@ export async function renameLandmark(scene, hex, name, { byHand = true } = {}) {
  * @returns {Promise<unknown>} Nothing for an offer that doesn't exist.
  */
 export function takeLandmarkOffer(offer, { scene = canvas.scene, hex = null } = {}) {
-	return OFFER_ACTIONS[offer]?.(scene, hex) ?? Promise.resolve(null);
+	const act = OFFER_ACTIONS[offer];
+	if (!act) return Promise.resolve(null);
+	// A card from before the Landmark was taken away or changed offers what's no longer there.
+	if (hex && isRealmScene(scene) && !landmarkOffers(featureAt(getRealm(scene).realm, hex).landmark?.type).includes(offer)) {
+		ui.notifications.warn(t("realm.landmarks.offerGone"));
+		return Promise.resolve(null);
+	}
+	return act(scene, hex);
 }
 
 /** What each of LANDMARK_OFFERS does when it's taken up. */
@@ -317,9 +332,9 @@ const OFFER_ACTIONS = Object.freeze({
 export function landmarkOfferView(type, variant) {
 	const effect = landmarkEffect(type);
 	if (!effect) return null;
-	const offers = [];
-	if (effect.offer) offers.push({ key: effect.offer, label: t(`realm.landmarks.effects.${type}.offer`), icon: effect.icon });
-	if (effect.also) offers.push({ key: effect.also, label: t(`realm.landmarks.effects.${type}.also`), icon: effect.alsoIcon });
+	const offers = landmarkOffers(type).map((key) => key === effect.offer
+		? { key, label: t(`realm.landmarks.effects.${type}.offer`), icon: effect.icon }
+		: { key, label: t(`realm.landmarks.effects.${type}.also`), icon: effect.alsoIcon });
 	return {
 		text: t(`realm.landmarks.effects.${type}.text`),
 		variantText: isLandmarkVariant(type, variant) ? t(`realm.landmarks.variants.${type}.${variant}.text`) : null,

@@ -1,4 +1,5 @@
 import { restedUpdate } from "./virtues.js";
+
 /**
  * Stances some Knights' Abilities let them take up: dug in behind a doubled
  * shield (p78), fighting in deep water (p82), counting as Armour 4 after a

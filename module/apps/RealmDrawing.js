@@ -17,7 +17,7 @@ import { COMPANY_STARTS } from "../rules/company.js";
 import { RULEBOOK_HOOK } from "../rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { COMPANY_BUTTON_HOOK, closeCompanyButton, companyButtonBox, showCompanyButton } from "./CompanyButton.js";
-import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture, companyStartContext, wireCompanyStart } from "./company-picture.js";
+import { companyPictureContext, companyStartContext, resolveCompanyPicture, wireCompanyPicture, wireCompanyStart } from "./company-picture.js";
 import { wireDialogRail } from "./dialog-rail.js";
 import { RealmPanel, brushHint, closeRealmPalette, realmSwatches, riverState, toggleRealmSeat } from "./RealmPanel.js";
 import { followMap, hotbarFloor, mapOnScreen, mapPanelScale, panelScreen } from "./map-screen.js";

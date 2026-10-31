@@ -192,6 +192,23 @@ export function timelineCrisisRoll(domain, { result, crises }) {
 }
 
 /**
+ * A Steward squeezes more from a Domain's Vassals (p21): what came of it, and the Crisis it brought.
+ * It's kept with the Crisis Rolls, as both bring Crises.
+ * @param {Actor} domain
+ * @param {object} roll
+ * @param {string} roll.result One of COLLECTION_RESULTS.
+ * @param {string[]} roll.crises The names of the Crises it brought.
+ */
+export function timelineCollections(domain, { result, crises }) {
+	return recordOnTrack(domain, {
+		source: "crisis",
+		key: eachTime("collections"),
+		title: t("domain.collections"),
+		body: lines(t(`domain.results.collections.${result}`), crises)
+	});
+}
+
+/**
  * A Domain passes to a new ruler, by succession or conquest: on its thread,
  * and on the new ruler's when they're a Knight, unless that would tell a
  * player's Knight's readers of a Domain kept from them.
@@ -513,14 +530,15 @@ export function timelineCrisisResolved(domain, crisis, name) {
 }
 
 /**
- * Drama in a Domain's Court: what came of it, and who of the Court was at its heart.
- * Their leverage is the Referee's to know (p21), so only a thread kept from the players tells it.
+ * Drama in a Domain's Court: what came of it, who of the Court was at its heart, and the
+ * Spark prompt rolled for it. Their leverage is the Referee's to know (p21), so only a thread
+ * kept from the players tells it.
  * @param {Actor} domain
- * @param {{said: string, who?: string|null, leverage?: string|null}} drama
+ * @param {{said: string, who?: string|null, leverage?: string|null, prompt?: string|null}} drama
  */
-export function timelineDrama(domain, { said, who = null, leverage = null }) {
+export function timelineDrama(domain, { said, who = null, leverage = null, prompt = null }) {
 	const told = keptFromPlayers(domain) ? leverage : null;
-	return recordOnTrack(domain, { source: "drama", key: eachTime("drama"), title: t("domain.drama"), body: lines(said, who, told) });
+	return recordOnTrack(domain, { source: "drama", key: eachTime("drama"), title: t("domain.drama"), body: lines(said, who, prompt, told) });
 }
 
 /**

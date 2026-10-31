@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyRealm, featureAt } from "../../module/rules/realm.js";
 import { hexKey, realmGeometry, sameHex } from "../../module/rules/realm-geometry.js";
 import { pairPonds, placeFeature } from "../../module/rules/realm-edits.js";
-import { soloRealm } from "../../module/rules/solo.js";
 import { freshRandom } from "../../module/rules/random.js";
+import { soloRealm } from "../../module/rules/solo.js";
 
 const g = realmGeometry();
 const hex = (col, row) => ({ col, row });

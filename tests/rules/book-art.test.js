@@ -212,8 +212,26 @@ describe("seerTextFromItems", () => {
 		});
 	});
 
+	it("keeps a trait whole where it runs on to a second sentence on a line of its own", () => {
+		const items = [
+			anchor,
+			name,
+			item("VIG 9, CLA 9, SPI 6, 3GD", 11, 71, 166),
+			item("•", 11, 71, 147, 7),
+			item("Covered in shifting scales", 11, 89, 147, 100),
+			item("that warn of storms.", 11, 89, 136, 90),
+			item("Only fishers can read them.", 11, 89, 125, 100),
+			item("•", 11, 71, 112, 7),
+			item("Wants a steady hand.", 11, 89, 112, 100)
+		];
+		expect(seerTextFromItems(items).lines).toEqual([
+			"Covered in shifting scales that warn of storms. Only fishers can read them.",
+			"Wants a steady hand."
+		]);
+	});
+
 	it("reads a Seer with only GD, or with no stats at all", () => {
-		const kiln = [anchor, item("The Kiln Seer", 14, 71, 177), item("4GD, A3, treat as a Structure", 11, 71, 166), item("• Always warm.", 11, 71, 147)];
+		const kiln =[anchor, item("The Kiln Seer", 14, 71, 177), item("4GD, A3, treat as a Structure", 11, 71, 166), item("• Always warm.", 11, 71, 147)];
 		expect(seerTextFromItems(kiln)).toEqual({
 			stats: { vig: null, cla: null, spi: null, guard: 4 },
 			lines: ["A3, treat as a Structure", "Always warm."],

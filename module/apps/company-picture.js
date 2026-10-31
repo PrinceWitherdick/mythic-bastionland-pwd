@@ -27,10 +27,10 @@ import {
 	tintCompanyIcon
 } from "../rules/company-icons.js";
 import { ART_ROOT } from "../rules/book-art.js";
+import { COMPANY_STARTS } from "../rules/company.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { serialWrites } from "../rules/queue.js";
-import { COMPANY_STARTS } from "../rules/company.js";
 
 /** Where recoloured icons are written. */
 const COMPANY_ART_DIR = `${ART_ROOT}/${COMPANY_ART_FOLDER}`;
@@ -152,6 +152,7 @@ export const companyStartContext = (chosen) => ({
 	starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === chosen })),
 	startHint: t(`company.starts.${chosen}.hint`)
 });
+
 /**
  * Keep the words under a Start field saying what the chosen Start means.
  * @param {HTMLElement} element The window holding the field.
@@ -165,6 +166,7 @@ export function wireCompanyStart(element, select, onChange) {
 		onChange?.(select.value);
 	});
 }
+
 /**
  * The fields: a tile from the gallery fills the picture field, a swatch
  * recolours every tile, and the field still takes any picture of the

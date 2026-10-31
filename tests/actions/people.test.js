@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyLore, loreAt } from "../../module/rules/hex-lore.js";
 import { KNIGHT_NAMES } from "../../module/rules/knight-names.js";
+import { realmGeometry } from "../../module/rules/realm-geometry.js";
 
 // Invented, so no book text lives in the repository.
 const table = (name) => ({
@@ -51,7 +52,11 @@ vi.mock("../../module/actions/hex-lore.js", () => ({
 vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: () => ({ realm }),
 	isRealmScene: (scene) => Boolean(scene?.realm),
-	sceneGeometry: () => ({})
+	sceneGeometry: () => realmGeometry({ cols: 12, rows: 12 })
+}));
+// A Myth marked resolved here is one the Realm no longer plays out.
+vi.mock("../../module/actions/myth-notes.js", () => ({
+	liveRealm: (_scene, held) => ({ ...held, myths: held.myths.filter((myth) => !myth.resolved) })
 }));
 /** Whether the Referee plays alone. */
 let solo = false;
@@ -87,7 +92,8 @@ beforeEach(() => {
 	artIndex = structuredClone(index);
 	realm = {
 		holdings: [{ id: "h1", hex, style: "town", seat: true, name: "Oakwall" }],
-		myths: [{ number: 2 }, { number: 5 }, { number: 6 }],
+		// Myths 2 and 5 lie two Hexes from the Holding, Myth 6 six.
+		myths: [{ number: 2, hex: { col: 4, row: 7 } }, { number: 5, hex: { col: 6, row: 5 } }, { number: 6, hex: { col: 1, row: 1 } }],
 		landmarks: []
 	};
 	lore = emptyLore();
@@ -217,8 +223,8 @@ describe("rolling up a Holding", () => {
 	/** The count's d2, then the Holding's four tables, then each person, then each one's Myth. */
 	const holdingDice = (d2, myths) => [d2, ...[1, 2, 3, 4, 5, 6, 7, 8], ...Array.from({ length: d2 + 1 }, personDice).flat(), ...myths];
 
-	it("rolls the Holding, two or three people there, and the Myth each has heard of, kept in one write", async () => {
-		thrown = holdingDice(2, [3, 1, 2]);
+	it("rolls the Holding, two or three people there, and the nearest Myth each has heard of, kept in one write", async () => {
+		thrown = holdingDice(2, [2, 1, 2]);
 		const made = await rollUpHolding({ scene, hex });
 		expect(made.people).toHaveLength(3);
 		expect(keepHexSparkRecords).toHaveBeenCalledOnce();
@@ -235,7 +241,7 @@ describe("rolling up a Holding", () => {
 		]);
 		expect(sparks[0].prompt).toBe("C0-a1 C0-b2");
 		expect(sparks[3].prompt).toBe("C8-a7 C8-b8");
-		expect(sparks[4].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 6"}');
+		expect(sparks[4].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 5"}');
 		expect(sparks[5].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 2"}');
 		expect(sparks[6].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 5"}');
 
@@ -244,14 +250,33 @@ describe("rolling up a Holding", () => {
 		expect(context.title).toBe("Oakwall");
 		expect(context.sparks).toHaveLength(4);
 		expect(context.people.map(({ heard }) => heard)).toEqual([
-			'people.heardOfPage {"name":"the Myth 6","page":39}',
+			'people.heardOfPage {"name":"the Myth 5","page":37}',
 			'people.heardOfPage {"name":"the Myth 2","page":31}',
 			'people.heardOfPage {"name":"the Myth 5","page":37}'
 		]);
 		expect(context.note).toBeNull();
 		expect(options).toMatchObject({ mode: "gm" });
 		expect(options.rolls).toHaveLength(2);
-		expect(options.rolls[1].dice.at(-1).faces).toBe(3);
+		// The die is as big as the Myths nearest, not every Myth of the Realm.
+		expect(options.rolls[1].dice.at(-1).faces).toBe(2);
+	});
+
+	it("has everybody hear of the one nearest Myth with no die for it, leaving resolved Myths out (p19)", async () => {
+		realm.myths[0].resolved = true;
+		thrown = holdingDice(1, []);
+		const made = await rollUpHolding({ scene, hex });
+		expect(made.people.map(({ heard }) => heard)).toEqual(['people.heardOf {"name":"the Myth 5"}', 'people.heardOf {"name":"the Myth 5"}']);
+		const [, , , options] = vi.mocked(postCard).mock.calls[0];
+		expect(options.rolls[1].dice.every(({ faces }) => faces === 12)).toBe(true);
+		expect(thrown).toEqual([]);
+	});
+
+	it("says nobody has heard of a Myth where every Myth is resolved", async () => {
+		for (const myth of realm.myths) myth.resolved = true;
+		thrown = holdingDice(1, []);
+		const made = await rollUpHolding({ scene, hex });
+		expect(made.people.every(({ heard }) => heard === null)).toBe(true);
+		expect(vi.mocked(postCard).mock.calls[0][2].note).toBe("people.holding.noMyths");
 	});
 
 	it("has a person speak of a Myth not yet met by its number and its way, played alone (p19)", async () => {
@@ -272,7 +297,7 @@ describe("rolling up a Holding", () => {
 	});
 
 	it("gives each person there a name of their own, on the card as well", async () => {
-		thrown = holdingDice(2, [3, 1, 2]);
+		thrown = holdingDice(2, [2, 1, 2]);
 		await rollUpHolding({ scene, hex });
 		const names = loreAt(lore, hex).sparks.filter(({ person }) => person).map(({ name }) => name);
 		expect(names).toHaveLength(3);

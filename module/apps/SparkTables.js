@@ -4,7 +4,7 @@ import { keepHexSparks, keepTableRoll, throwSparkDice, wildernessHexTables } fro
 import { keepHexPerson, namesForHex, postPerson, rollPersonTables } from "../actions/people.js";
 import { isRealmScene } from "../actions/realm.js";
 import { rollSpark } from "../actions/referee-rolls.js";
-import { loadArtIndex, ART_INDEX_HOOK } from "../book-art/art-index.js";
+import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { read, reducesMotion } from "../client-settings.js";
 import { noPicks, pickRow, pickTablesView } from "../rules/gm-toolkit.js";
@@ -191,6 +191,17 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 		// One window serves the whole session, so an Import PDF run since it opened brings in the new tables.
 		Hooks.on(ART_INDEX_HOOK, () => this.reindex());
 	}
+
+	/** Forget the tables read so far, and what was taken from them, and read them again if open. */
+	reindex() {
+		this.index = undefined;
+		this.#wild = undefined;
+		this.#taken = null;
+		this.#takenFor = null;
+		this.#last = null;
+		if (this.rendered) this.render();
+	}
+
 	/**
 	 * Where the Wilderness Hex page's Save keeps what's taken: the hex it was
 	 * taken for, so a Places turned to another hex since doesn't
@@ -256,7 +267,8 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 					}))
 				}))
 			})),
-			empty: Boolean(this.index?.spark) && !wildShown && !shown
+			// A page the import couldn't read, beside others it could: with none read, the notice above says so.
+			empty: imported.length > 0 && !wildShown && !shown
 		});
 	}
 
@@ -340,7 +352,7 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 				tagline: t("spark.tagline", { page: shown.name, number: shown.page }),
 				prompt,
 				results
-			}, { rolls: [roll] });
+			}, { rolls: [roll], mode: "gm" });
 			const spin = spinTable(this.element.querySelector(`table[data-table="${index}"]`), table.columns.map((_, column) => column), results, {
 				reduce: !animates() || reducesMotion()
 			});
@@ -439,7 +451,7 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 			const target = this.#keeping();
 			const [name] = namesForHex(target?.scene ?? null, target?.hex ?? null, 1);
 			const kept = target ? keepHexPerson(target.scene, target.hex, person, name) : null;
-			await Promise.all([postPerson(person, { name }), kept, ...spins]);
+			await Promise.all([postPerson(person, { name, mode: "gm" }), kept, ...spins]);
 		} finally {
 			this.#spinning = false;
 			// The Company may have moved on since the box last said where rolls go.

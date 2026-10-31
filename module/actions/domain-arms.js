@@ -43,7 +43,8 @@ export function domainArmsView(domain) {
 
 /**
  * Ask what a Domain should show at the head of its sheet: its ruler's arms,
- * another Knight's, or a picture of the user's choosing.
+ * another Knight's, or a picture of the user's choosing. A user who may
+ * not browse files isn't offered a new picture, though one already shown stays.
  * @param {Actor} domain
  */
 export async function chooseDomainArms(domain) {

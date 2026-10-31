@@ -204,7 +204,8 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	static async #onRollSituation(_event, target) {
 		const situation = this.#row(target);
 		if (!situation) return;
-		const rolled = await rollRefereeTable("unresolved");
+		// The situations are the Referee's own until they tick to share them.
+		const rolled = await rollRefereeTable("unresolved", this.#shareSituations ? {} : { mode: "gm" });
 		if (!rolled) return;
 		situation.d6 = rolled.d6;
 		situation.result = rolled.result;

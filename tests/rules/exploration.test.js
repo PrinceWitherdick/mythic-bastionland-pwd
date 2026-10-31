@@ -139,6 +139,19 @@ describe("folkloreFrom", () => {
 		expect(roamer.landmarks.map((landmark) => landmark.type)).toEqual(["ruin"]);
 	});
 
+	it("has a roamer know one of several Landmarks as near as each other, as a die picks", () => {
+		// Both two Hexes from (4,5).
+		const tied = realmWith({ landmarks: [{ type: "dwelling", hex: hex(4, 7) }, { type: "ruin", hex: hex(6, 5) }] });
+		const first = folkloreFrom(tied, g, { source: "roamer", home: hex(4, 5) });
+		expect(first.landmarkChoices).toBe(2);
+		expect(first.landmarks.map((landmark) => landmark.type)).toEqual(["dwelling"]);
+		expect(folkloreFrom(tied, g, { source: "roamer", home: hex(4, 5), landmarkPick: 1 }).landmarks.map((landmark) => landmark.type)).toEqual(["ruin"]);
+		expect(folkloreFrom(tied, g, { source: "roamer", home: hex(4, 5), landmarkPick: 9 }).landmarks).toHaveLength(1);
+		// A Vassal knows those about their home, so has nothing to roll for.
+		expect(folkloreFrom(tied, g, { source: "vassal", home: hex(4, 5) }).landmarkChoices).toBe(0);
+		expect(folkloreFrom(realmWith(), g, { source: "roamer", home: hex(4, 5) })).toMatchObject({ landmarks: [], landmarkChoices: 0 });
+	});
+
 	it("holds a pick inside the Myths there are", () => {
 		expect(folkloreFrom(realm, g, { source: "roamer", home: hex(1, 1), pick: 99 }).myths[0].number).toBe(3);
 	});

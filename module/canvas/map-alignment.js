@@ -46,10 +46,11 @@ import { followMap, hotbarFloor, mapPanelScale, panelScreen } from "../apps/map-
 import { phaseBannerFloor } from "../apps/PhaseBanner.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { onBoard } from "./board.js";
+import { BLOOD } from "./inks.js";
 import { traceHex } from "./trace-hex.js";
 
 /** The ink the picture's frame and the hex being pointed out are drawn in. */
-const RING = 0x8b1e1e;
+const RING = BLOOD;
 
 /**
  * The colour of each hex marked on the picture: the first hex's, then the

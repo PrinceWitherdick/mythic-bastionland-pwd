@@ -1,4 +1,6 @@
 import { askActiveGM } from "../ask-gm.js";
+import { gmAsker } from "../gm-asker.js";
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
@@ -28,10 +30,8 @@ import { knightsBesidesRuler, seatCircle } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
 import { namedHeirOf } from "./succession.js";
 import { seenOrChosen, worldKnights } from "./knights.js";
-import { timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
+import { timelineCollections, timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
 import { isKnight } from "../rules/knight-types.js";
-import { gmAsker } from "../gm-asker.js";
-import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -232,6 +232,7 @@ export async function increasedCollections(domain) {
 	const rolls = [roll];
 	const update = {};
 	let entries = [];
+	let brought = [];
 	// Debt is resolved by restocking the treasury (p20), which filled coffers do. One drawn by this roll stays.
 	const inDebt = domain.system.crises.includes("debt");
 
@@ -241,6 +242,7 @@ export async function increasedCollections(domain) {
 		rolls.push(...drawn.rolls);
 		update["system.crises"] = [...domain.system.crises, ...drawn.crises];
 		entries = drawn.crises.map(crisisEntry);
+		brought = drawn.crises.map(crisisName);
 	}
 	if (!foundry.utils.isEmpty(update)) await domain.update(update);
 
@@ -255,6 +257,7 @@ export async function increasedCollections(domain) {
 		entries,
 		hint: [noSteward, said].filter(Boolean).join(" ") || null
 	}, { rolls });
+	await timelineCollections(domain, { result, crises: brought });
 
 	if (result === "misrule" && domain.system.council?.circle?.length) {
 		await seatCircle(domain, { intro: t("domain.misruleLeave", { name: domain.name }) });
@@ -321,7 +324,8 @@ export async function dramaInCourt(domain) {
 		timelineDrama(domain, {
 			said: t(`domain.results.drama.${result}`),
 			who: member ? t("timeline.auto.courtier", { name: member.name, role: t(`domain.court.roles.${member.role}.one`) }) : null,
-			leverage: member?.leverage ? t("domain.court.holdsLeverage", { leverage: member.leverage }) : null
+			leverage: member?.leverage ? t("domain.court.holdsLeverage", { leverage: member.leverage }) : null,
+			prompt
 		})
 	]);
 	return result;
@@ -479,7 +483,7 @@ async function moveRulerLinks(domain, knight) {
 		await Actor.implementation.updateDocuments(updates);
 		return true;
 	}
-	if (game.users.activeGM && await askActiveGM(RULER_QUERY, { domainId: domain.id, knightId: knight?.id ?? null }, `Couldn't move ${domain.name}'s ruler`)) return true;
+	if (await askActiveGM(RULER_QUERY, { domainId: domain.id, knightId: knight?.id ?? null }, `Couldn't move ${domain.name}'s ruler`)) return true;
 	// With no Referee to ask, the Knights this user owns are moved, and the rest wait for the Referee.
 	const mine = updates.filter(owned);
 	if (mine.length) await Actor.implementation.updateDocuments(mine);

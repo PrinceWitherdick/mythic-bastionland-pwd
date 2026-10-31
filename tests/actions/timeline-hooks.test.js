@@ -12,6 +12,7 @@ vi.mock("../../module/actions/court.js", () => ({ knightsBesidesRuler: () => [] 
 vi.mock("../../module/actions/succession.js", () => ({ heirOf: () => null }));
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
 vi.mock("../../module/actions/timeline-events.js", () => ({
+	timelineCollections: vi.fn(),
 	timelineCrisisResolved: vi.fn(),
 	timelineCrisisRoll: vi.fn(),
 	timelineDrama: vi.fn(),

@@ -11,7 +11,8 @@ vi.mock("../../module/book-art/art-index.js", () => ({
 vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key, warn: vi.fn() }));
 vi.mock("../../module/actions/npc-knights.js", () => ({ npcFolder: async () => ({ id: "npcs" }) }));
 
-const { SEER_FLAG, makeSeer, seerFor } = await import("../../module/actions/seers.js");
+const { makeSeer, seerFor } = await import("../../module/actions/seers.js");
+const { SEER_FLAG, seerActor } = await import("../../module/rules/seer-npcs.js");
 const { warn } = await import("../../module/chat/cards.js");
 
 const stats = { vig: 10, cla: 15, spi: 12, guard: 3, armour: 0, attacks: [] };
@@ -55,6 +56,14 @@ describe("makeSeer", () => {
 		expect(seer).not.toHaveProperty("sort");
 		expect(await makeSeer({ knight: { seer: "The Weaver" } })).toBe(seer);
 		expect(created).toHaveLength(1);
+	});
+
+	it("opens the Seer brought in from the compendium rather than making a second", async () => {
+		const words = { folder: () => "", knighted: () => "", attackName: "Attack" };
+		const fromPack = await Actor.implementation.create(seerActor(index.seers[0], null, words));
+		created.length = 0;
+		expect(await makeSeer({ roll: "3-07" })).toBe(fromPack);
+		expect(created).toHaveLength(0);
 	});
 
 	it("says so of a Seer the book gives no stat block, and lets players make none", async () => {

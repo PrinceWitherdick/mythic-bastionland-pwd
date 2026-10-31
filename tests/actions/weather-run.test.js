@@ -72,3 +72,14 @@ describe("the Dire Weather table's run", () => {
 		expect(game.settings.set).not.toHaveBeenCalled();
 	});
 });
+
+describe("a Referee table's card", () => {
+	it("goes in the chat mode asked for, and the Referee's own otherwise", async () => {
+		const { postCard } = await import("../../module/chat/cards.js");
+		postCard.mockClear();
+		await rollRefereeTable("unresolved", { mode: "gm" });
+		expect(postCard.mock.calls[0][3]).toMatchObject({ mode: "gm" });
+		await rollRefereeTable("unresolved");
+		expect(postCard.mock.calls[1][3].mode).toBeUndefined();
+	});
+});

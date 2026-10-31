@@ -57,6 +57,7 @@ vi.mock("../../module/actions/hex-shared.js", () => ({
 }));
 vi.mock("../../module/actions/journey.js", () => ({
 	HELD_BACK_FLAG: "heldBack",
+	COMPANY_MOVES_FLAG: "companyMoves",
 	JOURNEY_FLAG: "journey",
 	getHexVisits: () => journey.hexes["3,3"] ?? null
 }));

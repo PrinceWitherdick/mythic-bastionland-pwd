@@ -25,9 +25,10 @@ export const INDEX_FILE = "index.json";
  * 11 added the verse under each Myth's name. 12 added the prompts along the
  * foot of each Myth's page. 13 added the book's words for the rules text the
  * system shows (module/rules/book-text.js). 14 added the verse under each Knight's name.
- * 15 read the list of choices an Ability or Passion ends on.
+ * 15 read the list of choices an Ability or Passion ends on. 16 kept a Seer's trait whole where it runs
+ * on to a second sentence.
  */
-export const INDEX_VERSION = 15;
+export const INDEX_VERSION = 16;
 
 /** The first index version with the prompts along the foot of each Knight's page, kept on their Seer. */
 export const SEER_PROMPTS_VERSION = 7;
@@ -439,7 +440,8 @@ export function seerTextFromItems(items) {
 
 	const parsed = parseStatLine(body[0]?.text);
 	const printed = parsed ? [parsed.rest, ...body.slice(1).map((line) => line.text)] : body.map((line) => line.text);
-	const result = { stats: parsed?.stats ?? null, lines: logicalLines(printed.filter(Boolean)), prompts: promptsFromItems(items) };
+	// A trait is a bullet, which may run on to a second sentence on a line of its own.
+	const result = { stats: parsed?.stats ?? null, lines: logicalLines(printed.filter(Boolean), { bulleted: true }), prompts: promptsFromItems(items) };
 	return result.stats || result.lines.length ? result : null;
 }
 

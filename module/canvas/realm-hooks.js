@@ -1,4 +1,15 @@
-import { REALM_HISTORY_HOOK, REALM_LOOK_FLAG, REALM_LOOK_HOOK, forgetRealm, forgetRealmHistory, getRealm, isDrawingRealm, isRealmScene, realmWritesSettled, syncRealmScene } from "../actions/realm.js";
+import {
+	REALM_HISTORY_HOOK,
+	REALM_LOOK_FLAG,
+	REALM_LOOK_HOOK,
+	forgetRealm,
+	forgetRealmHistory,
+	getRealm,
+	isDrawingRealm,
+	isRealmScene,
+	realmWritesSettled,
+	syncRealmScene
+} from "../actions/realm.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { realmSceneChanges } from "../actions/scene-changes.js";
 import { HEX_NAMES_FLAG } from "../rules/hex-names.js";

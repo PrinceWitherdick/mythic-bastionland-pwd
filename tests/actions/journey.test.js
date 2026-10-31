@@ -1,5 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { COMPANY_MOVED_HOOK, COMPANY_PLACED_HOOK, JOURNEY_FLAG, forgetHexVisits, forgetMoveVisits, getJourney, heldBack, heldBackFrom, legHexes, markHexVisited, movesAsCompany, recordHexVisits, registerJourneyHooks, setHeldBack, COMPANY_MOVE_UNDONE_HOOK, realmKnownToPlayers } from "../../module/actions/journey.js";
+import {
+	COMPANY_MOVED_HOOK,
+	COMPANY_MOVE_UNDONE_HOOK,
+	COMPANY_PLACED_HOOK,
+	JOURNEY_FLAG,
+	forgetHexVisits,
+	forgetMoveVisits,
+	getJourney,
+	heldBack,
+	heldBackFrom,
+	legHexes,
+	markHexVisited,
+	movesAsCompany,
+	realmKnownToPlayers,
+	recordHexVisits,
+	registerJourneyHooks,
+	setHeldBack
+} from "../../module/actions/journey.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
 import { REALM_DRAWING_FLAG } from "../../module/rules/realm-drawing.js";
 import { edgeKey, hexCentre, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";

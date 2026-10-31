@@ -66,7 +66,7 @@ export function direWeatherRisk() {
  * @param {string} [options.mode] The card's chat mode, such as "gm"; the Referee's own mode when not given.
  * @returns {Promise<{d6: number, result: string, side: string|null}|null>} Null for a table that doesn't exist.
  */
-export async function rollRefereeTable(key) {
+export async function rollRefereeTable(key, { mode } = {}) {
 	const table = REFEREE_TABLES.find((candidate) => candidate.key === key);
 	if (!table) return null;
 
@@ -89,7 +89,7 @@ export async function rollRefereeTable(key) {
 		d6: roll.total,
 		result: text(`results.${read.result}`, { side: read.side ? t(`refereeRolls.sides.${read.side}`) : "" }),
 		hint: streak ? `${t("refereeRolls.loomingAgain")} ${text("hint")}` : text("hint")
-	}, { rolls: [roll] });
+	}, { rolls: [roll], mode });
 	return { d6: roll.total, ...read };
 }
 

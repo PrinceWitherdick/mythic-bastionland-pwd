@@ -343,31 +343,33 @@ export function setNote(lore, hex, note) {
 }
 
 /**
- * The tables to roll in one go for a wilderness hex, from the Nature page.
+ * The tables standing at these places on a Spark Table page.
  * @param {{tables: object[]}|null|undefined} page A page of the art index's spark payload.
- * @returns {{index: number, table: object}[]} Empty when the page was never read.
- *   The places below only mean anything on a page read whole, so a page missing
- *   some of its tables gives the first three it did read instead.
+ * @param {readonly number[]} positions Where the tables stand on a page read whole.
+ * @returns {{index: number, table: object}[]} Empty unless the page was read whole: the
+ *   places only mean anything there, and other tables would be rolled under their names.
  */
-export function wildernessSparkSet(page) {
+export function sparkSetAt(page, positions) {
 	const tables = page?.tables ?? [];
-	if (!tables.length) return [];
-	const places = tables.length === SPARK_TABLES_PER_PAGE ? WILDERNESS_POSITIONS : [0, 1, 2];
-	return places.filter((index) => tables[index]).map((index) => ({ index, table: tables[index] }));
+	if (tables.length !== SPARK_TABLES_PER_PAGE) return [];
+	return positions.map((index) => ({ index, table: tables[index] }));
 }
+
+/**
+ * The tables to roll in one go for a wilderness hex, from the Nature page.
+ * @param {{tables: object[]}|null|undefined} page
+ * @returns {{index: number, table: object}[]}
+ */
+export const wildernessSparkSet = (page) => sparkSetAt(page, WILDERNESS_POSITIONS);
 
 /**
  * The tables rolled for a hex the Company rests in for the first time, from the
  * Nature page. Nothing is rolled unasked from a page read in part, since its
  * tables can't be trusted to stand where the book prints them.
- * @param {{tables: object[]}|null|undefined} page A page of the art index's spark payload.
- * @returns {{index: number, table: object}[]} Empty unless the page was read whole.
+ * @param {{tables: object[]}|null|undefined} page
+ * @returns {{index: number, table: object}[]}
  */
-export function arrivalSparkSet(page) {
-	const tables = page?.tables ?? [];
-	if (tables.length !== SPARK_TABLES_PER_PAGE) return [];
-	return ARRIVAL_POSITIONS.map((index) => ({ index, table: tables[index] }));
-}
+export const arrivalSparkSet = (page) => sparkSetAt(page, ARRIVAL_POSITIONS);
 
 /**
  * Whether a hex is rolled as the Company first rests in it: a Wilderness hex

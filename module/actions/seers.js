@@ -2,7 +2,7 @@ import { findByRoll, loadArtIndex } from "../book-art/art-index.js";
 import { warn } from "../chat/cards.js";
 import { seerWords } from "../book-art/npc-pack.js";
 import { seerForKnight } from "../rules/creation.js";
-import { seerActor } from "../rules/seer-npcs.js";
+import { SEER_FLAG, seerActor } from "../rules/seer-npcs.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { npcFolder } from "./npc-knights.js";
 
@@ -12,9 +12,6 @@ import { npcFolder } from "./npc-knights.js";
  * who knighted a Knight. Their harm is kept on that NPC, as the Knight sheet's
  * Seer page says, and one Seer is made once however many ask for them.
  */
-
-/** The flag marking a Seer's NPC with their roll on the Knights table, such as "3-07". */
-export const SEER_FLAG = "seer";
 
 /**
  * A Seer in the art index: by their roll, or else as the Knight they knighted
@@ -47,7 +44,8 @@ export async function makeSeer(which) {
 	}
 	const { sort: _sort, ...data } = seerActor(seer, findByRoll(index?.knights, seer.roll), seerWords(() => ""));
 	const folder = await npcFolder();
-	const actor = await Actor.implementation.create({ ...data, folder: folder?.id ?? null, flags: { [SYSTEM_ID]: { [SEER_FLAG]: seer.roll } } });
+	// The Seer flag comes with the data, as it does on the compendium's Seers.
+	const actor = await Actor.implementation.create({ ...data, folder: folder?.id ?? null });
 	actor?.sheet.render({ force: true });
 	return actor ?? null;
 }

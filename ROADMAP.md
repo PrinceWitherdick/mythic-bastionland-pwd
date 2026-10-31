@@ -243,6 +243,21 @@ Not a rules audit: each item needs the Referee and at least one player, each on 
 - [ ] **T-195** End the Session with an unresolved situation and **Show the players** unticked: the public card leaves it out, and the Referee gets it in a whisper. Ticked, it's on the public card. (p17)
 - [ ] **T-196** With only an Assistant GM logged in on a new world: no upload errors in the console, and players can't yet create Actors. Once a full Gamemaster logs in, players can.
 
+### Referee's tools audit (2026-10-30)
+Referee Rolls, exploration, Spark Tables, Seers and Landmarks in play (pp14–25). T-204 needs Import PDF run again.
+- [ ] **T-197** End the Session on a public chat mode and roll an unresolved situation with **Show the players** unticked: only the Referee sees the roll. Pick Months, roll a situation, then switch to None and finish: the card reports no situation. (p17)
+- [ ] **T-198** Increased Collections rolls a 2–3: the Domain's Timeline thread shows the Crisis it drew; a 1 shows the misrule. Drama in Court after Import PDF: the Timeline entry keeps the Spark prompt. (p21)
+- [ ] **T-199** Take someone into a Domain's Court as a Seer and press the name die: it offers the Realm's Sanctum Seers. In a Realm with no Sanctum Seers, or for a player, it gives names from the book. (p20)
+- [ ] **T-200** Open Spark Tables before Import PDF, then run the import: the window shows the tables without a reload. With chat on Public Roll, a roll from the window, or Roll a Person there, goes to the Referee only. (p22)
+- [ ] **T-201** Gather Folklore from a Knight or Vagabond: the Myth comes with a direction and no hex count. A Vassal next to a Myth still knows where it is. With two Landmarks equally near, a die picks one. (p19)
+- [ ] **T-202** Roll Up This Holding: each local has heard of the live Myth nearest that Holding, never a resolved one. A die is rolled only when Myths are equally near. (p19)
+- [ ] **T-203** Search the Hex and pick nobody to roll: nothing is rolled and the Phase isn't spent. (p19)
+- [ ] **T-204** Run Import PDF again: the Unnamed Seer (and 1-05, 1-11, 2-08, 5-01, 5-08) shows three bullets on the Knight's Seer page and in the compendium. Drag a Seer in from the compendium, then press Make Seer for them: the same Actor opens, with no second copy.
+- [ ] **T-205** Remove or change a Monument, then press an old Wilderness card's Monument button: a warning, and nobody is restored. A Ruin whose echoed Myth has since come into the Realm hints at a new one. (p14)
+- [ ] **T-206** At a Monument and a Hazard, steeds and NPC followers are offered beside the Knights. Pushing through a Hazard picks the Virtue from a radio list, with VIG first. (p14)
+- [ ] **T-207** Dire weather holds the Company outside a Holding it was riding into: the card offers no Local Mood. Arriving in fine weather still does. (p18)
+- [ ] **T-208** Run a Wilderness Roll by hand for a hex the Company isn't in and meet a Curse: the Company isn't thrown off course next Phase. (p14)
+
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
 

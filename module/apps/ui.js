@@ -41,12 +41,16 @@ export function addDirectoryButton(element, { className, icon, label, onClick })
 	actions.append(button);
 }
 
+/** A dialog's message entry that is a block of its own, not words to wrap in a paragraph. */
+const BLOCK_HTML = /^\s*<(?:p|ul|ol|div)[\s>]/i;
+
 /**
  * Ask a yes-or-no question.
  * @param {object} options
  * @param {string} options.title
  * @param {string} options.icon    Font Awesome classes.
- * @param {string|string[]} options.message HTML, already escaped; an array becomes a paragraph each.
+ * @param {string|string[]} options.message HTML, already escaped; an array becomes a paragraph each,
+ *   but for an entry that is already a block, such as a list, which goes in as it is.
  * @param {{label: string, icon?: string}} [options.yes] A button in place of Yes, such as Accept.
  * @param {{label: string, icon?: string}} [options.no] A button in place of No.
  * @returns {Promise<boolean>} Whether the user said yes.
@@ -56,7 +60,7 @@ export async function confirmDialog({ title, icon, message, yes, no }) {
 	const confirmed = await foundry.applications.api.DialogV2.confirm({
 		window: { title, icon, resizable: true },
 		classes: ["bastionland-dialog"],
-		content: paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join(""),
+		content: paragraphs.map((paragraph) => (BLOCK_HTML.test(paragraph) ? paragraph : `<p>${paragraph}</p>`)).join(""),
 		...(yes ? { yes: { icon: "fa-solid fa-check", ...yes } } : {}),
 		...(no ? { no: { icon: "fa-solid fa-xmark", ...no } } : {}),
 		rejectClose: false

@@ -23,6 +23,9 @@ vi.mock("../../module/apps/ui.js", () => ({
 // Like the real one, with no GM there is nobody to answer.
 vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => (globalThis.game?.users?.activeGM ? answered : false)) }));
 vi.mock("../../module/compat.js", () => ({ queryAsker: (context) => context?.user ?? null }));
+/** The art index Import PDF wrote, or null before it. */
+let artIndex = null;
+vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => artIndex }));
 vi.mock("../../module/chat/cards.js", () => ({
 	postCard: vi.fn(async (_actor, _template, context, options) => ({ context, options })),
 	registerCardButtons: vi.fn(),
@@ -35,7 +38,7 @@ vi.mock("../../module/actions/court.js", () => ({
 		&& !actor.system.slain && !actor.system.isSquire && actor.name !== domain.system.ruler),
 	seatCircle: vi.fn(async () => true)
 }));
-vi.mock("../../module/actions/referee-rolls.js", () => ({ rollSpark: vi.fn() }));
+vi.mock("../../module/actions/referee-rolls.js", () => ({ rollSpark: vi.fn(async () => ({ roll: {}, prompt: "Rivalry Letters" })) }));
 vi.mock("../../module/actions/succession.js", () => ({
 	namedHeirOf: (knight) => game.actors.find((actor) => actor.uuid === knight.system.successor) ?? null
 }));
@@ -44,6 +47,7 @@ vi.mock("../../module/actions/knights.js", () => ({
 	seenOrChosen: (chosen) => (knight) => Boolean(knight.visible) || Boolean(chosen(knight))
 }));
 vi.mock("../../module/actions/timeline-events.js", () => ({
+	timelineCollections: vi.fn(),
 	timelineCrisisResolved: vi.fn(),
 	timelineCrisisRoll: vi.fn(),
 	timelineDrama: vi.fn(),
@@ -55,6 +59,7 @@ const { postCard, warn } = await import("../../module/chat/cards.js");
 const { confirmDialog, inputDialog } = await import("../../module/apps/ui.js");
 const { askActiveGM } = await import("../../module/ask-gm.js");
 const { seatCircle } = await import("../../module/actions/court.js");
+const { timelineCollections, timelineDrama } = await import("../../module/actions/timeline-events.js");
 
 /** Every Actor update made, in order. */
 let updated;
@@ -100,6 +105,7 @@ function world(...actors) {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	artIndex = null;
 	formData = null;
 	confirmed = true;
 	answered = true;
@@ -281,6 +287,19 @@ describe("a ruler who dies or leaves the world (p21)", () => {
 });
 
 describe("Drama in Court's leverage (p21)", () => {
+	it("keeps the Drama table's prompt on the Timeline beside what came of it", async () => {
+		artIndex = { spark: [{ key: "civilisation", tables: [{ name: "Drama" }] }] };
+		rolled = [4];
+		await dominion.dramaInCourt(domain("d1", "Ashford"));
+		expect(timelineDrama.mock.calls[0][1].prompt).toContain("domain.dramaPrompt");
+	});
+
+	it("keeps no prompt before the Spark Tables are imported", async () => {
+		rolled = [4];
+		await dominion.dramaInCourt(domain("d1", "Ashford"));
+		expect(timelineDrama.mock.calls[0][1].prompt).toBeNull();
+	});
+
 	const court = { c1: { role: "courtier", name: "Wren", leverage: "Letters", note: "Wants a seat", at: 1 } };
 
 	it("posts the courtier without their leverage, and whispers that to the Referee", async () => {
@@ -359,6 +378,16 @@ describe("Increased Collections (p20–21)", () => {
 		rolled = [5];
 		await dominion.increasedCollections(domain("d2", "Bree", { crises: ["chaos"] }));
 		expect(confirmDialog).not.toHaveBeenCalled();
+	});
+
+	it("keeps on the Timeline what came of it, with the Crisis it brought or the misrule", async () => {
+		rolled = [2, 3];
+		const ashford = domain("d1", "Ashford");
+		await dominion.increasedCollections(ashford);
+		expect(timelineCollections).toHaveBeenCalledWith(ashford, { result: "crisis", crises: ["domain.crises." + ashford.system.crises[0] + ".name"] });
+		rolled = [1];
+		await dominion.increasedCollections(ashford);
+		expect(timelineCollections).toHaveBeenLastCalledWith(ashford, { result: "misrule", crises: [] });
 	});
 });
 

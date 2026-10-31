@@ -157,7 +157,7 @@ async function arrivalNotes(scene, { entered, ended, from }, now) {
 	// weather may be keeping it where it was, which Stay or Onward settles first.
 	const ends = ended && !held;
 	// A Holding's mood only once the Company is there.
-	const notes = joinNotes({ lines, actions }, mythNotes(scene, entered), ended ? holdingNotes(scene, here) : null);
+	const notes = joinNotes({ lines, actions }, mythNotes(scene, entered), ends ? holdingNotes(scene, here) : null);
 	if (ends) {
 		const phase = t(`time.phases.${now.phase}`);
 		notes.lines.unshift(t("arrival.travelled", { count: pace.count, phase }));
@@ -435,14 +435,15 @@ const ARRIVAL_ACTIONS = {
 		await dropHeldMove(scene, arrived.move);
 		return moved;
 	},
-	// Played alone, let on through dire weather: the hexes it came into are found, and any Myth's Omen offered.
+	// Played alone, let on through dire weather: the hexes it came into are found, any Myth's Omen offered,
+	// and a Holding's mood.
 	async onward(scene, _hex, arrived) {
 		const entered = arrived.held ?? [];
 		if (!entered.length) return null;
 		if (!stillHeld(scene, arrived)) return movedOn();
 		await setHeldBack(scene, []);
 		await reachHeldHexes(scene, entered);
-		const notes = mythNotes(scene, entered);
+		const notes = joinNotes(mythNotes(scene, entered), holdingNotes(scene, entered.at(-1)));
 		if (!notes.lines.length) return true;
 		return postArrivalCard(scene, entered.at(-1), notes, { when: arrived.when, paced: 0 });
 	},

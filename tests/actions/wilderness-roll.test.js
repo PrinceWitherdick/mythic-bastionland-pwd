@@ -39,6 +39,7 @@ vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => {}), 
 
 const { markOmenOnEntering, omenShownOnEntering, wildernessRoll } = await import("../../module/actions/wilderness.js");
 const { rollCityOmen } = await import("../../module/actions/city-quest.js");
+const { strikeOffCourse } = await import("../../module/actions/landmarks.js");
 const { postCard } = await import("../../module/chat/cards.js");
 
 const scene = { id: "realm", isRealm: true, tokens: [], updateEmbeddedDocuments: vi.fn(async () => {}) };
@@ -122,5 +123,31 @@ describe("a Company with a Knight-Radiant, on the City Quest (p172)", () => {
 		const outcome = await wildernessRoll({ scene, hex: wildHex, phase: "morning", mode: "travel" });
 		expect(outcome).toMatchObject({ result: "randomOmen", omen: 2 });
 		expect(rollCityOmen).not.toHaveBeenCalled();
+	});
+});
+
+describe("a Curse met on a Wilderness Roll (p14)", () => {
+	beforeEach(() => {
+		realm = placeFeature(realm, g, wildHex, { kind: "landmark", type: "curse", revealed: true });
+		globalThis.canvas = { scene: null };
+	});
+
+	it("throws the Company off course where it stands there", async () => {
+		companyAt = wildHex;
+		const outcome = await wildernessRoll({ scene, hex: wildHex, mode: "travel" });
+		expect(outcome.result).toBe("landmark");
+		expect(strikeOffCourse).toHaveBeenCalledTimes(1);
+	});
+
+	it("leaves the Company on course when the Referee rolls for a hex it isn't in", async () => {
+		companyAt = { col: 2, row: 2 };
+		const outcome = await wildernessRoll({ scene, hex: wildHex, mode: "travel" });
+		expect(outcome.result).toBe("landmark");
+		expect(strikeOffCourse).not.toHaveBeenCalled();
+	});
+
+	it("takes it for the Company's own roll where no Token says where the Company is", async () => {
+		await wildernessRoll({ scene, hex: wildHex, mode: "travel" });
+		expect(strikeOffCourse).toHaveBeenCalledTimes(1);
 	});
 });

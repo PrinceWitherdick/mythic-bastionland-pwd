@@ -15,7 +15,8 @@ vi.mock("../../module/chat/cards.js", () => ({
 }));
 vi.mock("../../module/actions/realm.js", () => ({
 	editRealm: vi.fn(),
-	getRealm: () => ({ realm: {} }),
+	// A Hazard stands where the Company turns back from.
+	getRealm: () => ({ realm: { holdings: [], myths: [], landmarks: [{ type: "hazard", hex: { col: 5, row: 3 } }] } }),
 	isRealmScene: (scene) => Boolean(scene?.realm),
 	sceneGeometry: () => g
 }));
@@ -31,7 +32,7 @@ vi.mock("../../module/actions/time.js", () => ({ chooseCompany: vi.fn(), virtueL
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn() }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: vi.fn(), mythEntry: vi.fn() }));
 vi.mock("../../module/book-art/myth-tables.js", () => ({ promptsForEntry: vi.fn() }));
-vi.mock("../../module/apps/ui.js", () => ({ chooseDialog: vi.fn() }));
+vi.mock("../../module/apps/ui.js", () => ({ inputDialog: vi.fn() }));
 
 const { goBackTheWayYouCame, landmarkOfferView, takeLandmarkOffer } = await import("../../module/actions/landmarks.js");
 const { setCompanyHex } = await import("../../module/actions/company.js");

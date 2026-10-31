@@ -6,7 +6,7 @@ import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
 import { isKnight } from "../rules/knight-types.js";
-import { shareMade } from "./belonging.js";
+import { COMPANION_FLAG, shareMade } from "./belonging.js";
 
 /**
  * The world setup step that reads older Knights' Property into weapons and
@@ -29,8 +29,8 @@ export const COMPANION_NAMES_STEP = "companionNames";
  */
 export const POSSESSION_DETAILS_STEP = "possessionDetails";
 
-/** The flag on an NPC made from a Knight's gear, or taken on as their follower: the Knight's id. */
-export const COMPANION_FLAG = "companionOf";
+/** The flag on an NPC made from a Knight's gear, or taken on as their follower: kept in belonging.js, beside who may see it. */
+export { COMPANION_FLAG };
 
 /**
  * The flag on an NPC who joined a Knight as a follower rather than being made

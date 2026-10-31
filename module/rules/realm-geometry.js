@@ -427,6 +427,7 @@ export function edgeKey(a, b) {
  * @returns {Set<string>} The edgeKeys of the Realm's Barriers.
  */
 export const barrierEdges = (realm) => new Set((realm?.barriers ?? []).map((barrier) => barrier.edge));
+
 /**
  * @param {object} g
  * @param {string} key From edgeKey.
