@@ -2092,7 +2092,10 @@
       "starts": {
         "wanderer": {
           "name": "Wanderer",
-          "hint": "Young Knights-Errant, newly come to the Realm in search of Glory. You choose where they arrive."
+          "hint": "Young Knights-Errant, newly come to the Realm in search of Glory. You choose where they arrive.",
+          "counsel": "Wanderers who lack direction may seek a Seer’s counsel (p6). This Realm’s Sanctums are home to {seers}.",
+          "seerAt": "{seer} in {hex}",
+          "noSanctum": "Wanderers who lack direction may seek a Seer’s counsel (p6), but this Realm has no Sanctum yet."
         },
         "courtier": {
           "name": "Courtier",
@@ -2108,7 +2111,10 @@
           "seatNow": "Seat the Knights at Court",
           "noKnights": "There are no Knights to seat yet.",
           "realmGone": "The Realm these Knights were to be seated in is gone.",
-          "seatGone": "The Seat of Power these Knights were to be seated at is no longer on the map."
+          "seatGone": "The Seat of Power these Knights were to be seated at is no longer on the map.",
+          "held": "This Realm has no Seat of Power yet, so the Court has no news and the Knights no places. Once a Holding is crowned, deliver them here.",
+          "deliver": "Deliver the Court’s News",
+          "noSeatYet": "This Realm still has no Seat of Power. Crown a Holding first."
         },
         "ruler": {
           "name": "Ruler",
@@ -4631,7 +4637,10 @@
       "reroll": {
         "title": "Reroll the Realm?",
         "confirm": "A new Realm is rolled onto this Scene, replacing its terrain, river, Holdings, Myths, Landmarks and Barriers. Tokens and anything else on the Scene stay.",
-        "confirmCustom": "A new Realm is rolled onto this Scene the way it was set up. Tokens and anything else on the Scene stay, and so does what you draw by hand: {parts}."
+        "confirmCustom": "A new Realm is rolled onto this Scene the way it was set up. Tokens and anything else on the Scene stay, and so does what you draw by hand: {parts}.",
+        "domains": "{count} Domains rule Holdings on this map. The new roll replaces those Holdings, so give each Domain its Holding again on its sheet.",
+        "domainsOne": "A Domain rules a Holding on this map. The new roll replaces that Holding, so give the Domain its Holding again on its sheet.",
+        "kept": "The Company’s visits and the notes on hexes stay. Marks of things seen from afar are cleared, and so are Barriers met that the new roll takes away. A Courtier Company at the old Seat of Power moves to the new one."
       },
       "keep": {
         "title": "Keep this Realm?",
@@ -4655,6 +4664,7 @@
         "duplicate": "A duplicate",
         "number": "A Myth numbered outside 1 to 6",
         "roll": "A roll off the table",
+        "repeated": "A Myth the Realm already holds",
         "omen": "An Omen count outside 0 to 6",
         "style": "A Holding of no known style",
         "type": "A Landmark of no known type",
@@ -4823,7 +4833,7 @@
         "unknown": "The Company’s way here isn’t known, so move its Token back by hand."
       },
       "hazardIntro": "Everybody who pushes through loses d6 {virtue}.",
-      "ruinEchoes": "The ruin echoes this Myth, which the Realm doesn’t hold.",
+      "ruinEchoes": "The ruin echoes this Myth, which the Realm isn’t playing out now.",
       "ruinPrompt": "Its page suggests a ruin: {prompt}.",
       "promptFrom": "Named from the prompts on {myth}’s page (p{page}). Rename it in the hex’s Lay of the Land in Places.",
       "promptUnread": "Import PDF hasn’t read the prompts along the foot of that Myth’s page, so the Landmark keeps its name.",
@@ -5038,7 +5048,7 @@
             },
             "hazard": {
               "label": "Hazards",
-              "text": "The land itself resists. Find a way, push on at a cost of d6 VIG, or turn back."
+              "text": "The land itself resists. Find a way, push on at a cost of d6 from a Virtue (usually VIG), or turn back."
             },
             "curse": {
               "label": "Curses",
@@ -5063,10 +5073,11 @@
         "seatMany": "{count} Seats of Power, where the sheet has one",
         "seatDisputed": "{count} Holdings claim the Seat of Power",
         "myths": "{count} of {target} Myths",
-        "landmark": "{type}: {count} of {min}-{max}"
+        "landmark": "{type}: {count} of {min}-{max}",
+        "landmarkOne": "{type}: {count} of {target}"
       },
       "company": {
-        "intro": "Choose what the Company looks like, then carry them over the map and click the hex they stand in.",
+        "intro": "Choose the Company's Start and what they look like, then carry them over the map and click the hex they stand in. What the Start sets going comes when the Realm is finished.",
         "standing": "The Company stands in {hex}. Choose another picture, or take them up and stand them somewhere else.",
         "move": "Move the Company"
       },
@@ -5074,7 +5085,9 @@
         "button": "Finish the Realm",
         "hint": "Done drawing: bring back Travel and Exploration and whisper the Referees the Realm's key.",
         "title": "Finish the Realm",
-        "short": "This Realm has less than a typical one:",
+        "short": "Where this Realm differs from a typical one of its size:",
+        "walled": "Barriers wall {count} hexes off from the rest of the map. Nobody can travel there without crossing one.",
+        "walledOne": "Barriers wall one hex off from the rest of the map. Nobody can travel there without crossing one.",
         "anyway": "These numbers are a guide, not a law (p14). Finish the Realm as it is?",
         "done": "{name} is drawn. Travel and Exploration are back beside the map."
       },

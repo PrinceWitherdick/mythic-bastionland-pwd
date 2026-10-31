@@ -338,6 +338,7 @@ export function reachedFrom(g, blocked, start) {
 	}
 	return reached;
 }
+
 /**
  * Steps between two hexes, ignoring anything in the way.
  * @param {object} g

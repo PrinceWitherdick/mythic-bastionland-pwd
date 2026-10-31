@@ -26,7 +26,7 @@ import {
 	setRevealed,
 	unusedMythNumbers
 } from "../rules/realm-edits.js";
-import { rollFreeMyth } from "../rules/realm-myths.js";
+import { rollFreeMyth, rollFreeSeer } from "../rules/realm-myths.js";
 import { landmarkLabelKey } from "../rules/landmarks.js";
 import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { markMythOmen } from "../actions/omens.js";
@@ -169,13 +169,14 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
  * @returns {Promise<boolean>}
  */
 export function writeHexField(scene, hex, field, value) {
-	return editRealmByHand(scene, (realm, g) => {
+	// What's placed new is rolled, a Myth on the Myths table and a Sanctum's Seer on the Knights table, as a rolled Realm's are.
+	return editRealmByHand(scene, (realm, g, byHand) => {
 		switch (field) {
 			case "terrain":
 				return paintTerrain(realm, g, [hex], whole(value), { step: true });
 			case "kind":
 				if (value === kindHere(featureAt(realm, hex))) return realm;
-				return placeFeature(realm, g, hex, value === "none" ? null : { kind: value });
+				return placeFeature(realm, g, hex, value === "none" ? null : { kind: value }, byHand);
 			case "seat":
 				return editFeature(realm, g, hex, { seat: Boolean(value) });
 			case "disputed":
@@ -191,7 +192,7 @@ export function writeHexField(scene, hex, field, value) {
 			case "type":
 				// Played alone, a Pond whose partner is still to be found stays a Pond, so that one keeps its pair.
 				if (value !== PAIRED_LANDMARK && secretsKeptOn(scene) && hidesPartner(realm, hex)) return realm;
-				return editFeature(realm, g, hex, { type: value });
+				return editFeature(realm, g, hex, { type: value }, byHand);
 			case "style":
 			case "variant":
 				return editFeature(realm, g, hex, { [field]: value });
@@ -301,7 +302,9 @@ export function chooseHexMyth(scene, hex) {
 const seersRolling = new Set();
 
 /**
- * Roll which Seer lives at a Sanctum, on the Knights table (p26).
+ * Roll which Seer lives at a Sanctum, on the Knights table (p26). As in a
+ * rolled Realm, no two Sanctums share a Seer, so one another Sanctum has, or
+ * this one's own, is rolled again.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  */
@@ -310,11 +313,10 @@ export async function rollHexSeer(scene, hex) {
 	if (seersRolling.has(key)) return;
 	seersRolling.add(key);
 	try {
-		const d6 = await new Roll("1d6").evaluate();
-		const d12 = await new Roll("1d12").evaluate();
 		await editRealmByHand(scene, (realm, g) => {
 			const { landmark } = featureAt(realm, hex);
-			return landmark ? placeFeature(realm, g, hex, { kind: "landmark", type: landmark.type, seer: { d6: d6.total, d12: d12.total } }) : realm;
+			const seer = landmark ? rollFreeSeer(freshRandom(), realm.landmarks) : null;
+			return seer ? placeFeature(realm, g, hex, { kind: "landmark", type: landmark.type, seer }) : realm;
 		});
 	} finally {
 		seersRolling.delete(key);

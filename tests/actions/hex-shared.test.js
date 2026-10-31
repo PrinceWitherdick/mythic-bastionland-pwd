@@ -139,7 +139,7 @@ describe("writePartyNote", () => {
 	it("warns and writes nothing with no GM to ask", async () => {
 		game.user = { id: "p1", name: "Ada", isGM: false };
 		expect(await writePartyNote(scene, visited, "Camp here")).toBe(false);
-		expect(warn).toHaveBeenCalledWith("travels.party.needsGM");
+		expect(warn).toHaveBeenCalledWith("travels.party.needsGM", undefined);
 	});
 
 	it("warns when the GM refuses or can't be reached", async () => {
@@ -150,7 +150,7 @@ describe("writePartyNote", () => {
 			expect(await writePartyNote(scene, visited, "Camp here")).toBe(false);
 		}
 		expect(warn).toHaveBeenCalledTimes(2);
-		expect(warn).toHaveBeenCalledWith("travels.party.refused");
+		expect(warn).toHaveBeenCalledWith("travels.party.refused", undefined);
 	});
 });
 

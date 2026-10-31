@@ -563,7 +563,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			const feature = placeable.build(here);
 			const taking = erase || event.shiftKey || featureStands(realm, hex, feature);
 			if (taking && !placeable.at(here)) return;
-			editRealmByHand(scene, (current, geometry) => placeFeature(current, geometry, hex, taking ? null : feature));
+			// A Sanctum laid rolls for its Seer, as a rolled Realm's does.
+			editRealmByHand(scene, (current, geometry, byHand) => placeFeature(current, geometry, hex, taking ? null : feature, byHand));
 			if (!taking) placeable.laid?.();
 			return;
 		}

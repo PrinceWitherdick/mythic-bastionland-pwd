@@ -739,6 +739,7 @@ export const mayRuleDomain = (knight, domain) => Boolean(game.user.isGM || domai
 export async function linkKnightDomain(knight, domain) {
 	await knight.update({ "system.domain": domain.uuid });
 	if (!domain.system.ruler.trim() && domain.isOwner) await domain.update({ "system.ruler": knight.name });
+	return true;
 }
 
 /**

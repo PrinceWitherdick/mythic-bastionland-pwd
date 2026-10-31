@@ -163,7 +163,7 @@ export const REALM_BUTTONS = Object.freeze(["wilderness", "reroll", "appearance"
 
 /** Why part of a Realm needs a second look. */
 export const REALM_PROBLEMS = Object.freeze([
-	"terrain", "offMap", "crowded", "river", "edge", "duplicate", "number", "roll", "omen", "style", "type", "seat", "variant", "pair"
+	"terrain", "offMap", "crowded", "river", "edge", "duplicate", "number", "roll", "repeated", "omen", "style", "type", "seat", "variant", "pair"
 ]);
 
 /**
@@ -250,7 +250,8 @@ export const realmSeats = (realm) => (realm?.holdings ?? []).filter((holding) =>
 
 /**
  * Whether a Realm's Seats of Power are as they ought to be: one, or several
- * where the claim is disputed or the rules for setup are set aside.
+ * where the claim is disputed (p202). Ignoring the rules for setup changes
+ * how much is rolled, not that a Realm has one Seat.
  * @param {Realm} realm
  * @returns {boolean} True for a Realm with no Holdings at all, which has nothing to crown.
  */
@@ -258,7 +259,7 @@ export function seatsInOrder(realm) {
 	const seats = realmSeats(realm);
 	if (!realm.holdings.length || seats.length === 1) return true;
 	if (!seats.length) return false;
-	return Boolean(realm.setup?.ignoreRules) || seats.every((holding) => holding.disputed);
+	return seats.every((holding) => holding.disputed);
 }
 
 /**
@@ -392,12 +393,19 @@ export function validateRealm(realm, g) {
 	if (!seatsInOrder(realm)) report("holding", "seat", realmSeats(realm).length);
 
 	const numbers = new Set();
+	const rolls = new Set();
 	for (const myth of realm.myths) {
 		place("myth", myth.hex);
 		if (!isDie(myth.number, MYTH_COUNT)) report("myth", "number", myth.number);
 		else if (numbers.has(myth.number)) report("myth", "duplicate", myth.number);
 		numbers.add(myth.number);
 		if (!isTableRoll(myth) && !isOwnMyth(myth)) report("myth", "roll", myth.number);
+		// A Realm never holds the same Myth twice (p14): the second is named by its hex, so Edit this hex shows it.
+		else if (isTableRoll(myth) && !isOwnMyth(myth)) {
+			const roll = rollLabel(myth.d6, myth.d12);
+			if (rolls.has(roll)) report("myth", "repeated", hexKey(myth.hex));
+			rolls.add(roll);
+		}
 		if (!Number.isInteger(myth.omen) || myth.omen < 0 || myth.omen > OMEN_COUNT) report("myth", "omen", myth.number);
 	}
 

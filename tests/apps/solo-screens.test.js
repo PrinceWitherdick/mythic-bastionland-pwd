@@ -62,7 +62,10 @@ describe("solo play's secrets on the Referee's own screens", () => {
 		expect(realm).toContain("const askSecrets = draw && keptFromMe();");
 		const finish = realm.slice(realm.indexOf("export async function finishRealmDrawing("));
 		// What's hidden goes uncounted, and the dice's steps, or those already kept, aren't missing.
-		expect(finish).toContain("drawingShortfalls(realmKnown(getRealm(scene).realm, scene), { leave: drawingSecrets(scene).handed ? SECRET_DRAWING_STEPS : [] })");
+		expect(finish).toContain("const known = realmKnown(getRealm(scene).realm, scene);");
+		expect(finish).toContain("drawingShortfalls(known, { leave: handed ? SECRET_DRAWING_STEPS : [] })");
+		// Barriers the dice will place, or the Referee can't see, wall nothing off yet.
+		expect(finish).toContain("const walled = handed ? 0 : walledOffHexes(known, sceneGeometry(scene));");
 		// Settled while the Realm is still being drawn, before it's finished and the key would be posted.
 		expect(finish.indexOf("await settleSoloSecrets(scene, secrets);")).toBeLessThan(finish.indexOf("refreshThumbnail(scene, drawingFlag(false))"));
 		const settle = realm.slice(realm.indexOf("async function settleSoloSecrets("));

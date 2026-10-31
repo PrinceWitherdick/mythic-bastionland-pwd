@@ -4,9 +4,9 @@
  * each step. Wording lives in the language file under
  * `bastionland.realmDrawing`. Pure, so it can be tested without Foundry.
  */
-import { BOOK_LANDMARK_TYPES, HOLDING_COUNT, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount, realmSeats, seatsInOrder } from "./realm.js";
-import { hexKey } from "./realm-geometry.js";
-import { SETUP_PARTS } from "./realm-setup.js";
+import { BOOK_LANDMARK_TYPES, barrierCount, realmSeats, seatsInOrder } from "./realm.js";
+import { allHexes, barrierEdges, hexKey, reachedFrom } from "./realm-geometry.js";
+import { SETUP_PARTS, sizedCounts } from "./realm-setup.js";
 
 /** The Scene flag that marks a Realm Scene still being drawn by hand. */
 export const REALM_DRAWING_FLAG = "drawing";
@@ -183,14 +183,17 @@ export function sheetDrawingGroups(text) {
  * @typedef {object} DrawingCount
  * @property {string} key What's counted, named under `bastionland.realmDrawing.tally`.
  * @property {number} count
- * @property {number|null} target What the book asks for, or null where it gives no number.
+ * @property {number|null} target What the book asks for, on a map of this size, or null where it gives no number.
  * @property {boolean} done
  * @property {number} [rivers] For the river step: how many rivers there are.
  * @property {boolean} [disputed] For the Seat: more than one Holding claims it, as a disputed Seat may (p202).
+ * @property {number} [max] For a kind of Landmark: the most a typical Realm of this size has, `target` being the fewest.
  */
 
 /**
  * How far a Realm's drawing has come against the sheet, section by section.
+ * On a map of another size than the book's, a typical Realm's numbers are
+ * scaled to it (sizedCounts), as on p202.
  * @param {import("./realm.js").Realm} realm
  * @returns {Record<string, DrawingCount[]>} Keyed by DRAWING_RULES' section keys.
  */
@@ -200,10 +203,9 @@ export function drawingTally(realm) {
 	const painted = realm.terrain.filter((value) => value > 0).length;
 	const crowned = realmSeats(realm);
 	const seats = crowned.length;
-	// Two Holdings may both claim the Seat where it's disputed (p202), or where the rules for setup
-	// are set aside, but only a Seat marked so is said to be disputed.
-	const several = seats > 1 && seatsInOrder(realm);
-	const disputed = seats > 1 && crowned.every((holding) => holding.disputed);
+	// Two Holdings may both claim the Seat only where the claim is disputed (p202).
+	const disputed = seats > 1 && seatsInOrder(realm);
+	const typical = sizedCounts(realm);
 	const rivers = realm.rivers.filter((river) => river.length > 1);
 	const wet = new Set(rivers.flat().map(hexKey)).size;
 	return {
@@ -211,9 +213,9 @@ export function drawingTally(realm) {
 		barriers: [count("barriers", realm.barriers.length, barrierCount(realm))],
 		// The book gives rivers no length or number; one running through more than a single hex is drawn.
 		river: [{ ...count("river", wet, null, rivers.length > 0), rivers: rivers.length }],
-		holdings: [count("holdings", realm.holdings.length, HOLDING_COUNT), { ...count("seat", seats, 1, seats === 1 || several), ...(disputed ? { disputed } : {}) }],
-		myths: [count("myths", realm.myths.length, MYTH_COUNT)],
-		landmarks: BOOK_LANDMARK_TYPES.map((type) => count(type, realm.landmarks.filter((landmark) => landmark.type === type).length, LANDMARKS_PER_TYPE.min))
+		holdings: [count("holdings", realm.holdings.length, typical.holdings), { ...count("seat", seats, 1, seats === 1 || disputed), ...(disputed ? { disputed } : {}) }],
+		myths: [count("myths", realm.myths.length, typical.myths)],
+		landmarks: BOOK_LANDMARK_TYPES.map((type) => ({ ...count(type, realm.landmarks.filter((landmark) => landmark.type === type).length, typical.landmarks.min), max: typical.landmarks.max }))
 	};
 }
 
@@ -235,6 +237,28 @@ export const drawingShortfalls = (realm, { leave = [] } = {}) => Object.entries(
 	.filter(([step]) => !leave.includes(step))
 	.flatMap(([, entries]) => entries)
 	.filter((entry) => !entry.done);
+
+/**
+ * The hexes Barriers wall off from the rest of the map: those outside its
+ * largest stretch that can be crossed without crossing a Barrier. A rolled
+ * Realm never has any; one drawn by hand can, and nobody travels there
+ * unless a Barrier gives way (p14, p18).
+ * @param {import("./realm.js").Realm} realm
+ * @param {object} g
+ * @returns {number}
+ */
+export function walledOffHexes(realm, g) {
+	const blocked = barrierEdges(realm);
+	const seen = new Set();
+	let largest = 0;
+	for (const start of allHexes(g)) {
+		if (seen.has(hexKey(start))) continue;
+		const stretch = reachedFrom(g, blocked, start);
+		for (const key of stretch) seen.add(key);
+		largest = Math.max(largest, stretch.size);
+	}
+	return g.cols * g.rows - largest;
+}
 
 /**
  * Where the Finish button sits, and the window a rolled Realm is looked over

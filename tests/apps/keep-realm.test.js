@@ -110,8 +110,15 @@ describe("where the window stands in making a Realm", () => {
 
 	// One roller, so a Realm rolled again from the window is the same in every way as one rerolled from the map.
 	it("rolls again the way the Realm tools' Reroll does", () => {
-		expect(source).toContain("roll: () => rollRealmAgain(scene)");
+		expect(creating).toContain("rolled = await rollRealmAgain(scene, { keepMyths: settled });");
 		expect(source.slice(source.indexOf("export async function rerollRealm"))).toContain("await rollRealmAgain(scene);");
+	});
+
+	// Myths settled by hand in the Myths window aren't thrown away by the next roll of the map.
+	it("keeps the Myths once the Referee has settled any of them, and keeps its tally up with them", () => {
+		expect(creating).toContain("settled ||= mythPicksKey(getRealm(scene)?.realm) !== mythPicksKey(rolled);");
+		expect(creating).toContain("changedHook: REALM_HISTORY_HOOK,");
+		expect(source).toContain("if (keepMyths) realm.myths = keepMythPicks(freshRandom(), g, realm, current.myths);");
 	});
 });
 

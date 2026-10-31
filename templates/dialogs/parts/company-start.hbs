@@ -1,0 +1,13 @@
+{{!-- Where the Company begins (p6), and what the chosen Start means. Given `id` and `name` for the select;
+	`starts` and `startHint` come from companyStartContext. --}}
+<div class="form-group">
+	<label for="{{id}}">{{localize "bastionland.company.start"}}</label>
+	<div class="form-fields">
+		<select id="{{id}}" name="{{name}}">
+			{{#each starts}}
+			<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+			{{/each}}
+		</select>
+	</div>
+	<p class="hint" data-company-hint>{{startHint}}</p>
+</div>

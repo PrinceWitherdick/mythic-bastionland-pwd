@@ -26,6 +26,7 @@ import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./la
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { inCompany, sidesWithCompany } from "./knights.js";
 import { keptFromMe } from "./solo.js";
+import { tiedHint } from "./tie-roll.js";
 import { omensMet, timelineLandmarkFound } from "./timeline-events.js";
 import { liveRealm } from "./myth-notes.js";
 import { omenSceneChips, omenSceneIds } from "./omen-scenes.js";
@@ -308,8 +309,7 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 		d6: outcome.d6,
 		result: t(`realm.wilderness.results.${outcome.result}`),
 		myth,
-		// Played alone, the tie would number Myths not yet met.
-		tied: outcome.tied && !keptFromMe() ? t("realm.wilderness.tied", { numbers: outcome.tied.map((tied) => tied.number).join(", ") }) : null,
+		tied: outcome.tied ? tiedHint(outcome.tied) : null,
 		landmark,
 		// A Phase ended in a Myth's own hex finds the Knights ready for its Omen (p18). Merely coming in doesn't.
 		drop: phaseEnded && outcome.result === "mythHex" && !outcome.complete ? t("realm.wilderness.drop") : null,

@@ -21,6 +21,7 @@ import {
 	realmSeats
 } from "./realm.js";
 import { MAP_ROLES, normaliseRealmPicture } from "./realm-map.js";
+import { rollFreeMyth, rollFreeSeer } from "./realm-myths.js";
 import { hexDistance, hexIndex, hexLine, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 import { brokenPictures, emptyVariants, mendPictures, paintPictures } from "./realm-pictures.js";
 
@@ -231,7 +232,7 @@ export function unusedMythNumbers(realm) {
  * What crowning a Holding does to the Seats already standing. A Realm has one
  * Seat of Power (p14), so a new Seat takes the crown off the old one, unless
  * the claim is disputed (p202): the new Seat or one already standing is marked
- * so, or the GM ignores the rules for setup. Marking a Seat undisputed settles
+ * so. Marking a Seat undisputed settles
  * the dispute in its favour, and the others lose the crown.
  * @param {import("./realm.js").Realm} realm The Realm without the Holding being placed.
  * @param {{seat?: boolean, disputed?: boolean}} feature
@@ -242,25 +243,29 @@ export function unusedMythNumbers(realm) {
 function seatClaim(realm, feature, before) {
 	if (!feature.seat) return { disputed: false, unseat: false };
 	const others = realmSeats(realm);
-	// Unticking it settles the dispute, whatever the rules for setup say.
+	// Unticking it settles the dispute.
 	if (feature.disputed === false) return { disputed: false, unseat: others.length > 0 };
 	const disputed = (feature.disputed ?? before?.disputed) === true || others.some((holding) => holding.disputed);
-	return { disputed, unseat: !disputed && !realm.setup?.ignoreRules && others.length > 0 };
+	return { disputed, unseat: !disputed && others.length > 0 };
 }
 
 /**
  * Put a Holding, Myth or Landmark in a hex, replacing whatever was there, or
  * clear the hex. A Myth takes its number with it: a Myth already carrying that
  * number elsewhere moves here. A new Seat of Power unseats the old one, unless
- * the Seat is disputed or the rules for setup are set aside (seatClaim).
+ * the Seat is disputed (seatClaim).
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {{col: number, row: number}} hex
  * @param {object|null} feature `{kind: "holding", style, name, seat}`, `{kind: "myth", number, d6, d12, omen, revealed}`,
  *   `{kind: "landmark", type, name, seer, revealed}`, or null to clear the hex.
+ * @param {object} [options]
+ * @param {{pick: <T>(list: T[]) => T|undefined}} [options.random] Given when the Referee places by hand: a new Myth
+ *   given no roll rolls one the Realm hasn't got (p27), and a Sanctum with no Seer rolls one (p14, p26), as a
+ *   rolled Realm's do. Without it, either is left at its default.
  * @returns {import("./realm.js").Realm}
  */
-export const placeFeature = mending(function placeFeature(realm, g, hex, feature) {
+export const placeFeature = mending(function placeFeature(realm, g, hex, feature, { random = null } = {}) {
 	if (!inRealm(g, hex)) return realm;
 	const here = featureAt(realm, hex);
 	const next = copyRealm(realm);
@@ -303,12 +308,14 @@ export const placeFeature = mending(function placeFeature(realm, g, hex, feature
 			// dice make it one of the book's again; given neither, it stays whichever it was.
 			const rolled = isDie(feature.d6, 6) || isDie(feature.d12, 12);
 			const own = isOwnMyth(feature) ? feature.own : feature.own === undefined && !rolled && isOwnMyth(base) ? base.own : null;
+			// A Myth new to the Realm, placed by hand, is rolled on the Myths table like the others: never one it has.
+			const fresh = !own && !rolled && !base && random ? rollFreeMyth(random, next.myths) : null;
 			next.myths.push({
 				id: base?.id ?? null,
 				hex: { ...hex },
 				number,
-				d6: own ? null : isDie(feature.d6, 6) ? feature.d6 : base?.d6 ?? 1,
-				d12: own ? null : isDie(feature.d12, 12) ? feature.d12 : base?.d12 ?? 1,
+				d6: own ? null : isDie(feature.d6, 6) ? feature.d6 : base?.d6 ?? fresh?.d6 ?? 1,
+				d12: own ? null : isDie(feature.d12, 12) ? feature.d12 : base?.d12 ?? fresh?.d12 ?? 1,
 				...(own ? { own } : {}),
 				omen: Math.min(OMEN_COUNT, Math.max(0, Number.isInteger(feature.omen) ? feature.omen : base?.omen ?? 0)),
 				revealed: feature.revealed ?? base?.revealed ?? false
@@ -324,7 +331,8 @@ export const placeFeature = mending(function placeFeature(realm, g, hex, feature
 			const rolled = { d6: isDie(feature.seer?.d6, 6), d12: isDie(feature.seer?.d12, 12) };
 			const seer = type !== "sanctum" ? null
 				: rolled.d6 || rolled.d12 ? { d6: rolled.d6 ? feature.seer.d6 : before?.d6 ?? 1, d12: rolled.d12 ? feature.seer.d12 : before?.d12 ?? 1 }
-					: before;
+					// Every Sanctum is home to a Seer: one placed by hand rolls for theirs.
+					: before ?? (random ? rollFreeSeer(random, next.landmarks) : null);
 			// The Myth a Ruin echoes, once rolled, stays with it; another type forgets it.
 			const echo = type !== "ruin" ? null : feature.echo === undefined ? here.landmark?.echo ?? null : feature.echo;
 			// What only some kinds carry is kept while the Landmark stays that kind, and forgotten when it becomes another.
@@ -469,7 +477,7 @@ export function featureStands(realm, hex, feature) {
  * @param {object} changes Some of the feature's properties, such as `{name}`, `{seat}` or `{seer: {d6}}`.
  * @returns {import("./realm.js").Realm} Unchanged when the hex holds nothing.
  */
-export function editFeature(realm, g, hex, changes) {
+export function editFeature(realm, g, hex, changes, options = {}) {
 	const here = featureAt(realm, hex);
 	const kind = FEATURE_KINDS.find((candidate) => here[candidate]);
 	if (!kind) return realm;
@@ -479,7 +487,7 @@ export function editFeature(realm, g, hex, changes) {
 	// A die typed in for a Myth the Referee wrote makes it a Myth of the book's table.
 	// One that isn't a die leaves the Myth as it was.
 	if (kind === "myth" && !("own" in changes) && (isDie(changes.d6, 6) || isDie(changes.d12, 12))) merged.own = null;
-	return placeFeature(realm, g, hex, merged);
+	return placeFeature(realm, g, hex, merged, options);
 }
 
 /**

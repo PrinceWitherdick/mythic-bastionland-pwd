@@ -14,6 +14,7 @@ import { getCalendar } from "./calendar.js";
 import { companyTokenHex, setCompanyHex } from "./company.js";
 import { rollFreeMyth } from "./gm-toolkit.js";
 import { getJourney } from "./journey.js";
+import { liveRealm } from "./myth-notes.js";
 import { editRealm, editRealmByHand, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { advancePhase, chooseCompany, virtueLoss } from "./time.js";
@@ -180,9 +181,10 @@ async function spreadPrompt(index, spread, type) {
 }
 
 /**
- * A Ruin's echo (p14): it hints at a random Myth the Realm doesn't currently
- * hold, though that Myth may yet return. A Ruin keeps the Myth it echoes once
- * rolled, so asking again tells the same story. The Myth is whispered to the
+ * A Ruin's echo (p14): it hints at a Myth picked at random from those the
+ * Realm isn't playing out now, a resolved one among them, which may come back. A Ruin keeps the Myth it echoes once
+ * rolled, so asking again tells the same story, until that Myth comes into the
+ * Realm and another is rolled. The Myth is whispered to the
  * Referee with the ruin its page suggests, who decides how the ruin hints at
  * it. GMs only.
  * @param {Scene} scene The Realm.
@@ -194,8 +196,10 @@ export async function echoRuin(scene, hex = null) {
 	const { realm } = getRealm(scene);
 	const ruin = hex ? featureAt(realm, hex).landmark : null;
 	const kept = ruin?.type === "ruin" ? ruin.echo ?? null : null;
-	// Unless it already echoes one, any Myth the Realm doesn't currently hold.
-	const rolled = kept ? null : await rollFreeMyth(realm);
+	const live = liveRealm(scene, realm);
+	// Unless it already echoes one, any Myth the Realm isn't playing out now (p14): one the group
+	// resolved is over there, and may come back, as a Ruin's Myth may.
+	const rolled = kept ? null : await rollFreeMyth(live);
 	const echo = kept ?? { d6: rolled.d6, d12: rolled.d12 };
 	const rolls = rolled?.rolls ?? [];
 	if (!kept && ruin?.type === "ruin") await editRealm(scene, (current, g) => editFeature(current, g, hex, { echo }));

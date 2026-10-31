@@ -65,7 +65,7 @@ describe("the window for a Realm's Myths", () => {
 	});
 
 	it("rolls with the Realm's own dice, not the table's, since it's the Realm being made", () => {
-		expect(app).toContain("createRandom(randomSeed())");
+		expect(app).toContain("freshRandom()");
 		expect(app).not.toContain("new Roll(");
 	});
 

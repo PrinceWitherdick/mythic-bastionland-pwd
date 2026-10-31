@@ -176,17 +176,7 @@
 				<span class="bastionland-check__label">{{localize "bastionland.company.place"}}</span>
 			</label>
 
-			<div class="form-group">
-				<label for="bastionland-company-start">{{localize "bastionland.company.start"}}</label>
-				<div class="form-fields">
-					<select id="bastionland-company-start" name="start">
-						{{#each starts}}
-						<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-						{{/each}}
-					</select>
-				</div>
-				<p class="hint" data-company-hint>{{startHint}}</p>
-			</div>
+			{{> "bastionland.company-start" id="bastionland-company-start" name="start"}}
 
 			{{> "bastionland.company-picture"}}
 

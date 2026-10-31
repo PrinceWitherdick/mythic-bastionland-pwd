@@ -105,7 +105,7 @@ describe("validateRealm", () => {
 		expect(reasons(realm)).toContain(expected);
 	});
 
-	it("lets two Holdings claim the Seat where the claim is disputed or the rules for setup are ignored (p202)", () => {
+	it("lets two Holdings claim the Seat only where the claim is disputed (p202)", () => {
 		const twoSeats = () => {
 			const realm = fresh();
 			realm.holdings.forEach((holding, index) => { holding.seat = index < 2; });
@@ -121,10 +121,11 @@ describe("validateRealm", () => {
 		expect(seatsInOrder(halfDisputed)).toBe(false);
 		expect(reasons(halfDisputed)).toContain("holding:seat");
 
+		// Ignoring the rules for setup changes how much is rolled, not that a Realm has one Seat.
 		const unruled = { ...twoSeats(), setup: { ignoreRules: true } };
-		expect(reasons(unruled)).not.toContain("holding:seat");
+		expect(reasons(unruled)).toContain("holding:seat");
 
-		// Ignoring the rules still wants a Seat somewhere.
+		// And it still wants a Seat somewhere.
 		unruled.holdings.forEach((holding) => { holding.seat = false; });
 		expect(reasons(unruled)).toContain("holding:seat");
 		expect(seatsInOrder({ ...unruled, holdings: [] })).toBe(true);

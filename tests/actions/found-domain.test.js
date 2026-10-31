@@ -15,15 +15,24 @@ vi.mock("../../module/apps/ui.js", () => ({
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 vi.mock("../../module/actions/dominion.js", () => ({ linkKnightDomain: vi.fn(), worldDomains: () => game.actors.filter((actor) => actor.type === "domain") }));
 vi.mock("../../module/actions/court.js", () => ({ addCourtMember: vi.fn(), courtNames: (domain) => Object.values(domain.system.court ?? {}).map(({ name }) => name) }));
-vi.mock("../../module/actions/homecoming.js", () => ({ realmHoldings: () => [], holdingOptions: (selected) => [{ value: "Scene.s1.Tile.h1", label: "Mill", selected: selected === "Scene.s1.Tile.h1" }] }));
+vi.mock("../../module/actions/homecoming.js", () => ({
+	FOUNDED_OPTION: "founded",
+	realmHoldings: () => [],
+	// The Holding offered, first and chosen, so a test can tell which it was.
+	holdingOptions: (selected) => [{ value: selected, label: "Holding", selected: selected === "Scene.s1.Tile.h1" || selected === "Scene.s1.Tile.h0" }]
+}));
 
 const realm = {
 	holdings: [
-		{ id: "h0", name: "High Keep", seat: true },
-		{ id: "h1", name: "Mill", seat: false }
+		{ id: "h0", name: "High Keep", seat: true, hex: { col: 1, row: 1 } },
+		{ id: "h1", name: "Mill", seat: false, hex: { col: 5, row: 5 } }
 	]
 };
 vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }) }));
+
+/** Where the Company Token stands, or null with none on the map. */
+let standing = null;
+vi.mock("../../module/actions/company.js", () => ({ findCompanyToken: () => (standing ? {} : null), companyTokenHex: () => standing }));
 
 const { foundDomain, offerRulerDomain, seatCourtiers } = await import("../../module/actions/found-domain.js");
 const { addCourtMember } = await import("../../module/actions/court.js");
@@ -101,6 +110,14 @@ describe("offerRulerDomain", () => {
 		expect(asked[1].context.circle.filter(({ checked }) => checked).map(({ name }) => name)).toEqual(["Tal"]);
 		expect(domain.system).toMatchObject({ ruler: "Moss", council: { circle: ["k1"] } });
 		expect(domain.sheet.render).toHaveBeenCalled();
+	});
+
+	it("offers the Holding the Company was put down in, even the Seat, as the Ruler Start asked (p6)", async () => {
+		formData = (options) => (options.template === "who-rules" ? { ruler: "k2" } : { holding: options.context.holdings[0].value });
+		standing = { col: 1, row: 1 };
+		await offerRulerDomain({ id: "s1" });
+		standing = null;
+		expect(asked[1].context.holdings[0].value).toBe("Scene.s1.Tile.h0");
 	});
 
 	it("asks nothing before there are Knights, and founds nothing when left for later", async () => {

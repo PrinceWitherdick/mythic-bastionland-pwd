@@ -265,6 +265,29 @@ export function forgetBarrierMet(shared, hex, edge) {
 }
 
 /**
+ * Keep only the Barriers met that still stand, found, on the map: those the
+ * Realm rolled again in place of the old no longer bar the way, and a line
+ * about one rolled in its place, still hidden, would give it away.
+ * @param {HexShared} shared
+ * @param {Set<string>} standing The edges of the Realm's revealed Barriers.
+ * @returns {HexShared} Unchanged when every Barrier met still stands.
+ */
+export function keepBarriersMet(shared, standing) {
+	let next = shared;
+	for (const [key, record] of Object.entries(shared?.hexes ?? {})) {
+		if (!record.met?.some((met) => !standing.has(met.edge))) continue;
+		const { met, ...rest } = record;
+		const kept = met.filter((one) => standing.has(one.edge));
+		const hexes = { ...next.hexes };
+		const changed = worthKeeping(kept.length ? { ...rest, met: kept } : rest);
+		if (changed) hexes[key] = changed;
+		else delete hexes[key];
+		next = { version: HEX_SHARED_VERSION, hexes };
+	}
+	return next;
+}
+
+/**
  * Forget what the players hold of a hex: what was told of it, the Barriers met
  * from it and the Company's note on it. All of it, or the parts named.
  * @param {HexShared} shared

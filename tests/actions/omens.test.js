@@ -27,7 +27,7 @@ vi.mock("../../module/actions/travels.js", () => ({ travelsSources: () => ({}), 
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null, mythEntry: () => ({ name: "The Myth", page: 40, entry: null }) }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollSpark: vi.fn() }));
 // The Realm's Seat stands on no Tile, so no card is left to seat the Knights later.
-vi.mock("../../module/actions/found-domain.js", () => ({ offerRulerDomain: vi.fn(), seatCourtiers: vi.fn(), seatOfPower: () => null, seatName: (seat) => seat.name }));
+vi.mock("../../module/actions/found-domain.js", () => ({ offerRulerDomain: vi.fn(), seatCourtiers: vi.fn(), seatOfPower: () => ({ name: "The Seat" }), seatName: (seat) => seat.name }));
 vi.mock("../../module/actions/wilderness.js", () => ({ findCompany: () => ({ hex: { col: 2, row: 2 } }) }));
 vi.mock("../../module/rules/wilderness.js", async (importOriginal) => ({
 	...(await importOriginal()),
@@ -204,10 +204,10 @@ describe("the Courtier start", () => {
 			}
 		};
 	};
+
 	it("writes the nearest Myth's first Omen as news heard at the Seat, straight to its Tile", async () => {
-		vi.spyOn(Math, "random").mockReturnValue(0.9);
+		highRolls();
 		await announceStart(scene, "courtier");
-		vi.mocked(Math.random).mockRestore();
 		expect(scene.tiles.get("t4").flags[SYSTEM_ID][REALM_FLAG].omen).toBe(1);
 		expect(calls(record.recordOnTracks)).toHaveLength(1);
 		const [[, met]] = calls(record.recordOnTracks);

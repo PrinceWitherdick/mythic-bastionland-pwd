@@ -8,6 +8,8 @@ import { linkKnightDomain, worldDomains } from "./dominion.js";
 import { holdingOptions, realmHoldings } from "./homecoming.js";
 import { realmSeats } from "../rules/realm.js";
 import { getRealm } from "./realm.js";
+import { companyTokenHex } from "./company.js";
+import { sameHex } from "../rules/realm-geometry.js";
 import { inCompany, playersOf, seenOrChosen, worldKnights } from "./knights.js";
 import { timelineFounded } from "./timeline-events.js";
 
@@ -115,9 +117,12 @@ export async function offerRulerDomain(scene) {
 	// Left for later, or closed, nobody rules yet.
 	const ruler = knights.find((knight) => knight.id === data?.ruler);
 	if (!ruler) return null;
-	// Any Holding will do, so the first that isn't the Seat of Power, which is under a wicked influence, is offered.
+	// The Holding the Company was put down in, as the Referee was asked to; failing that any will do, so the
+	// first that isn't the Seat of Power, which is under a wicked influence.
 	const holdings = getRealm(scene)?.realm.holdings.filter((holding) => holding.id) ?? [];
-	const first = holdings.find((holding) => !holding.seat) ?? holdings[0] ?? null;
+	const standing = companyTokenHex(scene);
+	const first = holdings.find((holding) => standing && sameHex(holding.hex, standing))
+		?? holdings.find((holding) => !holding.seat) ?? holdings[0] ?? null;
 	const domain = await foundDomain(ruler, {
 		holding: first ? holdingRef(scene.id, first.id) : "",
 		circle: knights.filter((knight) => knight !== ruler)
