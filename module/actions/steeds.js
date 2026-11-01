@@ -9,7 +9,7 @@ import { chooseCompany } from "./time.js";
 import { escapeHTML } from "../rules/text.js";
 import { isKnight } from "../rules/knight-types.js";
 import { COMPANION_FLAG, FOLLOWER_FLAG } from "./property.js";
-import { shareMade, sharedOwnership } from "./belonging.js";
+import { linkedActor, madeOwnership, shareMade, sharedOwnership } from "./belonging.js";
 import { deletionEntry } from "../compat.js";
 
 /**
@@ -17,8 +17,7 @@ import { deletionEntry } from "../compat.js";
  * @returns {Actor|null} The steed they ride, if it still exists.
  */
 export function steedOf(actor) {
-	const steed = actor.system.steed ? fromUuidSync(actor.system.steed) : null;
-	return steed?.documentName === "Actor" ? steed : null;
+	return linkedActor(actor.system.steed);
 }
 
 /**
@@ -124,7 +123,7 @@ export async function takeSteed(knight) {
 		name,
 		...(epithet ? { system: { ...data.system, epithet } } : {}),
 		folder: knight.folder?.id ?? null,
-		...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
+		...madeOwnership(knight)
 	});
 	if (!steed) return null;
 	await knight.update({ "system.steed": steed.uuid });
@@ -164,7 +163,7 @@ function riddenByAnother(npc, riders) {
  * @param {Actor} steed
  * @returns {Promise<Actor|null>} The steed, or null where nothing changed.
  */
-export async function rideSteed(knight, steed) {
+async function rideSteed(knight, steed) {
 	if (knight.system.steed === steed.uuid) return steed;
 	const riders = ridersOf(steed, knight);
 	if (riddenByAnother(steed, riders)) return null;
@@ -204,7 +203,7 @@ export async function rideSteed(knight, steed) {
  * @param {Actor} npc
  * @returns {Promise<Actor|null>} The follower, or null where nothing changed.
  */
-export async function takeFollower(knight, npc) {
+async function takeFollower(knight, npc) {
 	if (!npc.isOwner) {
 		ui.notifications.warn(t("follower.notYours", { name: npc.name }));
 		return null;
@@ -267,7 +266,7 @@ async function fromCompendium(npc, knight) {
 	return Actor.implementation.create({
 		...game.actors.fromCompendium(npc),
 		folder: knight.folder?.id ?? null,
-		...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
+		...madeOwnership(knight)
 	});
 }
 

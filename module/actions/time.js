@@ -61,7 +61,7 @@ import { showedOmen } from "../rules/wilderness.js";
 import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
 import { escapeHTML } from "../rules/text.js";
 import { companyKnights, inCompany, playerCharacter } from "./knights.js";
-import { announceFallenKnight, companionsOf } from "./fallen.js";
+import { announceFallenKnight, companionsOf, worldCompanions } from "./fallen.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -108,8 +108,9 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 	for (const actor of others) add(actor, false, true);
 	if (!onlyGiven) for (const actor of companyKnights()) add(actor, inCompany(actor));
 	if (companions) {
+		const world = worldCompanions({ players: false });
 		for (const { actor, included } of candidates.filter(({ actor }) => isKnight(actor))) {
-			for (const companion of companionsOf(actor)) add(companion, included, true);
+			for (const companion of companionsOf(actor, { companions: world })) add(companion, included, true);
 		}
 	}
 

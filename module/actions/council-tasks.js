@@ -39,17 +39,19 @@ import { timelineTaskSettled } from "./timeline-events.js";
  * since they were seated sits there no longer.
  * @param {Actor} domain
  * @param {string} seat One of COUNCIL_SEATS.
+ * @param {object[]} [knights] The world's Knights, from knightChoices, where the caller has them already.
  * @returns {{id: string, name: string, legacy: boolean}[]}
  */
-const livingHolders = (domain, seat) => seatHolders(domain?.system, seat, knightChoices())
+const livingHolders = (domain, seat, knights = knightChoices()) => seatHolders(domain?.system, seat, knights)
 	.filter((holder) => RETAINER_SEATS.includes(seat) || holder.legacy || !slainKnight(holder.id));
 
 /**
  * @param {Actor} domain
  * @param {string} seat
+ * @param {object[]} [knights] As livingHolders takes them.
  * @returns {string} Whoever holds a seat, by name, blank where nobody does.
  */
-const seatHolderNames = (domain, seat) => livingHolders(domain, seat).map((holder) => holder.name).filter(Boolean).join(", ");
+const seatHolderNames = (domain, seat, knights) => livingHolders(domain, seat, knights).map((holder) => holder.name).filter(Boolean).join(", ");
 
 /**
  * The actor who holds a Council seat, so that a task can be settled with their
@@ -58,10 +60,11 @@ const seatHolderNames = (domain, seat) => livingHolders(domain, seat).map((holde
  * of several living Knights has nobody to make the Save alone.
  * @param {Actor} domain
  * @param {string} seat One of COUNCIL_SEATS.
+ * @param {object[]} [knights] As livingHolders takes them.
  * @returns {Actor|null} Null where nobody of that name has a sheet.
  */
-export function councilActor(domain, seat) {
-	const holders = livingHolders(domain, seat);
+export function councilActor(domain, seat, knights) {
+	const holders = livingHolders(domain, seat, knights);
 	if (holders.length !== 1) return null;
 	const [{ id, name, legacy }] = holders;
 	// A Knight of the Circle is found by id; a Retainer's id is their place in the Court.
@@ -112,8 +115,9 @@ function riskLabel(task, holder) {
  */
 export async function assignTask(domain, seat) {
 	if (!COUNCIL_SEATS.includes(seat) || !domain?.isOwner) return null;
-	const holder = seatHolderNames(domain, seat);
-	const actor = councilActor(domain, seat);
+	const knights = knightChoices();
+	const holder = seatHolderNames(domain, seat, knights);
+	const actor = councilActor(domain, seat, knights);
 	const data = await inputDialog({
 		title: t("domain.tasks.assignTitle"),
 		icon: "fa-solid fa-scroll",
@@ -165,14 +169,15 @@ export async function settleTask(domain, id) {
 	const task = normalizeTasks(domain?.system.tasks)[id];
 	if (!task || !domain.isOwner) return null;
 
-	const actor = isSaveRisk(task.risk) ? councilActor(domain, task.seat) : null;
+	const knights = knightChoices();
+	const actor = isSaveRisk(task.risk) ? councilActor(domain, task.seat, knights) : null;
 	const notes = [];
 	// A seat whose holder has lost their sheet, was renamed, or is shared, falls back to the
 	// Luck Roll, which p16 offers in the same breath as the Save.
 	let risk = task.risk;
 	if (isSaveRisk(risk) && !actor) {
-		const several = livingHolders(domain, task.seat).length > 1;
-		notes.push(several ? t("domain.tasks.noOneSaves") : t("domain.tasks.noSheet", { name: seatHolderNames(domain, task.seat) || seatLabel(task.seat) }));
+		const several = livingHolders(domain, task.seat, knights).length > 1;
+		notes.push(several ? t("domain.tasks.noOneSaves") : t("domain.tasks.noSheet", { name: seatHolderNames(domain, task.seat, knights) || seatLabel(task.seat) }));
 		risk = "luck";
 	}
 
@@ -198,7 +203,7 @@ export async function settleTask(domain, id) {
 	}
 
 	await domain.update(deletionUpdate(`system.tasks.${id}`));
-	const holder = seatHolderNames(domain, task.seat);
+	const holder = seatHolderNames(domain, task.seat, knights);
 	const by = holder ? t("domain.tasks.by", { seat: seatLabel(task.seat), name: holder }) : seatLabel(task.seat);
 	const what = task.what || t("domain.tasks.whatUnwritten");
 	// The Timeline's row is written beside the card, which needn't wait for it.
@@ -271,8 +276,10 @@ function dueLine(due, calendar) {
  */
 export function tasksBySeat(domain, now) {
 	const holders = new Map();
+	let knights;
 	const holderFor = (seat) => {
-		if (!holders.has(seat)) holders.set(seat, councilActor(domain, seat));
+		knights ??= knightChoices();
+		if (!holders.has(seat)) holders.set(seat, councilActor(domain, seat, knights));
 		return holders.get(seat);
 	};
 

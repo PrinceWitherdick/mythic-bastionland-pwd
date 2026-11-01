@@ -19,7 +19,7 @@ import {
 import { SYSTEM_ID } from "../system-id.js";
 import { causedBy } from "./ledger.js";
 import { timelineDismissed, timelineMustered } from "./timeline-events.js";
-import { MUSTERED_FLAG, shareMade } from "./belonging.js";
+import { MUSTERED_FLAG, madeOwnership, shareMade } from "./belonging.js";
 
 /**
  * Raising soldiers and keeping them (p11). A Holding musters its Warbands
@@ -48,7 +48,7 @@ export const warbandsOf = (domain) =>
  * @param {Actor} warband
  * @returns {boolean} Whether they're gone for good: wiped out at VIG 0 (p11), or Slain.
  */
-export const isWipedOut = (warband) => Boolean(warband.system?.warband?.wipedOut || warband.system?.slain);
+const isWipedOut = (warband) => Boolean(warband.system?.warband?.wipedOut || warband.system?.slain);
 
 /**
  * @param {Actor} domain
@@ -169,7 +169,7 @@ export async function musterWarband(domain) {
 		},
 		// Players who can see the Domain can see its Warbands. Only a GM may hand ownership to others,
 		// so a player asks the Referee to once it's made.
-		...(game.user.isGM ? { ownership: foundry.utils.deepClone(domain.ownership) } : {})
+		...madeOwnership(domain)
 	});
 	if (!warband) return null;
 	await Promise.all([

@@ -19,6 +19,15 @@ export const COMPANION_FLAG = "companionOf";
 export const MUSTERED_FLAG = "musteredBy";
 
 /**
+ * @param {string} [uuid] A link one actor keeps to another, such as a Squire's or a steed's.
+ * @returns {Actor|null} The actor it names, if it still exists.
+ */
+export function linkedActor(uuid) {
+	const actor = uuid ? fromUuidSync(uuid) : null;
+	return actor?.documentName === "Actor" ? actor : null;
+}
+
+/**
  * The Squire a Knight's sheet names, while they still serve that Knight: not
  * Knighted since, nor taken by another Knight, nor, unless the dead are
  * wanted too, Slain.
@@ -27,10 +36,18 @@ export const MUSTERED_FLAG = "musteredBy";
  * @returns {Actor|null}
  */
 export function servingSquire(knight, options) {
-	const uuid = knight?.system?.isSquire ? "" : knight?.system?.squire;
-	const squire = uuid ? fromUuidSync(uuid) : null;
-	return squire?.documentName === "Actor" && stillServes(squire.system, knight.uuid, options) ? squire : null;
+	const squire = linkedActor(knight?.system?.isSquire ? "" : knight?.system?.squire);
+	return squire && stillServes(squire.system, knight.uuid, options) ? squire : null;
 }
+
+/**
+ * The ownership a Squire, steed, follower or Warband is made with: whatever the
+ * Knight or Domain it belongs with has, so those who see them see it. Only a GM
+ * may hand ownership to others; a player who makes one asks after (shareMade).
+ * @param {Actor} from The Knight or Domain it belongs with.
+ * @returns {{ownership?: object}} Part of the creation data, empty for a player.
+ */
+export const madeOwnership = (from) => (game.user.isGM ? { ownership: foundry.utils.deepClone(from.ownership) } : {});
 
 /**
  * The ownership a Knight's companion is given when the Referee links them:
@@ -53,7 +70,7 @@ export function sharedOwnership(companion, knight) {
  * @param {Record<string, number>} [to]
  * @returns {Record<string, number>|null} The raised ownership, or null where nobody rises.
  */
-export function raisedOwnership(ownership = {}, to = {}) {
+function raisedOwnership(ownership = {}, to = {}) {
 	const raised = { ...ownership };
 	let changed = false;
 	for (const [user, level] of Object.entries(to ?? {})) {

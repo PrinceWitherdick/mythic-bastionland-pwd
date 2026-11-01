@@ -14,7 +14,7 @@ const choices = CRISES.map((id) => ({ id, name: id, detail: "How it's resolved" 
 
 describe("the Crisis picker", () => {
 	it("shows all six Crises at full length, with no scrollbar of its own", () => {
-		const html = handlebars.compile(read("templates/dialogs/crisis-pick.hbs"))({ intro: "Which?", crises: choices });
+		const html = handlebars.compile(read("templates/dialogs/pick-one.hbs"))({ legend: "Which?", choices, full: true });
 		expect(html).toContain('class="bastionland-choice-list bastionland-choice-list--full"');
 		for (const id of CRISES) expect(html).toContain(`value="${id}"`);
 	});

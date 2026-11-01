@@ -1,6 +1,7 @@
+import { oncePerKey } from "../rules/queue.js";
 import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 import { gmAsker } from "../gm-asker.js";
-import { registerShareQuery, servingSquire, shareMade, sharedOwnership } from "./belonging.js";
+import { linkedActor, madeOwnership, registerShareQuery, servingSquire, shareMade, sharedOwnership } from "./belonging.js";
 import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import {
@@ -142,8 +143,7 @@ export async function claimSquire(knight, squire) {
 		return null;
 	}
 
-	const served = squire.system.serves && squire.system.serves !== knight.uuid ? fromUuidSync(squire.system.serves) : null;
-	const master = served?.documentName === "Actor" ? served : null;
+	const master = squire.system.serves === knight.uuid ? null : linkedActor(squire.system.serves);
 	// Only a link the old Knight still keeps needs undoing on their side.
 	const masterKeeps = master?.system?.squire === squire.uuid;
 	if (masterKeeps && !master.isOwner) {
@@ -175,12 +175,18 @@ const RELEASE_QUERY = `${SYSTEM_ID}.releaseSquire`;
 
 /**
  * @param {Actor} actor A Knight or Squire.
+ * @returns {"serves"|"squire"} The field keeping their link to the other: the Knight a Squire serves, or a Knight's Squire.
+ */
+const linkField = (actor) => (actor.system.isSquire ? "serves" : "squire");
+
+/**
+ * @param {Actor} actor A Knight or Squire.
  * @param {Actor} linked The one they were linked to.
  * @returns {object|null} The update that clears the link `actor` holds to `linked`, or null where it holds none.
  */
 function partingUpdate(actor, linked) {
-	if (actor.system.isSquire) return actor.system.serves === linked.uuid ? { "system.serves": "" } : null;
-	return actor.system.squire === linked.uuid ? { "system.squire": "" } : null;
+	const field = linkField(actor);
+	return actor.system[field] === linked.uuid ? { [`system.${field}`]: "" } : null;
 }
 
 /**
@@ -191,11 +197,9 @@ function partingUpdate(actor, linked) {
  * @returns {Promise<boolean>} Whether both sides were parted.
  */
 export async function releaseSquire(actor) {
-	const { isSquire } = actor.system;
-	const uuid = isSquire ? actor.system.serves : actor.system.squire;
-	const found = uuid ? fromUuidSync(uuid) : null;
-	const linked = found?.documentName === "Actor" ? found : null;
-	await actor.update({ [isSquire ? "system.serves" : "system.squire"]: "" });
+	const field = linkField(actor);
+	const linked = linkedActor(actor.system[field]);
+	await actor.update({ [`system.${field}`]: "" });
 	const update = linked ? partingUpdate(linked, actor) : null;
 	if (!update) return true;
 	if (linked.isOwner) {
@@ -253,17 +257,11 @@ export async function takeSquire(knight) {
 		return existing;
 	}
 	// The Knight names their Squire only once both are made, so a second click meanwhile makes nothing.
-	if (takingSquire.has(knight.uuid)) return null;
-	takingSquire.add(knight.uuid);
-	try {
-		return await makeSquire(knight);
-	} finally {
-		takingSquire.delete(knight.uuid);
-	}
+	return (await takingSquire(knight.uuid, () => makeSquire(knight))) ?? null;
 }
 
 /** The Knights whose new Squire is being made. */
-const takingSquire = new Set();
+const takingSquire = oncePerKey();
 
 /**
  * Roll and make a new Squire and their pony for a Knight who has none, as takeSquire says.
@@ -294,7 +292,7 @@ async function makeSquire(knight) {
 	lines.push({ label: t("squire.equipmentRoll", { roll: equipmentRoll.total }), value: names[squireEquipment(equipmentRoll.total).key] });
 
 	// Players who can see the Knight can see their Squire. Only a GM may hand ownership to others.
-	const shared = { folder: knight.folder?.id ?? null, ...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {}) };
+	const shared = { folder: knight.folder?.id ?? null, ...madeOwnership(knight) };
 	// The pony comes first, so the Squire is created already riding it.
 	const name = t("squire.name", { knight: knight.name });
 	const pony = await Actor.implementation.create({ ...shared, name: t("squire.pony", { name }), type: "npc", system: ponySystem() });
@@ -378,7 +376,7 @@ export async function knightSquire(squire, { note } = {}) {
 	const before = Object.fromEntries(VIRTUES.map((key) => [key, squire.system.virtues[key].max]));
 	const virtues = knightedVirtues(squire.system.virtues, gains);
 
-	const master = squire.system.serves ? fromUuidSync(squire.system.serves) : null;
+	const master = linkedActor(squire.system.serves);
 	await squire.update({
 		"system.isSquire": false,
 		"system.serves": "",

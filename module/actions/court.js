@@ -16,6 +16,7 @@ import {
 	seatOf
 } from "../rules/court.js";
 import { COUNCIL_SEATS, canHoldPost, isSameName } from "../rules/dominion.js";
+import { seersSanctums } from "../rules/realm.js";
 import { rollFreeName } from "../rules/knight-names.js";
 import { escapeHTML, trimmedText } from "../rules/text.js";
 import { worldKnights } from "./knights.js";
@@ -159,7 +160,7 @@ export async function realmSeerNames(domain) {
 	const [{ domainHolding }, { getRealm }, { realmKnown }] = await Promise.all([import("./homecoming.js"), import("./realm.js"), import("./solo.js")]);
 	const scene = domainHolding(domain)?.scene;
 	const realm = scene ? realmKnown(getRealm(scene)?.realm, scene) : null;
-	const seers = (realm?.landmarks ?? []).filter((landmark) => landmark.type === "sanctum" && landmark.seer).map((landmark) => seerEntry(index, landmark.seer));
+	const seers = seersSanctums(realm).map((landmark) => seerEntry(index, landmark.seer));
 	return [...new Set(seers.filter((seer) => seer.entry).map((seer) => seer.name))];
 }
 

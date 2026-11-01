@@ -14,7 +14,7 @@ vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => null)
 
 /** Each Knight's steed and followers, by the Knight's id. */
 let riding = {};
-vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(), companionsOf: (actor) => riding[actor.id] ?? [] }));
+vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(), companionsOf: (actor) => riding[actor.id] ?? [], worldCompanions: () => [] }));
 
 const { chooseCompany } = await import("../../module/actions/time.js");
 

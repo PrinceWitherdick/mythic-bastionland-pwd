@@ -13,7 +13,7 @@ import { isKnight, isNpcKnight } from "../rules/knight-types.js";
 import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { makeFreshKnight } from "./new-knight.js";
-import { COMPANION_FLAG } from "./property.js";
+import { COMPANION_FLAG, linkedActor } from "./belonging.js";
 import { knightSquire } from "./squires.js";
 import { inCompany, playersOf, worldKnights } from "./knights.js";
 import { timelineFallen, timelineTookUp } from "./timeline-events.js";
@@ -32,7 +32,7 @@ import { timelineFallen, timelineTookUp } from "./timeline-events.js";
  * @param {boolean} [options.players=true] Whether each Knight's players are wanted, as a successor's are.
  * @returns {object[]}
  */
-const worldCompanions = ({ players = true } = {}) => game.actors.map((actor) => ({
+export const worldCompanions = ({ players = true } = {}) => game.actors.map((actor) => ({
 	uuid: actor.uuid,
 	name: actor.name,
 	type: actor.type,
@@ -50,13 +50,14 @@ const worldCompanions = ({ players = true } = {}) => game.actors.map((actor) => 
  * their own right: their steed and their followers, while they live. Everybody
  * present has a Remedy's benefit (p9), these among them.
  * @param {Actor} knight
+ * @param {{companions?: object[]}} [options] worldCompanions, where it's already gathered for several Knights.
  * @returns {Actor[]}
  */
-export function companionsOf(knight) {
+export function companionsOf(knight, { companions } = {}) {
 	const held = { uuid: knight.uuid, id: knight.id, squire: knight.system.squire, steed: knight.system.steed };
-	const linked = knight.system.steed ? fromUuidSync(knight.system.steed) : null;
-	const steed = linked?.documentName === "Actor" && !linked.system?.slain ? linked : null;
-	const actors = worldCompanions({ players: false });
+	const linked = linkedActor(knight.system.steed);
+	const steed = linked && !linked.system?.slain ? linked : null;
+	const actors = companions ?? worldCompanions({ players: false });
 	const followers = followersOf(held, actors, squireOf(held, actors)).map((entry) => entry.actor);
 	return steed ? [steed, ...followers] : followers;
 }

@@ -21,7 +21,7 @@ vi.mock("../../module/apps/ui.js", () => ({
 		return Object.fromEntries(options.context.members.flatMap((member) => [[`include-${member.index}`, ticked.includes(member.name)], [`older-${member.index}`, ticked.includes(member.name)]]));
 	})
 }));
-vi.mock("../../module/apps/actor-pick.js", () => ({ chooseActor: vi.fn(async () => null) }));
+vi.mock("../../module/apps/actor-pick.js", () => ({ chooseActor: vi.fn(async () => null), chooseOne: vi.fn(async () => null) }));
 vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => ({})), t: (key) => key, keyChoices: () => [] }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null, mythEntry: () => ({ name: "Myth" }) }));
 vi.mock("../../module/actions/calendar.js", () => ({
@@ -37,7 +37,7 @@ vi.mock("../../module/actions/glory.js", () => ({ adjustGlory: vi.fn(), gloryLin
 vi.mock("../../module/actions/scars.js", () => ({ settleScars: vi.fn(async (_actor, items, guardMax) => ({ rolls: [], lines: items.map(() => "settled"), guardMax: guardMax + 3 * items.length })) }));
 vi.mock("../../module/actions/squires.js", () => ({ knightSquire: vi.fn() }));
 vi.mock("../../module/actions/succession.js", () => ({ chooseSuccessor: vi.fn(), heirOf: () => null }));
-vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(async () => null), companionsOf: () => [] }));
+vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(async () => null), companionsOf: () => [], worldCompanions: () => [] }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineAged: vi.fn(), timelineSeasonTurn: vi.fn(async () => null) }));
 vi.mock("../../module/actions/homecoming.js", () => ({ markLongAbsences: vi.fn(async () => null) }));
 vi.mock("../../module/actions/pursuits.js", () => ({ followPursuits: vi.fn(async () => null) }));
