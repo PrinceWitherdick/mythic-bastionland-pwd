@@ -22,7 +22,8 @@ vi.mock("../../module/actions/lasting-dice.js", async (importOriginal) => ({ ...
 const { inputDialog } = await import("../../module/apps/ui.js");
 const timeline = await import("../../module/actions/timeline-events.js");
 const { postCard } = await import("../../module/chat/cards.js");
-const { hornBlownFor, landMirrors, makersWith, rallied, sitsOn, takeAttack, takeDamage } = await import("../../module/actions/damage.js");
+const { hornBlownFor } = await import("../../module/actions/stances.js");
+const { landMirrors, makersWith, rallied, sitsOn, takeAttack, takeDamage } = await import("../../module/actions/damage.js");
 const { rollScar } = await import("../../module/actions/scars.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
 const { temperWeapon } = await import("../../module/actions/lasting-dice.js");
@@ -529,17 +530,18 @@ describe("combat audit of 2026-10-29", () => {
 		expect(kay.update).not.toHaveBeenCalled();
 	});
 
-	it("throws an NPC rider whose Token sits on the fallen steed's (p10)", async () => {
+	it("throws an NPC rider whose Token sits on the fallen steed's (p10), on a Scene nobody is viewing", async () => {
 		const horse = character({ uuid: "Actor.horse", name: "Destrier", vig: 4, guard: 0, armour: 0 });
 		const rider = character({ uuid: "Actor.reeve", name: "Reeve" });
 		const walker = character({ uuid: "Actor.walker", name: "Walker" });
 		rider.system.mounted = true;
 		walker.system.mounted = true;
-		const placed = { document: { x: 0, y: 0 }, w: 100, h: 100 };
-		const riding = { document: { x: 25, y: 25 }, w: 50, h: 50, actor: rider };
-		const beside = { document: { x: 100, y: 0 }, w: 100, h: 100, actor: walker };
-		placed.layer = { placeables: [placed, riding, beside] };
-		horse.getActiveTokens = () => [placed];
+		const scene = { grid: { size: 100 }, tokens: [] };
+		const placed = { x: 0, y: 0, width: 1, height: 1, parent: scene, actor: horse };
+		const riding = { x: 25, y: 25, width: 0.5, height: 0.5, parent: scene, actor: rider };
+		const beside = { x: 100, y: 0, width: 1, height: 1, parent: scene, actor: walker };
+		scene.tokens.push(placed, riding, beside);
+		horse.getDependentTokens = () => [placed];
 		inputDialog.mockResolvedValue({ damage: "20", armour: "0" });
 		await takeDamage(horse, { damage: 20 });
 		expect(rider.system.mounted).toBe(false);

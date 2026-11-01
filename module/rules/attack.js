@@ -4,7 +4,7 @@
  */
 
 import { GAMBITS, WEAKNESS_DICE } from "../config.js";
-import { MARK_GAMBITS } from "./gambit-marks.js";
+import { MARK_GAMBITS, dieMaker } from "./gambit-marks.js";
 import { harmsStructure } from "./structures.js";
 
 /** Die sizes offered for shields, bonuses and Scars. */
@@ -266,21 +266,6 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	}
 
 	return { refusal, usable, setAside, impaired: confined && usable.some((index) => isLong(items[index])) };
-}
-
-/**
- * Why somebody standing is out of the fight all the same, and makes no Attack:
- * a structure or siege engine destroyed at 0GD, a Warband wiped out at VIG 0
- * (p11), or anybody who fled or surrendered on failing Morale (p10). The Slain
- * and Mortally Wounded are downBy's.
- * @param {{destroyed?: boolean, warband?: {wipedOut?: boolean}|null, moraleBroken?: string}} system
- * @returns {"destroyed"|"wipedOut"|"fled"|"surrendered"|null}
- */
-export function outOfTheFight(system) {
-	if (system?.destroyed) return "destroyed";
-	if (system?.warband?.wipedOut) return "wipedOut";
-	if (system?.moraleBroken === "fled" || system?.moraleBroken === "surrendered") return system.moraleBroken;
-	return null;
 }
 
 /** A shield's name, as "kite shield", "redshield" or "bronze buckler". */
@@ -580,6 +565,8 @@ export const ON_WOUND = Object.freeze(["sleep", "memory"]);
  */
 export const attackersOf = (attack) => [attack.attacker, ...(attack.joined ?? []).map((entry) => entry.actor)].filter(Boolean);
 
+export { dieMaker };
+
 /**
  * @param {AttackState} attack
  * @param {string} uuid
@@ -697,7 +684,7 @@ export function canFundStrongGambit(attack, index) {
  * @returns {boolean}
  */
 export function focusCanBeStrong(attack, actor) {
-	return attack.dice.some((die) => (die.actor ?? attack.attacker) === actor && shareOf(attack, die).strongGambits);
+	return attack.dice.some((die) => dieMaker(attack, die) === actor && shareOf(attack, die).strongGambits);
 }
 
 /**

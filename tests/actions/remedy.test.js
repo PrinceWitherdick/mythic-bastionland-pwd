@@ -12,7 +12,7 @@ vi.mock("../../module/actions/ask-referee.js", () => ({ askReferee: vi.fn(async 
 vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => (globalThis.game?.users?.activeGM ? answered : false)) }));
 vi.mock("../../module/compat.js", () => ({ queryAsker: (context) => context?.user ?? null }));
 vi.mock("../../module/actions/knights.js", () => ({ inCompany: (actor) => Boolean(actor.riding), worldKnights: (keep) => world.filter((actor) => actor.type === "knight" && keep(actor)) }));
-vi.mock("../../module/actions/fallen.js", () => ({ companionsOf: (knight) => knight.companions ?? [] }));
+vi.mock("../../module/actions/fallen.js", () => ({ companionsOf: (knight) => knight.companions ?? [], worldCompanions: () => [] }));
 
 const { onRemedyQuery, useRemedy, warnDyingAfterCombat } = await import("../../module/actions/recovery.js");
 const { askActiveGM } = await import("../../module/ask-gm.js");
@@ -81,8 +81,8 @@ describe("useRemedy", () => {
 		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.remedy`, { itemUuid: item.uuid, virtue: "vig", actorUuids: ["Actor.Bram"] }, expect.any(String));
 		expect(entries.map(({ name }) => name)).toEqual(["Alys", "Bram"]);
 		expect(ui.notifications.warn).not.toHaveBeenCalled();
-		// Asked while the Remedy is still there to be checked.
-		expect(askActiveGM.mock.invocationCallOrder[0]).toBeLessThan(item.delete.mock.invocationCallOrder[0]);
+		// The Referee spent it as they answered, so it isn't spent twice.
+		expect(item.delete).not.toHaveBeenCalled();
 	});
 
 	it("restores only what a player owns with no Referee to ask, and says who was left", async () => {
@@ -91,9 +91,11 @@ describe("useRemedy", () => {
 		const alys = knight("Alys");
 		const bram = knight("Bram", { isOwner: false });
 		company = [{ actor: alys }, { actor: bram }];
-		const entries = await useRemedy(alys, sustenance());
+		const item = sustenance();
+		const entries = await useRemedy(alys, item);
 		expect(entries.map(({ name }) => name)).toEqual(["Alys"]);
 		expect(ui.notifications.warn).toHaveBeenCalledWith("remedy.othersNeedReferee");
+		expect(item.delete).toHaveBeenCalled();
 	});
 
 	it("spends no Phase when nobody used it", async () => {
@@ -106,7 +108,7 @@ describe("useRemedy", () => {
 describe("onRemedyQuery", () => {
 	/** A Remedy carried by a Knight, as Foundry looks one up. */
 	const carried = (carrier, system = { remedy: "vig" }) => {
-		const item = { documentName: "Item", uuid: `${carrier.uuid}.Item.r`, parent: carrier, system, testUserPermission: () => false };
+		const item = { documentName: "Item", uuid: `${carrier.uuid}.Item.r`, parent: carrier, system, testUserPermission: () => false, delete: vi.fn(async () => {}), update: vi.fn(async () => {}) };
 		carrier.items = [item];
 		return item;
 	};
@@ -123,6 +125,17 @@ describe("onRemedyQuery", () => {
 		expect(await onRemedyQuery({ itemUuid: item.uuid, virtue: "vig", actorUuids: uuids }, { user: { id: "p1" } })).toEqual([bram.uuid, pony.uuid]);
 		expect(bram.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 12 }, {});
 		expect(stranger.update).not.toHaveBeenCalled();
+		// Spent as it's shared, so asking again finds nothing to share.
+		expect(item.delete).toHaveBeenCalled();
+	});
+
+	it("refuses a Remedy with none left", async () => {
+		const alys = knight("Alys", { riding: true, testUserPermission: owner("p1") });
+		const bram = knight("Bram", { riding: true });
+		world = [alys, bram];
+		const item = carried(alys, { remedy: "vig", quantity: { value: 0, max: 3 } });
+		expect(await onRemedyQuery({ itemUuid: item.uuid, virtue: "vig", actorUuids: [bram.uuid] }, { user: { id: "p1" } })).toBe(false);
+		expect(bram.update).not.toHaveBeenCalled();
 	});
 
 	it("refuses a Remedy the asker doesn’t carry, or of another Virtue", async () => {

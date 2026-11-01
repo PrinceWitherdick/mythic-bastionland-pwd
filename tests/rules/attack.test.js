@@ -29,7 +29,6 @@ import {
 	isDieSpent,
 	isSettled,
 	isShieldItem,
-	outOfTheFight,
 	shieldTrapped,
 	handCount,
 	knownWeakness,
@@ -1080,16 +1079,6 @@ describe("combat audit of 2026-10-29", () => {
 		expect(checkWielding([{ noHand: true }], { hands: 0 }).refusal).toBeNull();
 		expect(defaultWielded([{ ...sword, damage: "d8" }, { ...shield, damage: "d4" }], { hands: 1 })).toEqual([0]);
 		expect(defaultWielded([{ ...poleaxe, damage: "d10" }, { ...sword, damage: "d8" }], { hands: 1 })).toEqual([1]);
-	});
-
-	it("keeps the destroyed, the wiped out and the routed out of the fight", () => {
-		expect(outOfTheFight({ destroyed: true })).toBe("destroyed");
-		expect(outOfTheFight({ warband: { wipedOut: true } })).toBe("wipedOut");
-		expect(outOfTheFight({ moraleBroken: "fled" })).toBe("fled");
-		expect(outOfTheFight({ moraleBroken: "surrendered" })).toBe("surrendered");
-		// Broken at SPI 0, a Warband still fights for itself (p11).
-		expect(outOfTheFight({ warband: { broken: true, wipedOut: false } })).toBeNull();
-		expect(outOfTheFight({})).toBeNull();
 	});
 
 	it("carries a joiner's backlash and rally on their own dice", () => {

@@ -130,18 +130,21 @@ export function downBy(system) {
 }
 
 /**
- * Why somebody is out of the fight for good, whatever their Morale: downBy's
- * Slain or Mortally Wounded, a ship, structure or creature that counts as one
- * destroyed at 0GD, or a Warband wiped out at VIG 0 however it got there (p11).
+ * Why somebody is out of the fight: downBy's Slain or Mortally Wounded, a
+ * ship, structure or creature that counts as one destroyed at 0GD, or a
+ * Warband wiped out at VIG 0 however it got there (p11). With `morale`, also
+ * whoever fled or surrendered on failing Morale (p10).
  * @param {{slain?: boolean, mortalWound?: boolean, fightsOn?: boolean, destroyed?: boolean, scale?: string,
- *   virtues?: {vig?: {value: number}}}} system
- * @returns {"slain"|"mortalWound"|"destroyed"|"wipedOut"|null}
+ *   virtues?: {vig?: {value: number}}, moraleBroken?: string}} system
+ * @param {{morale?: boolean}} [options]
+ * @returns {"slain"|"mortalWound"|"destroyed"|"wipedOut"|"fled"|"surrendered"|null}
  */
-export function outOfFight(system) {
+export function outOfFight(system, { morale = false } = {}) {
 	const down = downBy(system);
 	if (down) return down;
 	if (system?.destroyed) return "destroyed";
 	if (system?.scale === "warband" && system.virtues?.vig && system.virtues.vig.value <= 0) return "wipedOut";
+	if (morale && (system?.moraleBroken === "fled" || system?.moraleBroken === "surrendered")) return system.moraleBroken;
 	return null;
 }
 

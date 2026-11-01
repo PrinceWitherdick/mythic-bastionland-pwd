@@ -41,7 +41,7 @@ export const REMEMBERED_TICKS = Object.freeze(["engaged", "confined", "mounted",
  * The Combat turn now, as "combat id:round:turn", or null outside a started Combat.
  * @returns {string|null}
  */
-export function turnStamp() {
+function turnStamp() {
 	const combat = globalThis.game?.combat;
 	if (!combat?.started) return null;
 	return `${combat.id}:${combat.round}:${combat.turn}`;

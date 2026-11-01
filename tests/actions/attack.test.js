@@ -718,6 +718,16 @@ describe("dice kept for the rest of the fight", () => {
 		expect(opened().lasting).toEqual([]);
 	});
 
+	it("rolls one kept for melee with a bow ticked but set aside while engaged, since the blow isn't a shot (p32, p98)", async () => {
+		flag = [{ faces: 10, label: "Fury", melee: true }];
+		const actor = inCombat(combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("hammer", "Hookhammer", "d8"), weapon("bow", "Bow", "d6", { ranged: true })] }));
+		inputDialog.mockResolvedValue({ "source.hammer": true, "source.bow": true, engaged: true, "lasting.0": true });
+		await attack(actor);
+		const state = postCard.mock.calls[0][3].flags[SYSTEM_ID].attack;
+		expect(state.setAside).toEqual([{ name: "Bow", reason: "ranged" }]);
+		expect(state.dice.map((die) => die.label)).toEqual(["Fury", "Hookhammer"]);
+	});
+
 	it("rolls a die given to one weapon only with that weapon (p98)", async () => {
 		flag = [{ faces: 8, label: "Tempering", melee: true, item: "hammer", itemName: "Hookhammer" }];
 		const actor = inCombat(combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("hammer", "Hookhammer", "d8"), weapon("knife", "Knife", "d4")] }));
@@ -906,9 +916,10 @@ describe("combat audit of 2026-10-29", () => {
 
 	it("makes no Attack for those who fled, surrendered, or are wiped out or destroyed (p10, p11)", async () => {
 		target(foe());
-		for (const system of [{ moraleBroken: "fled" }, { moraleBroken: "surrendered" }, { warband: { wipedOut: true } }, { destroyed: true }]) {
+		const wipedOut = (system) => ({ scale: "warband", warband: { wipedOut: true }, virtues: { ...system.virtues, vig: { value: 0, max: 10 } } });
+		for (const change of [() => ({ moraleBroken: "fled" }), () => ({ moraleBroken: "surrendered" }), wipedOut, () => ({ destroyed: true })]) {
 			const actor = combatant({ uuid: "Actor.x", name: "X", items: [mace] });
-			Object.assign(actor.system, system);
+			Object.assign(actor.system, change(actor.system));
 			expect(await attack(actor)).toBeNull();
 		}
 		expect(inputDialog).not.toHaveBeenCalled();

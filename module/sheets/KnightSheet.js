@@ -9,7 +9,7 @@ import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js"
 import { changesKind, servedBySquire, setKnightKind } from "../actions/npc-knights.js";
 import { makeSeer } from "../actions/seers.js";
 import { claimSquire, companySizeNow, isChoosingKnight, knightSquire, releaseSquire, takeSquire } from "../actions/squires.js";
-import { servingSquire } from "../actions/belonging.js";
+import { linkedActor, servingSquire } from "../actions/belonging.js";
 import { dropCompanion, renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
 import { rollLuck } from "../actions/referee-rolls.js";
@@ -36,8 +36,6 @@ import { renderWhenIdle } from "../apps/ui.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { compareCalendars } from "../rules/time.js";
 import { SCORES } from "../rules/virtues.js";
-import { isMoraleBreak } from "../rules/morale.js";
-import { clearMoraleBreak } from "../chat/morale-card.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
@@ -74,7 +72,6 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			rollScar: KnightSheet.#onRollScar,
 			settleScar: KnightSheet.#onSettleScar,
 			patchUp: KnightSheet.#onPatchUp,
-			clearMoraleBreak: KnightSheet.#onClearMoraleBreak,
 			openSteed: KnightSheet.#onOpenSteed,
 			clearSteed: KnightSheet.#onClearSteed,
 			takeSteed: KnightSheet.#onTakeSteed,
@@ -250,10 +247,6 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			}),
 			// A few moments' care patches them up (p8), which settles a Gouge or Tear too (p9).
 			canPatchUp: canPatchUp(this.actor),
-			// A Knight the Referee plays, fled or surrendered after a failed Morale Save (p10), until the × clears it.
-			moraleBroken: isMoraleBreak(this.actor.system.moraleBroken)
-				? { label: t(`morale.broke.${this.actor.system.moraleBroken}.label`), hint: t("morale.broke.clear") }
-				: null,
 			steed: steed && {
 				name: steed.name,
 				img: steed.img,
@@ -579,18 +572,9 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		});
 	}
 
-	/**
-	 * @param {string} uuid
-	 * @returns {Actor|null} The actor, if it still exists.
-	 */
-	static #linked(uuid) {
-		const actor = uuid ? fromUuidSync(uuid) : null;
-		return actor?.documentName === "Actor" ? actor : null;
-	}
-
 	/** @returns {Actor|null} The steed this Knight rides, if it still exists. */
 	#steed() {
-		return KnightSheet.#linked(this.actor.system.steed);
+		return linkedActor(this.actor.system.steed);
 	}
 
 	/**
@@ -599,7 +583,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	 */
 	#squire() {
 		const { system } = this.actor;
-		return system.isSquire ? KnightSheet.#linked(system.serves) : servingSquire(this.actor, { living: false });
+		return system.isSquire ? linkedActor(system.serves) : servingSquire(this.actor, { living: false });
 	}
 
 	/**
@@ -621,13 +605,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		const squire = isKnight(actor) && actor.system.isSquire && !this.actor.system.isSquire;
 		if (isKnight(actor) && !squire) {
 			if (this.actor.system.isSquire || actor.pack) return null;
-			// The dead follow nobody (p17).
-			if (actor.system.slain) {
-				ui.notifications.warn(t("successor.slain", { name: actor.name }));
-				return null;
-			}
-			await nameSuccessor(this.actor, actor);
-			return actor;
+			return (await nameSuccessor(this.actor, actor)) ? actor : null;
 		}
 		if (actor.type === "npc") return dropCompanion(this.actor, actor);
 		if (!squire) return null;
@@ -675,11 +653,6 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @this {KnightSheet} */
 	static #onPatchUp() {
 		return patchUp(this.actor);
-	}
-
-	/** @this {KnightSheet} */
-	static #onClearMoraleBreak() {
-		return clearMoraleBreak(this.actor);
 	}
 
 	/** @this {KnightSheet} */

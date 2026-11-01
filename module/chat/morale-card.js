@@ -1,6 +1,6 @@
 import { chooseActor } from "../apps/actor-pick.js";
 import { askActiveGM } from "../ask-gm.js";
-import { queryAsker } from "../compat.js";
+import { gmAsker } from "../gm-asker.js";
 import { playerCharacter } from "../actions/knights.js";
 import { combatantOf } from "../actions/lasting-dice.js";
 import { letGoOf } from "../actions/leading.js";
@@ -112,8 +112,8 @@ async function askSide(combat, disposition) {
  * @returns {Promise<boolean>} Whether the side was asked.
  */
 export async function onGroupMoraleQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const actor = data?.uuid ? fromUuidSync(data.uuid) : null;
 	if (!actor?.testUserPermission?.(asker, "OWNER")) return false;
 	return Boolean(await promptGroupMorale(actor));

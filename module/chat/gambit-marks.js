@@ -1,5 +1,5 @@
 import { attackMarks, markLapsed } from "../rules/gambit-marks.js";
-import { attackOf } from "./attack-flag.js";
+import { attackOf, targeted } from "./attack-flag.js";
 import { t } from "./cards.js";
 
 /**
@@ -35,15 +35,6 @@ function turnOrder(combat) {
 		if (uuid && !places.has(uuid)) places.set(uuid, index);
 	});
 	return places;
-}
-
-/**
- * @param {import("../rules/attack.js").AttackState} attack
- * @param {Actor} actor
- * @returns {boolean} Whether the Attack was aimed at this actor.
- */
-function targeted(attack, actor) {
-	return (attack.targets ?? []).some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === actor.uuid);
 }
 
 /**

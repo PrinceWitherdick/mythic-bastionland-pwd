@@ -1,8 +1,7 @@
 import { AGES, FEATS, NPC_SCALES, NPC_WIELDS, WEAKNESS_DICE } from "../config.js";
-import { MORALE_BREAKS } from "../rules/morale.js";
 import { clearOutgrownMarks, conditionsFor } from "../rules/virtues.js";
 import { warbandState } from "../rules/warbands.js";
-import { afflictionsField, booleanField, characterFields, countField, textField } from "./fields.js";
+import { afflictionsField, booleanField, characterFields, countField, moraleBrokenField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
 
@@ -27,7 +26,7 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 			// The UUID of whoever leads this Warband from the front, sharing its Damage until their next turn (p11).
 			leader: textField(),
 			// "fled" or "surrendered" once a failed Morale Save took them out of the fight (p10), until cleared.
-			moraleBroken: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...MORALE_BREAKS] }),
+			moraleBroken: moraleBrokenField(),
 			// Young, Mature or Old (p17), or blank where nobody has said, as for most of the Cast.
 			age: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...AGES] }),
 			// In two hands as a Knight, or all at once as claws and teeth, or blank to read it off their gear (p12).

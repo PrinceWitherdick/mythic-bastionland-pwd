@@ -4,7 +4,8 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 vi.mock("../../module/chat/cards.js", async (importOriginal) => ({ ...(await importOriginal()), postCard: vi.fn(async () => ({})) }));
 vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => true) }));
 
-const { endStanceFromMove, lapseStances, onStanceQuery, takeStanceOnMove } = await import("../../module/actions/stances.js");
+const { endStanceFromMove, onStanceQuery, takeStanceOnMove } = await import("../../module/actions/stances.js");
+const { lapseStances } = await import("../../module/actions/stance-lapse.js");
 const { askActiveGM } = await import("../../module/ask-gm.js");
 const { postCard } = await import("../../module/chat/cards.js");
 

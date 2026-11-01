@@ -108,6 +108,15 @@ export function placeNow(laid, turnOfCombatant) {
 }
 
 /**
+ * Whoever rolled a die into an Attack: whoever joined with it, or else the attacker.
+ * Kept here, where nothing is imported, so rules/attack.js can import it too.
+ * @param {import("./attack.js").AttackState} attack
+ * @param {object|undefined} die One of `attack.dice`.
+ * @returns {string|null|undefined} Their actor UUID.
+ */
+export const dieMaker = (attack, die) => die?.actor ?? attack.attacker;
+
+/**
  * Whoever performed a Gambit: whoever rolled the die it spent, in a joint
  * Attack, or whoever Focused for it, and otherwise the attacker. A Trap holds
  * until *their* next turn (p10), so the mark is theirs.
@@ -179,7 +188,7 @@ export function shownWeapons(attacks, uuid) {
 	const shown = { ids: new Set(), labels: new Set() };
 	for (const attack of attacks) {
 		for (const die of attack?.dice ?? []) {
-			if ((die.actor ?? attack.attacker) !== uuid) continue;
+			if (dieMaker(attack, die) !== uuid) continue;
 			if (die.item) shown.ids.add(die.item);
 			else shown.labels.add(String(die.label ?? "").trim().toLowerCase());
 		}

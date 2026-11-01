@@ -3,10 +3,8 @@ import { COMPANION_FLAG } from "../actions/property.js";
 import { rollMoraleIfAccepted, rollReactionIfAccepted } from "../actions/saves.js";
 import { strainWarband } from "../actions/warbands.js";
 import { keyChoices, t } from "../chat/cards.js";
-import { clearMoraleBreak } from "../chat/morale-card.js";
 import { AGES, FEATS, NPC_SCALES, NPC_WIELDS, WEAKNESS_DICE } from "../config.js";
 import { gearHeldInHands } from "../rules/attack.js";
-import { isMoraleBreak } from "../rules/morale.js";
 import { ownerOf } from "../rules/property.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
@@ -35,7 +33,6 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 			rollVirtues: NpcSheet.#onRollVirtues,
 			afflictTargets: NpcSheet.#onAfflictTargets,
 			rollMorale: NpcSheet.#onRollMorale,
-			clearMoraleBreak: NpcSheet.#onClearMoraleBreak,
 			rollReaction: NpcSheet.#onRollReaction,
 			upkeep: NpcSheet.#onUpkeep,
 			setScale: NpcSheet.#onSetScale,
@@ -99,10 +96,6 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 			// A creature that counts as a structure is destroyed at 0GD (p11), out of the fight until its GD comes back.
 			destroyedState: system.structure
 				? { label: t("npc.destroyed.label"), hint: t("npc.destroyed.hint"), active: Boolean(system.destroyed) }
-				: null,
-			// Fled or surrendered after a failed Morale Save (p10), until the × clears it.
-			moraleBroken: isMoraleBreak(system.moraleBroken)
-				? { label: t(`morale.broke.${system.moraleBroken}.label`), hint: t("morale.broke.clear") }
 				: null,
 			// A Mortal Wound tended in time (p8).
 			canPatchUp: canPatchUp(this.actor),
@@ -170,11 +163,6 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 	/** @this {NpcSheet} */
 	static #onRollMorale() {
 		return rollMoraleIfAccepted(this.actor);
-	}
-
-	/** @this {NpcSheet} */
-	static #onClearMoraleBreak() {
-		return clearMoraleBreak(this.actor);
 	}
 
 	/** @this {NpcSheet} */

@@ -31,7 +31,6 @@ import {
 	isSettled,
 	isShieldItem,
 	knownWeakness,
-	outOfTheFight,
 	parseDice,
 	shareOf,
 	shieldTrapped,
@@ -51,7 +50,7 @@ import { WOUND_EFFECTS, abilitiesWith, abilityOffers, abilityUpdatesAfterAttack,
 import { KIT_FLAG } from "../rules/ability-kits.js";
 import { combatantOf, keepLastingDice, lastingDiceOf, lastingDieLabel } from "./lasting-dice.js";
 import { diceForBlow } from "../rules/lasting-dice.js";
-import { downBy } from "../rules/virtues.js";
+import { downBy, outOfFight } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chatIsPublic, playBlowFx } from "./attack-fx.js";
 import { alternateText } from "./items.js";
@@ -64,6 +63,7 @@ import { causedBy } from "./ledger.js";
 import { worldKnights } from "./knights.js";
 import { isKnight } from "../rules/knight-types.js";
 import { handsLeft } from "./scars.js";
+import { steedOf } from "./steeds.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample", "noHand", "lingers"]);
@@ -237,7 +237,7 @@ function watchCombined(dialog, dice) {
  * @returns {{steed: Actor, trample: Item[]}|null} Null without a steed that tramples.
  */
 function mountOf(actor) {
-	const steed = actor.system.steed ? fromUuidSync(actor.system.steed) : null;
+	const steed = steedOf(actor);
 	if (steed && (downBy(steed.system) || steed.system.virtues?.vig.value === 0)) return null;
 	const trample = steed?.items?.filter((item) => item.type === "weapon" && item.system.trample && parseDice(item.system.damage).length) ?? [];
 	return trample.length ? { steed, trample } : null;
@@ -365,6 +365,7 @@ function weaknessDice(group, used) {
  * @returns {boolean}
  */
 function movedThisTurn(actor) {
+	// Every Token of theirs in a running Combat: a linked actor placed twice may have moved either.
 	const running = (game.combats?.contents ?? []).filter((combat) => combat.started);
 	return running.some((combat) => [...combat.combatants].some((combatant) =>
 		combatant.actor?.uuid === actor.uuid && (combatant.token?.movementHistory?.length ?? 0) > 0));
@@ -539,6 +540,7 @@ function leaderArms(leader) {
  * @property {object} choice             The dialog's expanded form data.
  * @property {AttackSource[]} picked     Everything ticked.
  * @property {AttackSource[]} chosen     What's used of it, once set-aside weapons are left out.
+ * @property {boolean} melee          Whether the blow is struck in melee, by what strikes, not what was set aside.
  * @property {ReturnType<typeof checkWielding>} check
  * @property {ReturnType<typeof mountOf>} mount
  * @property {boolean} warband
@@ -577,7 +579,7 @@ async function planAttack(actor, joining = null) {
 		return null;
 	}
 	// Nor do the destroyed, the wiped out, or those who fled or surrendered (p10, p11).
-	const out = outOfTheFight(actor.system);
+	const out = outOfFight(actor.system, { morale: true });
 	if (out) {
 		ui.notifications.warn(t(`attack.outOfTheFight.${out}`, { name: actor.name }));
 		return null;
@@ -719,10 +721,12 @@ async function planAttack(actor, joining = null) {
 	}
 	// What strikes: those ticked, less any set aside, such as a shield a foe's Trap holds (p10).
 	const chosen = check.usable.map((index) => picked[index]);
+	// A blow is a shot when a ranged weapon strikes; one ticked but set aside doesn't make it one.
+	const melee = !chosen.some((source) => source.system.ranged);
 	// An Ability used only in melee (p68), or only on a mounted charge (p92). Without a steed that
 	// tramples there's no charge box, so riding in after moving is the charge.
 	const unmet = unmetNeed(declared.used, {
-		melee: !chosen.some((source) => source.system.ranged),
+		melee,
 		charging: mount ? Boolean(choice.charge) : Boolean(choice.mounted && choice.moved),
 		shield: chosen.some((source) => source.system.shield),
 		moved: Boolean(choice.moved || choice.charge)
@@ -775,7 +779,7 @@ async function planAttack(actor, joining = null) {
 	// One kept for melee only sits out a shot (p32, p98).
 	// One given to a weapon joins only a blow made with it, and is that weapon's own die (p98).
 	const keptForBlow = diceForBlow(lasting.filter((_die, index) => choice.lasting?.[index]), {
-		melee: !picked.some((item) => item.system.ranged),
+		melee,
 		items: chosen.map((source) => source.item.id)
 	});
 	const bonusDice = [...typedBonus, ...keptForBlow.map(({ faces, label, item }) => ({ faces, label, ...(item ? { item } : {}) }))];
@@ -852,6 +856,7 @@ async function planAttack(actor, joining = null) {
 		choice,
 		picked,
 		chosen,
+		melee,
 		check,
 		mount,
 		warband,
@@ -928,8 +933,7 @@ function crowdHint(offer, sides) {
  * @param {AttackPlan} plan
  * @returns {object} Part of an AttackState.
  */
-function madeWith({ actor, choice, chosen, picked, check, pool, smite, leader, warband, blast, declared, impairedWeapon }) {
-	const melee = !chosen.some((item) => item.system.ranged);
+function madeWith({ actor, choice, chosen, melee, picked, check, pool, smite, leader, warband, blast, declared, impairedWeapon }) {
 	const harm = structureHarm({
 		fromSiege: actor.type === "structure",
 		large: actor.type === "npc" && Boolean(actor.system.structure),

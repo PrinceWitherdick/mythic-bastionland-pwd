@@ -2,8 +2,8 @@ import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { abilitiesWith, etchedNumber } from "../rules/ability-uses.js";
 import { dieMask } from "../rules/die-shapes.js";
-import { BREAK_ICONS, MORALE_BREAKS, isMoraleBreak } from "../rules/morale.js";
-import { downBy, isSavePassed } from "../rules/virtues.js";
+import { BREAK_ICONS, MORALE_BREAKS } from "../rules/morale.js";
+import { isSavePassed, outOfFight } from "../rules/virtues.js";
 import { isKnight } from "../rules/knight-types.js";
 import { playerCharacter } from "./knights.js";
 
@@ -163,10 +163,10 @@ export function moraleBreakButtons(group) {
  * @param {Actor} actor
  * @returns {Actor|null} Null for anybody but a Warband led that way.
  */
-export function moraleLeaderOf(actor) {
+function moraleLeaderOf(actor) {
 	if (actor?.system?.scale !== "warband" || !actor.system.leader) return null;
 	const leader = fromUuidSync(actor.system.leader);
-	if (!leader?.system?.virtues?.spi || leader.uuid === actor.uuid || downBy(leader.system) || isMoraleBreak(leader.system.moraleBroken)) return null;
+	if (!leader?.system?.virtues?.spi || leader.uuid === actor.uuid || outOfFight(leader.system, { morale: true })) return null;
 	return leader;
 }
 

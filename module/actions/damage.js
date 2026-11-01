@@ -3,10 +3,12 @@ import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { attackOf } from "../chat/attack-flag.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
-import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS, tokenBox } from "../rules/armour.js";
+import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS, tokenBox, tokenDocBox } from "../rules/armour.js";
 import { DISMOUNT_FACES, damageAgainst, dismountLanded, harmTargetOf, lastingMarkBy } from "../rules/attack.js";
 import { temperedDie } from "../rules/lasting-dice.js";
-import { temperWeapon } from "./lasting-dice.js";
+import { placesInCombat, temperWeapon } from "./lasting-dice.js";
+import { hornBlownFor } from "./stances.js";
+import { lapseStances } from "./stance-lapse.js";
 import { WARDED_OUTCOMES, applyDoom, armourAgainst, downingOutcome, resolveDamage, spiritOutcome, wardedResult } from "../rules/damage.js";
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { lingeringAffliction } from "../rules/afflictions.js";
@@ -287,18 +289,23 @@ export function sitsOn(rider, steed) {
 
 /**
  * The NPCs riding a steed. Nothing ties an NPC to its steed but the map, so
- * it's those marked Mounted whose Token sits on one of the steed's.
+ * it's those marked Mounted whose Token sits on one of the steed's, on any
+ * Scene, not just the one this user is viewing.
  * @param {Actor} steed
  * @returns {Actor[]} Those this user can change.
  */
-function npcRidersOn(steed) {
+export function npcRidersOn(steed) {
 	const riders = new Map();
-	for (const placed of steed.getActiveTokens?.() ?? []) {
-		const box = tokenBox(placed);
-		for (const other of placed.layer?.placeables ?? []) {
+	const placed = steed.isToken ? [steed.token].filter(Boolean) : (steed.getDependentTokens?.({ linked: true }) ?? []);
+	for (const token of placed) {
+		const scene = token.parent;
+		const size = scene?.grid?.size ?? 100;
+		const box = tokenDocBox(token, size);
+		for (const other of scene?.tokens ?? []) {
+			if (other === token) continue;
 			const rider = other.actor;
-			if (other === placed || rider?.type !== "npc" || rider.system.mounted !== true || !rider.isOwner) continue;
-			if (sitsOn(tokenBox(other), box)) riders.set(rider.uuid, rider);
+			if (rider?.type !== "npc" || rider.system.mounted !== true || !rider.isOwner) continue;
+			if (sitsOn(tokenDocBox(other, size), box)) riders.set(rider.uuid, rider);
 		}
 	}
 	return [...riders.values()];
@@ -461,10 +468,10 @@ export async function takeDamage(actor, preset = {}) {
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
 
-	// Down, a Knight holds no stance taken for the fight's turns. Fetched here, as stances.js reads the horn from this file.
+	// Down, a Knight holds no stance taken for the fight's turns.
 	// Brought down, or a creature that counts as a structure destroyed (p11).
 	const down = downs(result.outcome, actor);
-	if (down && isKnight(actor)) await (await import("./stances.js")).lapseStances(actor);
+	if (down && isKnight(actor)) await lapseStances(actor);
 	if (down && !preset.sparring && !dead) {
 		// A steed going down throws whoever rode it (p10).
 		await unhorseRiders(actor);
@@ -811,10 +818,8 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 	}
 	// A blow that costs its maker d6 if the foe stays up (p54), or brings back their allies' SPI if it falls (p74).
 	if (result && !sparring && result.outcome !== "unharmed") {
-		const down = downs(result.outcome, actor);
-		for (const maker of makersWith(attack, down ? "rally" : "backlash")) {
-			await (down ? offerRally(maker, actor) : offerBacklash(maker, actor));
-		}
+		const key = downs(result.outcome, actor) ? "rally" : "backlash";
+		for (const maker of makersWith(attack, key)) await offerAbilityBlow(key, maker, actor);
 	}
 	if (marks(result)) await postCard(actor, "note", { icon: "fa-solid fa-eye-slash", text: lastingMarkText(actor, marker) });
 	// A bite that takes back the VIG its Wound costs (p166).
@@ -825,26 +830,6 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 	}
 	if (took.length) await postCard(actor, "note", { icon: "fa-solid fa-fire", text: took.join(" ") });
 	return result;
-}
-
-/** The Combatant flag a horn blown leaves on whoever blew it, for the rest of the battle (p72). */
-export const WILD_HORN_FLAG = "wildHorn";
-
-/**
- * Whether a horn has been blown in a battle somebody is fighting, one that has
- * begun and that they have a place in, which doubles the VIG anybody in it loses to Damage until it ends (p72).
- * @param {Actor} actor
- * @returns {boolean}
- */
-export function hornBlownFor(actor) {
-	for (const combat of game.combats ?? []) {
-		// A battle not yet begun has no horn sounding in it.
-		if (!combat.started) continue;
-		const combatants = [...combat.combatants];
-		if (!combatants.some((combatant) => combatant.actor === actor || combatant.actor?.uuid === actor.uuid)) continue;
-		if (combatants.some((combatant) => combatant.getFlag(SYSTEM_ID, WILD_HORN_FLAG))) return true;
-	}
-	return false;
 }
 
 /**
@@ -871,7 +856,7 @@ async function mirrorBack(dealerUuid, victim, { loss, scarred }) {
 	}
 	// A ship or structure has no VIG to lose and takes no Scar.
 	if (!scarred?.apply || !vig) return;
-	if (dealer.isOwner) await giveScar(dealer, { scar: scarred, location: scarred.location, faces: scarred.faces, by: victim.uuid });
+	if (dealer.isOwner) await giveScar(dealer, { scar: scarred, location: scarred.location, detail: scarred.detail, faces: scarred.faces, by: victim.uuid });
 	else await postCard(dealer, "note", { icon: "fa-solid fa-clone", text: t("damage.mirrorScarAsk", { name: dealer.name, victim: victim.name }) });
 }
 
@@ -901,36 +886,32 @@ const BACKLASH_SELECTOR = "[data-backlash]";
 const RALLY_SELECTOR = "[data-rally]";
 
 /**
- * A blow that costs its maker d6 Damage should the foe stay up (p54): a card
- * offers it to whoever can deal it, posted for all to see whatever mode the
- * poster rolls in, so a Referee rolling privately doesn't hide it from them.
- * @param {string} attackerUuid
- * @param {Actor} target
+ * The cards a blow's Ability posts once it lands, by makersWith's key: a
+ * backlash costs its maker d6 Damage should the foe stay up (p54), offered to
+ * whoever can deal it; a rally brings back the SPI of its maker's allies should
+ * the foe go down (p74), offered to the Referee, who knows who fought beside them.
  */
-async function offerBacklash(attackerUuid, target) {
-	const attacker = fromUuidSync(attackerUuid ?? "");
-	if (!attacker) return;
-	await postCard(attacker, "note", {
-		icon: "fa-solid fa-hourglass-half",
-		text: t("damage.backlash", { name: attacker.name, target: target.name }),
-		action: { data: "backlash", icon: "fa-solid fa-dice-d6", label: t("damage.backlashRoll") }
-	}, { mode: "public", flags: { [SYSTEM_ID]: { backlash: attacker.uuid } } });
-}
+const ABILITY_BLOWS = Object.freeze({
+	backlash: { icon: "fa-solid fa-hourglass-half", button: { icon: "fa-solid fa-dice-d6", label: "damage.backlashRoll" } },
+	rally: { icon: "fa-solid fa-dove", button: { icon: "fa-solid fa-sun", label: "damage.rallyButton" } }
+});
 
 /**
- * A blow that brings back the SPI of its maker's allies should the foe go
- * down (p74): a card offers it to the Referee, who knows who fought beside them.
+ * Post one of ABILITY_BLOWS' cards, for all to see whatever mode the poster
+ * rolls in, so a Referee rolling privately doesn't hide it from them.
+ * @param {"backlash"|"rally"} key
  * @param {string} attackerUuid
  * @param {Actor} target
  */
-async function offerRally(attackerUuid, target) {
+async function offerAbilityBlow(key, attackerUuid, target) {
 	const attacker = fromUuidSync(attackerUuid ?? "");
 	if (!attacker) return;
+	const { icon, button } = ABILITY_BLOWS[key];
 	await postCard(attacker, "note", {
-		icon: "fa-solid fa-dove",
-		text: t("damage.rally", { name: attacker.name, target: target.name }),
-		action: { data: "rally", icon: "fa-solid fa-sun", label: t("damage.rallyButton") }
-	}, { mode: "public", flags: { [SYSTEM_ID]: { rally: attacker.uuid } } });
+		icon,
+		text: t(`damage.${key}`, { name: attacker.name, target: target.name }),
+		action: { data: key, icon: button.icon, label: t(button.label) }
+	}, { mode: "public", flags: { [SYSTEM_ID]: { [key]: attacker.uuid } } });
 }
 
 /**
@@ -941,13 +922,11 @@ async function offerRally(attackerUuid, target) {
  * @returns {Actor[]}
  */
 export function rallied(attacker) {
-	const fighting = (combat) => [...combat.combatants].find((combatant) => combatant.actor?.uuid === attacker.uuid);
 	// A fight under way before one only set up, as on another Scene; the viewed one first.
-	const combats = [...new Set([game.combat, ...(game.combats ?? [])].filter(Boolean))];
-	const combat = combats.find((each) => each.started && fighting(each)) ?? combats.find(fighting);
-	const side = combat ? fighting(combat).token?.disposition : null;
+	const { combat, combatant } = placesInCombat(attacker)[0] ?? {};
+	const side = combatant?.token?.disposition;
 	let allies = [];
-	if (combat) allies = side === undefined || side === null ? [] : [...combat.combatants].filter((combatant) => combatant.actor && combatant.token?.disposition === side).map((combatant) => combatant.actor);
+	if (combat) allies = side === undefined || side === null ? [] : [...combat.combatants].filter((each) => each.actor && each.token?.disposition === side).map((each) => each.actor);
 	else if (isCompanyKnight(attacker)) allies = worldKnights((knight) => isCompanyKnight(knight));
 	return [...new Set(allies)].filter((ally) => ally.uuid !== attacker.uuid && isKnight(ally) && !ally.system.slain && ally.system.virtues?.spi);
 }

@@ -3,6 +3,7 @@ import { gmAsker } from "../gm-asker.js";
 import { postCard, t } from "../chat/cards.js";
 import { spendUse } from "./abilities.js";
 import { isUsedUp } from "../rules/restock.js";
+import { serialWrites } from "../rules/queue.js";
 import { parseDice } from "../rules/attack.js";
 import { lastingOf, withLasting, withoutLasting } from "../rules/lasting-dice.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -14,19 +15,27 @@ const LASTING_FLAG = "lastingDice";
 const TEMPER_QUERY = `${SYSTEM_ID}.temperWeapon`;
 
 /**
+ * Every Combat the actor has a place in: started ones first, as those being
+ * fought, and of those the one viewed first. An unlinked Token's actor is
+ * matched by its own uuid.
+ * @param {Actor} actor
+ * @returns {{combat: Combat, combatant: Combatant}[]}
+ */
+export function placesInCombat(actor) {
+	const combats = [...new Set([game.combat, ...(game.combats ?? [])].filter(Boolean))]
+		.sort((a, b) => Number(Boolean(b.started)) - Number(Boolean(a.started)));
+	return combats.flatMap((combat) => {
+		const combatant = [...(combat.combatants ?? [])].find((each) => each.actor?.uuid === actor.uuid);
+		return combatant ? [{ combat, combatant }] : [];
+	});
+}
+
+/**
  * The actor's place in a Combat: a started one first, as the one being fought.
- * An unlinked Token's actor is matched by its own uuid.
  * @param {Actor} actor
  * @returns {Combatant|null}
  */
-export function combatantOf(actor) {
-	const combats = [...(game.combats ?? [])].sort((a, b) => Number(Boolean(b.started)) - Number(Boolean(a.started)));
-	for (const combat of combats) {
-		const found = combat.combatants.find((combatant) => combatant.actor?.uuid === actor.uuid);
-		if (found) return found;
-	}
-	return null;
-}
+export const combatantOf = (actor) => placesInCombat(actor)[0]?.combatant ?? null;
 
 /**
  * @param {Actor} actor
@@ -111,7 +120,7 @@ function temperFor(dealer, itemId) {
 }
 
 /** Tempers kept one after another, so two Wounds landing at once can't each overwrite the other's die. */
-let tempering = Promise.resolve();
+const tempering = serialWrites();
 
 /**
  * Keep a tempered die for the dealer, if the Wound it's for is there to see:
@@ -122,14 +131,12 @@ let tempering = Promise.resolve();
  * @returns {Promise<boolean>}
  */
 function keepTemper(dealer, itemId, victim) {
-	const kept = tempering.then(() => {
+	return tempering(() => {
 		const die = temperFor(dealer, itemId);
 		const combatant = die ? combatantOf(dealer) : null;
 		if (!combatant || !woundedIn(victim, dealer, combatant.parent)) return false;
 		return keepLastingDice(dealer, [die]);
 	});
-	tempering = kept.catch(() => false);
-	return kept;
 }
 
 /**

@@ -40,7 +40,7 @@ export const hasStance = (system) => changesArmour(system) || Boolean(system?.oa
  * @param {{type: string, system: object}} item
  * @returns {boolean} Whether it's an Ability whose stance is in effect.
  */
-const inEffect = (item) => item?.type === "ability" && hasStance(item.system) && Boolean(item.system.inEffect);
+export const inEffect = (item) => item?.type === "ability" && hasStance(item.system) && Boolean(item.system.inEffect);
 
 /**
  * What the stances a Knight has taken up do to their Armour.

@@ -38,6 +38,14 @@ describe("restAfterCombat", () => {
 		expect(rested).toEqual([boar]);
 		expect(colossus.update).not.toHaveBeenCalled();
 	});
+
+	it("passes over a Knight sworn to a quest whose only lack is GD, which the oath holds back (p94)", async () => {
+		const oath = { type: "ability", system: { oath: true, inEffect: true } };
+		const sworn = { ...fighter("Sworn Knight"), items: { contents: [oath] } };
+		const tired = { ...fighter("Tired Knight", { fatigued: true }), items: { contents: [oath] } };
+		expect(await restAfterCombat({ started: true, combatants: [{ actor: sworn }] })).toBeNull();
+		expect(await restAfterCombat({ started: true, combatants: [{ actor: sworn }, { actor: tired }] })).toEqual([tired]);
+	});
 });
 
 describe("repair", () => {

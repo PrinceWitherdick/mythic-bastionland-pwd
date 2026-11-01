@@ -24,7 +24,9 @@ import { afflictionLabel, cureAffliction, sufferAffliction } from "../actions/af
 import { etchRune, rollChance, sufferLoss, throwToChance } from "../actions/abilities.js";
 import { etchedNumber } from "../rules/ability-uses.js";
 import { blowHorn, stanceRowLabel, toggleStance } from "../actions/stances.js";
-import { hasStance } from "../rules/stances.js";
+import { inEffect } from "../rules/stances.js";
+import { isMoraleBreak } from "../rules/morale.js";
+import { clearMoraleBreak } from "../chat/morale-card.js";
 import { canBrowseFiles } from "../book-art/files.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -157,6 +159,7 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			adjustCount: BastionlandActorSheet.#onAdjustCount,
 			itemAction: BastionlandActorSheet.#onItemAction,
 			dropLastingDie: BastionlandActorSheet.#onDropLastingDie,
+			clearMoraleBreak: BastionlandActorSheet.#onClearMoraleBreak,
 			endStance: BastionlandActorSheet.#onEndStance
 		}
 	};
@@ -216,7 +219,7 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				index,
 				label: lastingDieLabel(die),
 				hint: t("attack.lastingDrop")
-			}))).concat(actor.items.filter((item) => item.type === "ability" && hasStance(item.system) && item.system.inEffect).map((item) => ({
+			}))).concat(actor.items.filter(inEffect).map((item) => ({
 				// A stance taken up, ended with its ×.
 				key: `stance-${item.id}`,
 				stance: true,
@@ -231,6 +234,10 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				cost: t("feats.saveOrFatigue", { virtue: t(`virtues.${virtue}.abbr`) }),
 				where: t(`feats.${key}.where`)
 			})),
+			// Fled or surrendered after a failed Morale Save (p10), until the × clears it.
+			moraleBroken: isMoraleBreak(system.moraleBroken)
+				? { label: t(`morale.broke.${system.moraleBroken}.label`), hint: t("morale.broke.clear") }
+				: null,
 			armourTip: this.#armourTip(),
 			// Foundry's placeholder has nothing worth enlarging, so it gets no data-name and no preview.
 			hasArt: Boolean(actor.img) && actor.img !== Actor.implementation.DEFAULT_ICON,
@@ -595,6 +602,11 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	/** @this {BastionlandActorSheet} */
 	static #onDropLastingDie(_event, target) {
 		return dropLastingDie(this.actor, Number(target.dataset.index));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onClearMoraleBreak() {
+		return clearMoraleBreak(this.actor);
 	}
 
 	/** @this {BastionlandActorSheet} */

@@ -106,6 +106,15 @@ describe("outOfFight", () => {
 		expect(outOfFight({ mortalWound: true, fightsOn: true })).toBeNull();
 		expect(outOfFight(undefined)).toBeNull();
 	});
+
+	it("counts the fled and the surrendered only when Morale is asked about (p10)", () => {
+		expect(outOfFight({ moraleBroken: "fled" })).toBeNull();
+		expect(outOfFight({ moraleBroken: "fled" }, { morale: true })).toBe("fled");
+		expect(outOfFight({ moraleBroken: "surrendered" }, { morale: true })).toBe("surrendered");
+		expect(outOfFight({ destroyed: true, moraleBroken: "fled" }, { morale: true })).toBe("destroyed");
+		// Broken at SPI 0, a Warband still fights for itself (p11).
+		expect(outOfFight({ scale: "warband", virtues: { vig: { value: 2 } }, warband: { broken: true } }, { morale: true })).toBeNull();
+	});
 });
 
 describe("revives", () => {

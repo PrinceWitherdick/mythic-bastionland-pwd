@@ -4,15 +4,15 @@
  * next turn.
  */
 
-import { downBy } from "../rules/virtues.js";
+import { outOfFight } from "../rules/virtues.js";
 import { updateActors } from "./actor-updates.js";
 import { worldKnights } from "./knights.js";
 
 /**
  * Who might lead a Warband from the front: whoever leads it now, the
  * individuals whose Tokens are selected, this user's character, and the
- * Knights this user can see. The Slain and the dying lead nobody (p8), and
- * one individual leads one Warband (p11).
+ * Knights this user can see. The Slain and the dying lead nobody (p8), nor
+ * does whoever fled or surrendered (p10), and one individual leads one Warband (p11).
  * @param {Actor} warband
  * @returns {Actor[]}
  */
@@ -25,9 +25,10 @@ export function leaderCandidates(warband) {
 		...worldKnights((actor) => actor.testUserPermission(game.user, "OBSERVER"))
 	];
 	const seen = new Set();
+	const busy = leadersElsewhere(warband);
 	return actors.filter((actor) => {
-		if (!actor?.system?.virtues || actor.uuid === warband.uuid || actor.system.scale === "warband" || downBy(actor.system) || seen.has(actor.uuid)) return false;
-		if (leadsAnother(actor, warband)) return false;
+		if (!actor?.system?.virtues || actor.uuid === warband.uuid || actor.system.scale === "warband" || outOfFight(actor.system, { morale: true }) || seen.has(actor.uuid)) return false;
+		if (busy.has(actor.uuid)) return false;
 		seen.add(actor.uuid);
 		return true;
 	});
@@ -57,15 +58,15 @@ function ledWarbands(test, also = []) {
 }
 
 /**
- * Whether somebody already leads a Warband other than this one.
- * @param {Actor} actor
+ * Whoever already leads a Warband other than this one, looked up once for every candidate.
  * @param {Actor} warband
- * @returns {boolean}
+ * @returns {Set<string>} Their actor UUIDs.
  */
-function leadsAnother(actor, warband) {
+function leadersElsewhere(warband) {
 	const same = new Set([warband.uuid, warband.isToken ? warband.token?.baseActor?.uuid : null].filter(Boolean));
-	return ledWarbands((leader, other) => other.system.scale === "warband" && leader === actor.uuid && !same.has(other.uuid)
-		&& !(other.isToken && same.has(other.token?.baseActor?.uuid))).length > 0;
+	const others = ledWarbands((_leader, other) => other.system.scale === "warband" && !same.has(other.uuid)
+		&& !(other.isToken && same.has(other.token?.baseActor?.uuid)));
+	return new Set(others.map((other) => other.system.leader));
 }
 
 /**

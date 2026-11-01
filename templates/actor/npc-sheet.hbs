@@ -75,11 +75,7 @@
 							<span class="bastionland-condition bastionland-pill is-derived{{#if destroyedState.active}} is-active{{/if}}" data-tooltip="{{destroyedState.hint}}">{{destroyedState.label}}</span>
 						</li>
 						{{/if}}
-						{{#if moraleBroken}}
-						<li>
-							<button type="button" class="bastionland-condition bastionland-pill is-mark is-active" data-action="clearMoraleBreak" data-tooltip="{{moraleBroken.hint}}" aria-label="{{moraleBroken.hint}}" {{#unless editable}}disabled{{/unless}}>{{moraleBroken.label}} <i class="fa-solid fa-xmark" inert></i></button>
-						</li>
-						{{/if}}
+						{{> "bastionland.morale-broken"}}
 					</ul>
 					{{#if canPatchUp}}{{#if editable}}
 					<div class="bastionland-adds">

@@ -4,15 +4,16 @@ import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { updateActors } from "./actor-updates.js";
-import { companionsOf } from "./fallen.js";
+import { companionsOf, worldCompanions } from "./fallen.js";
 import { inCompany, worldKnights } from "./knights.js";
 import { causedBy } from "./ledger.js";
 import { acceptAfterTelling } from "./saves.js";
-import { VIRTUES, isDying } from "../rules/virtues.js";
+import { VIRTUES, isDying, needsRest } from "../rules/virtues.js";
 import { advancePhase, chooseCompany } from "./time.js";
 import { askReferee } from "./ask-referee.js";
-import { countAfter, isCounted } from "../rules/restock.js";
+import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
 import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
+import { lapseStances } from "./stance-lapse.js";
 
 /**
  * Restore one Virtue of each of them to its most, all in one write.
@@ -58,9 +59,8 @@ export async function rest(actor) {
 	const held = swornToQuest(actor);
 	const value = held ? actor.system.guard.value : actor.system.guard.max;
 	await actor.update(restedActorUpdate(actor), causedBy("recovery"));
-	// The moment of peace ends a stance held only for the fight (p40, p78). Fetched here, since
-	// stances.js reaches Damage, which reaches back here.
-	await (await import("./stances.js")).lapseStances(actor);
+	// The moment of peace ends a stance held only for the fight (p40, p78).
+	await lapseStances(actor);
 	await postCard(actor, "note", {
 		icon: "fa-solid fa-mug-hot",
 		text: t(held ? "recovery.restedSworn" : "recovery.rested", { value })
@@ -92,12 +92,12 @@ export async function restAfterCombat(combat) {
 	const actors = [];
 	for (const combatant of combat.combatants) {
 		const { actor } = combatant;
-		const guard = actor?.system?.guard;
 		// A ship or wall doesn't catch its breath: its GD comes back by repair, and so does a
 		// creature that counts as a structure, once destroyed (p11).
 		// The Slain rest no more, but somebody Exhausted at VIG 0 still catches their breath.
-		if (!guard || actor.type === "structure" || actors.includes(actor) || actor.system.slain || actor.system.destroyed) continue;
-		if (guard.value < guard.max || actor.system.fatigued || actor.system.exposed) actors.push(actor);
+		// One sworn to a quest keeps their GD as it is (p94), so GD alone doesn't call for a rest.
+		if (!actor?.system?.guard || actor.type === "structure" || actors.includes(actor) || actor.system.slain || actor.system.destroyed) continue;
+		if (needsRest(actor.system, { sworn: swornToQuest(actor) })) actors.push(actor);
 	}
 	if (!actors.length) return null;
 	const names = actors.map((actor) => actor.name).join(", ");
@@ -169,33 +169,35 @@ const REMEDY_QUERY = `${SYSTEM_ID}.remedy`;
 
 /**
  * Have the active GM restore, with a player's Remedy, those present the player
- * can't change. Whoever isn't restored is named to the player.
+ * can't change, and spend it. Whoever isn't restored is named to the player.
  * @param {Item} item The Remedy.
  * @param {string} virtue
  * @param {Actor[]} actors
- * @returns {Promise<Actor[]>} Those restored.
+ * @returns {Promise<{restored: Actor[], spent: boolean}>} Those restored, and whether the GM spent the Remedy.
  */
 async function restoreByReferee(item, virtue, actors) {
-	if (!actors.length) return [];
+	if (!actors.length) return { restored: [], spent: false };
 	const asked = { itemUuid: item.uuid, virtue, actorUuids: actors.map((actor) => actor.uuid) };
 	const answer = await askActiveGM(REMEDY_QUERY, asked, `Couldn't share ${item.name} with the Company`);
 	const done = new Set(Array.isArray(answer) ? answer : []);
 	const restored = actors.filter((actor) => done.has(actor.uuid));
 	const left = actors.filter((actor) => !done.has(actor.uuid));
 	if (left.length) ui.notifications.warn(t("remedy.othersNeedReferee", { names: left.map((actor) => actor.name).join(", ") }));
-	return restored;
+	return { restored, spent: Array.isArray(answer) };
 }
 
 /** @returns {Set<Actor>} Everybody a Remedy may reach: the Knights riding with the Company, and their steeds and followers. */
 function companyAndCompanions() {
 	const knights = worldKnights(inCompany);
-	return new Set([...knights, ...knights.flatMap(companionsOf)]);
+	const companions = worldCompanions({ players: false });
+	return new Set([...knights, ...knights.flatMap((knight) => companionsOf(knight, { companions }))]);
 }
 
 /**
  * A player's Remedy, shared by the GM who was asked: only for a Remedy of
- * that Virtue the asker owns or carries, and only with the Company and its
- * steeds and followers.
+ * that Virtue the asker owns or carries and has left, and only with the
+ * Company and its steeds and followers. The GM spends it as they share it, so
+ * one Remedy can't be shared twice.
  * @param {{itemUuid?: string, virtue?: string, actorUuids?: string[]}} data
  * @param {object} context
  * @returns {Promise<string[]|false>} The uuids of those restored.
@@ -205,13 +207,14 @@ export async function onRemedyQuery(data = {}, context = {}) {
 	if (!asker) return false;
 	const item = fromUuidSync(String(data?.itemUuid ?? ""));
 	const virtue = data?.virtue;
-	if (item?.documentName !== "Item" || !VIRTUES.includes(virtue) || item.system?.remedy !== virtue) return false;
+	if (item?.documentName !== "Item" || !VIRTUES.includes(virtue) || item.system?.remedy !== virtue || !isAtHand(item.system)) return false;
 	if (!item.testUserPermission(asker, "OWNER") && !item.parent?.testUserPermission(asker, "OWNER")) return false;
 	const reach = companyAndCompanions();
 	const asked = Array.isArray(data?.actorUuids) ? data.actorUuids : [];
 	const actors = [...new Set(asked.map((uuid) => fromUuidSync(String(uuid))))]
 		.filter((actor) => reach.has(actor) && actor.system?.virtues?.[virtue] && !actor.system.slain);
 	await restoreVirtueOfEach(actors, virtue, "recovery");
+	await spendRemedy(item);
 	return actors.map((actor) => actor.uuid);
 }
 
@@ -248,14 +251,14 @@ export async function useRemedy(actor, item) {
 	const name = item.name;
 	const members = company.map(({ actor: member }) => member);
 	const mine = game.user.isGM ? members : members.filter((member) => member.isOwner);
-	// The Referee is asked before the Remedy is spent, so they can see it's real.
+	// The Referee checks the Remedy and spends it as they restore whoever's theirs to restore.
 	const [, theirs] = await Promise.all([
 		restoreVirtueOfEach(mine, virtue, "recovery"),
 		restoreByReferee(item, virtue, members.filter((member) => !mine.includes(member)))
 	]);
-	const restored = new Set([...mine, ...theirs]);
+	const restored = new Set([...mine, ...theirs.restored]);
 	const entries = members.filter((member) => restored.has(member)).map((member) => restoredEntry(member, virtue));
-	await spendRemedy(item);
+	if (!theirs.spent) await spendRemedy(item);
 	await postCard(actor, "report", { title: name, tagline: t("remedy.tagline"), entries, hint: t("remedy.hint") });
 	// Using it takes a whole Phase (p9), restored before anything the Phase brings: the Referee
 	// moves the calendar on, or a player asks them to.

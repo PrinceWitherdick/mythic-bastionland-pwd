@@ -17,6 +17,15 @@ export const attackOf = (message) => message?.flags?.[SYSTEM_ID]?.[ATTACK_FLAG] 
 
 /**
  * @param {import("../rules/attack.js").AttackState} attack
+ * @param {Actor} actor
+ * @returns {boolean} Whether the Attack was aimed at this actor.
+ */
+export function targeted(attack, actor) {
+	return (attack.targets ?? []).some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === actor.uuid);
+}
+
+/**
+ * @param {import("../rules/attack.js").AttackState} attack
  * @param {User} [user] Whoever asks; this user when left out.
  * @returns {boolean} Whether they own one of those making the Attack, whose
  *   dice, pooled in a joint Attack, any of them may spend on Gambits (p8).

@@ -3,7 +3,7 @@
  * Abilities give them: a die added to every Attack until the Combat ends, or
  * one that grows with each blow. Pure, so it can be tested without Foundry.
  */
-import { DIE_SIZES } from "./attack.js";
+import { DIE_SIZES, dieMaker } from "./attack.js";
 
 /**
  * @typedef {object} LastingDie
@@ -61,7 +61,7 @@ export function temperedDie(attack, { dealer, die }) {
 	const share = dealer === attack.attacker ? attack : attack.joined?.find((entry) => entry.actor === dealer);
 	const temper = share?.tempers;
 	if (!temper?.weapons?.length || !DIE_SIZES.includes(temper.faces)) return null;
-	const theirs = (each) => (each.actor ?? attack.attacker) === dealer;
+	const theirs = (each) => dieMaker(attack, each) === dealer;
 	// A Dismount's d6 counted, so the fall did the harm.
 	const counted = die === null || die === undefined ? null : attack.dice[die];
 	if (!counted || counted.trample) return null;

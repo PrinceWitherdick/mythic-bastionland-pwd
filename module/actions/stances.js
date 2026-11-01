@@ -1,12 +1,14 @@
 import { postCard, t, warn } from "../chat/cards.js";
 import { gmAsker } from "../gm-asker.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { WILD_HORN_FLAG, hornBlownFor } from "./damage.js";
-import { combatantOf } from "./lasting-dice.js";
-import { hasStance, lapsedUpdates, onMoveUpdates } from "../rules/stances.js";
+import { combatantOf, placesInCombat } from "./lasting-dice.js";
+import { hasStance, onMoveUpdates } from "../rules/stances.js";
+import { lapseStances } from "./stance-lapse.js";
 import { causedBy } from "./ledger.js";
 import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 import { attackOf, ownsAnAttacker } from "../chat/attack-flag.js";
+import { dieMaker } from "../rules/attack.js";
+
 
 /** The query asking the GM to take up, or end, a stance a Move Gambit brought, for a user who can't (p40). */
 const STANCE_QUERY = `${SYSTEM_ID}.stanceOnMove`;
@@ -30,7 +32,7 @@ function moveOnCard(by, actorUuid) {
 	const attack = attackOf(game.messages?.get(by?.message));
 	if (!attack) return null;
 	const spent = attack.gambits?.find((gambit) => gambit.die === by.die);
-	return spent?.key === "move" && (attack.dice?.[by.die]?.actor ?? attack.attacker) === actorUuid;
+	return spent?.key === "move" && dieMaker(attack, attack.dice?.[by.die]) === actorUuid;
 }
 
 /**
@@ -190,18 +192,6 @@ export async function onStanceQuery(data = {}, context = {}) {
 	return shown === true ? putStanceOnMove(actor, by) : false;
 }
 
-/**
- * End the stances that last until their Knight's next turn, as that turn
- * starts, the fight ends, they go down or they rest: a stance held only for the
- * fight's turns has nothing to hold out against after.
- * @param {Actor|null|undefined} actor
- * @returns {Promise<void>}
- */
-export async function lapseStances(actor) {
-	const updates = lapsedUpdates(actor?.items?.contents);
-	if (updates.length) await actor.updateEmbeddedDocuments("Item", updates, causedBy("ability"));
-}
-
 /** As a Combatant's turn starts, their stances that last until then end. */
 async function onTurnChange(combat, _prior, current) {
 	if (!game.users.activeGM?.isSelf) return;
@@ -211,7 +201,23 @@ async function onTurnChange(combat, _prior, current) {
 /** A fight over ends every stance that lasts only a turn. */
 async function onCombatEnd(combat) {
 	if (!game.users.activeGM?.isSelf) return;
-	for (const combatant of combat.combatants) await lapseStances(combatant.actor);
+	// Each actor once, though a linked actor may hold several places.
+	const actors = new Set(combat.combatants.map((combatant) => combatant.actor).filter(Boolean));
+	await Promise.all([...actors].map((actor) => lapseStances(actor)));
+}
+
+/** The Combatant flag a horn blown leaves on whoever blew it, for the rest of the battle (p72). */
+export const WILD_HORN_FLAG = "wildHorn";
+
+/**
+ * Whether a horn has been blown in a battle somebody is fighting, one that has
+ * begun and that they have a place in, which doubles the VIG anybody in it loses to Damage until it ends (p72).
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+export function hornBlownFor(actor) {
+	// A battle not yet begun has no horn sounding in it.
+	return placesInCombat(actor).some(({ combat }) => combat.started && [...combat.combatants].some((combatant) => combatant.getFlag(SYSTEM_ID, WILD_HORN_FLAG)));
 }
 
 /**
