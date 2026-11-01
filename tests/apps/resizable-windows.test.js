@@ -22,15 +22,20 @@ function windowOptions(pattern) {
 }
 
 describe("every window can be resized from its corner", () => {
-	it("holds for each dialog the system opens", () => {
-		const dialogs = windowOptions(/DialogV2\.(?:confirm|prompt|input|wait)\(\{|new foundry\.applications\.api\.DialogV2\(\{/g);
-		expect(dialogs.length).toBeGreaterThan(3);
+	it("holds for each dialog the system opens and keeps hold of", () => {
+		const dialogs = windowOptions(/new foundry\.applications\.api\.DialogV2\(\{/g);
+		expect(dialogs.length).toBeGreaterThan(1);
 		for (const { where, window } of dialogs) expect(window, where).toMatch(/resizable: true/);
 	});
 
-	it("opens dialogs through apps/ui.js, which makes them resizable, but those it keeps hold of", () => {
-		const direct = windowOptions(/DialogV2\.(?:confirm|prompt|input|wait)\(\{/g).map(({ where }) => where.replace(/ @\d+$/, ""));
+	it("opens every other dialog through apps/ui.js, whose parchment options make it resizable", () => {
+		const direct = windowOptions(/DialogV2\.(?:confirm|prompt|input|wait)\(/g).map(({ where }) => where.replace(/ @\d+$/, ""));
 		expect(new Set(direct)).toEqual(new Set([join("module", "apps", "ui.js")]));
+		const ui = readFileSync(join(root, "module", "apps", "ui.js"), "utf8");
+		const calls = ui.match(/DialogV2\.(?:confirm|prompt|input|wait)\(/g);
+		expect(calls.length).toBeGreaterThan(3);
+		expect(ui.match(/DialogV2\.(?:confirm|prompt|input|wait)\(parchment\(/g)).toHaveLength(calls.length);
+		expect(ui).toMatch(/const parchment = [^;]*window: \{ resizable: true, \.\.\.frame \}/);
 	});
 
 	it("holds for each window of the system's own, but frameless panels and those that inherit it", () => {

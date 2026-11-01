@@ -203,7 +203,7 @@ describe("the Gambit's Save", () => {
 	});
 
 	it("rolls for whoever was picked", async () => {
-		inputDialog.mockResolvedValueOnce({ actor: "1" });
+		inputDialog.mockResolvedValueOnce({ choice: "1" });
 		rollSave.mockResolvedValue({ roll: { total: 9 }, value: 12, passed: true });
 		const card = renderCard(twoTargets());
 		await card.click("gambit-save");

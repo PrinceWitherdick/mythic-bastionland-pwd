@@ -120,9 +120,9 @@ describe("attackFromHotbar", () => {
 	it("asks which of several attacks, and attacks with nobody when the window is closed", async () => {
 		const pair = [actor("One"), actor("Two")];
 		installWorld({ selected: pair });
-		inputDialog.mockResolvedValueOnce({ actor: "1" });
+		inputDialog.mockResolvedValueOnce({ choice: "1" });
 		await attackFromHotbar();
-		expect(inputDialog).toHaveBeenCalledWith(expect.objectContaining({ template: "actor-pick" }));
+		expect(inputDialog).toHaveBeenCalledWith(expect.objectContaining({ template: "pick-one" }));
 		expect(attack).toHaveBeenCalledWith(pair[1]);
 
 		attack.mockClear();

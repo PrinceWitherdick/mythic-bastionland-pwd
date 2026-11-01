@@ -13,7 +13,8 @@ const DONE_SETTING = "worldSetupDone";
  * @property {string} key  What the world remembers it by. Give a changed step a new key to run it again.
  * @property {() => Promise<boolean|void>} run Resolves false when it can't be done yet, to try again next load.
  * @property {string} [repeats] An earlier step's key, for a step that runs the same work again for what it's
- *   learnt since. Where that step was done in the same load, which already did it all, this one is only marked done.
+ *   learnt since. Where that step was done in the same load, which already did it all, this one is only marked done,
+ *   and counts as done in this load for any step that repeats it in turn.
  */
 
 /** Register the setting. Called during init. */
@@ -57,6 +58,7 @@ export async function runWorldSetup(steps) {
 		if (isSetupDone(key)) continue;
 		if (repeats && doneNow.has(repeats)) {
 			await markSetupDone(key);
+			doneNow.add(key);
 			continue;
 		}
 		try {

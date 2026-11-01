@@ -40,3 +40,23 @@ export function keyedSerialWrites() {
 		return queues.get(key);
 	};
 }
+
+/**
+ * Work taken on once per key at a time, such as a button a second click would
+ * otherwise press twice while the first is still working. A call whose key (or
+ * any of its keys) is already under way does nothing but call `whenBusy`.
+ * @returns {<T>(keys: string|string[], work: () => Promise<T>, whenBusy?: () => unknown) => Promise<T|undefined>}
+ */
+export function oncePerKey() {
+	const busy = new Set();
+	return async (keys, work, whenBusy) => {
+		const held = [keys].flat();
+		if (held.some((key) => busy.has(key))) return whenBusy?.();
+		for (const key of held) busy.add(key);
+		try {
+			return await work();
+		} finally {
+			for (const key of held) busy.delete(key);
+		}
+	};
+}

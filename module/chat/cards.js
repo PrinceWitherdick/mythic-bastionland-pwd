@@ -1,7 +1,7 @@
 import { VIRTUES } from "../rules/virtues.js";
 import { askActiveGM } from "../ask-gm.js";
 import { applyMessageMode, currentMessageMode, queryAsker } from "../compat.js";
-import { keyedSerialWrites } from "../rules/queue.js";
+import { keyedSerialWrites, oncePerKey } from "../rules/queue.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 /**
@@ -182,7 +182,7 @@ function choiceOf(button, buttons, oneChoice) {
 }
 
 /** The Referee's own once-only presses under way on this client, by message and button key. */
-const pressing = new Set();
+const pressing = oncePerKey();
 
 /**
  * Do the work of a press of the Referee's own buttons, then mark them spent.
@@ -195,13 +195,9 @@ const pressing = new Set();
  */
 async function pressThenMark(message, keys, work) {
 	const held = keys.map((key) => `${message.id} ${key}`);
-	if (held.some((key) => pressing.has(key))) return warn("cardButtons.alreadyPressed");
-	for (const key of held) pressing.add(key);
-	try {
+	await pressing(held, async () => {
 		if (await work()) await markButtons(message, keys);
-	} finally {
-		for (const key of held) pressing.delete(key);
-	}
+	}, () => warn("cardButtons.alreadyPressed"));
 }
 
 /** How many times a press's mark is asked to be taken back, and how long apart, before the presser is told. */
@@ -324,18 +320,6 @@ function writeMarks(message, keys, release) {
 const onceButtons = new Map();
 
 /**
- * One of a kind of button on a card, read from its HTML as posted.
- * @param {Document} content The card's HTML, parsed.
- * @param {string} selector
- * @param {number} index
- * @returns {HTMLElement|null} Null where the card holds no such button.
- */
-function buttonAt(content, selector, index) {
-	const buttons = content.querySelectorAll(selector);
-	return index < buttons.length ? (buttons[index] ?? null) : null;
-}
-
-/**
  * Whether a user sees a card, and so its buttons: a whisper only its author
  * and those it's whispered to.
  * @param {ChatMessage} message
@@ -361,7 +345,8 @@ function mayAskSpend(message, content, user, key) {
 	const index = key.slice(at + 1);
 	const kind = onceButtons.get(selector);
 	if (at < 0 || !kind || !/^\d{1,3}$/.test(index)) return false;
-	const button = buttonAt(content, selector, Number(index));
+	// The button as the card was posted, if it holds one there.
+	const button = content.querySelectorAll(selector)[Number(index)];
 	if (!button || !seesCard(message, user)) return false;
 	if (user.isGM) return true;
 	return !kind.gmOnly && Boolean(kind.mayPress(message, user, button));

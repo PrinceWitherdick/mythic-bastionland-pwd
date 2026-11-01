@@ -45,6 +45,27 @@ export function addDirectoryButton(element, { className, icon, label, onClick })
 const BLOCK_HTML = /^\s*<(?:p|ul|ol|div)[\s>]/i;
 
 /**
+ * @param {string|string[]} message HTML, already escaped.
+ * @returns {string} A paragraph for each entry, but for one that is already a block, such as a list.
+ */
+const messageHtml = (message) => (Array.isArray(message) ? message : [message])
+	.map((paragraph) => (BLOCK_HTML.test(paragraph) ? paragraph : `<p>${paragraph}</p>`)).join("");
+
+/**
+ * A DialogV2's options in the system's parchment: resizable from its corner,
+ * and closed without an error.
+ * @param {object} options As DialogV2 takes them.
+ * @param {string[]} [options.classes] More classes for the window.
+ * @returns {object}
+ */
+const parchment = ({ classes = [], window: frame = {}, ...options }) => ({
+	rejectClose: false,
+	...options,
+	window: { resizable: true, ...frame },
+	classes: ["bastionland-dialog", ...classes]
+});
+
+/**
  * Ask a yes-or-no question.
  * @param {object} options
  * @param {string} options.title
@@ -56,15 +77,12 @@ const BLOCK_HTML = /^\s*<(?:p|ul|ol|div)[\s>]/i;
  * @returns {Promise<boolean>} Whether the user said yes.
  */
 export async function confirmDialog({ title, icon, message, yes, no }) {
-	const paragraphs = Array.isArray(message) ? message : [message];
-	const confirmed = await foundry.applications.api.DialogV2.confirm({
-		window: { title, icon, resizable: true },
-		classes: ["bastionland-dialog"],
-		content: paragraphs.map((paragraph) => (BLOCK_HTML.test(paragraph) ? paragraph : `<p>${paragraph}</p>`)).join(""),
+	const confirmed = await foundry.applications.api.DialogV2.confirm(parchment({
+		window: { title, icon },
+		content: messageHtml(message),
 		...(yes ? { yes: { icon: "fa-solid fa-check", ...yes } } : {}),
-		...(no ? { no: { icon: "fa-solid fa-xmark", ...no } } : {}),
-		rejectClose: false
-	});
+		...(no ? { no: { icon: "fa-solid fa-xmark", ...no } } : {})
+	}));
 	return confirmed === true;
 }
 
@@ -76,14 +94,8 @@ export async function confirmDialog({ title, icon, message, yes, no }) {
  * @param {string[]} [options.classes] More classes for the window.
  * @returns {Promise<unknown>} What the button pressed gave, or null if closed.
  */
-export function waitDialog({ classes = [], window: frame = {}, ...options }) {
-	return foundry.applications.api.DialogV2.wait({
-		position: { width: 400 },
-		rejectClose: false,
-		...options,
-		window: { resizable: true, ...frame },
-		classes: ["bastionland-dialog", ...classes]
-	});
+export function waitDialog(options) {
+	return foundry.applications.api.DialogV2.wait(parchment({ position: { width: 400 }, ...options }));
 }
 
 /**
@@ -96,13 +108,7 @@ export function waitDialog({ classes = [], window: frame = {}, ...options }) {
  * @returns {Promise<unknown>} What the button gave, or null if closed.
  */
 export function promptDialog({ title, icon, content, ok }) {
-	return foundry.applications.api.DialogV2.prompt({
-		window: { title, icon, resizable: true },
-		classes: ["bastionland-dialog"],
-		content,
-		ok,
-		rejectClose: false
-	});
+	return foundry.applications.api.DialogV2.prompt(parchment({ window: { title, icon }, content, ok }));
 }
 
 /**
@@ -110,19 +116,14 @@ export function promptDialog({ title, icon, content, ok }) {
  * @param {object} options
  * @param {string} options.title
  * @param {string} options.icon      Font Awesome classes.
- * @param {string|string[]} options.message HTML, already escaped; an array becomes a paragraph each.
+ * @param {string|string[]} options.message HTML, already escaped; an array becomes a paragraph each,
+ *   but for an entry that is already a block.
  * @param {object[]} options.buttons As DialogV2 takes them.
  * @param {string[]} [options.classes] More classes for the window.
  * @returns {Promise<string|null>} The button's action, or null if closed.
  */
 export async function chooseDialog({ title, icon, message, buttons, classes = [] }) {
-	const paragraphs = Array.isArray(message) ? message : [message];
-	return waitDialog({
-		window: { title, icon },
-		classes,
-		content: paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join(""),
-		buttons
-	});
+	return waitDialog({ window: { title, icon }, classes, content: messageHtml(message), buttons });
 }
 
 /** @returns {{width: number, height: number}} The window a floating panel has to be placed inside. */
@@ -240,18 +241,17 @@ export function linkEverything(element) {
 export async function inputDialog({ title, icon, template, context, ok, drawings = false, classes = [], render, ...rest }) {
 	const html = await foundry.applications.handlebars.renderTemplate(templatePath(`dialogs/${template}.hbs`), context);
 	const content = drawings ? uncleanedContent(html) : html;
-	return foundry.applications.api.DialogV2.input({
-		window: { title, icon, resizable: true },
-		classes: ["bastionland-dialog", ...classes],
+	return foundry.applications.api.DialogV2.input(parchment({
+		window: { title, icon },
+		classes,
 		content,
 		ok: { icon: "fa-solid fa-check", ...ok },
-		rejectClose: false,
 		render: (event, dialog) => {
 			linkEverything(dialog.element);
 			return render?.(event, dialog);
 		},
 		...rest
-	});
+	}));
 }
 
 /**
