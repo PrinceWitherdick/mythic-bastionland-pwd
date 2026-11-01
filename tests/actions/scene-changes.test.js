@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { changedHexKeys, realmSceneChanges } from "../../module/actions/scene-changes.js";
+import { changedHexKeys, realmSceneChanges, shownHexFlag } from "../../module/actions/scene-changes.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 const flags = (system) => ({ flags: { [SYSTEM_ID]: system } });
@@ -17,6 +17,15 @@ beforeEach(() => {
 
 afterEach(() => {
 	delete globalThis.foundry;
+});
+
+describe("shownHexFlag", () => {
+	it("tells the flags something shows from those kept for the system alone", () => {
+		expect(shownHexFlag("journey")).toBe(true);
+		expect(shownHexFlag("sighted")).toBe(true);
+		expect(shownHexFlag("companyMoves")).toBe(false);
+		expect(shownHexFlag("companyLastHex")).toBe(false);
+	});
 });
 
 describe("realmSceneChanges", () => {

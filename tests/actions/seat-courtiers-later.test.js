@@ -35,6 +35,9 @@ vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: () => ({ realm: { holdings, myths: [] } })
 }));
 
+// No Myth is resolved, so the Realm as its living Myths see it is the whole Realm.
+vi.mock("../../module/actions/myth-notes.js", () => ({ liveRealm: () => ({ holdings, myths: [] }) }));
+
 const { announceStart, registerSeatingLater } = await import("../../module/actions/starts.js");
 const { seatCourtiers } = await import("../../module/actions/found-domain.js");
 const { warn } = await import("../../module/chat/cards.js");
@@ -61,19 +64,40 @@ describe("a Courtier Start made before the Knights", () => {
 		expect(posted[0].options).toMatchObject({ mode: "gm", flags: { [SYSTEM_ID]: { seatCourtiers: "s1" } } });
 	});
 
-	it("posts no card once the Knights are seated, or in a Realm with no Seat", async () => {
+	it("posts no card once the Knights are seated", async () => {
 		seated = { name: "High Keep" };
-		await announceStart(scene, "courtier");
-		seated = null;
-		holdings = [{ id: "h1", name: "Mill", hex: { col: 2, row: 2 }, seat: false }];
 		await announceStart(scene, "courtier");
 		expect(posted).toEqual([]);
 	});
 
+	it("holds the Court's news and the Knights' places back in a Realm with no Seat yet, with a card to deliver them (p6)", async () => {
+		holdings = [{ id: "h1", name: "Mill", hex: { col: 2, row: 2 }, seat: false }];
+		await announceStart(scene, "courtier");
+		expect(posted).toHaveLength(1);
+		expect(posted[0].data.action).toMatchObject({ data: "court-news" });
+		expect(posted[0].options).toMatchObject({ mode: "gm", flags: { [SYSTEM_ID]: { courtNews: "s1" } } });
+		expect(vi.mocked(seatCourtiers)).not.toHaveBeenCalled();
+	});
+
+	it("delivers the held news once a Holding is crowned, and is spent only then", async () => {
+		registerSeatingLater();
+		const deliver = buttons.find((button) => button.selector === "[data-court-news]");
+		expect(deliver).toMatchObject({ gmOnly: true, once: true });
+		const message = { flags: { [SYSTEM_ID]: { courtNews: "s1" } } };
+		holdings = [{ id: "h1", name: "Mill", hex: { col: 2, row: 2 }, seat: false }];
+		expect(await deliver.handler(null, message)).toBe(false);
+		expect(vi.mocked(warn)).toHaveBeenLastCalledWith("company.starts.courtier.noSeatYet");
+		expect(await deliver.handler(null, { flags: { [SYSTEM_ID]: { courtNews: "gone" } } })).toBe(false);
+		holdings = [{ id: "h1", name: "Mill", hex: { col: 2, row: 2 }, seat: true }];
+		expect(await deliver.handler(null, message)).toBe(true);
+		expect(vi.mocked(seatCourtiers)).toHaveBeenCalledWith(scene);
+	});
+
 	it("seats them from the card's button, for the Referee alone, and says so when there's still nobody", async () => {
 		registerSeatingLater();
-		expect(buttons).toHaveLength(1);
-		expect(buttons[0]).toMatchObject({ selector: "[data-seat-courtiers]", gmOnly: true });
+		const seatLater = buttons.find((button) => button.selector === "[data-seat-courtiers]");
+		expect(seatLater).toMatchObject({ gmOnly: true });
+		buttons = [seatLater];
 		const message = { flags: { [SYSTEM_ID]: { seatCourtiers: "s1" } } };
 		seated = { name: "High Keep" };
 		expect(await buttons[0].handler(null, message)).toBe(seated);

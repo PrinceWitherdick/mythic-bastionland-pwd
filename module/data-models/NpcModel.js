@@ -1,8 +1,7 @@
 import { AGES, FEATS, NPC_SCALES, NPC_WIELDS, WEAKNESS_DICE } from "../config.js";
-import { MORALE_BREAKS } from "../rules/morale.js";
 import { clearOutgrownMarks, conditionsFor } from "../rules/virtues.js";
 import { warbandState } from "../rules/warbands.js";
-import { afflictionsField, booleanField, characterFields, countField, textField } from "./fields.js";
+import { afflictionsField, booleanField, characterFields, countField, moraleBrokenField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
 
@@ -22,10 +21,12 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 			scale: new fields.StringField({ required: true, initial: NPC_SCALES[0], choices: NPC_SCALES }),
 			// Counts as a structure: only fire, siege weapons and suitably large creatures harm it (p11).
 			structure: booleanField(),
+			// Fights on through a Mortal Wound, as a few of the Cast do: it isn't down or dying of it.
+			fightsOn: booleanField(),
 			// The UUID of whoever leads this Warband from the front, sharing its Damage until their next turn (p11).
 			leader: textField(),
 			// "fled" or "surrendered" once a failed Morale Save took them out of the fight (p10), until cleared.
-			moraleBroken: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...MORALE_BREAKS] }),
+			moraleBroken: moraleBrokenField(),
 			// Young, Mature or Old (p17), or blank where nobody has said, as for most of the Cast.
 			age: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...AGES] }),
 			// In two hands as a Knight, or all at once as claws and teeth, or blank to read it off their gear (p12).
@@ -49,6 +50,8 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 	prepareDerivedData() {
 		super.prepareDerivedData();
 		this.conditions = conditionsFor(this);
+		// A creature that counts as a structure is destroyed at 0GD, as a ship or wall is (p11).
+		this.destroyed = this.structure && this.guard.value === 0;
 		// A Warband is routed by a Mortal Wound or failed Morale, broken at SPI 0 and wiped out at VIG 0 (p10–11).
 		this.warband = this.scale === "warband"
 			? warbandState({ mortalWound: this.mortalWound, spi: this.virtues.spi.value, vig: this.virtues.vig.value, moraleBroken: this.moraleBroken })

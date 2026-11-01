@@ -29,7 +29,7 @@ import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actio
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { addNewMythButton, newOwnMyth } from "./module/actions/own-myths.js";
-import { watchCompanySize } from "./module/actions/squires.js";
+import { registerCompanionQueries, watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
@@ -42,7 +42,8 @@ import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
 import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
 import { registerRulerDeaths } from "./module/actions/dominion.js";
-import { registerUnhorsed } from "./module/actions/damage.js";
+import { registerAbilityBlows, registerUnhorsed } from "./module/actions/damage.js";
+import { registerLastingQueries } from "./module/actions/lasting-dice.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { registerOmenEntered, wildernessRoll } from "./module/actions/wilderness.js";
@@ -68,6 +69,7 @@ import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { BastionlandToken, registerTokenHeraldryHooks } from "./module/canvas/BastionlandToken.js";
+import { registerRealmTokenRuler } from "./module/canvas/realm-token-ruler.js";
 import { registerSoloPlaceables } from "./module/canvas/solo-placeables.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
@@ -92,6 +94,7 @@ import { registerOmenSceneCards } from "./module/actions/omen-scenes.js";
 import { registerOffCourse } from "./module/actions/off-course.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
+import { registerStanceHooks } from "./module/actions/stances.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
 import { GmToolkitModel } from "./module/data-models/GmToolkitModel.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
@@ -125,6 +128,7 @@ import { openRulebook, reopenableReader, toggleRulebook } from "./module/ruleboo
 import { adoptKeptRulebook, bringInRulebook } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
+import { ATTACK_MACRO_STEP, attackFromHotbar, ensureAttackHotbar, seedAttackMacro } from "./module/actions/attack-macro.js";
 import { PLACES_MACRO_STEP, ensurePlacesHotbar, seedPlacesMacro } from "./module/actions/places-macro.js";
 import { TIMELINE_MACRO_STEP, ensureTimelineHotbar, seedTimelineMacro } from "./module/actions/timeline-macro.js";
 import { registerHexSharedQuery } from "./module/actions/hex-shared.js";
@@ -144,10 +148,10 @@ import { watchQuerySenders } from "./module/compat.js";
 import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
-import { restAfterCombat } from "./module/actions/recovery.js";
+import { registerRemedyQuery, restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
-import { ABILITY_KITS_STEP, fillAbilityKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
+import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
 
 const ITEM_MODELS = {
 	weapon: WeaponModel,
@@ -238,6 +242,7 @@ Hooks.once("init", () => {
 		"bastionland.armour-badge": templatePath("actor/parts/armour-badge.hbs"),
 		"bastionland.npc-header": templatePath("actor/parts/npc-header.hbs"),
 		"bastionland.condition-items": templatePath("actor/parts/condition-items.hbs"),
+		"bastionland.morale-broken": templatePath("actor/parts/morale-broken.hbs"),
 		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),
 		"bastionland.chronicle-tab": templatePath("actor/parts/chronicle-tab.hbs"),
 		"bastionland.recovery-list": templatePath("actor/parts/recovery-list.hbs"),
@@ -261,6 +266,7 @@ Hooks.once("init", () => {
 		"bastionland.gm-toolkit-cast-actor": templatePath("actor/gm-toolkit/cast-actor.hbs"),
 		"bastionland.season-turn": templatePath("actor/gm-toolkit/season-turn.hbs"),
 		"bastionland.company-picture": templatePath("dialogs/parts/company-picture.hbs"),
+		"bastionland.company-start": templatePath("dialogs/parts/company-start.hbs"),
 		"bastionland.circle-knights": templatePath("dialogs/parts/circle-knights.hbs"),
 		"bastionland.pick-list": templatePath("dialogs/parts/pick-list.hbs"),
 		"bastionland.steed-name": templatePath("dialogs/parts/steed-name.hbs"),
@@ -353,6 +359,7 @@ Hooks.once("init", () => {
 
 	// A Warband's leader stops sharing its Damage when their next turn starts.
 	registerLeadingHooks();
+	registerStanceHooks();
 	// The players act first in a fight (p8): nobody rolls initiative.
 	registerTurnOrder();
 	registerSurpriseHooks();
@@ -362,6 +369,7 @@ Hooks.once("init", () => {
 	// A hireling taken from the book's compendium rolls its Virtues as it's made (p13).
 	Hooks.on("preCreateActor", rollHirelingVirtues);
 	Hooks.on("deleteCombat", (combat) => restAfterCombat(combat));
+	Hooks.on("deleteCombat", (combat) => warnDyingAfterCombat(combat));
 
 	// Each Knight's Ledger of the changes made to them.
 	registerLedgerHooks();
@@ -421,6 +429,8 @@ Hooks.once("init", () => {
 	RealmLayer.listenForPaintAgain();
 	registerRealmHooks();
 	CONFIG.Token.objectClass = BastionlandToken;
+	// Foundry's Token ruler, which on a Realm tells the Company's pace as it's dragged.
+	registerRealmTokenRuler();
 	// Solo play keeps the Realm's secrets off the Referee's map too.
 	registerSoloPlaceables();
 	registerTokenHeraldryHooks();
@@ -503,6 +513,9 @@ Hooks.once("init", () => {
 	registerRulerDeaths();
 	// A steed brought down throws its rider, for d6 (p10).
 	registerUnhorsed();
+	registerAbilityBlows();
+	// A weapon tempered by a Wound its owner can't record for the user applying it (p98).
+	registerLastingQueries();
 	registerCollisions();
 	// What the Company saw from afar is found once it gets there.
 	registerSightings();
@@ -529,6 +542,11 @@ Hooks.once("init", () => {
 
 	// A steed renamed by its Knight keeps what the book called it under the name.
 	registerSteedNames();
+
+	// What the Referee finishes for a player's companions: sharing those they made,
+	// parting a Knight and Squire, and restoring the Company members a Remedy reaches.
+	registerCompanionQueries();
+	registerRemedyQuery();
 
 	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
 	registerWelcome();
@@ -558,6 +576,8 @@ Hooks.once("init", () => {
 		openRefereeRolls,
 		rollRefereeTable,
 		rollLuck,
+		// An Attack with whoever's Token is selected, or a player's own Knight, for the Attack macro.
+		attackFromHotbar,
 		openSparkTables,
 		// The Lay of the Land is the GM's part of a hex in Places now; macros that open it open that.
 		openHexLore: openHex,
@@ -613,6 +633,7 @@ const WORLD_SETUP = Object.freeze([
 	{ key: FXMASTER_CARD_STEP, run: () => postFxMasterCard(welcomesThisWorld) },
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
+	{ key: ATTACK_MACRO_STEP, run: seedAttackMacro },
 	{ key: PLACES_MACRO_STEP, run: seedPlacesMacro },
 	{ key: TIMELINE_MACRO_STEP, run: seedTimelineMacro },
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
@@ -640,12 +661,23 @@ const WORLD_SETUP = Object.freeze([
 	// Again, for the odds a possession gives (p88), the Virtue it costs should something befall it (p62)
 	// and Damage that burns on (p173), read since.
 	{ key: "possessionOddsAndLosses", run: fillPossessionDetails, repeats: POSSESSION_DETAILS_STEP },
+	// Again, for a possession that keeps its bearer in the saddle (p44), read since.
+	// Only that detail, so the others a Referee cleared since aren't put back.
+	{ key: "possessionSeats", run: () => fillPossessionDetails({ only: ["keepsSeat"] }), repeats: POSSESSION_DETAILS_STEP },
 	// Knights made before their Ability's settings, and any weapon it gives, came from their page.
 	{ key: ABILITY_KITS_STEP, run: fillAbilityKits },
+	// Knights made from an import that stopped their Ability at the colon before its list of choices.
+	{ key: ABILITY_LISTS_STEP, run: fillAbilityLists },
+	// Again, for the Knights whose Abilities were given settings later, and only those.
+	{ key: BOOK_EFFECT_KITS_STEP, run: fillBookEffectKits, repeats: ABILITY_KITS_STEP },
+	// Again, for the Abilities that count the sides, temper a weapon, or are spent by the weapon they give.
+	{ key: LINKED_KITS_STEP, run: fillLinkedKits, repeats: ABILITY_KITS_STEP },
 	// Worlds that imported the book before a weapon's Damage could burn on each round (p173).
 	{ key: LINGERING_CAST_STEP, run: markLingeringAttacks },
 	// Again, for the Cast the book fields only as Warbands though their names don't say so.
 	{ key: "warbandCast", run: fillCastDetails, repeats: CAST_DETAILS_STEP },
+	// Again, for the Cast whose stat block has them fight on through a Mortal Wound.
+	{ key: "fightsOnCast", run: fillCastDetails, repeats: "warbandCast" },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.
@@ -708,9 +740,9 @@ Hooks.once("ready", async () => {
 		.catch((error) => console.error(`${SYSTEM_ID} | Couldn't take up the kept rulebook`, error));
 	await Promise.all([
 		restoreOpenSheets(),
-		// Once every macro has its slot, the GM Toolkit (a player's Luck Roll) is put in the first,
-		// and a GM's Import PDF and End the Session in the last two.
-		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensurePlacesHotbar).then(ensureTimelineHotbar).then(ensureSiteHotbar)])
+		// Once every macro has its slot, the GM Toolkit (a player's Attack) is put in the first,
+		// a GM's Import PDF and End the Session in the last two, and a player's Luck Roll in the last.
+		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureAttackHotbar).then(ensurePlacesHotbar).then(ensureTimelineHotbar).then(ensureSiteHotbar)])
 			.then(ensureHotbarOrder),
 		setup.then(syncTestWorldMacro),
 		// Once world setup has decided whether this world is new, which it does by its having no Actors.

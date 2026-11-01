@@ -76,11 +76,53 @@ describe("rollMorale", () => {
 		expect(cards[0].context.breaks.actors).toBe("Actor.captain,Actor.ann,Actor.bo");
 		expect(cards[0].context.breaks.choices[1].hint).toBe(lookup("bastionland.morale.broke.surrendered.hint"));
 	});
+
+	describe("a Warband led from the front", () => {
+		const warband = (leader) => ({ uuid: "Actor.militia", type: "npc", name: "Militia", system: { scale: "warband", leader, virtues: { spi: { value: 7, max: 7 } } } });
+		const knight = (system = {}) => ({ uuid: "Actor.kay", type: "knight", name: "Kay", system: { virtues: { spi: { value: 15, max: 15 } }, ...system } });
+		let actors;
+
+		beforeEach(() => {
+			actors = {};
+			globalThis.fromUuidSync = (uuid) => actors[uuid] ?? null;
+		});
+
+		afterEach(() => {
+			delete globalThis.fromUuidSync;
+		});
+
+		it("rolls once on its leader's SPI, and marks only the Warband if it fails (p10, p11)", async () => {
+			actors["Actor.kay"] = knight();
+			rolled = [12];
+			const save = await rollMorale(warband("Actor.kay"));
+			// 12 is over the Warband's SPI 7, but within Kay's 15.
+			expect(save.passed).toBe(true);
+			expect(cards[0].context.hint).toBe(format("bastionland.morale.ledHint", { warband: "Militia", leader: "Kay" }));
+			rolled = [17];
+			expect((await rollMorale(warband("Actor.kay"))).passed).toBe(false);
+			expect(cards[1].context.breaks.actors).toBe("Actor.militia");
+		});
+
+		it("rolls on its own SPI once its leader is down, broken or gone", async () => {
+			for (const leader of [knight({ slain: true }), knight({ mortalWound: true }), knight({ moraleBroken: "fled" }), null]) {
+				actors["Actor.kay"] = leader;
+				rolled = [12];
+				expect((await rollMorale(warband("Actor.kay"))).passed).toBe(false);
+			}
+		});
+	});
 });
 
 describe("moraleBreakButtons", () => {
 	it("marks only NPCs, since Morale doesn't affect player characters", () => {
-		expect(moraleBreakButtons([{ uuid: "Actor.k", type: "knight" }])).toBeNull();
-		expect(moraleBreakButtons([{ uuid: "Actor.k", type: "knight" }, npc("Actor.guard")]).actors).toBe("Actor.guard");
+		const played = { uuid: "Actor.k", type: "knight", hasPlayerOwner: true, system: {} };
+		expect(moraleBreakButtons([played])).toBeNull();
+		expect(moraleBreakButtons([played, npc("Actor.guard")]).actors).toBe("Actor.guard");
+	});
+
+	it("marks a Knight the Referee plays, but never a Squire (p10)", () => {
+		const lord = { uuid: "Actor.lord", type: "npcKnight", system: {} };
+		const squire = { uuid: "Actor.sq", type: "knight", system: { isSquire: true } };
+		expect(moraleBreakButtons([lord, squire]).actors).toBe("Actor.lord");
 	});
 });

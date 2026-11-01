@@ -132,6 +132,10 @@
 		<input type="checkbox" name="system.poison" {{checked system.poison}}>
 		<span class="bastionland-check__label">{{localize "bastionland.item.poison"}}</span>
 	</label>
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.keepsSeatHint'}}">
+		<input type="checkbox" name="system.keepsSeat" {{checked system.keepsSeat}}>
+		<span class="bastionland-check__label">{{localize "bastionland.item.keepsSeat"}}</span>
+	</label>
 	{{!-- Odds it holds what's wanted, as a bag of tomes that holds it 1 time in 2 (p88). --}}
 	<div class="form-group">
 		<label for="{{rootId}}-chance-in">{{localize "bastionland.item.chance"}}</label>
@@ -241,6 +245,17 @@
 			<span class="bastionland-check__label">{{label}}</span>
 		</label>
 		{{/each}}
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.ability.situationalHint'}}">
+			<input type="checkbox" name="system.situational" {{checked system.situational}}>
+			<span class="bastionland-check__label">{{localize "bastionland.ability.situational"}}</span>
+		</label>
+		<div class="form-group">
+			<label for="{{rootId}}-crowd">{{localize "bastionland.ability.crowd"}}</label>
+			<div class="form-fields">
+				<input id="{{rootId}}-crowd" type="number" name="system.crowd" value="{{system.crowd}}" min="0" step="1">
+			</div>
+			<p class="hint">{{localize "bastionland.ability.crowdHint"}}</p>
+		</div>
 		<p class="hint">{{localize "bastionland.ability.grantsHint"}}</p>
 	</fieldset>
 	<div class="form-group">
@@ -252,6 +267,10 @@
 		</div>
 		<p class="hint">{{localize "bastionland.ability.lastingDieHint"}}</p>
 	</div>
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.ability.tempersHint'}}">
+		<input type="checkbox" name="system.tempers" {{checked system.tempers}}>
+		<span class="bastionland-check__label">{{localize "bastionland.ability.tempers"}}</span>
+	</label>
 	<div class="form-group">
 		<label for="{{rootId}}-bonus-die">{{localize "bastionland.ability.bonusDie"}}</label>
 		<div class="form-fields">
@@ -270,6 +289,17 @@
 		</div>
 		<p class="hint">{{localize "bastionland.ability.needsHint"}}</p>
 	</div>
+	{{#if abilityWeaponOptions}}
+	<div class="form-group">
+		<label for="{{rootId}}-weapon">{{localize "bastionland.ability.weapon"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-weapon" name="system.weapon">
+				{{selectOptions abilityWeaponOptions selected=system.weapon}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.ability.weaponHint"}}</p>
+	</div>
+	{{/if}}
 	<fieldset>
 		<legend>{{localize "bastionland.ability.powersLabel"}}</legend>
 		{{#each abilityPowers}}
@@ -278,6 +308,43 @@
 			<span class="bastionland-check__label">{{label}}</span>
 		</label>
 		{{/each}}
+	</fieldset>
+	<fieldset>
+		<legend>{{localize "bastionland.ability.stance.label"}}</legend>
+		<div class="form-group">
+			<label for="{{rootId}}-armour-bonus">{{localize "bastionland.ability.stance.bonus"}}</label>
+			<div class="form-fields">
+				<input id="{{rootId}}-armour-bonus" type="number" name="system.armourBonus" value="{{system.armourBonus}}" min="0" step="1">
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="{{rootId}}-armour-floor">{{localize "bastionland.ability.stance.floor"}}</label>
+			<div class="form-fields">
+				<input id="{{rootId}}-armour-floor" type="number" name="system.armourFloor" value="{{system.armourFloor}}" min="0" step="1">
+			</div>
+			<p class="hint">{{localize "bastionland.ability.stance.floorHint"}}</p>
+		</div>
+		<label class="bastionland-check">
+			<input type="checkbox" name="system.doublesShield" {{checked system.doublesShield}}>
+			<span class="bastionland-check__label">{{localize "bastionland.ability.stance.doublesShield"}}</span>
+		</label>
+		<div class="form-group">
+			<label for="{{rootId}}-lapses">{{localize "bastionland.ability.stance.lapsesLabel"}}</label>
+			<div class="form-fields">
+				<select id="{{rootId}}-lapses" name="system.lapses">
+					{{selectOptions lapsesOptions selected=system.lapses}}
+				</select>
+			</div>
+		</div>
+		<label class="bastionland-check">
+			<input type="checkbox" name="system.onMove" {{checked system.onMove}}>
+			<span class="bastionland-check__label">{{localize "bastionland.ability.stance.onMove"}}</span>
+		</label>
+		<label class="bastionland-check">
+			<input type="checkbox" name="system.inEffect" {{checked system.inEffect}}>
+			<span class="bastionland-check__label">{{localize "bastionland.ability.stance.inEffect"}}</span>
+		</label>
+		<p class="hint">{{localize "bastionland.ability.stance.hint"}}</p>
 	</fieldset>
 	{{/if}}
 

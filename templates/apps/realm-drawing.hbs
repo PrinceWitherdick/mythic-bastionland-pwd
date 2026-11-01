@@ -134,6 +134,7 @@
 			{{!-- The last page: what the Company looks like, and the button that hands them over to be stood in a hex. --}}
 			<section class="bastionland-rail-dialog__page bastionland-realm-drawing__company" data-rail-page="company"{{#unless company.active}} hidden{{/unless}}>
 				<p>{{company.intro}}</p>
+				{{> "bastionland.company-start" company id="bastionland-drawing-company-start" name="companyStart"}}
 				{{> "bastionland.company-picture" company.picture}}
 				<button type="button" class="bastionland-travel-rules__roll" data-action="placeCompany" data-tooltip="{{company.hint}}">
 					<i class="fa-solid fa-flag" inert></i> {{company.button}}

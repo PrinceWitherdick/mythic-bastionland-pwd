@@ -1,4 +1,4 @@
-import { knightVerseFromItems, mythTableFromItems, mythVerseFromItems, promptsFromItems } from "../rules/book-art.js";
+import { ABILITY_LIST_VERSION, knightTextFromItems, knightVerseFromItems, mythTableFromItems, mythVerseFromItems, promptsFromItems, wantsList } from "../rules/book-art.js";
 import { routed } from "../rules/rulebook.js";
 import { rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -16,6 +16,8 @@ import { openPdfUrl, withPage } from "./pdf.js";
  * @property {import("../rules/book-art.js").MythTable|null} table
  * @property {string[]|null} verse
  * @property {{label: string, value: string}[]|null} prompts
+ * @property {{name: string, text: string, list?: string[]}|null} ability A Knight's.
+ * @property {{name: string, text: string, list?: string[]}|null} passion A Knight's.
  */
 
 /** @type {{path: string, document: Promise<object>}|null} The rulebook opened last. */
@@ -65,7 +67,14 @@ function readPage(page) {
 				const pdf = await openBook(rulebookPath());
 				const items = await withPage(pdf, page, async (read) => (await read.getTextContent()).items);
 				// A Myth's verse is found by its Omens and a Knight's by their Property, so neither reads the other's.
-				read = { table: mythTableFromItems(items), verse: mythVerseFromItems(items) ?? knightVerseFromItems(items), prompts: promptsFromItems(items) };
+				const knight = knightTextFromItems(items);
+				read = {
+					table: mythTableFromItems(items),
+					verse: mythVerseFromItems(items) ?? knightVerseFromItems(items),
+					prompts: promptsFromItems(items),
+					ability: knight?.ability ?? null,
+					passion: knight?.passion ?? null
+				};
 			} catch (error) {
 				// Kept as unread, so the sheet doesn't try again on every redraw.
 				console.warn(`${SYSTEM_ID} | Couldn't read page ${page} of the rulebook`, error);
@@ -161,3 +170,23 @@ export const promptsForEntry = (index, entry, options) => partForEntry("prompts"
 
 /** @returns {boolean} Whether there's a rulebook to read a table from. */
 export const canReadTablesFromRulebook = () => Boolean(rulebookPath());
+
+/**
+ * A Knight's Ability and Passion with the list of choices either ends on, for
+ * an index Import PDF wrote before it read those lists: the index's own where
+ * it has them, or else read from the rulebook.
+ * @param {object|null} index The art index.
+ * @param {{page?: number, ability?: object, passion?: object}|null} entry The Knight's entry in it.
+ * @returns {Promise<object|null>} The entry, with its Ability and Passion as complete as can be had.
+ */
+export async function knightWithLists(index, entry) {
+	if (!entry || (index?.version ?? 0) >= ABILITY_LIST_VERSION) return entry;
+	const stale = ["ability", "passion"].filter((part) => wantsList(entry[part]));
+	if (!stale.length) return entry;
+	const read = await readPage(entry.page);
+	const filled = { ...entry };
+	for (const part of stale) {
+		if (read?.[part]?.name === entry[part].name && read[part].list?.length) filled[part] = read[part];
+	}
+	return filled;
+}

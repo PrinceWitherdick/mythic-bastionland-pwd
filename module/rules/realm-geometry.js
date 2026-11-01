@@ -318,6 +318,28 @@ export function neighbours(g, hex) {
 }
 
 /**
+ * The hexes that can be reached from one without crossing a blocked edge.
+ * @param {object} g
+ * @param {Set<string>} blocked Edge keys.
+ * @param {{col: number, row: number}} start
+ * @returns {Set<string>} Their hex keys, the start's among them.
+ */
+export function reachedFrom(g, blocked, start) {
+	const reached = new Set([hexKey(start)]);
+	const stack = [start];
+	while (stack.length) {
+		const hex = stack.pop();
+		for (const { hex: next } of neighbours(g, hex)) {
+			const key = hexKey(next);
+			if (reached.has(key) || blocked.has(edgeKey(hex, next))) continue;
+			reached.add(key);
+			stack.push(next);
+		}
+	}
+	return reached;
+}
+
+/**
  * Steps between two hexes, ignoring anything in the way.
  * @param {object} g
  * @param {{col: number, row: number}} a
@@ -399,6 +421,15 @@ const byPosition = (a, b) => a.col - b.col || a.row - b.row;
 export function edgeKey(a, b) {
 	return [a, b].sort(byPosition).map(hexKey).join("|");
 }
+
+/**
+ * @param {{barriers?: {edge: string, revealed?: boolean}[]}|null|undefined} realm
+ * @param {{revealed?: boolean}} [options] Keep only the revealed Barriers (true) or only the hidden ones (false).
+ * @returns {Set<string>} The edgeKeys of the Realm's Barriers.
+ */
+export const barrierEdges = (realm, { revealed } = {}) => new Set((realm?.barriers ?? [])
+	.filter((barrier) => revealed === undefined || Boolean(barrier.revealed) === revealed)
+	.map((barrier) => barrier.edge));
 
 /**
  * @param {object} g

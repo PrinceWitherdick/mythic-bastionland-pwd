@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { edgeKey, hexCentre, realmGeometry } from "../../module/rules/realm-geometry.js";
-import { barriersMet, movePathProblem, realmMoveProblem } from "../../module/rules/realm-movement.js";
+import { edgeKey, hexCentre, hexDistance, hexLine, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { barriersMet, movePathProblem, openWay, realmMoveProblem } from "../../module/rules/realm-movement.js";
 
 const g = realmGeometry();
 const hex = (col, row) => ({ col, row });
@@ -61,5 +61,33 @@ describe("movePathProblem", () => {
 			.toEqual({ reason: "barrier", from: hex(5, 5), to: hex(5, 6) });
 		expect(movePathProblem(g, barriers, [centre(2, 2), { x: 230.94, y: 10 }]))
 			.toEqual({ reason: "offMap", from: hex(2, 2), to: null });
+	});
+});
+
+describe("openWay", () => {
+	const from = hex(2, 2);
+	const to = hex(5, 6);
+	const line = hexLine(g, from, to);
+	const steps = (way) => way.map((step, index) => edgeKey(index ? way[index - 1] : from, step));
+
+	it("follows the straight line where nothing bars it", () => {
+		expect(openWay(g, new Set(), from, to)).toEqual(line);
+		expect(openWay(g, null, from, to)).toEqual(line);
+		expect(openWay(g, new Set([edgeKey(hex(9, 9), hex(9, 10))]), from, to)).toEqual(line);
+	});
+
+	it("goes round a Barrier across the line by a shortest way that crosses none", () => {
+		const barriers = new Set([edgeKey(line[0], line[1])]);
+		expect(realmMoveProblem(g, barriers, from, to)).toBeNull();
+		const way = openWay(g, barriers, from, to);
+		expect(way).toHaveLength(line.length);
+		expect(way.at(-1)).toEqual(to);
+		expect(way).not.toEqual(line);
+		for (const step of steps(way)) expect(barriers.has(step)).toBe(false);
+		way.forEach((step, index) => expect(hexDistance(g, index ? way[index - 1] : from, step)).toBe(1));
+	});
+
+	it("keeps to the line where every shortest way is barred", () => {
+		expect(openWay(g, new Set([edgeKey(hex(1, 1), hex(2, 1))]), hex(1, 1), hex(3, 1))).toEqual(hexLine(g, hex(1, 1), hex(3, 1)));
 	});
 });

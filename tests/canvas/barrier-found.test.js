@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyRealm } from "../../module/rules/realm.js";
-import { edgeKey, hexCentre, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { edgeKey, hexCentre, neighbours, realmGeometry, sameHex } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 const g = realmGeometry();
@@ -64,14 +64,19 @@ const to = { col: 2, row: 1 };
 const token = (hex, { owners = ["player"], company = false } = {}) => ({
 	company,
 	getCenterPoint: () => hexCentre(g, hex),
-	testUserPermission: (user, level) => level === "OWNER" && owners.includes(user.id)
+	canUserModify: (user, action) => action === "update" && owners.includes(user.id),
+	// Nobody owns the Company Token on v13, though anybody may move it.
+	testUserPermission: () => false
 });
 
 const scene = { id: "realm1", tokens: [] };
 const QUERY = `${SYSTEM_ID}.turnedBack`;
 
 /** A player's report, as their client sends it. */
-const report = (edges, extra = {}) => ({ sceneId: "realm1", edges, from, to, company: false, ...extra });
+const report = (edges, extra = {}) => ({ sceneId: "realm1", edges, from, to, via: [], company: false, ...extra });
+
+/** A hex beside both ends of the hidden Barrier, so a drag can go round it. */
+const round = neighbours(g, to).map(({ hex }) => hex).find((hex) => neighbours(g, from).some(({ hex: beside }) => sameHex(beside, hex)));
 
 /** The active GM answering, asked by Alys unless somebody else is named. */
 const answerAs = (data, user = alys) => onTurnedBackQuery(data, { user });
@@ -108,6 +113,11 @@ afterEach(() => {
 });
 
 describe("a player's Token running into a hidden Barrier", () => {
+	it("sends the waypoints the drag came through, for the Referee to follow", () => {
+		reportTurnedBack(scene, { edges: [hidden], from, to, via: [to, round] });
+		expect(query).toHaveBeenCalledWith(QUERY, report([hidden], { via: [to, round] }), { timeout: 10000 });
+	});
+
 	it("is told to the active GM from a player's client, and not from a GM's", () => {
 		reportTurnedBack(scene, { edges: [hidden], from, to });
 		expect(query).toHaveBeenCalledWith(QUERY, report([hidden]), { timeout: 10000 });
@@ -247,6 +257,35 @@ describe("a report the Realm doesn't bear out", () => {
 		expect(edits).toHaveLength(1);
 	});
 
+	it("takes a later leg of a drag, followed waypoint by waypoint from where the Token stands", async () => {
+		// The Token stands across the Barrier, and went round it before trying to cross back.
+		scene.tokens = [token(to)];
+		expect(await answerAs(report([hidden], { from, to, via: [to, round] }))).toBe(true);
+		expect(edits).toHaveLength(1);
+	});
+
+	it("is refused for a drag one of whose earlier legs crosses a Barrier, or that sets off from nowhere the asker's Token stands", async () => {
+		scene.tokens = [token(to)];
+		// Straight across the Barrier to the leg's start: that leg would have been refused first.
+		await refused(report([hidden], { via: [to] }));
+		// Going round, but from a hex no Token of theirs stands in, with the way there barred.
+		scene.tokens = [token(to, { owners: ["other"] })];
+		await refused(report([hidden], { via: [to, round] }));
+	});
+
+	it("is refused for waypoints that aren't hexes of the Realm, or too many of them", async () => {
+		scene.tokens = [token(to)];
+		await refused(report([hidden], { via: [to, { col: 0, row: 1 }] }));
+		await refused(report([hidden], { via: [to, "round"] }));
+		await refused(report([hidden], { via: { col: 1, row: 1 } }));
+		await refused(report([hidden], { via: Array.from({ length: 65 }, () => round) }));
+	});
+
+	it("takes a report with no waypoints at all, as an older client sends it", async () => {
+		const { via: _via, ...older } = report([hidden]);
+		expect(await answerAs(older)).toBe(true);
+	});
+
 	it("reveals far Barriers only for a move that really ran into them", async () => {
 		scene.tokens = [token({ col: 8, row: 8 })];
 		await refused(report([far]));
@@ -291,6 +330,14 @@ describe("a Company turned back by a Barrier", () => {
 		expect(edits).toHaveLength(1);
 		expect(asked).toHaveLength(1);
 		expect(recordBarriersMet).toHaveBeenCalledWith(scene, [{ hex: from, edges: [hidden] }], "Alys");
+	});
+
+	it("is taken from a player who may move the Company Token without owning it, as on v13", async () => {
+		game.user.isGM = true;
+		scene.tokens = [token(from, { company: true })];
+		expect(await answerAs(report([hidden], { company: true }))).toBe(true);
+		expect(edits).toHaveLength(1);
+		expect(asked).toHaveLength(1);
 	});
 
 	it("offers nothing for a Token that isn't the Company, or a move nothing barred", async () => {

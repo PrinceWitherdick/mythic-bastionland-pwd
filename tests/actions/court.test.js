@@ -19,7 +19,32 @@ vi.mock("../../module/apps/ui.js", () => ({
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineCircle: vi.fn(), timelineCourtJoined: vi.fn(), timelineCourtLeft: vi.fn() }));
 
-const { addCourtMember, editCourtMember, removeCourtMember, removeFromCourt, seatCircle, seatCouncilRetainers, takeIntoCourt } = await import("../../module/actions/court.js");
+/** The art index Import PDF wrote, and the Realm the Domain rules a Holding in. */
+let artIndex;
+let realm;
+let soloKept;
+vi.mock("../../module/book-art/art-index.js", () => ({
+	loadArtIndex: async () => artIndex,
+	seerEntry: (index, seer) => {
+		const roll = `${seer.d6}-${String(seer.d12).padStart(2, "0")}`;
+		const entry = index?.seers?.find((each) => each.roll === roll) ?? null;
+		return { roll, entry, name: entry?.name ?? `unnamed ${roll}` };
+	}
+}));
+vi.mock("../../module/actions/homecoming.js", async () => {
+	const { findDomainHolding } = await import("../../module/rules/dominion.js");
+	const realmHoldings = () => [{ sceneId: "s1", holdings: [{ id: "h1", name: "Bramblewatch" }] }];
+	const domainHolding = (domain) => {
+		const found = findDomainHolding(realmHoldings(), domain);
+		const scene = found ? game.scenes.get(found.sceneId) : null;
+		return scene ? { scene, holding: found.holding } : null;
+	};
+	return { domainHolding, realmHoldings };
+});
+vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }) }));
+vi.mock("../../module/actions/solo.js", () => ({ realmKnown: (known) => (soloKept ? { ...known, landmarks: [] } : known) }));
+
+const { addCourtMember, editCourtMember, realmSeerNames, removeCourtMember, removeFromCourt, seatCircle, seatCouncilRetainers, takeIntoCourt } = await import("../../module/actions/court.js");
 const timeline = await import("../../module/actions/timeline-events.js");
 
 const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, knight: "", ...extra });
@@ -53,7 +78,15 @@ beforeEach(() => {
 	confirmed = true;
 	asked = [];
 	updates = [];
-	globalThis.game = { user: { isGM: true }, actors: actors(knight("k1", "Tal"), knight("k2", "Moss")) };
+	globalThis.game = { user: { isGM: true }, actors: actors(knight("k1", "Tal"), knight("k2", "Moss")), scenes: { get: (id) => (id === "s1" ? { id } : null) } };
+	artIndex = { seers: [{ roll: "1-01", name: "The Ash Seer" }, { roll: "2-03", name: "The Brine Seer" }] };
+	realm = { landmarks: [
+		{ type: "sanctum", seer: { d6: 1, d12: 1 } },
+		{ type: "sanctum", seer: { d6: 2, d12: 3 } },
+		{ type: "sanctum", seer: null },
+		{ type: "ruin", seer: null }
+	] };
+	soloKept = false;
 	globalThis.ui = { notifications: { warn: vi.fn() } };
 	let next = 0;
 	globalThis.foundry = { utils: {
@@ -186,6 +219,20 @@ describe("seatCircle", () => {
 		expect(updates[0]).toEqual({ "system.council.circle": ["k2", "n2"] });
 	});
 
+	it("offers no Squire or Slain Knight, and offers one Slain since they were seated unticked (p7, p20)", async () => {
+		game.actors = actors(
+			knight("k1", "Tal"),
+			knight("k2", "Moss"),
+			{ ...knight("s1", "Pip"), system: { isSquire: true } },
+			{ ...knight("k3", "Brand"), system: { slain: true } },
+			{ ...knight("k4", "Ash"), system: { slain: true } }
+		);
+		await seatCircle(fakeDomain({ council: { steward: "", marshal: "", sheriff: "", envoy: "", circle: ["k4"] } }));
+		const circle = asked[0].context.circle;
+		expect(circle.map(({ id }) => id)).toEqual(["k2", "k4"]);
+		expect(circle[1]).toMatchObject({ checked: false, name: expect.stringContaining("domain.council.circle.slainName") });
+	});
+
 	it("changes nothing when the window is closed", async () => {
 		expect(await seatCircle(fakeDomain())).toBe(false);
 		expect(updates).toEqual([]);
@@ -240,5 +287,58 @@ describe("the Timeline", () => {
 		const [[, change]] = vi.mocked(timeline.timelineCircle).mock.calls;
 		expect(change.joined).toEqual([expect.objectContaining({ id: "k3", actor: reed })]);
 		expect(change.left).toEqual([expect.objectContaining({ id: "k2", actor: moss })]);
+	});
+});
+
+describe("the name die for a Seer of the Court (p20)", () => {
+	const ruling = () => fakeDomain({ holding: "Scene.s1.Tile.h1" });
+
+	it("names the Seers whose Sanctums stand in the Domain's Realm", async () => {
+		expect(await realmSeerNames(ruling())).toEqual(["The Ash Seer", "The Brine Seer"]);
+	});
+
+	it("names none for a player, a Domain with no Holding, a Sanctum still to be found alone, or before the import", async () => {
+		game.user = { isGM: false };
+		expect(await realmSeerNames(ruling())).toEqual([]);
+		game.user = { isGM: true };
+		expect(await realmSeerNames(fakeDomain({ holding: "Scene.s9.Tile.h9" }))).toEqual([]);
+		soloKept = true;
+		expect(await realmSeerNames(ruling())).toEqual([]);
+		soloKept = false;
+		artIndex = null;
+		expect(await realmSeerNames(ruling())).toEqual([]);
+	});
+
+	/** Open the member window and press its name die, with the role given chosen. */
+	async function pressDie(role) {
+		const domain = ruling();
+		const input = { value: "" , focus: vi.fn() };
+		const listeners = [];
+		const element = {
+			querySelector: (selector) => {
+				if (selector === "[name='name']") return input;
+				if (selector === "[name='role']") return { value: role };
+				if (selector === "[data-roll-name]") return { addEventListener: (_type, listener) => listeners.push(listener) };
+				return null;
+			}
+		};
+		vi.mocked((await import("../../module/apps/ui.js")).inputDialog).mockImplementationOnce(async (options) => {
+			options.render(null, { element });
+			await listeners[0]();
+			return null;
+		});
+		await takeIntoCourt(domain);
+		return input.value;
+	}
+
+	it("rolls one of the Realm's Seers for a Seer", async () => {
+		expect(["The Ash Seer", "The Brine Seer"]).toContain(await pressDie("seer"));
+	});
+
+	it("rolls a name from the book for anyone else, and for a Seer where the Realm has none", async () => {
+		artIndex.seers.push({ roll: "3-04", name: "The Cinder Seer", prompts: [{ label: "Name", value: "Wenna" }] });
+		expect(await pressDie("courtier")).toBe("Wenna");
+		realm = { landmarks: [] };
+		expect(await pressDie("seer")).toBe("Wenna");
 	});
 });

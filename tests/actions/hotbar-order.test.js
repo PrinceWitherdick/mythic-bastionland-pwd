@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IMPORT_SLOT, SESSION_SLOT, emptySlot, endHotbar, hotbarMacro, orderHotbar } from "../../module/actions/hotbar-macro.js";
-import { GM_HOTBAR_ORDER, HOTBAR_ENDS_FLAG, HOTBAR_ORDER_FLAG, PLAYER_HOTBAR_ORDER, ensureHotbarOrder } from "../../module/actions/hotbar-order.js";
+import { GM_HOTBAR_ORDER, HOTBAR_ATTACK_FLAG, HOTBAR_ENDS_FLAG, HOTBAR_ORDER_FLAG, PLAYER_HOTBAR_ORDER, ensureHotbarOrder } from "../../module/actions/hotbar-order.js";
 import { IMPORT_MACRO_ID } from "../../module/book-art/macro.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
@@ -55,11 +55,12 @@ describe("ensureHotbarOrder", () => {
 	const systemMacro = (id, flag, canExecute = true) => ({ id, canExecute, getFlag: (scope, key) => scope === SYSTEM_ID && key === flag });
 
 	const gmMacros = () => [...GM_HOTBAR_ORDER, "endSessionMacro"].map((flag) => systemMacro(flag, flag)).concat(systemMacro(IMPORT_MACRO_ID, null));
+	const playerMacros = () => [...PLAYER_HOTBAR_ORDER, "luckRollMacro"].map((flag) => systemMacro(flag, flag));
 
-	function installWorld({ isGM = true, ordered = false, ended = ordered, macros = gmMacros(), hotbar = {} } = {}) {
+	function installWorld({ isGM = true, ordered = false, ended = ordered, attacked = false, macros = isGM ? gmMacros() : playerMacros(), hotbar = {} } = {}) {
 		const update = vi.fn();
 		const setFlag = vi.fn();
-		const flags = { [HOTBAR_ORDER_FLAG]: ordered, [HOTBAR_ENDS_FLAG]: ended };
+		const flags = { [HOTBAR_ORDER_FLAG]: ordered, [HOTBAR_ENDS_FLAG]: ended, [HOTBAR_ATTACK_FLAG]: attacked };
 		globalThis.game = {
 			user: { isGM, hotbar, update, setFlag, getFlag: (scope, key) => scope === SYSTEM_ID && !!flags[key] },
 			macros: { find: (test) => macros.find(test), get: (id) => macros.find((macro) => macro.id === id) }
@@ -68,22 +69,24 @@ describe("ensureHotbarOrder", () => {
 		return { update, setFlag };
 	}
 
+	const flagKey = (key) => `flags.${SYSTEM_ID}.${key}`;
+
 	afterEach(() => {
 		for (const key of ["game", "foundry"]) delete globalThis[key];
 	});
 
-	it("gives a GM the GM Toolkit first, and Import PDF and End the Session last", async () => {
+	it("gives a GM the GM Toolkit first, the Attack after the Luck Roll, and Import PDF and End the Session last", async () => {
 		const { update, setFlag } = installWorld({ hotbar: { 1: "rulebookMacro", 2: "luckRollMacro", 3: "newSiteMacro", 4: "gmToolkitMacro", 5: "endSessionMacro", 6: IMPORT_MACRO_ID, 7: "mine" } });
 		await ensureHotbarOrder();
 		expect(update.mock.calls[0][0].hotbar).toEqual({
-			1: "gmToolkitMacro", 2: "rulebookMacro", 3: "newSiteMacro", 4: "luckRollMacro", 5: "mine", 9: IMPORT_MACRO_ID, 10: "endSessionMacro"
+			1: "gmToolkitMacro", 2: "rulebookMacro", 3: "newSiteMacro", 4: "luckRollMacro", 5: "attackMacro", 6: "mine", 9: IMPORT_MACRO_ID, 10: "endSessionMacro"
 		});
-		expect(update).toHaveBeenLastCalledWith({ [`flags.${SYSTEM_ID}.${HOTBAR_ORDER_FLAG}`]: true, [`flags.${SYSTEM_ID}.${HOTBAR_ENDS_FLAG}`]: true });
+		expect(update).toHaveBeenLastCalledWith({ [flagKey(HOTBAR_ORDER_FLAG)]: true, [flagKey(HOTBAR_ENDS_FLAG)]: true, [flagKey(HOTBAR_ATTACK_FLAG)]: true });
 		expect(setFlag).not.toHaveBeenCalled();
 	});
 
 	it("moves a GM ordered the old way's Import PDF and End the Session to the end, once", async () => {
-		const { update, setFlag } = installWorld({ ordered: true, ended: false, hotbar: { 1: "gmToolkitMacro", 2: "rulebookMacro", 3: "endSessionMacro", 4: "newSiteMacro", 5: "luckRollMacro", 10: IMPORT_MACRO_ID } });
+		const { update, setFlag } = installWorld({ ordered: true, ended: false, attacked: true, hotbar: { 1: "gmToolkitMacro", 2: "rulebookMacro", 3: "endSessionMacro", 4: "newSiteMacro", 5: "luckRollMacro", 10: IMPORT_MACRO_ID } });
 		await ensureHotbarOrder();
 		expect(update).toHaveBeenCalledWith(
 			{ hotbar: { 1: "gmToolkitMacro", 2: "rulebookMacro", 3: "newSiteMacro", 4: "luckRollMacro", 9: IMPORT_MACRO_ID, 10: "endSessionMacro" } },
@@ -93,15 +96,43 @@ describe("ensureHotbarOrder", () => {
 	});
 
 	it("brings the Rulebook up to the second slot for a GM ordered when End the Session came second", async () => {
-		const { update } = installWorld({ ordered: true, ended: false, hotbar: { 1: "gmToolkitMacro", 2: "endSessionMacro", 3: "rulebookMacro", 7: "mine" } });
+		const { update } = installWorld({ ordered: true, ended: false, attacked: true, hotbar: { 1: "gmToolkitMacro", 2: "endSessionMacro", 3: "rulebookMacro", 7: "mine" } });
 		await ensureHotbarOrder();
 		expect(update.mock.calls[0][0].hotbar).toEqual({ 1: "gmToolkitMacro", 2: "rulebookMacro", 3: "mine", 9: IMPORT_MACRO_ID, 10: "endSessionMacro" });
 	});
 
-	it("gives a player the Luck Roll in the first slot", async () => {
-		const { update } = installWorld({ isGM: false, hotbar: { 1: "mine", 2: "luckRollMacro" } });
+	it("gives a player the Attack in the first slot and the Luck Roll in the last", async () => {
+		const { update } = installWorld({ isGM: false, hotbar: { 1: "luckRollMacro", 2: "attackMacro", 3: "mine" } });
 		await ensureHotbarOrder();
-		expect(update.mock.calls[0][0].hotbar).toEqual({ 1: "luckRollMacro", 2: "mine" });
+		expect(update.mock.calls[0][0].hotbar).toEqual({ 1: "attackMacro", 2: "placesMacro", 3: "timelineMacro", 4: "mine", 10: "luckRollMacro" });
+		expect(update).toHaveBeenLastCalledWith({ [flagKey(HOTBAR_ORDER_FLAG)]: true, [flagKey(HOTBAR_ATTACK_FLAG)]: true });
+	});
+
+	it("orders a player ordered before there was an Attack again, once, moving only what is on their bar", async () => {
+		const { update } = installWorld({ isGM: false, ordered: true, hotbar: { 1: "luckRollMacro", 2: "timelineMacro", 3: "mine", 4: "attackMacro" } });
+		await ensureHotbarOrder();
+		// Places, taken off the bar, stays off it.
+		expect(update.mock.calls[0][0].hotbar).toEqual({ 1: "attackMacro", 2: "timelineMacro", 3: "mine", 10: "luckRollMacro" });
+		expect(update).toHaveBeenLastCalledWith({ [flagKey(HOTBAR_ORDER_FLAG)]: true, [flagKey(HOTBAR_ATTACK_FLAG)]: true });
+	});
+
+	it("orders a GM ordered before there was an Attack again, once, ends and all", async () => {
+		const { update, setFlag } = installWorld({ ordered: true, ended: false, hotbar: { 1: "gmToolkitMacro", 2: "endSessionMacro", 3: "rulebookMacro", 4: "newSiteMacro", 5: "luckRollMacro", 6: "attackMacro", 10: IMPORT_MACRO_ID } });
+		await ensureHotbarOrder();
+		expect(update.mock.calls[0][0].hotbar).toEqual({
+			1: "gmToolkitMacro", 2: "rulebookMacro", 3: "newSiteMacro", 4: "luckRollMacro", 5: "attackMacro", 9: IMPORT_MACRO_ID, 10: "endSessionMacro"
+		});
+		expect(update).toHaveBeenLastCalledWith({ [flagKey(HOTBAR_ORDER_FLAG)]: true, [flagKey(HOTBAR_ENDS_FLAG)]: true, [flagKey(HOTBAR_ATTACK_FLAG)]: true });
+		expect(setFlag).not.toHaveBeenCalled();
+	});
+
+	it("waits for an Attack the player can run before ordering them again", async () => {
+		for (const attack of [null, systemMacro("attackMacro", "attackMacro", false)]) {
+			const macros = [systemMacro("luckRollMacro", "luckRollMacro"), attack].filter(Boolean);
+			const { update } = installWorld({ isGM: false, ordered: true, macros, hotbar: { 1: "luckRollMacro" } });
+			await ensureHotbarOrder();
+			expect(update).not.toHaveBeenCalled();
+		}
 	});
 
 	it("leaves a macro that isn't wanted now off a user's bar until it is", async () => {
@@ -113,7 +144,7 @@ describe("ensureHotbarOrder", () => {
 		expect(game.user.assignHotbarMacro).not.toHaveBeenCalled();
 		expect(setFlag).not.toHaveBeenCalled();
 		await ensureHotbarOrder();
-		expect(update.mock.calls[0][0].hotbar).toEqual({ 1: "luckRollMacro", 2: "placesMacro" });
+		expect(update.mock.calls[0][0].hotbar).toEqual({ 1: "attackMacro", 2: "placesMacro" });
 
 		shown = true;
 		await ensure();
@@ -122,7 +153,7 @@ describe("ensureHotbarOrder", () => {
 	});
 
 	it("waits for the macros to exist, and orders a user only once", async () => {
-		for (const options of [{ isGM: false, macros: [] }, { ordered: true }]) {
+		for (const options of [{ isGM: false, macros: [] }, { ordered: true, attacked: true }, { isGM: false, ordered: true, attacked: true }]) {
 			const { update, setFlag } = installWorld(options);
 			await ensureHotbarOrder();
 			expect(update).not.toHaveBeenCalled();

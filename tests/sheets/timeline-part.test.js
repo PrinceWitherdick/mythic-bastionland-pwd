@@ -127,6 +127,9 @@ describe("a Squire dropped on a Knight", () => {
 		const sheetSource = read("module/sheets/KnightSheet.js");
 		const start = sheetSource.indexOf("async _onDropActor(");
 		const body = sheetSource.slice(start, sheetSource.indexOf("\n\t}\n", start));
-		expect(body).toMatch(/"system\.squire": actor\.uuid[\s\S]*timelineSquireTaken\(this\.actor, actor\)/);
+		expect(body).toMatch(/claimSquire\(this\.actor, actor\)/);
+		const actions = read("module/actions/squires.js");
+		const claim = actions.slice(actions.indexOf("export async function claimSquire("));
+		expect(claim).toMatch(/"system\.squire": squire\.uuid[\s\S]*timelineSquireTaken\(knight, squire\)/);
 	});
 });

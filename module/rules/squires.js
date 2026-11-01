@@ -79,6 +79,23 @@ export const companySize = (knights) => new Set(knights.filter((knight) => !knig
 export const mayTakeSquires = (knights) => knights <= SQUIRE_COMPANY_LIMIT;
 
 /**
+ * Whether somebody a Knight's sheet names as their Squire still is one: not
+ * Knighted since, not serving another Knight, and, unless the dead count too,
+ * not Slain. A link only one side could write, such as a player Knighting a
+ * Squire whose old Knight they don't own, is left behind; this reads past it.
+ * @param {{isSquire?: boolean, slain?: boolean, serves?: string}|null|undefined} squire An actor's system data, or
+ *   one actor as rules/fallen.js reads them.
+ * @param {string} knightUuid The Knight whose Squire they're named.
+ * @param {object} [options]
+ * @param {boolean} [options.living=true] Whether a Slain Squire is left out.
+ * @returns {boolean}
+ */
+export function stillServes(squire, knightUuid, { living = true } = {}) {
+	if (!squire?.isSquire || (living && squire.slain)) return false;
+	return !squire.serves || squire.serves === knightUuid;
+}
+
+/**
  * @param {number} before Knights in the Company before a change.
  * @param {number} after  Knights in the Company after it.
  * @returns {boolean} Whether the change took the Company past the size that may keep Squires.

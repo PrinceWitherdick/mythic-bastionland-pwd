@@ -1,5 +1,5 @@
 import { postCard, t } from "../chat/cards.js";
-import { appendRecap, normalizeSessionEnd, sessionRecap, timeStep } from "../rules/session-end.js";
+import { appendRecap, normalizeSessionEnd, sessionRecap, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
@@ -80,25 +80,34 @@ async function keepRecap(key, heading, recap) {
 }
 
 /**
+ * What became of the situations left unresolved, as the card lists them.
+ * @param {{name: string, d6: number, result: string}[]} situations
+ * @returns {object|null} An entry for a report card, or null where none was rolled for.
+ */
+function situationsEntry(situations = []) {
+	const rolled = situations.filter((situation) => situation.result);
+	if (!rolled.length) return null;
+	return {
+		name: t("sessionEnd.card.unresolved"),
+		lines: rolled.map((situation) => t("sessionEnd.card.situation", {
+			situation: situation.name?.trim() || t("sessionEnd.situations.unnamed"),
+			d6: situation.d6,
+			result: t(`refereeRolls.tables.unresolved.results.${situation.result}`)
+		}))
+	};
+}
+
+/**
  * The lines the card lists under each heading, left out where there's nothing
  * to say. Kept apart from the posting so it can be read on its own.
  * @param {object} session As endTheSession takes it.
  * @param {string} passed What the time that passed reads as.
+ * @param {object|null} unresolved The situations' entry, where the table is shown it.
  * @returns {object[]} Entries for a report card.
  */
-function sessionEntries({ situations = [], glory = [], plans = "" }, passed) {
+function sessionEntries({ glory = [], plans = "" }, passed, unresolved) {
 	const entries = [{ name: t("sessionEnd.card.time"), lines: [passed] }];
-	const rolled = situations.filter((situation) => situation.result);
-	if (rolled.length) {
-		entries.push({
-			name: t("sessionEnd.card.unresolved"),
-			lines: rolled.map((situation) => t("sessionEnd.card.situation", {
-				situation: situation.name?.trim() || t("sessionEnd.situations.unnamed"),
-				d6: situation.d6,
-				result: t(`refereeRolls.tables.unresolved.results.${situation.result}`)
-			}))
-		});
-	}
+	if (unresolved) entries.push(unresolved);
 	if (glory.length) entries.push({ name: t("sessionEnd.card.glory"), lines: glory });
 	if (plans.trim()) entries.push({ name: t("sessionEnd.card.plans"), lines: [plans.trim()] });
 	return entries;
@@ -114,6 +123,7 @@ function sessionEntries({ situations = [], glory = [], plans = "" }, passed) {
  * @param {string} [session.passed] How the step reads, for the card.
  * @param {{name: string, d6: number, result: string}[]} [session.situations] Unresolved situations
  *   rolled (p17), each `result` a key of that table.
+ * @param {boolean} [session.shareSituations] Whether the table's card shows them; otherwise they're told the Referee alone.
  * @param {string[]} [session.glory] Lines naming the Glory awarded this session.
  * @param {string} [session.plans] What the players plan for next session (p16).
  * @param {string} [session.recap] What the Referee wrote about the session.
@@ -123,7 +133,7 @@ function sessionEntries({ situations = [], glory = [], plans = "" }, passed) {
  */
 export async function endTheSession(session) {
 	if (!game.user.isGM) return false;
-	const { step, passed = "", recap = "", plans = "", promised = null, shareRecap = false } = session;
+	const { step, passed = "", recap = "", plans = "", promised = null, shareRecap = false, shareSituations = false } = session;
 	if (!timeStep(step)) return false;
 
 	const before = getCalendar();
@@ -135,12 +145,11 @@ export async function endTheSession(session) {
 	await keepRecap(played, t("sessionEnd.recapHeading", { when: calendarLabel(before) }), sessionRecap(recap, plans, t("sessionEnd.card.plans")));
 	await rememberPromise(promised);
 	await timelineSession(played, { recap: shareRecap ? recap : "", plans, passed });
-	await postCard(null, "report", {
-		icon: SESSION_ICON,
-		title: t("sessionEnd.title"),
-		tagline: calendarLabel(getCalendar()),
-		entries: sessionEntries(session, passed),
-		hint: t("sessionEnd.card.hint")
-	});
+	// The situations are the Referee's own, so the table hears what came of them only when the Referee says so.
+	// They change only as a Season or Age turns (p17): rolls left from a step turned away from say nothing.
+	const unresolved = turnsSeasonOrAge(step) ? situationsEntry(session.situations) : null;
+	const card = { icon: SESSION_ICON, title: t("sessionEnd.title"), tagline: calendarLabel(getCalendar()) };
+	await postCard(null, "report", { ...card, entries: sessionEntries(session, passed, shareSituations ? unresolved : null), hint: t("sessionEnd.card.hint") });
+	if (unresolved && !shareSituations) await postCard(null, "report", { ...card, entries: [unresolved], hint: t("sessionEnd.card.refereeOnly") }, { mode: "gm" });
 	return true;
 }

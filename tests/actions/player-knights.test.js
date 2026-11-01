@@ -15,7 +15,7 @@ beforeEach(() => {
 		static createDialog = original;
 	};
 	globalThis.game = {
-		user: { isGM: false },
+		user: { isGM: false, role: ROLES.GAMEMASTER },
 		settings: {
 			get: (namespace, key) => (namespace === "core" && key === "permissions" ? permissions : undefined),
 			set: vi.fn(async (_namespace, _key, value) => { permissions = value; })
@@ -48,6 +48,12 @@ describe("grantPlayerActorCreate", () => {
 		permissions = { ACTOR_CREATE: [ROLES.GAMEMASTER], FILES_BROWSE: [2, 3, 4] };
 		await grantPlayerActorCreate();
 		expect(permissions).toEqual({ ACTOR_CREATE: [1, 2, 4], FILES_BROWSE: [2, 3, 4] });
+	});
+
+	it("waits for a full Gamemaster, since an Assistant can't change permissions", async () => {
+		game.user.role = ROLES.ASSISTANT;
+		expect(await grantPlayerActorCreate()).toBe(false);
+		expect(game.settings.set).not.toHaveBeenCalled();
 	});
 
 	it("leaves a world whose players have it alone", async () => {

@@ -14,7 +14,7 @@ import { mythEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { isDie } from "../rules/book-art.js";
 import { isOwnMyth, mythWithOwn } from "../rules/own-myths.js";
-import { createRandom, randomSeed } from "../rules/random.js";
+import { freshRandom } from "../rules/random.js";
 import { placeFeature } from "../rules/realm-edits.js";
 import { remoteMythHex } from "../rules/realm-generator.js";
 import { mythRolls, mythSlots, mythWithRoll, rollFreeMyth, rollMythsAgain } from "../rules/realm-myths.js";
@@ -28,9 +28,6 @@ const OWN_GROUP = "own";
 
 /** The Myths on one d6 result of the table, one for each face of the d12. */
 const D6_RESULT_MYTHS = 12;
-
-/** A fresh source of random numbers for one press of a button. */
-const freshRandom = () => createRandom(randomSeed());
 
 /**
  * Put a Myth of the book, or one the Referee wrote, under one of the Realm's

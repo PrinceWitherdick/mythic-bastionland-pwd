@@ -1,7 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
-import { DIE_SIZES } from "../rules/attack.js";
-import { awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
+import { DIE_SIZES, HANDS } from "../rules/attack.js";
+import { armsLost, awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
 import { isDying } from "../rules/virtues.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
@@ -9,6 +9,42 @@ import { causedBy } from "./ledger.js";
 import { seenName } from "./seen-name.js";
 import { timelineScar, timelineScarSettled } from "./timeline-events.js";
 import { worldKnights } from "./knights.js";
+
+/**
+ * The d6 that said where a Scar landed, read back from the place it names.
+ * @param {{key: string, detail?: boolean}} scar The Scar table's entry.
+ * @param {string|null} location
+ * @returns {number|null}
+ */
+function detailOf(scar, location) {
+	if (!scar.detail || !location) return null;
+	const found = [1, 2, 3, 4, 5, 6].find((roll) => t(`scars.${scar.key}.detail.${roll}`) === location);
+	return found ?? null;
+}
+
+/**
+ * A Scar item's system data with its detail filled in where it was recorded
+ * before Scars kept one, read from the place in its name, as "Mutilation (Sword Arm)".
+ * @param {Item} item A Scar item.
+ * @returns {object}
+ */
+function withDetail(item) {
+	const system = item.system ?? {};
+	if (system.detail || system.roll !== 10) return system;
+	const place = /\(([^)]+)\)\s*$/.exec(item.name ?? "")?.[1] ?? null;
+	return { ...system, detail: detailOf(scarForRoll(10), place) };
+}
+
+/**
+ * How many hands somebody has to fight with: two, less any arm a Mutilation
+ * has taken that they haven't yet learned to get by without (p9).
+ * @param {Actor} actor
+ * @returns {number}
+ */
+export function handsLeft(actor) {
+	const scars = [...(actor.items ?? [])].filter((item) => item.type === "scar").map(withDetail);
+	return Math.max(0, HANDS - armsLost(scars));
+}
 
 /**
  * Re-roll the die that caused a Scar and read the Scar table (p9). When the
@@ -20,6 +56,8 @@ import { worldKnights } from "./knights.js";
  * @param {object} [options]
  * @param {number} [options.faces=6] The die that dealt the Scar, selected in the dialog.
  * @param {string} [options.by] Actor UUID of whoever dealt the blow, when an Attack card knows.
+ * @returns {Promise<{roll: number, key: string, location: string|null, faces: number, apply: boolean}|null>} The
+ *   Scar's table entry, where it landed, the die rolled and whether it was recorded, or null if the dialog was closed.
  */
 export async function rollScar(actor, { faces: caused, by } = {}) {
 	const preset = DIE_SIZES.includes(caused) ? caused : 6;
@@ -37,17 +75,41 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 
 	const scarRoll = await new Roll(`1d${faces}`).evaluate();
 	const scar = scarForRoll(scarRoll.total);
-	const text = (part) => t(`scars.${scar.key}.${part}`);
 	const rolls = [scarRoll];
-	const lines = [];
-	const update = {};
 
 	let location = null;
+	let detail = null;
 	if (scar.detail) {
 		const detailRoll = await new Roll("1d6").evaluate();
 		rolls.push(detailRoll);
-		location = t(`scars.${scar.key}.detail.${detailRoll.total}`);
+		detail = detailRoll.total;
+		location = t(`scars.${scar.key}.detail.${detail}`);
 	}
+	await giveScar(actor, { scar, location, detail, faces, by, apply, rolls });
+	return { ...scar, location, detail, faces, apply };
+}
+
+/**
+ * Give somebody a Scar already rolled: its Virtue Loss and any GD it raises
+ * straight away are rolled for them, it's recorded on them, and a card says
+ * so. Rolled for one and given to another too, as a Scar some Knights give
+ * back to whoever dealt it (p116).
+ * @param {Actor} actor
+ * @param {object} scarred
+ * @param {object} scarred.scar          The Scar table's entry, from scarForRoll.
+ * @param {string|null} [scarred.location] Where it landed, for one that says.
+ * @param {number|null} [scarred.detail] The d6 that said where, read back from the location when not given.
+ * @param {number} scarred.faces         The die that dealt it, for the card.
+ * @param {string} [scarred.by]          Actor UUID of whoever dealt it, owed revenge for a Humiliation.
+ * @param {boolean} [scarred.apply=true] Recorded on them, and its losses taken, or only shown.
+ * @param {Roll[]} [scarred.rolls]       Rolls made for it already, shown on its card.
+ * @returns {Promise<void>}
+ */
+export async function giveScar(actor, { scar, location = null, detail = null, faces, by, apply = true, rolls: rolled = [] }) {
+	const text = (part) => t(`scars.${scar.key}.${part}`);
+	const rolls = [...rolled];
+	const lines = [];
+	const update = {};
 
 	if (scar.loss) {
 		const { virtue, formula } = scar.loss;
@@ -79,6 +141,7 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 			name: location ? `${name} (${location})` : name,
 			system: {
 				roll: scar.roll,
+				detail: detail ?? detailOf(scar, location),
 				// Doom lasts the Season it was taken in.
 				season: seasonKey(getCalendar()),
 				foe: foe?.uuid ?? "",
@@ -100,8 +163,6 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 			lines
 		}, { rolls })
 	]);
-
-	return scar;
 }
 
 /**
@@ -201,7 +262,8 @@ export async function resolveScar(actor, item) {
 /**
  * Somebody brought down may be a Knight's revenge (p9). Each Knight whose
  * Humiliation names them gets a card asking whether it is, and its button
- * settles the Scar. Whether it counts is the table's to say, so nothing
+ * settles the Scar. The card is posted for all to see, whatever mode the
+ * poster rolls in, since its button is for the Knight's player. Whether it counts is the table's to say, so nothing
  * settles by itself.
  * @param {Actor} foe Whoever was just Mortally Wounded, Slain or routed.
  * @returns {Promise<ChatMessage[]>}
@@ -216,7 +278,7 @@ export async function offerRevenge(foe) {
 			tagline: t("revenge.tagline", { name: knight.name, scar: item.name }),
 			text: t("revenge.text", { foe: foe.name, name: knight.name }),
 			uuid: item.uuid
-		}));
+		}, { mode: "public" }));
 	}
 	return cards;
 }

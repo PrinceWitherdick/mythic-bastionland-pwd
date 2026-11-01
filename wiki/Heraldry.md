@@ -1,6 +1,6 @@
 # Heraldry
 
-Every Knight and Squire has a shield in the top right of their sheet, and you paint its arms yourself in the heraldry painter: paint by hand, divide the field, place charges from a gallery of over two hundred public-domain drawings, roll random arms, or drop in a picture of your own. The finished shield shows on the sheet and as a small badge on the Knight's Token.
+Every Knight and Squire has a shield in the top right of their sheet, and you paint its arms yourself in the heraldry painter: paint by hand, divide the field, place charges from a gallery of over two hundred public-domain drawings, roll random arms, or drop in a picture of your own. The finished shield shows on the sheet and as a small badge on the Knight's Token, and flies over any Holding their Domain rules on the Realm map.
 
 ## Opening the painter
 

@@ -27,12 +27,41 @@ export const WARBAND_CAST = Object.freeze({
 });
 
 /**
+ * Cast whose stat block says they fight on through a Mortal Wound: the
+ * Rotting Corpse. By Myth roll, a fingerprint of each one's name before the
+ * comma, as WARBAND_CAST keeps them.
+ */
+export const FIGHTS_ON_CAST = Object.freeze({
+	"1-10": Object.freeze([[14, "1hb5azn54ak1"]])
+});
+
+/**
  * @param {string} key Which Cast: the Myth's roll, or `CITY_CAST`.
  * @param {string} name Their name before the comma, as castActor names them.
  * @param {Record<string, [number, string][]>} [list]
  * @returns {boolean} Whether the book fields them only as a Warband.
  */
 export function fieldedAsWarband(key, name, list = WARBAND_CAST) {
+	return printedIn(list, key, name);
+}
+
+/**
+ * @param {string} key Which Cast: the Myth's roll, or `CITY_CAST`.
+ * @param {string} name Their name before the comma, as castActor names them.
+ * @param {Record<string, [number, string][]>} [list]
+ * @returns {boolean} Whether the book has them fight on through a Mortal Wound.
+ */
+export function fightsOnByBook(key, name, list = FIGHTS_ON_CAST) {
+	return printedIn(list, key, name);
+}
+
+/**
+ * @param {Record<string, [number, string][]>} list Fingerprints of names, by Cast.
+ * @param {string} key Which Cast.
+ * @param {string} name
+ * @returns {boolean} Whether the name is one of that Cast's in the list.
+ */
+function printedIn(list, key, name) {
 	const prints = list[key];
 	if (!prints?.length) return false;
 	const [length, hash] = fingerprint(name);
@@ -68,6 +97,7 @@ export function castActor(entry, { key, name: castName, page, img = null, note =
 	const block = { name: printed, stats: entry.stats ?? null, lines: entry.lines ?? [] };
 	const { type, name, system, items } = actorFromStatBlock(block, { attackName: words.attackName });
 	if (type === "npc" && fieldedAsWarband(key, name)) system.scale = "warband";
+	if (type === "npc" && fightsOnByBook(key, name)) system.fightsOn = true;
 	return {
 		name: name || printed,
 		type,
@@ -158,11 +188,11 @@ export function eitherUpdates(items, printed) {
 
 /**
  * What a Cast member brought into the world before the book's word on it was
- * kept is still owed: a swarm's or a Warband's scale, and the note on the
- * whole Cast at the foot of their notes. A scale or a note the GM has set
- * already stays.
- * @param {{type: string, system: {scale?: string, notes?: string}}} actor
- * @param {{system?: {scale?: string}}} printed As its stat block gives it.
+ * kept is still owed: a swarm's or a Warband's scale, fighting on through a
+ * Mortal Wound, and the note on the whole Cast at the foot of their notes. A
+ * scale or a note the GM has set already stays.
+ * @param {{type: string, system: {scale?: string, notes?: string, fightsOn?: boolean}}} actor
+ * @param {{system?: {scale?: string, fightsOn?: boolean}}} printed As its stat block gives it.
  * @param {string|null} [note] What the book says about the whole Cast.
  * @returns {object|null} An actor update, or null when nothing is owed.
  */
@@ -170,6 +200,7 @@ export function castDetailUpdates(actor, printed, note = null) {
 	const update = {};
 	const scale = printed.system?.scale;
 	if (actor.type === "npc" && actor.system.scale === "individual" && (scale === "swarm" || scale === "warband")) update["system.scale"] = scale;
+	if (actor.type === "npc" && printed.system?.fightsOn && !actor.system.fightsOn) update["system.fightsOn"] = true;
 	const notes = String(actor.system.notes ?? "");
 	if (note?.trim() && !notes.includes(escapeHTML(note))) update["system.notes"] = notes + paragraphs(note);
 	return Object.keys(update).length ? update : null;

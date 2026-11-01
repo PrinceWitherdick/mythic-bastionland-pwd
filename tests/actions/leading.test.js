@@ -4,7 +4,7 @@ vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-up
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
 
 const { registerLeadingHooks } = await import("../../module/actions/leading.js");
-const { leaderCandidates } = await import("../../module/actions/leading.js");
+const { leaderCandidates, letGoOf } = await import("../../module/actions/leading.js");
 
 /** The hooks registered, by name. */
 let hooks;
@@ -87,5 +87,47 @@ describe("who may lead from the front", () => {
 			delete globalThis.canvas;
 			delete globalThis.fromUuidSync;
 		}
+	});
+
+	it("leaves out anybody already leading another Warband, but not this one's own leader (p11)", () => {
+		const person = (uuid) => ({ uuid, system: { virtues: {} } });
+		const kay = person("Actor.kay");
+		const gawain = person("Actor.gawain");
+		const militia = { uuid: "Actor.militia", system: { scale: "warband", leader: "Actor.kay" } };
+		const riders = { uuid: "Actor.riders", system: { scale: "warband", leader: "Actor.gawain" } };
+		// An unlinked Token's copy of the Warband being led names its leader too.
+		const ownCopy = { uuid: "Scene.s.Token.t.Actor.militia", isToken: true, token: { baseActor: militia }, system: { scale: "warband", leader: "Actor.kay" } };
+		game.actors = [militia, riders];
+		globalThis.canvas = { tokens: { controlled: [{ actor: kay }, { actor: gawain }] }, scene: { tokens: [{ actor: ownCopy }] } };
+		globalThis.fromUuidSync = (uuid) => (uuid === "Actor.kay" ? kay : null);
+		game.user = { character: null };
+		try {
+			expect(leaderCandidates(militia).map(({ uuid }) => uuid)).toEqual(["Actor.kay"]);
+		} finally {
+			delete globalThis.canvas;
+			delete globalThis.fromUuidSync;
+		}
+	});
+});
+
+describe("letGoOf", () => {
+	it("frees every Warband a leader led as they go down for good, unlinked Tokens' and fights' too (p8, p11)", async () => {
+		const led = { ...warband("Actor.militia", "Actor.kay"), isOwner: true };
+		const other = { ...warband("Actor.riders", "Actor.gawain"), isOwner: true };
+		const token = { ...warband("Scene.s.Token.t.Actor.militia", "Actor.kay"), isOwner: true };
+		game.actors = [led, other];
+		game.combats = [{ combatants: collection({ actor: token }) }];
+		await letGoOf({ uuid: "Actor.kay" });
+		expect(led.update).toHaveBeenCalledWith({ "system.leader": "" }, undefined);
+		expect(token.update).toHaveBeenCalledWith({ "system.leader": "" }, undefined);
+		expect(other.update).not.toHaveBeenCalled();
+		delete game.combats;
+	});
+
+	it("leaves a Warband this user can't change", async () => {
+		const theirs = { ...warband("Actor.militia", "Actor.kay"), isOwner: false };
+		game.actors = [theirs];
+		await letGoOf({ uuid: "Actor.kay" });
+		expect(theirs.update).not.toHaveBeenCalled();
 	});
 });

@@ -3,6 +3,8 @@ import {
 	DEFAULT_START,
 	STANDARD_KIT,
 	STARTS,
+	bookDescription,
+	bookListUpdate,
 	knightItems,
 	knightTypeFromName,
 	knightTypeTakenBy,
@@ -268,9 +270,34 @@ describe("knightItems", () => {
 		]);
 	});
 
+	it("lists the choices an Ability ends on", () => {
+		const choosing = { ...lantern, ability: { name: "Snuff Out", text: "Pick one, once per day:", list: ["Douse <a lamp>", "Light one"] } };
+		const ability = knightItems(choosing, kitNames).find((item) => item.type === "ability");
+		expect(ability.system).toMatchObject({
+			description: "<p>Pick one, once per day:</p><ul><li>Douse &lt;a lamp&gt;</li><li>Light one</li></ul>",
+			quantity: { value: 1, max: 1 },
+			restock: "day"
+		});
+	});
+
 	it("still gives the kit without the Knight's text", () => {
 		expect(knightItems(null, kitNames)).toHaveLength(STANDARD_KIT.length);
 		expect(knightItems({ ...lantern, property: null, ability: null, passion: null }, kitNames)).toHaveLength(STANDARD_KIT.length);
+	});
+});
+
+describe("bookListUpdate", () => {
+	const part = { name: "Snuff Out", text: "Pick one:", list: ["Douse", "Light"] };
+	const items = (description) => [{ id: "a1", type: "ability", name: "Snuff Out", system: { description } }];
+
+	it("gives a description an older import stopped at the colon its list", () => {
+		expect(bookListUpdate(items("<p>Pick one:</p>"), "ability", part)).toEqual({ _id: "a1", "system.description": bookDescription(part) });
+	});
+
+	it("keeps a description written over by hand, or with nothing to add", () => {
+		expect(bookListUpdate(items("<p>Pick one: my own note</p>"), "ability", part)).toBeNull();
+		expect(bookListUpdate(items("<p>Pick one:</p>"), "ability", { ...part, list: [] })).toBeNull();
+		expect(bookListUpdate(items("<p>Pick one:</p>"), "passion", part)).toBeNull();
 	});
 });
 

@@ -89,6 +89,8 @@ Before writing anything, the import checks that the PDF has 212 pages and that t
 
 Run any of the ways in again at any time, for a new edition or after something went wrong. Pictures are replaced, the compendiums are refilled, and only what is missing is added to the world's folders.
 
+Run it again after a system update that reads more of the book. Version 0.9.8, for one, reads six Seers' bulleted lists rightly, which a world imported before it has wrong until it imports again.
+
 ## A new world on the same server
 
 The copy every world keeps is saved at the same place, `mythic-bastionland-art/mythic-bastionland.pdf`. When a world with no book loads and finds that file already there, kept by another world:

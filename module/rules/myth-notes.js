@@ -18,6 +18,8 @@ export const MYTH_NOTES_VERSION = 1;
  * @property {string} note  In the GM's own words.
  * @property {boolean} resolved
  * @property {Record<string, string[]>} [scenes] The Scenes linked to its Omens, keyed by Omen number; left out when none is.
+ * @property {string[]} [glory] The Actors given Glory for resolving it, so it can be taken back if the Myth
+ *   is unresolved; left out when it isn't resolved, or nobody was.
  */
 
 /**
@@ -38,16 +40,38 @@ export const mythRoll = (myth) => ownMythKey(myth) ?? (isTableRoll(myth) ? rollL
 
 /**
  * @param {unknown} raw
+ * @returns {string[]} Actor ids, each once.
+ */
+const normaliseGlory = (raw) => (Array.isArray(raw) ? [...new Set(raw.filter((id) => typeof id === "string" && id))] : []);
+
+/**
+ * A Myth's note as it's kept: its Scenes and Glory only where there are some.
+ * @param {{roll: string, note: string, resolved: boolean, scenes: import("./omen-scenes.js").OmenScenes, glory: string[]}} parts
+ * @returns {MythNote}
+ */
+const keptNote = ({ roll, note, resolved, scenes, glory }) => ({
+	roll,
+	note,
+	resolved,
+	...(anyOmenScene(scenes) ? { scenes: omenScenesByNumber(scenes) } : {}),
+	...(glory.length ? { glory } : {})
+});
+
+/**
+ * @param {unknown} raw
  * @returns {MythNote|null} Null for one that says nothing.
  */
 function normaliseNote(raw) {
 	if (!raw || typeof raw !== "object") return null;
-	const roll = typeof raw.roll === "string" ? raw.roll : "";
-	const note = typeof raw.note === "string" ? raw.note.trim() : "";
 	const resolved = raw.resolved === true;
-	const scenes = normaliseOmenScenes(raw.scenes);
-	if (anyOmenScene(scenes)) return { roll, note, resolved, scenes: omenScenesByNumber(scenes) };
-	return note || resolved ? { roll, note, resolved } : null;
+	const kept = keptNote({
+		roll: typeof raw.roll === "string" ? raw.roll : "",
+		note: typeof raw.note === "string" ? raw.note.trim() : "",
+		resolved,
+		scenes: normaliseOmenScenes(raw.scenes),
+		glory: resolved ? normaliseGlory(raw.glory) : []
+	});
+	return kept.note || resolved || kept.scenes ? kept : null;
 }
 
 /**
@@ -98,6 +122,17 @@ export function mythNoteFor(notes, myth) {
 export const mythScenesFor = (notes, myth) => normaliseOmenScenes(keptFor(notes, myth)?.scenes);
 
 /**
+ * Who was given Glory for resolving a Myth, while it's still resolved.
+ * @param {MythNotes} notes
+ * @param {{number: number, d6: number, d12: number}} myth
+ * @returns {string[]} Actor ids.
+ */
+export function mythGloryFor(notes, myth) {
+	const kept = keptFor(notes, myth);
+	return kept?.resolved ? normaliseGlory(kept.glory) : [];
+}
+
+/**
  * The Realm as the Myths still at work in it see it: a resolved Myth shows no
  * more Omens, and nobody tells of it, until another takes its place next Season (p27).
  * @template {{myths: object[]}} R
@@ -113,24 +148,29 @@ export function withoutResolved(realm, notes) {
 /**
  * @param {MythNotes} notes
  * @param {{number: number, d6: number, d12: number}} myth
- * @param {{note?: string, resolved?: boolean, scenes?: import("./omen-scenes.js").OmenScenes}} changes
+ * @param {{note?: string, resolved?: boolean, scenes?: import("./omen-scenes.js").OmenScenes, glory?: string[]}} changes
  * @returns {MythNotes} Unchanged when nothing would change. A Myth left with
- *   nothing written, not resolved and no Scene linked is forgotten.
+ *   nothing written, not resolved and no Scene linked is forgotten. Unresolving
+ *   a Myth forgets who was given Glory for it.
  */
 export function withMythNote(notes, myth, changes) {
 	const current = mythNoteFor(notes, myth);
 	const scenes = changes.scenes ? normaliseOmenScenes(changes.scenes) : mythScenesFor(notes, myth);
-	const next = {
+	const resolved = typeof changes.resolved === "boolean" ? changes.resolved : current.resolved;
+	const glory = !resolved ? [] : changes.glory ? normaliseGlory(changes.glory) : mythGloryFor(notes, myth);
+	const next = keptNote({
 		roll: mythRoll(myth),
 		note: typeof changes.note === "string" ? changes.note.trim() : current.note,
-		resolved: typeof changes.resolved === "boolean" ? changes.resolved : current.resolved,
-		...(anyOmenScene(scenes) ? { scenes: omenScenesByNumber(scenes) } : {})
-	};
+		resolved,
+		scenes,
+		glory
+	});
 	const key = String(myth.number);
 	const kept = notes.myths[key] ?? null;
 	const keep = Boolean(next.note || next.resolved || next.scenes);
 	const same = kept && kept.roll === next.roll && kept.note === next.note && kept.resolved === next.resolved
-		&& JSON.stringify(kept.scenes ?? null) === JSON.stringify(next.scenes ?? null);
+		&& JSON.stringify(kept.scenes ?? null) === JSON.stringify(next.scenes ?? null)
+		&& JSON.stringify(kept.glory ?? null) === JSON.stringify(next.glory ?? null);
 	if (keep && same) return notes;
 	if (!keep && !kept) return notes;
 	const myths = { ...notes.myths };

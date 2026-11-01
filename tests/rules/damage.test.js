@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyDoom, armourAgainst, resolveDamage } from "../../module/rules/damage.js";
+import { applyDoom, armourAgainst, downingOutcome, resolveDamage } from "../../module/rules/damage.js";
 
 describe("applyDoom", () => {
 	it("turns a Mortal Wound into Slain", () => {
@@ -105,5 +105,23 @@ describe("resolveDamage", () => {
 
 	it("never Slays with non-lethal Damage, even at VIG 0", () => {
 		expect(resolveDamage({ damage: 5, guard: 3, vigour: 0, nonLethal: true }).outcome).toBe("spared");
+	});
+});
+
+describe("downingOutcome", () => {
+	it("takes the Slain and the Mortally Wounded out of the fight, and nothing short of that", () => {
+		expect(downingOutcome("slain")).toBe(true);
+		expect(downingOutcome("mortal")).toBe(true);
+		for (const outcome of ["unharmed", "none", "evaded", "scar", "spared", "wounded", "broken", "warded"]) expect(downingOutcome(outcome)).toBe(false);
+	});
+
+	it("takes out a creature that counts as a structure once destroyed, but counts no ship or wall (p11)", () => {
+		expect(downingOutcome("destroyed")).toBe(true);
+		expect(downingOutcome("destroyed", { character: false })).toBe(false);
+	});
+
+	it("leaves one of the Cast that fights on through a Mortal Wound standing", () => {
+		expect(downingOutcome("mortal", { fightsOn: true })).toBe(false);
+		expect(downingOutcome("slain", { fightsOn: true })).toBe(true);
 	});
 });

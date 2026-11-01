@@ -182,6 +182,36 @@ describe("gatherFolklore", () => {
 		expect(myth.where).toMatch(/, as near as they can say\.$/);
 	});
 
+	it("gives a Myth the teller can't place only its way, never how many Hexes off (p19)", async () => {
+		// Myth 4 lies six Hexes from (6,6), the nearest from where the Vassal is asked.
+		realm = realmWith({ myths: [{ number: 4, hex: hex(2, 2) }] });
+		answer = { source: "vassal" };
+		await gatherFolklore({ scene: { id: "scene" } });
+		const [myth] = lastCard().myths;
+		expect(myth.where).toMatch(/^Off to the [A-Za-z-]+, as near as they can say\.$/);
+		expect(myth.where).not.toMatch(/\d|Hex/);
+	});
+
+	it("rolls which of several Landmarks as near as each other a roamer knows", async () => {
+		// Both three Hexes from (6,6).
+		realm = realmWith({ landmarks: [{ type: "dwelling", hex: hex(6, 9) }, { type: "ruin", hex: hex(9, 6) }] });
+		globalThis.Roll = class {
+			constructor(formula) {
+				this.formula = formula;
+				this.total = 2;
+			}
+
+			async evaluate() {
+				return this;
+			}
+		};
+		answer = { source: "roamer" };
+		await gatherFolklore({ scene: { id: "scene" } });
+		const card = lastCard();
+		expect(card.landmarks.map((landmark) => landmark.type)).toEqual([lookup("bastionland.realm.landmarks.ruin")]);
+		expect(ChatMessage.implementation.create.mock.lastCall[0].rolls).toEqual([expect.objectContaining({ formula: "1d2" })]);
+	});
+
 	it("whispers the card to the Referee", async () => {
 		answer = { source: "vassal" };
 		await gatherFolklore({ scene: { id: "scene" } });
@@ -335,11 +365,12 @@ describe("searchTheHex", () => {
 		expect(rollLabelledSave.mock.calls.at(-1)[3]).toEqual({ rolled: 17 });
 	});
 
-	it("says so when nobody was chosen to roll", async () => {
-		answer = { aim: "known", who: "nobody", virtue: "cla", what: "", phase: false };
-		await searchTheHex({ scene: { id: "scene" } });
+	it("says so when nobody was chosen to roll, and doesn't spend the Phase on a search never made", async () => {
+		answer = { aim: "known", who: "nobody", virtue: "cla", what: "", phase: true };
+		expect(await searchTheHex({ scene: { id: "scene" } })).toBeNull();
 		expect(rollLabelledSave).not.toHaveBeenCalled();
 		expect(ui.notifications.warn).toHaveBeenCalledWith(lookup("bastionland.explore.search.noOne"));
+		expect(phases).toBe(0);
 	});
 
 	it("offers the Company's own Knights and the book's Virtue guidance", async () => {

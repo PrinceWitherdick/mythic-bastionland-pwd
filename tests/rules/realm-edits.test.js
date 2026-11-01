@@ -119,10 +119,10 @@ describe("placeFeature", () => {
 			expect(seats(rival)).toEqual([{ hex: hex(2, 2), disputed: true }, { hex: hex(10, 3), disputed: true }]);
 		});
 
-		it("keeps both crowns, unmarked, while the rules for setup are ignored", () => {
+		it("moves the crown even while the rules for setup are ignored: only a disputed claim keeps two (p14, p202)", () => {
 			const realm = { ...sampleRealm(), setup: { ignoreRules: true } };
 			const rival = placeFeature(realm, g, hex(10, 3), { kind: "holding", style: "town", seat: true });
-			expect(seats(rival)).toEqual([{ hex: hex(2, 2), disputed: false }, { hex: hex(10, 3), disputed: false }]);
+			expect(seats(rival)).toEqual([{ hex: hex(10, 3), disputed: false }]);
 			expect(validateRealm(rival, g).filter((problem) => problem.reason === "seat")).toEqual([]);
 		});
 

@@ -28,12 +28,17 @@ export function rolesWith(permissions, key) {
 		?? Array.fromRange(CONST.USER_ROLES.GAMEMASTER + 1).slice(CONST.USER_PERMISSIONS[key].defaultRole);
 }
 
-/** Add Players and Trusted Players to those who may create actors. */
+/**
+ * Add Players and Trusted Players to those who may create actors.
+ * @returns {Promise<false|void>} False while only an Assistant is on, so the step waits for a full Gamemaster.
+ */
 export async function grantPlayerActorCreate() {
-	const { PLAYER, TRUSTED } = CONST.USER_ROLES;
+	const { PLAYER, TRUSTED, GAMEMASTER } = CONST.USER_ROLES;
 	const permissions = foundry.utils.deepClone(game.settings.get("core", "permissions") ?? {});
 	const roles = rolesWith(permissions, "ACTOR_CREATE");
 	if (roles.includes(PLAYER) && roles.includes(TRUSTED)) return;
+	// Core lets only a full Gamemaster change permissions, and an Assistant can be the active GM.
+	if (game.user.role !== GAMEMASTER) return false;
 	permissions.ACTOR_CREATE = [...new Set([...roles, PLAYER, TRUSTED])].sort((a, b) => a - b);
 	await game.settings.set("core", "permissions", permissions);
 }

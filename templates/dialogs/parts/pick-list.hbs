@@ -1,7 +1,7 @@
 {{!-- Choose one of a list, or a blank one, valued PICK_BLANK (rules/pick-list.js): name, legend, choices ({id, name, detail}), blankLabel, blankDetail.
-      Without blankLabel there's no blank one to choose. --}}
+      Without blankLabel there's no blank one to choose. full: a list that never grows long stands at full length rather than scrolling. --}}
 {{#if choices.length}}
-<fieldset class="bastionland-choice-list">
+<fieldset class="bastionland-choice-list{{#if full}} bastionland-choice-list--full{{/if}}">
 	<legend>{{legend}}</legend>
 	{{#each choices}}
 	<label class="bastionland-check">

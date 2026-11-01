@@ -1,3 +1,4 @@
+import { promptDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { templatePath } from "../system-id.js";
 
@@ -18,11 +19,5 @@ export async function showImportReport({ title, icon, counts, indexPath, unnamed
 		unnamed,
 		problems
 	});
-	await foundry.applications.api.DialogV2.prompt({
-		window: { title, icon },
-		classes: ["bastionland-dialog"],
-		content,
-		ok: { label: t("bookArt.report.close"), icon: "fa-solid fa-check" },
-		rejectClose: false
-	});
+	await promptDialog({ title, icon, content, ok: { label: t("bookArt.report.close"), icon: "fa-solid fa-check" } });
 }

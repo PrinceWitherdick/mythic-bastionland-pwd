@@ -20,6 +20,18 @@ const OWNER = "company";
 /** @returns {boolean} Whether the GM is carrying the Company about the map. */
 export const isPlacingCompany = () => takingMapClick(OWNER);
 
+/** @returns {Promise<void>} Once the GM has put the Company down, or given up carrying it: at once if they aren't. */
+export function companyPlacementDone() {
+	if (!isPlacingCompany()) return Promise.resolve();
+	return new Promise((resolve) => {
+		const id = Hooks.on(COMPANY_PLACING_HOOK, () => {
+			if (isPlacingCompany()) return;
+			Hooks.off(COMPANY_PLACING_HOOK, id);
+			resolve();
+		});
+	});
+}
+
 /**
  * Draw the Company over a hex, ringed.
  * @param {object} g

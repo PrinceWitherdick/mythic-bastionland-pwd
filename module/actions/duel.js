@@ -1,15 +1,14 @@
 import { inputDialog } from "../apps/ui.js";
 import { attackOf } from "../chat/attack-flag.js";
 import { postCard, statefulCard, t, warn } from "../chat/cards.js";
-import { DUEL_KINDS, awaitsAttack, canStakeGlory, changeDuel, createDuel, opponentOf, readyToResolve } from "../rules/duel.js";
+import { DUEL_KINDS, awaitsAttack, canStakeGlory, changeDuel, createDuel, duelRefusal, opponentOf, readyToResolve } from "../rules/duel.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { queryAsker } from "../compat.js";
 
 /**
  * Duels & Jousts (p10). A duel card follows two duelists through each
  * exchange: both roll their Attack as normal, then the two are resolved
- * together. Only a message's author and GMs can update it, so a duelist who
- * doesn't own the card asks the active GM to record their Attack.
+ * together. With a GM here, the active GM records every change, the card's
+ * author's too, so two made at once are both kept.
  */
 
 export const DUEL_QUERY = `${SYSTEM_ID}.changeDuel`;
@@ -94,25 +93,20 @@ export function openDuelFor(actor) {
 }
 
 /**
- * The active GM records a change for a player. An Attack must be the
- * player's own duelist's, on a card that duelist rolled for this duel, and
- * anything else needs them to own both duelists, since they have already
- * applied its Damage or Glory.
- * @param {{messageId: string, change: object}} data
- * @param {{user: User}} context
- * @returns {Promise<boolean>}
+ * The active GM records a change for a player. The card's author may make
+ * any change, as their own client does with no GM here. Otherwise an Attack
+ * must be the player's own duelist's, and anything else needs them to own
+ * both duelists, since they have already applied its Damage or Glory. An
+ * Attack must also be on a card that duelist rolled for this duel, which
+ * every commit checks.
+ * @type {(data: {messageId?: string, change?: object}, context: {user?: User}) => Promise<boolean>}
  */
-export async function onDuelQuery(data, context) {
-	const { messageId, change } = data;
-	const user = queryAsker(context);
-	if (!user) return false;
-	const message = game.messages.get(messageId);
-	const duel = duelOf(message);
-	if (!duel) return false;
+export const onDuelQuery = duelCard.answer((change, duel, user, { authored }) => {
+	if (authored) return change;
 	const owns = (uuid) => Boolean(fromUuidSync(uuid)?.testUserPermission(user, "OWNER"));
-	const allowed = change?.type === "attack" ? owns(change.actor) : duel.duelists.every(({ uuid }) => owns(uuid));
-	return allowed ? duelCard.commit(message, change) : false;
-}
+	const allowed = change.type === "attack" ? owns(change.actor) : duel.duelists.every(({ uuid }) => owns(uuid));
+	return allowed ? change : null;
+});
 
 /**
  * What sparring puts back once the duel ends (p188).
@@ -158,6 +152,14 @@ export async function challengeToDuel(actor) {
 	}
 	const [target] = targets;
 	const opponent = target.actor;
+	// A duel is between two combatants (p10), which no Warband or structure is.
+	for (const [who, name] of [[actor, actor.name], [opponent, target.document.name]]) {
+		const refusal = duelRefusal(who);
+		if (refusal) {
+			warn(`duel.refused.${refusal}`, { name });
+			return null;
+		}
+	}
 	const stakeable = canStakeGlory([actor, opponent].map(({ type, system }) => ({ type, isSquire: Boolean(system.isSquire) })));
 
 	const data = await inputDialog({

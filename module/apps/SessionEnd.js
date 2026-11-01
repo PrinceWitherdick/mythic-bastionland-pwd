@@ -6,7 +6,7 @@ import { endTheSession, getSessionEnd } from "../actions/session-end.js";
 import { t } from "../chat/cards.js";
 import { GLORY_BUTTONS } from "../rules/glory.js";
 import { crisisRollsDue } from "../rules/season-log.js";
-import { calendarTurn, offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
+import { offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { timelineShown } from "./timeline-ui.js";
 
@@ -71,6 +71,9 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** Whether the recap goes on the Timeline too, which everyone reads, as well as in the Season's notes. */
 	#shareRecap = true;
 
+	/** Whether the table's card tells what became of the situations, which are the Referee's own until they say. */
+	#shareSituations = false;
+
 	/** Why a step is offered before one is picked: "promised", or null. */
 	#offered = null;
 
@@ -115,6 +118,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				...situation,
 				text: situation.result ? t(`refereeRolls.tables.unresolved.results.${situation.result}`) : null
 			})),
+			shareSituations: this.#shareSituations,
 			awards: GLORY_BUTTONS.map((key) => ({
 				key,
 				label: t(`glory.awards.${key}.label`),
@@ -139,6 +143,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 		root.querySelector("[name=plans]")?.addEventListener("input", (event) => { this.#plans = event.target.value; });
 		root.querySelector("[name=recap]")?.addEventListener("input", (event) => { this.#recap = event.target.value; });
 		root.querySelector("[name=shareRecap]")?.addEventListener("change", (event) => { this.#shareRecap = event.target.checked; });
+		root.querySelector("[name=shareSituations]")?.addEventListener("change", (event) => { this.#shareSituations = event.target.checked; });
 		root.querySelector(".bastionland-session-end__situations")?.addEventListener("input", (event) => {
 			if (!event.target.matches("[name=situation]")) return;
 			const row = this.#row(event.target);
@@ -181,7 +186,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	static async #onRollPassage() {
 		const rolled = await rollRefereeTable("passage");
 		if (!rolled) return;
-		const { step, promised } = passageStep(rolled.result, calendarTurn(getCalendar().season));
+		const { step, promised } = passageStep(rolled.result);
 		this.#passage = { d6: rolled.d6, result: rolled.result };
 		this.#step = step;
 		this.#promised = promised;
@@ -199,7 +204,8 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	static async #onRollSituation(_event, target) {
 		const situation = this.#row(target);
 		if (!situation) return;
-		const rolled = await rollRefereeTable("unresolved");
+		// The situations are the Referee's own until they tick to share them.
+		const rolled = await rollRefereeTable("unresolved", this.#shareSituations ? {} : { mode: "gm" });
 		if (!rolled) return;
 		situation.d6 = rolled.d6;
 		situation.result = rolled.result;
@@ -249,6 +255,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				step: this.#step,
 				passed: t(`sessionEnd.time.steps.${this.#step}.card`),
 				situations: this.#situations.filter((situation) => situation.result),
+				shareSituations: this.#shareSituations,
 				glory: this.#glory.map(({ key, names }) => t("sessionEnd.glory.awarded", { award: t(`glory.awards.${key}.label`), names })),
 				plans: this.#plans,
 				recap: this.#recap,

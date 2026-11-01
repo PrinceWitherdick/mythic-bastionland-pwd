@@ -100,6 +100,17 @@ describe("a shieldwall on the map", () => {
 		const wall = shieldwallAround(at("Ada", 0, 0, null), [at("Bryn", 1, 0, "buckler"), at("Cal", 2, 0)], SIZE);
 		expect(wall).toEqual({ count: 3, formed: false, unshielded: ["Ada", "Bryn"] });
 	});
+
+	it("leaves an unshielded ally beside the wall out of it, rather than breaking it", () => {
+		const wall = shieldwallAround(at("Ada", 0, 0), [at("Bryn", 1, 0), at("Cal", 2, 0), at("Archer", 0, 1, null)], SIZE);
+		expect(wall).toEqual({ count: 3, formed: true, unshielded: [] });
+	});
+
+	it("doesn't join shield-bearers through somebody without one", () => {
+		// Ada and Bryn, then an archer, then Cal and Dag: two walls of two.
+		const wall = shieldwallAround(at("Ada", 0, 0), [at("Bryn", 1, 0), at("Archer", 2, 0, null), at("Cal", 3, 0), at("Dag", 4, 0)], SIZE);
+		expect(wall).toEqual({ count: 2, formed: false, unshielded: [] });
+	});
 });
 
 describe("a Trapped shield", () => {

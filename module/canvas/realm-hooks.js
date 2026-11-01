@@ -8,17 +8,15 @@ import {
 	isDrawingRealm,
 	isRealmScene,
 	realmWritesSettled,
-	sceneGeometry,
 	syncRealmScene
 } from "../actions/realm.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
-import { realmSceneChanges } from "../actions/scene-changes.js";
+import { realmSceneChanges, shownHexFlag } from "../actions/scene-changes.js";
 import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
-import { forcedMove } from "../actions/company.js";
-import { JOURNEY_FLAG, movesAsCompany } from "../actions/journey.js";
+import { JOURNEY_FLAG } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
@@ -30,56 +28,17 @@ import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
 import { refreshHexEditor } from "../apps/HexEditor.js";
 import { refreshPlaces, registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
 import { registerVisitedMarksMenu } from "../apps/VisitedMarks.js";
-import { t } from "../chat/cards.js";
-import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { registerTurnedBackQuery, reportTurnedBack } from "./barrier-found.js";
+import { registerTurnedBackQuery } from "./barrier-found.js";
+import { allowRealmMove } from "./realm-move.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
+import { drawHoldingArms, drawHoldingArmsSoon, registerHoldingArmsHooks } from "./holding-arms.js";
 import { registerTravelsClick } from "./travels-click.js";
 import { refreshTravelsButtons } from "./travels-controls.js";
 import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.js";
-
-/**
- * Refuse a Token's move across a Barrier (p18) or off the edge of a Realm. It
- * runs on the mover's own client before the move is sent. A GM with Foundry's
- * Unconstrained Movement on, which lets Tokens through walls, passes Barriers
- * too, as does a move the Company didn't choose, such as a blind drift: it
- * goes where the rules put it.
- * @param {TokenDocument} token
- * @param {object} movement The pending movement from `preMoveToken`.
- * @param {object} [operation] The update that moves it.
- * @returns {boolean} False to refuse the move.
- */
-function allowRealmMove(token, movement, operation) {
-	const scene = token?.parent;
-	if (!isRealmScene(scene) || movement?.constrainOptions?.ignoreWalls || forcedMove(operation)) return true;
-	const entry = getRealm(scene);
-	if (!entry) return true;
-
-	const waypoints = [movement.origin, ...(movement.passed?.waypoints ?? []), ...(movement.pending?.waypoints ?? [])].filter(Boolean);
-	const points = waypoints.map((waypoint) => token.getCenterPoint(waypoint));
-	const g = sceneGeometry(scene);
-	const barriers = new Set(entry.realm.barriers.map((barrier) => barrier.edge));
-	const problem = movePathProblem(g, barriers, points);
-	if (!problem) return true;
-
-	ui.notifications.warn(t(`realm.movement.${problem.reason}`));
-	// A hidden Barrier found by walking into it isn't hidden any more, and the
-	// Company's attempt wastes the Phase.
-	if (problem.reason === "barrier") {
-		const hidden = new Set(entry.realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
-		reportTurnedBack(scene, {
-			edges: barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)),
-			from: problem.from,
-			to: problem.to,
-			company: movesAsCompany(token)
-		});
-	}
-	return false;
-}
 
 /**
  * Scenes whose Realm changed since the palette, Places, readout and highlight
@@ -122,6 +81,8 @@ function showChanges() {
 			// and where it has been, which only its Journey changes.
 			if (kind === "realm" || flags.has(SIGHTED_FLAG)) drawSightedMarks();
 			if (kind === "realm" || flags.has(JOURNEY_FLAG)) drawVisitedMarks();
+			// The arms each Holding flies, which a Holding moved, hidden, faded, renamed or granted changes.
+			if (kind === "realm") drawHoldingArmsSoon();
 		}
 	}
 	changedScenes.clear();
@@ -187,6 +148,8 @@ export function registerRealmHooks() {
 
 	// The hexes the Company has been to, marked on the map for whoever wants them shown.
 	registerVisitedMarksSetting();
+	// The arms each Holding flies, kept in step with the Domains and Knights.
+	registerHoldingArmsHooks();
 	// Which mark, and in what colour, chosen in a window of its own.
 	registerVisitedMarksMenu();
 	// A double-click on a hex opens the Company's places with it chosen.
@@ -226,10 +189,12 @@ export function registerRealmHooks() {
 	Hooks.on("updateScene", (scene, changes) => {
 		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
 		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").
-		const { realm, system, hexFlags } = realmSceneChanges(changes);
+		const { realm, system, hexFlags: written } = realmSceneChanges(changes);
 		if (!isRealmScene(scene) && !system) return;
 		// Most writes are what's kept for its hexes -- the Company's visits, a hex's notes or name --
 		// which leave the Realm as it was read, and the weather, which no Realm window shows.
+		// Those nothing shows, such as the moves kept for Undo, draw nothing again.
+		const hexFlags = new Set([...written].filter(shownHexFlag));
 		if (realm) realmChanged(scene.id);
 		else if (hexFlags.size) showLater(scene.id, hexFlags.has(HEX_NAMES_FLAG) ? "names" : "hex", hexFlags);
 		if (foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`)) Hooks.callAll(REALM_LOOK_HOOK, scene.id);
@@ -269,6 +234,7 @@ export function registerRealmHooks() {
 		attachHexReadout();
 		drawSightedMarks();
 		drawVisitedMarks();
+		drawHoldingArms();
 		// Their show-or-hide and the Places window, beside the sidebar.
 		refreshTravelsButtons();
 		showRealmRules();

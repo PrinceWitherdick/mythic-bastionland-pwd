@@ -91,7 +91,8 @@ export async function squareKnightTokens() {
 	try {
 		const index = await loadArtIndex();
 		if (!index) return;
-		await useSquareTokens(await cutMissingTokens(index));
+		// An Assistant may lack the right to upload; the tokens already cut are still used.
+		await useSquareTokens(game.user.can("FILES_UPLOAD") ? await cutMissingTokens(index) : index);
 	} catch (error) {
 		console.error(`${SYSTEM_ID} | Couldn't give Knights their square tokens`, error);
 	}

@@ -187,16 +187,22 @@ function endsLine(line, next) {
  * sentence or a closed parenthesis, or the next starts a capitalised item after
  * a word a line could end on. A bullet always starts a new line.
  * @param {string[]} lines As printed, top to bottom.
+ * @param {object} [options]
+ * @param {boolean} [options.bulleted] Whether every line after the first bullet belongs to a bullet, so only
+ *   another bullet starts a new one, as a Seer's traits are printed: a bullet may hold two sentences.
  * @returns {string[]}
  */
-export function logicalLines(lines) {
+export function logicalLines(lines, { bulleted = false } = {}) {
 	const result = [];
+	let inBullet = false;
 	for (const printed of lines) {
 		const bullet = BULLET.test(printed);
 		const line = String(printed).replace(BULLET, "").replace(/\s+/g, " ").trim();
 		if (!line) continue;
 		const current = result.at(-1);
-		if (current === undefined || bullet || endsLine(current, line)) result.push(line);
+		const carriesOn = bulleted && inBullet && !bullet;
+		inBullet ||= bullet;
+		if (current === undefined || bullet || (!carriesOn && endsLine(current, line))) result.push(line);
 		else result[result.length - 1] = joinLines(current, line);
 	}
 	return result;

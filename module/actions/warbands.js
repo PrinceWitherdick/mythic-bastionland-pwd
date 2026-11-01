@@ -19,6 +19,7 @@ import {
 import { SYSTEM_ID } from "../system-id.js";
 import { causedBy } from "./ledger.js";
 import { timelineDismissed, timelineMustered } from "./timeline-events.js";
+import { MUSTERED_FLAG, madeOwnership, shareMade } from "./belonging.js";
 
 /**
  * Raising soldiers and keeping them (p11). A Holding musters its Warbands
@@ -28,8 +29,8 @@ import { timelineDismissed, timelineMustered } from "./timeline-events.js";
  * rolled and told to the table.
  */
 
-/** Marks a Warband as one a Domain has raised. Kept as its id, as companions are. */
-export const MUSTERED_FLAG = "musteredBy";
+/** Marks a Warband as one a Domain has raised: kept in belonging.js, beside who may see it. */
+export { MUSTERED_FLAG };
 
 /** Where a Warband was drawn from, kept so the sheet and cards can say. */
 export const ORIGIN_FLAG = "warbandOrigin";
@@ -44,15 +45,30 @@ export const warbandsOf = (domain) =>
 	(domain?.id ? game.actors.filter((actor) => actor.type === "npc" && actor.getFlag(SYSTEM_ID, MUSTERED_FLAG) === domain.id) : []);
 
 /**
- * What a Domain's sheet shows of its Warbands: how many it has against how
- * many it can raise, and a line for each.
+ * @param {Actor} warband
+ * @returns {boolean} Whether they're gone for good: wiped out at VIG 0 (p11), or Slain.
+ */
+const isWipedOut = (warband) => Boolean(warband.system?.warband?.wipedOut || warband.system?.slain);
+
+/**
  * @param {Actor} domain
- * @returns {{state: ReturnType<typeof musterState>, lines: object[]}}
+ * @returns {number} How many of its Warbands count against what it can raise: a wiped-out one doesn't.
+ */
+const standingCount = (domain) => warbandsOf(domain).filter((actor) => !isWipedOut(actor)).length;
+
+/**
+ * What a Domain's sheet shows of its Warbands: how many it has against how
+ * many it can raise, and a line for each. A wiped-out Warband keeps its line,
+ * greyed, till it's disbanded, but no longer counts against the muster.
+ * @param {Actor} domain
+ * @returns {{state: ReturnType<typeof musterState>, lines: object[], lost: number}}
  */
 export function musterView(domain) {
 	const warbands = warbandsOf(domain);
+	const lost = warbands.filter(isWipedOut).length;
 	return {
-		state: musterState(warbands.length, domain.system.muster),
+		state: musterState(warbands.length - lost, domain.system.muster),
+		lost,
 		lines: warbands.map((actor) => {
 			const line = warbandLine({ name: actor.name, spi: actor.system.virtues.spi.value, warband: actor.system.warband });
 			const origin = actor.getFlag(SYSTEM_ID, ORIGIN_FLAG);
@@ -61,8 +77,10 @@ export function musterView(domain) {
 				uuid: actor.uuid,
 				img: actor.img,
 				name: line.name,
+				gone: isWipedOut(actor),
 				spi: t("warband.spiritLine", { spi: line.spi, abbr: t(`virtues.${UPKEEP_VIRTUE}.abbr`) }),
-				state: line.state ? t(`npc.warband.${line.state}.label`) : null,
+				// A Slain Warband with VIG left still reads as wiped out.
+				state: isWipedOut(actor) ? t("npc.warband.wipedOut.label") : line.state ? t(`npc.warband.${line.state}.label`) : null,
 				origin: isOrigin(origin) ? t(`warband.origins.${origin}.label`) : null
 			};
 		})
@@ -128,7 +146,7 @@ export async function musterWarband(domain) {
 	}
 
 	// Only the tally is wanted here, not a line for every Warband the sheet would draw.
-	const state = musterState(warbandsOf(domain).length, domain.system.muster);
+	const state = musterState(standingCount(domain), domain.system.muster);
 	if (state.full && !(await confirmDialog({
 		title: t("warband.muster.title"),
 		icon: "fa-solid fa-flag",
@@ -149,11 +167,13 @@ export async function musterWarband(domain) {
 			...data.flags,
 			[SYSTEM_ID]: { ...data.flags?.[SYSTEM_ID], [MUSTERED_FLAG]: domain.id, [ORIGIN_FLAG]: choice.origin }
 		},
-		// Players who can see the Domain can see its Warbands. Only a GM may hand ownership to others.
-		...(game.user.isGM ? { ownership: foundry.utils.deepClone(domain.ownership) } : {})
+		// Players who can see the Domain can see its Warbands. Only a GM may hand ownership to others,
+		// so a player asks the Referee to once it's made.
+		...madeOwnership(domain)
 	});
 	if (!warband) return null;
 	await Promise.all([
+		shareMade([warband], domain),
 		timelineMustered(domain, warband, t(`warband.origins.${choice.origin}.label`)),
 		postCard(domain, "report", {
 			title: t("warband.muster.title"),

@@ -31,6 +31,8 @@ vi.mock("../../module/actions/company.js", () => ({ setCompanyHex: vi.fn() }));
 vi.mock("../../module/actions/hex-names.js", () => ({ hexLabel: ({ col, row }) => `${col},${row}` }));
 vi.mock("../../module/actions/journey.js", () => ({
 	COMPANY_MOVED_HOOK: "moved",
+	COMPANY_MOVES_FLAG: "companyMoves",
+	COMPANY_MOVE_UNDONE_HOOK: "undone",
 	forgetMoveVisits: vi.fn(async () => true),
 	heldBack: () => ({ move: heldMove, hexes: new Set(heldKeys), keys: solo ? new Set(heldKeys) : new Set() }),
 	setHeldBack: vi.fn(async (_scene, hexes, { move = null } = {}) => {
@@ -51,6 +53,8 @@ vi.mock("../../module/actions/myth-notes.js", async () => {
 vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }), isRealmScene: (scene) => Boolean(scene?.realm) }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn(), weatherIn: () => weather }));
 vi.mock("../../module/actions/steeds.js", () => ({ gallop: vi.fn() }));
+// The Phase's end is time.js's to test: here only that it's asked, and what it answers.
+vi.mock("../../module/actions/time.js", () => ({ advancePhase: vi.fn(async () => ({ phase: "afternoon" })) }));
 vi.mock("../../module/actions/wilderness.js", () => ({ markOmenOnEntering: vi.fn(), wildernessRoll: vi.fn() }));
 // What solo play finds in the hexes reached is solo.js's to work out; here only which hexes it's asked about.
 let solo = false;
@@ -59,7 +63,8 @@ vi.mock("../../module/actions/solo.js", async () => {
 	return { revealMythsReached: vi.fn(async () => []), realmKnown: (realm) => (solo ? soloRealm(realm) : realm), secretsKeptOn: () => solo };
 });
 
-const { noticeArrival } = await import("../../module/actions/arrivals.js");
+const { noticeArrival, takeBackMove } = await import("../../module/actions/arrivals.js");
+const { advancePhase } = await import("../../module/actions/time.js");
 const { postCard, registerCardButtons } = await import("../../module/chat/cards.js");
 const { setCompanyHex } = await import("../../module/actions/company.js");
 const { markOmenOnEntering, wildernessRoll } = await import("../../module/actions/wilderness.js");
@@ -70,7 +75,26 @@ const { rollFirstArrival } = await import("../../module/actions/hex-lore.js");
 const { welcomeHome } = await import("../../module/actions/homecoming.js");
 const { revealSighted } = await import("../../module/actions/sighted.js");
 
-const scene = { id: "realm", realm: true };
+/**
+ * A Realm's Scene, keeping its flags as a Scene does. Made again from what it
+ * keeps, it's the Scene after a reload, which remembers only its flags.
+ * @param {string} id
+ * @param {object} [flags]
+ */
+const realmScene = (id, flags = {}) => ({
+	id,
+	realm: true,
+	flags,
+	getFlag: (scope, key) => (scope === SYSTEM_ID ? flags[key] : undefined),
+	setFlag: vi.fn(async (_scope, key, value) => {
+		flags[key] = structuredClone(value);
+	}),
+	unsetFlag: vi.fn(async (_scope, key) => {
+		delete flags[key];
+	})
+});
+
+const scene = realmScene("realm");
 
 /** What the card posted last says, and the buttons it carries. */
 const lastCard = () => vi.mocked(postCard).mock.calls.at(-1)?.[2] ?? null;
@@ -103,18 +127,25 @@ describe("companyPace", () => {
 });
 
 describe("noticeArrival", () => {
-	it("says nothing of a single hex's Trek into the wilds", async () => {
-		expect(await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) })).toBeNull();
+	it("offers the Phase's end after a single hex's Trek into the wilds, which takes the whole Phase (p18)", async () => {
+		expect(await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) })).not.toBeNull();
+		expect(lastCard().lines).toEqual(["arrival.travelled"]);
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["endPhase"]);
+	});
+
+	it("offers no Phase's end for a move that hasn't stopped in a new hex", async () => {
+		expect(await noticeArrival(scene, { entered: [hex(5, 5)], ended: false, from: hex(5, 4) })).toBeNull();
 	});
 
 	it("offers a Myth's next Omen on entering its hex (p27), but not a resolved Myth's", async () => {
 		await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-		expect(lastCard().actions.map(({ key }) => key)).toEqual(["omen"]);
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["omen", "endPhase"]);
 
 		notes = { version: 1, myths: { 1: { roll: "1-01", note: "", resolved: true } } };
 		vi.mocked(postCard).mockClear();
 		calendar.phase = "afternoon";
-		expect(await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) })).toBeNull();
+		await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["endPhase"]);
 	});
 
 	it("tells a Referee playing alone of a Myth's hex only once it's found", async () => {
@@ -135,23 +166,28 @@ describe("noticeArrival", () => {
 	it("calls a second hex in a Phase a Gallop, once, and a fresh Phase a Trek again", async () => {
 		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
 		await noticeArrival(scene, { entered: [hex(5, 6)], ended: true, from: hex(5, 5) });
-		expect(lastCard().actions.map(({ key }) => key)).toEqual(["gallop"]);
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["gallop", "endPhase"]);
 		await noticeArrival(scene, { entered: [hex(5, 7)], ended: true, from: hex(5, 6) });
-		expect(lastCard().lines).toEqual(["arrival.cruise"]);
+		expect(lastCard().lines).toEqual(["arrival.travelled", "arrival.cruise"]);
 
 		vi.mocked(postCard).mockClear();
 		calendar.phase = "afternoon";
-		expect(await noticeArrival(scene, { entered: [hex(5, 8)], ended: true, from: hex(5, 7) })).toBeNull();
+		await noticeArrival(scene, { entered: [hex(5, 8)], ended: true, from: hex(5, 7) });
+		expect(lastCard().lines).toEqual(["arrival.travelled"]);
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["endPhase"]);
 	});
 
-	it("keeps the Company in its hex in dire weather, and gauges a Holding's mood on arriving (p18)", async () => {
+	it("gauges a Holding's mood on arriving (p18)", async () => {
+		await noticeArrival(scene, { entered: [hex(2, 2)], ended: true, from: hex(2, 3) });
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["mood", "endPhase"]);
+	});
+
+	it("keeps the Company in its hex in dire weather, with no mood for a Holding it may not have reached", async () => {
 		weather = "dire";
 		await noticeArrival(scene, { entered: [hex(2, 2)], ended: true, from: hex(2, 3) });
-		expect(lastCard().actions).toEqual([
-			expect.objectContaining({ key: "stay", hex: "2,3" }),
-			expect.objectContaining({ key: "mood" })
-		]);
+		expect(lastCard().actions).toEqual([expect.objectContaining({ key: "stay", hex: "2,3" })]);
 	});
+
 
 	it("leaves a move the Company didn't choose alone", async () => {
 		weather = "dire";
@@ -178,18 +214,19 @@ describe("a move followed", () => {
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
 		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
 		expect(lastCard().target).toEqual(hex(2, 2));
-		expect(lastCard().actions.map(({ key }) => key)).toEqual(["mood"]);
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["mood", "endPhase"]);
 	});
 
 	/**
 	 * Press one of the last arrival card's buttons.
 	 * @param {string} key
 	 * @param {string} [at] The hex it carries.
+	 * @param {object} [on] The Scene it speaks of.
 	 */
-	const press = (key, at) => {
+	const press = (key, at, on = scene) => {
 		const { handler } = vi.mocked(registerCardButtons).mock.calls.at(-1)[0];
 		const [, , , { flags }] = vi.mocked(postCard).mock.calls.at(-1);
-		game.scenes = { get: () => scene };
+		game.scenes = { get: () => on };
 		return handler({ dataset: { arrival: key, arrivalHex: at } }, { flags });
 	};
 
@@ -204,7 +241,106 @@ describe("a move followed", () => {
 
 		weather = null;
 		vi.mocked(postCard).mockClear();
-		expect(await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) })).toBeNull();
+		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
+		expect(lastCard().actions.map(({ key }) => key)).toEqual(["endPhase"]);
+	});
+
+	it("ends the Phase the Company travelled in, asked as spent travelling (p18)", async () => {
+		vi.mocked(advancePhase).mockClear();
+		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
+		expect(await press("endPhase")).toBe(true);
+		expect(advancePhase).toHaveBeenCalledWith({ scene, mode: "travel" });
+
+		// Closed without ending it, the button stays to press again.
+		vi.mocked(advancePhase).mockResolvedValueOnce(null);
+		expect(await press("endPhase")).toBe(false);
+	});
+
+	it("ends nothing from a card whose Phase is over already", async () => {
+		vi.mocked(advancePhase).mockClear();
+		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
+		calendar.phase = "afternoon";
+		expect(await press("endPhase")).toBe(true);
+		expect(advancePhase).not.toHaveBeenCalled();
+		expect(ui.notifications.info).toHaveBeenCalledWith("arrival.phaseGone");
+	});
+
+	it("takes a move back with Undo: its visits and its hexes of the Phase's pace are forgotten", async () => {
+		const scene = realmScene("undo1");
+		follow(scene, { entered: [hex(5, 5), hex(5, 6)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 4, "5,6": 5 }) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		expect(settings.get("companyPace").count).toBe(2);
+		vi.mocked(forgetMoveVisits).mockClear();
+
+		// Put back anywhere but where it set off, it isn't this move that was taken back.
+		expect(await takeBackMove(scene, hex(5, 5))).toBe(false);
+		expect(await takeBackMove(scene, hex(5, 4))).toBe(true);
+		expect(forgetMoveVisits).toHaveBeenCalledWith(scene, [hex(5, 5), hex(5, 6)], { "5,5": 4, "5,6": 5 });
+		expect(settings.get("companyPace").count).toBe(0);
+		// Taken back once only.
+		expect(await takeBackMove(scene, hex(5, 4))).toBe(false);
+	});
+
+	it("takes moves back with Undo the last first", async () => {
+		const scene = realmScene("undo2");
+		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 1 }) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(1));
+		follow(scene, { entered: [hex(5, 6)], ended: true, from: hex(5, 5), orders: Promise.resolve({ "5,6": 2 }) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2));
+		vi.mocked(forgetMoveVisits).mockClear();
+		expect(await takeBackMove(scene, hex(5, 5))).toBe(true);
+		expect(forgetMoveVisits).toHaveBeenLastCalledWith(scene, [hex(5, 6)], { "5,6": 2 });
+		expect(await takeBackMove(scene, hex(5, 4))).toBe(true);
+		expect(forgetMoveVisits).toHaveBeenLastCalledWith(scene, [hex(5, 5)], { "5,5": 1 });
+	});
+
+	it("keeps the moves for Undo on the Scene, so a reload or another Referee can still take one back", async () => {
+		const scene = realmScene("undo4");
+		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 7 }), movements: ["tokMove1"] });
+		await vi.waitFor(() => expect(scene.setFlag).toHaveBeenCalled());
+		vi.mocked(forgetMoveVisits).mockClear();
+
+		// Nothing but the Scene's flags is left of the move after a reload.
+		const reloaded = realmScene("undo4", structuredClone(scene.flags));
+		expect(await takeBackMove(reloaded, hex(5, 4), "tokMove1")).toBe(true);
+		expect(forgetMoveVisits).toHaveBeenCalledWith(reloaded, [hex(5, 5)], { "5,5": 7 });
+		expect(settings.get("companyPace").count).toBe(0);
+		expect(reloaded.flags.companyMoves).toBeUndefined();
+	});
+
+	it("takes back the move an Undo names, though another set off from the same hex since", async () => {
+		const scene = realmScene("undo5");
+		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 1 }), movements: ["first"] });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(1));
+		calendar.phase = "afternoon";
+		follow(scene, { entered: [hex(5, 3)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,3": 2 }), movements: ["second"] });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2));
+		vi.mocked(forgetMoveVisits).mockClear();
+
+		// Another Knight's Undo of the same move, or one of a move never kept, takes back nothing.
+		expect(await takeBackMove(scene, hex(5, 4), "unkept")).toBe(false);
+		expect(await takeBackMove(scene, hex(5, 4), "first")).toBe(true);
+		expect(forgetMoveVisits).toHaveBeenLastCalledWith(scene, [hex(5, 5)], { "5,5": 1 });
+		expect(await takeBackMove(scene, hex(5, 4), "first")).toBe(false);
+		expect(await takeBackMove(scene, hex(5, 4), "second")).toBe(true);
+		expect(forgetMoveVisits).toHaveBeenLastCalledWith(scene, [hex(5, 3)], { "5,3": 2 });
+	});
+
+	it("has Undo settle a move dire weather was holding back, and leaves one Stay sent back to Stay", async () => {
+		const scene = realmScene("undo3");
+		weather = "dire";
+		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 3 }) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		expect(heldMove).toBe("move1");
+		expect(await takeBackMove(scene, hex(5, 4))).toBe(true);
+		expect(heldMove).toBeNull();
+
+		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 6 }) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2));
+		await press("stay", "5,4", scene);
+		vi.mocked(forgetMoveVisits).mockClear();
+		expect(await takeBackMove(scene, hex(5, 4))).toBe(false);
+		expect(forgetMoveVisits).not.toHaveBeenCalled();
 	});
 
 	it("keeps an Omen shown on entering for the Phase the Company came in, though pressed later (p27)", async () => {
@@ -258,6 +394,19 @@ describe("a move followed", () => {
 			expect(rollFirstArrival).toHaveBeenCalledWith({ scene, hex: hex(8, 6) });
 			expect(welcomeHome).toHaveBeenCalledWith(scene, [hex(8, 6)]);
 			expect(lastCard().actions).toEqual([expect.objectContaining({ key: "omen", hex: "8,6" })]);
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("gauges the mood of a Holding dire weather let the Company on into, played alone", async () => {
+		solo = true;
+		try {
+			weather = "dire";
+			await noticeArrival(scene, { entered: [hex(2, 2)], ended: true, from: hex(2, 3) });
+			expect(lastCard().actions.map(({ key }) => key)).toEqual(["stay", "onward"]);
+			await press("onward");
+			expect(lastCard().actions.map(({ key }) => key)).toEqual(["mood"]);
 		} finally {
 			solo = false;
 		}

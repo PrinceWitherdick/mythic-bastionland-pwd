@@ -1,5 +1,6 @@
 import { VIRTUES, VIRTUE_MAX } from "../rules/virtues.js";
 import { AFFLICTION_TIMES } from "../rules/afflictions.js";
+import { MORALE_BREAKS } from "../rules/morale.js";
 
 const fields = foundry.data.fields;
 
@@ -40,6 +41,11 @@ export function htmlField() {
 /** A box that starts unticked. */
 export function booleanField() {
 	return new fields.BooleanField({ initial: false });
+}
+
+/** How a Morale break took this one out of the fight, blank while it holds. */
+export function moraleBrokenField() {
+	return new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...MORALE_BREAKS] });
 }
 
 /**

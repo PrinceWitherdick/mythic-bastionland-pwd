@@ -222,7 +222,8 @@
 .bastionland-timeline-window .window-content,
 .bastionland-hex-editor-window .window-content,
 .bastionland-realm-panel-window .window-content,
-.bastionland-portrait-frame-window .window-content {
+.bastionland-portrait-frame-window .window-content,
+.bastionland-knight-table-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
@@ -3142,10 +3143,11 @@ a.button:focus:not(:focus-visible) {
 	font-size: 1.15rem;
 }
 
-/* Seize by Force sits alone at the foot of the Domain page, under a hairline. */
+/* Pass On and Seize by Force sit side by side at the foot of the Domain page, under a hairline. */
 .bastionland-domain__footer {
 	display: flex;
 	justify-content: center;
+	gap: 0.75rem;
 	margin-top: 1rem;
 	padding: 0.75rem 0 0.5rem;
 	border-top: 1px solid var(--bastionland-rule);
@@ -3188,9 +3190,25 @@ a.button:focus:not(:focus-visible) {
 	margin-bottom: 0.3rem;
 }
 
-/* Each Knight unworthy of their post is named under the Lordship's fields, apart from them and from each other. */
-.bastionland-domain__unworthy {
-	margin-top: 0.5rem;
+/* The Landmarks in the Domain's lands, one to a line under the sentence that leads into them. */
+.bastionland-domain__landmarks {
+	padding-left: 1.2rem;
+	list-style: disc;
+}
+
+.bastionland-domain__landmarks > li {
+	margin: 0.1rem 0 0;
+}
+
+/* Each Knight unworthy of their post is named under the Lordship's fields, apart from them and from each other.
+   The section's class outranks the notice's own margin: 0, set further down. */
+.bastionland-domain__ruler .bastionland-domain__unworthy {
+	margin-top: 0.75rem;
+}
+
+/* The Muster button stands a little below the tally, or the Warband list when there is one. */
+.bastionland-domain__muster {
+	margin-top: 0.6rem;
 }
 
 /* The empty-seats notice sits under the heading, a little above the seats. */
@@ -3336,7 +3354,6 @@ a.button:focus:not(:focus-visible) {
  */
 .bastionland-warbands {
 	gap: 0.4rem;
-	margin-bottom: 0.6rem;
 }
 
 .bastionland-warband {
@@ -5534,7 +5551,8 @@ button.bastionland-dice:focus-visible {
 	margin-bottom: 0.45rem;
 }
 
-.bastionland-realm-drawing__company .form-fields input {
+.bastionland-realm-drawing__company .form-fields input,
+.bastionland-realm-drawing__company .form-fields select {
 	flex: 1;
 	width: auto;
 	min-width: 0;
@@ -8665,6 +8683,12 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	text-align: right;
 }
 
+/* Rulers' arms on Holdings: a tick under the sliders, as wide as its words so its tooltip shows over them alone. */
+.bastionland-realm-appearance__arms {
+	align-self: flex-start;
+	margin-block-start: 0.25rem;
+}
+
 .bastionland-realm-appearance__skins,
 .bastionland-realm-appearance__palettes {
 	display: grid;
@@ -9329,4 +9353,20 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-visited-marks-window .form-footer button {
 	flex: 1;
+}
+
+/* The Company's pace on Foundry's Token ruler as it's dragged on a Realm
+   (realm-token-ruler.js): a pill in the ink its stretch of the path is drawn
+   in, beside the distance, which the label sets as --pace-ink. White letters
+   on each ink, so it reads the same in Foundry's light and dark themes. */
+#measurement .waypoint-label .bastionland-ruler-pace {
+	--pill-pad: 0.35em;
+	padding: var(--pill-padding-top, 0.2em) 0.5em var(--pill-padding-bottom, 0.2em);
+	border: var(--pill-border, 1px) solid rgb(255 255 255 / 35%);
+	border-radius: 4px;
+	background: var(--pace-ink);
+	color: #fff;
+	font-size: 16px;
+	line-height: 1;
+	white-space: nowrap;
 }

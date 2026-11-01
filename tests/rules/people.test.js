@@ -35,9 +35,9 @@ describe("holdingSparkSet", () => {
 		expect(holdingSparkSet(page(9)).map(({ index, table: { name } }) => [index, name])).toEqual([[0, "T0"], [1, "T1"], [2, "T2"], [8, "T8"]]);
 	});
 
-	it("takes the first three of a page not read whole, and nothing from a page never read", () => {
-		expect(holdingSparkSet(page(5)).map(({ index }) => index)).toEqual([0, 1, 2]);
-		expect(holdingSparkSet(page(2)).map(({ index }) => index)).toEqual([0, 1]);
+	it("takes nothing from a page not read whole, or never read", () => {
+		expect(holdingSparkSet(page(5))).toEqual([]);
+		expect(holdingSparkSet(page(8))).toEqual([]);
 		expect(holdingSparkSet(null)).toEqual([]);
 		expect(holdingSparkSet({ tables: [] })).toEqual([]);
 	});
@@ -195,10 +195,11 @@ describe("hexesWithPeople", () => {
 });
 
 describe("heardOfMyth", () => {
-	it("finds the Realm's Myth by a die as big as the Realm has Myths", () => {
-		const realm = { myths: [{ number: 1 }, { number: 4 }, { number: 6 }] };
-		expect(heardOfMyth(realm, 2)).toEqual({ number: 4 });
-		expect(heardOfMyth({ myths: [] }, 1)).toBeNull();
-		expect(heardOfMyth(null, 1)).toBeNull();
+	it("takes one of the nearest Myths by a die as big as how many there are, or the only one with no die", () => {
+		const nearest = [{ number: 1 }, { number: 4 }];
+		expect(heardOfMyth(nearest, 2)).toEqual({ number: 4 });
+		expect(heardOfMyth(nearest)).toEqual({ number: 1 });
+		expect(heardOfMyth([{ number: 6 }], undefined)).toEqual({ number: 6 });
+		expect(heardOfMyth([], 1)).toBeNull();
 	});
 });

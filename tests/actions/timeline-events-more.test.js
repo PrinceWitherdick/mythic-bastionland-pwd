@@ -216,7 +216,23 @@ describe("Domains", () => {
 		const [[, resolved], [, drama]] = rows();
 		expect(resolved).toMatchObject({ source: "resolved", title: 'timeline.auto.crisisResolved {"crisis":"Famine"}' });
 		expect(resolved.key).toMatch(/^resolved:famine:2-harvest:/);
-		expect(drama).toMatchObject({ source: "drama", title: "domain.drama", body: "Scandal\nWren, Courtier\nHolds a letter" });
+		expect(drama).toMatchObject({ source: "drama", title: "domain.drama", body: "Scandal\nWren, Courtier" });
+	});
+
+	it("writes the Drama table's prompt under who was at its heart", async () => {
+		await events.timelineDrama(domain(), { said: "Scandal", who: "Wren, Courtier", prompt: "Rivalry Letters" });
+		expect(rows()[0][1]).toMatchObject({ body: "Scandal\nWren, Courtier\nRivalry Letters" });
+	});
+
+	it("writes Increased Collections with the Crisis Rolls, and the Crisis it brought", async () => {
+		await events.timelineCollections(domain(), { result: "crisis", crises: ["Famine"] });
+		expect(rows()[0][1]).toMatchObject({ source: "crisis", title: "domain.collections", body: "domain.results.collections.crisis\nFamine" });
+		expect(rows()[0][1].key).toMatch(/^collections:/);
+	});
+
+	it("tells a courtier's leverage only on a thread kept from the players (p21)", async () => {
+		await events.timelineDrama(domain({ secret: true }), { said: "Scandal", who: "Wren, Courtier", leverage: "Holds a letter" });
+		expect(rows()[0][1]).toMatchObject({ body: "Scandal\nWren, Courtier\nHolds a letter" });
 	});
 
 	it("writes a Council task settled under its own id, with the Crisis it brought", async () => {

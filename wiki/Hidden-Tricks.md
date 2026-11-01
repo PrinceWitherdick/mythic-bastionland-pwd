@@ -10,6 +10,7 @@ A cheat sheet of the things you would never find by looking: keys, things you ca
 | `6` | Referee | Opens or closes the Spark Tables, ahead of the hotbar's own `6`. [More](Macros-and-Hotkeys) |
 | `C` | Referee | Opens the Referee Toolkit, which is each Referee's character. [More](The-Referee-Toolkit) |
 | `Ctrl`+`Z`, `Ctrl`+`Y` | Referee | Undo and redo Realm edits, while the Realm tools are in use. `Ctrl`+`Shift`+`Z` also redoes. [More](Painting-and-Editing-the-Realm) |
+| `Ctrl`+`Z` | Whoever moved the Company | Takes the Company Token's last move back, forgetting its visits and pace. [More](Exploring-the-Wilderness#when-the-company-moves) |
 
 ## The Knight sheet
 

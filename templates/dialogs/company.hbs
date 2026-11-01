@@ -8,10 +8,11 @@
 				<input type="checkbox" name="include-{{index}}" {{checked included}}>
 				<span class="bastionland-check__label">{{name}}</span>
 			</label>
-			{{#if ../pursuits.length}}
+			{{!-- Each member's own pursuits: a Squire has no Succession or Legacy to choose (p7, p17). --}}
+			{{#if pursuits.length}}
 			<select name="pursuit-{{index}}" aria-label="{{localize 'bastionland.time.pursuit'}}">
 				<option value="">—</option>
-				{{#each ../pursuits}}
+				{{#each pursuits}}
 				<option value="{{key}}">{{label}}</option>
 				{{/each}}
 			</select>

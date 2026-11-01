@@ -1,8 +1,14 @@
+import { chooseActor } from "../apps/actor-pick.js";
+import { askActiveGM } from "../ask-gm.js";
+import { gmAsker } from "../gm-asker.js";
 import { playerCharacter } from "../actions/knights.js";
 import { combatantOf } from "../actions/lasting-dice.js";
-import { rollMorale } from "../actions/saves.js";
+import { letGoOf } from "../actions/leading.js";
+import { keepsMoraleMark, rollMorale } from "../actions/saves.js";
 import { offerRevenge } from "../actions/scars.js";
-import { BREAK_ICONS, GROUP_ORDER, downOf, groupHalved, isMoraleBreak, moraleRollers, skipsBrokenTurn } from "../rules/morale.js";
+import { BREAK_ICONS, GROUP_ORDER, downOf, downedPlace, groupHalved, isMoraleBreak, moraleRollers, skipsBrokenTurn } from "../rules/morale.js";
+import { keyedSerialWrites } from "../rules/queue.js";
+import { outOfFight } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { onCardClick, postCard, t, warn } from "./cards.js";
 
@@ -12,6 +18,8 @@ import { onCardClick, postCard, t, warn } from "./cards.js";
  * buttons to roll for the group the way the book describes. A failed Save's
  * card asks whether they fled or surrendered, which marks them on their sheet
  * and takes them out of the Combat's turn order until the mark is cleared.
+ * Anybody but the players' own who goes down for good is taken out of the turn
+ * order too, until healed, patched up or repaired.
  */
 
 /** Combat flag listing the Token dispositions whose groups have already been asked. */
@@ -20,39 +28,66 @@ const PROMPTED_FLAG = "moralePrompted";
 /** Marks a Combatant defeated here because their Morale broke, so clearing it can stand them up again. */
 const BROKE_FLAG = "moraleBroke";
 
+/** Marks a Combatant defeated here because they went down for good, so getting up again can stand them up. */
+const DOWN_FLAG = "downed";
+
+/** The query asking the active GM to weigh a side's Morale, for a player who brought one of it down. */
+const GROUP_MORALE_QUERY = `${SYSTEM_ID}.groupMorale`;
+
 /** Morale buttons on Damage cards, group prompts and failed Saves. */
 const MORALE_BUTTONS = "[data-morale-roll], [data-morale-group], [data-morale-break]";
 
 /**
  * @param {Actor|null} actor
- * @returns {boolean} Whether they belong in a group whose Morale can waver: anybody not the players'
- *   own who isn't a structure, the Referee's Knights among them.
+ * @returns {boolean} Whether they belong in a group whose Morale can waver: anybody with Virtues
+ *   not the players' own, the Referee's Knights and creatures that count as structures among them.
+ *   A ship or wall has no Virtues, and so no nerve to lose.
  */
-const wavers = (actor) => Boolean(actor?.system?.virtues) && !playerCharacter(actor) && !actor.system.structure;
+const wavers = (actor) => Boolean(actor?.system?.virtues) && !playerCharacter(actor);
 
 /**
  * @param {Combatant} combatant
- * @returns {{combatant: Combatant, actor: Actor, down: boolean}}
+ * @returns {{combatant: Combatant, actor: Actor, down: boolean}} Down counts a Warband broken at
+ *   SPI 0, which follows no orders (p11).
  */
 function memberOf(combatant) {
 	const { actor } = combatant;
-	return { combatant, actor, down: downOf(actor, { defeated: combatant.isDefeated }) };
+	return { combatant, actor, down: downOf(actor, { defeated: combatant.isDefeated, orders: true }) };
 }
 
 /**
  * After an NPC, or a Knight the Referee plays, goes down in combat, ask the GM for the group's Morale once half
- * of those on its side are down. Each side is asked once per combat. GMs only,
- * since only they can mark the combat.
+ * of those on its side are down. Each side is asked once per combat. Only a
+ * GM can mark the combat, so a player who brought down one of their own, such
+ * as a follower, asks the active one.
  * @param {Actor} actor Who just took Damage.
  * @returns {Promise<ChatMessage|null>}
  */
 export async function promptGroupMorale(actor) {
-	if (!game.user.isGM || !wavers(actor)) return null;
+	if (!wavers(actor)) return null;
+	if (!game.user.isGM) {
+		if (game.users.activeGM && combatantOf(actor)) await askActiveGM(GROUP_MORALE_QUERY, { uuid: actor.uuid }, `Couldn't ask the Referee about ${actor.name}'s side's Morale`);
+		return null;
+	}
 	const own = combatantOf(actor);
 	const combat = own?.parent;
 	const disposition = own?.token?.disposition;
 	if (disposition === undefined) return null;
+	// One side's weighing at a time in each Combat, so two blows at once ask only once, and neither side's mark is lost.
+	return groupMoraleWrites(combat.id)(() => askSide(combat, disposition));
+}
 
+/** Each Combat's group Morale prompts, one at a time. */
+const groupMoraleWrites = keyedSerialWrites();
+
+/**
+ * Post a side's group Morale card, once half of it is down and it hasn't been asked before.
+ * @param {Combat} combat
+ * @param {number} disposition The side's Token disposition.
+ * @returns {Promise<ChatMessage|null>}
+ */
+async function askSide(combat, disposition) {
+	// Read again in the queue, as the prompt before may have marked this side.
 	const prompted = combat.getFlag(SYSTEM_ID, PROMPTED_FLAG) ?? [];
 	if (prompted.includes(disposition)) return null;
 
@@ -67,6 +102,21 @@ export async function promptGroupMorale(actor) {
 		standing: standing.map(({ actor: member }) => member.name),
 		orders: GROUP_ORDER.map((order) => ({ key: order, label: t(`morale.group.orders.${order}.label`), hint: t(`morale.group.orders.${order}.hint`) }))
 	}, { mode: "gm", flags: { [SYSTEM_ID]: { moraleGroup: { actors: standing.map(({ actor: member }) => member.uuid) } } } });
+}
+
+/**
+ * A player's ask that a side be weighed for its Morale, answered by the GM
+ * who was asked: only for somebody the asker owns, as one they just harmed.
+ * @param {{uuid?: string}} data
+ * @param {object} context
+ * @returns {Promise<boolean>} Whether the side was asked.
+ */
+export async function onGroupMoraleQuery(data = {}, context = {}) {
+	const asker = gmAsker(context);
+	if (!asker) return false;
+	const actor = data?.uuid ? fromUuidSync(data.uuid) : null;
+	if (!actor?.testUserPermission?.(asker, "OWNER")) return false;
+	return Boolean(await promptGroupMorale(actor));
 }
 
 /**
@@ -85,19 +135,12 @@ async function rollFor(uuid) {
  * @param {Actor[]} actors
  * @returns {Promise<Actor|null>}
  */
-async function chooseLeader(actors) {
-	const { escapeHTML } = foundry.utils;
-	const options = actors.map((actor) => `<option value="${escapeHTML(actor.uuid)}">${escapeHTML(actor.name)}</option>`).join("");
-	const data = await foundry.applications.api.DialogV2.input({
-		window: { title: t("morale.group.title"), icon: "fa-solid fa-flag" },
-		classes: ["bastionland-dialog"],
-		content: `<div class="bastionland-dialog__body"><div class="form-group"><label for="bastionland-morale-leader">${t("morale.group.leader")}</label>`
-			+ `<div class="form-fields"><select id="bastionland-morale-leader" name="leader">${options}</select></div></div></div>`,
-		ok: { label: t("morale.roll"), icon: "fa-solid fa-dice-d20" },
-		rejectClose: false
-	});
-	return actors.find((actor) => actor.uuid === data?.leader) ?? null;
-}
+const chooseLeader = (actors) => chooseActor(actors, {
+	title: t("morale.group.title"),
+	message: t("morale.group.leader"),
+	icon: "fa-solid fa-flag",
+	ok: t("morale.roll")
+});
 
 /**
  * Roll a group's Morale: once on its leader's SPI when organised, or for each
@@ -107,13 +150,13 @@ async function chooseLeader(actors) {
  */
 async function rollGroup(message, order) {
 	const uuids = message.getFlag(SYSTEM_ID, "moraleGroup")?.actors ?? [];
-	const members = uuids.map((uuid) => fromUuidSync(uuid)).filter((actor) => actor?.isOwner).map((actor) => ({ actor, down: downOf(actor) }));
+	const members = uuids.map((uuid) => fromUuidSync(uuid)).filter((actor) => actor?.isOwner).map((actor) => ({ actor, down: downOf(actor, { orders: true }) }));
 	const standing = members.filter((member) => !member.down);
 	if (!standing.length) return warn("morale.group.noneStanding");
 
 	let leader = null;
 	if (order === "organised") {
-		const chosen = standing.length === 1 ? standing[0].actor : await chooseLeader(standing.map((member) => member.actor));
+		const chosen = await chooseLeader(standing.map((member) => member.actor));
 		if (!chosen) return;
 		leader = standing.find((member) => member.actor === chosen);
 	}
@@ -153,7 +196,7 @@ async function setOutOfCombat(actor, out) {
  */
 export async function breakMorale(actors, broken) {
 	if (!isMoraleBreak(broken)) return [];
-	const npcs = actors.filter((actor) => actor?.type === "npc");
+	const npcs = actors.filter(keepsMoraleMark);
 	const owned = npcs.filter((actor) => actor.isOwner);
 	if (!owned.length) {
 		if (npcs.length) warn("morale.broke.notOwner");
@@ -205,8 +248,56 @@ export async function clearMoraleBreak(actor) {
  */
 async function skipBrokenMorale(combat) {
 	if (!game.users.activeGM?.isSelf || !combat?.started) return;
-	const turns = combat.turns.map((combatant) => ({ broken: combatant.actor?.system?.moraleBroken ?? "" }));
+	const turns = combat.turns.map((combatant) => ({
+		broken: combatant.actor?.system?.moraleBroken ?? "",
+		down: Boolean(combatant.defeated && combatant.getFlag(SYSTEM_ID, DOWN_FLAG))
+	}));
 	if (skipsBrokenTurn(turns, combat.turn)) await combat.nextTurn();
+}
+
+/** What an Actor update can change that takes somebody out of the fight for good, or brings them back. */
+const DOWN_PATHS = Object.freeze(["system.slain", "system.mortalWound", "system.fightsOn", "system.guard.value", "system.virtues.vig.value", "system.structure", "system.scale"]);
+
+/**
+ * Put somebody's Combatants out of the turn order as they go down for good,
+ * or back into it as they get up again, as downedPlace says.
+ * @param {Actor} actor
+ * @param {boolean} out Whether they're out of the fight for good now.
+ */
+async function markDowned(actor, out) {
+	const broken = isMoraleBreak(actor.system.moraleBroken);
+	for (const combat of game.combats ?? []) {
+		const updates = combat.combatants.filter((combatant) => combatant.actor?.uuid === actor.uuid).flatMap((combatant) => {
+			const change = downedPlace({
+				defeated: Boolean(combatant.defeated),
+				downFlag: Boolean(combatant.getFlag(SYSTEM_ID, DOWN_FLAG)),
+				brokeFlag: Boolean(combatant.getFlag(SYSTEM_ID, BROKE_FLAG))
+			}, { out, broken });
+			if (!change) return [];
+			const update = { _id: combatant.id };
+			if ("defeated" in change) update.defeated = change.defeated;
+			if ("downFlag" in change) update[`flags.${SYSTEM_ID}.${DOWN_FLAG}`] = change.downFlag;
+			if ("brokeFlag" in change) update[`flags.${SYSTEM_ID}.${BROKE_FLAG}`] = change.brokeFlag;
+			return [update];
+		});
+		if (updates.length) await combat.updateEmbeddedDocuments("Combatant", updates);
+	}
+}
+
+/**
+ * Somebody Slain, Mortally Wounded, destroyed or wiped out is out of the
+ * fight, so their turns pass them by and nobody they led from the front is led
+ * any longer; healed, patched up or repaired, they're back in it. The players'
+ * own Knights keep their turns, as the table plays on through a death. The
+ * active GM makes the change, whoever made the update.
+ * @param {Actor} actor
+ * @param {object} changed The update, expanded.
+ */
+async function onDownChange(actor, changed) {
+	if (!game.users.activeGM?.isSelf || !DOWN_PATHS.some((path) => foundry.utils.hasProperty(changed, path))) return;
+	const out = Boolean(outOfFight(actor.system));
+	if (out) await letGoOf(actor);
+	if (!playerCharacter(actor)) await markDowned(actor, out);
 }
 
 /**
@@ -252,6 +343,10 @@ export function registerMoraleCards() {
 	Hooks.on("renderChatMessageHTML", activateMoraleButtons);
 	// Round 0 becoming 1 is a turn change too, as Surprise finds.
 	Hooks.on("combatTurnChange", (combat) => skipBrokenMorale(combat));
+	Hooks.on("updateActor", (actor, changed) => {
+		onDownChange(actor, changed).catch((error) => console.error(`${SYSTEM_ID} | Couldn't follow ${actor.name} going down`, error));
+	});
+	CONFIG.queries[GROUP_MORALE_QUERY] = onGroupMoraleQuery;
 }
 
 /**

@@ -1,6 +1,6 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { deletionUpdate } from "../compat.js";
-import { loadArtIndex } from "../book-art/art-index.js";
+import { loadArtIndex, seerEntry } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { t } from "../chat/cards.js";
 import { SEER_PROMPTS_VERSION } from "../rules/book-art.js";
@@ -15,7 +15,8 @@ import {
 	normalizeCourtMember,
 	seatOf
 } from "../rules/court.js";
-import { COUNCIL_SEATS, isSameName } from "../rules/dominion.js";
+import { COUNCIL_SEATS, canHoldPost, isSameName } from "../rules/dominion.js";
+import { seersSanctums } from "../rules/realm.js";
 import { rollFreeName } from "../rules/knight-names.js";
 import { escapeHTML, trimmedText } from "../rules/text.js";
 import { worldKnights } from "./knights.js";
@@ -34,20 +35,30 @@ export const COUNCIL_RETAINERS_STEP = "councilRetainers";
 export const seatLabel = (seat) => t(`domain.council.${seat}.label`);
 
 /**
- * @returns {{id: string, name: string}[]} The world's Knights, as the Circle finds them.
+ * Every Knight of the world, the dead and Squires among them, since a Circle
+ * already seating one must still find them by id.
+ * @returns {{id: string, name: string, canSit: boolean}[]} The world's Knights, as the Circle finds them,
+ *   each saying whether they could take a seat now: knighted and alive (canHoldPost).
  */
-export const knightChoices = () => worldKnights().map((actor) => ({ id: actor.id, name: actor.name }));
+export const knightChoices = () => worldKnights().map((actor) => ({ id: actor.id, name: actor.name, canSit: canHoldPost(actor) }));
 
 /**
  * @param {Actor} domain
- * @returns {Actor[]} The world's Knights other than the Domain's ruler, whether
- *   the ruler is linked to it or only named on it.
+ * @returns {Actor[]} The world's Knights who could take the Domain or a seat
+ *   in its Circle (canHoldPost: knighted and alive), other than its ruler,
+ *   whether the ruler is linked to it or only named on it.
  */
 export function knightsBesidesRuler(domain) {
 	const ruler = trimmedText(domain.system.ruler);
 	const rules = (actor) => (Boolean(domain.uuid) && actor.system?.domain === domain.uuid) || Boolean(ruler && isSameName(actor.name, ruler));
-	return worldKnights((actor) => !rules(actor));
+	return worldKnights((actor) => canHoldPost(actor) && !rules(actor));
 }
+
+/**
+ * @param {string} id A Knight's actor id.
+ * @returns {boolean} Whether that Knight is Slain, so no longer sits anywhere.
+ */
+export const slainKnight = (id) => Boolean(id && game.actors.find((actor) => actor.id === id)?.system?.slain);
 
 /**
  * @param {Actor} domain
@@ -80,11 +91,12 @@ export async function addCourtMember(domain, role, fields = {}) {
  * their leverage and a note.
  * @param {import("../rules/court.js").CourtMember} member As they stand.
  * @param {string} held The seat they hold themselves, if any.
- * @param {{title: string, ok: string, others?: string[]}} wording `others` are
+ * @param {{title: string, ok: string, others?: string[], domain?: Actor}} wording `others` are
  *   the rest of the Court's names, which the name's die rolls only once no other is left.
+ *   `domain` is the Court's, whose Realm's Seers the die offers a Seer.
  * @returns {Promise<object|null>} The answers, or null if the window was closed.
  */
-async function askAboutMember(member, held, { title, ok, others = [] }) {
+async function askAboutMember(member, held, { title, ok, others = [], domain = null }) {
 	const notePlaceholder = (role) => t(`domain.court.roles.${role}.notePlaceholder`);
 	return inputDialog({
 		title,
@@ -100,6 +112,8 @@ async function askAboutMember(member, held, { title, ok, others = [] }) {
 			})),
 			roleHint: t(`domain.court.roles.${member.role}.hint`),
 			name: member.name,
+			// Leverage over the ruler is the Referee's to know (p21): a player's window leaves it out, and keeps it.
+			leverageShown: Boolean(game.user?.isGM),
 			leverage: member.leverage,
 			note: member.note,
 			notePlaceholder: notePlaceholder(member.role),
@@ -110,7 +124,7 @@ async function askAboutMember(member, held, { title, ok, others = [] }) {
 		ok: { label: ok, icon: "fa-solid fa-check" },
 		render: (_event, dialog) => {
 			followTheRole(dialog);
-			offerBookNames(dialog, others);
+			offerBookNames(dialog, others, domain);
 		}
 	});
 }
@@ -131,15 +145,39 @@ async function namesFromTheBook() {
 }
 
 /**
+ * The Seers whose Sanctums stand in the Realm where the Domain rules its Holding,
+ * by name: those who may visit its Court (p20). The Realm's Landmarks are the
+ * Referee's to know (p14), so only they are offered them, and a Referee playing
+ * alone only those whose Sanctums have been found.
+ * @param {Actor|null} domain
+ * @returns {Promise<string[]>} Empty where there's no such Realm, or no Seer the book names in it.
+ */
+export async function realmSeerNames(domain) {
+	if (!domain || !game.user?.isGM) return [];
+	const index = await loadArtIndex();
+	if (!index?.seers?.length) return [];
+	// Loaded only when asked, as the Realm's modules lead back to the Court's.
+	const [{ domainHolding }, { getRealm }, { realmKnown }] = await Promise.all([import("./homecoming.js"), import("./realm.js"), import("./solo.js")]);
+	const scene = domainHolding(domain)?.scene;
+	const realm = scene ? realmKnown(getRealm(scene)?.realm, scene) : null;
+	const seers = seersSanctums(realm).map((landmark) => seerEntry(index, landmark.seer));
+	return [...new Set(seers.filter((seer) => seer.entry).map((seer) => seer.name))];
+}
+
+/**
  * Let the die beside the name fill it with one of the book's names: never the
- * name already there, nor another of the Court's while any is left.
+ * name already there, nor another of the Court's while any is left. A Seer is
+ * given one of the Realm's Seers, while it has any.
  * @param {foundry.applications.api.DialogV2} dialog
  * @param {string[]} others The rest of the Court's names.
+ * @param {Actor|null} [domain] The Court's.
  */
-function offerBookNames(dialog, others) {
+function offerBookNames(dialog, others, domain = null) {
 	const input = dialog.element.querySelector("[name='name']");
+	const role = dialog.element.querySelector("[name='role']");
 	dialog.element.querySelector("[data-roll-name]")?.addEventListener("click", async () => {
-		const name = rollFreeName(await namesFromTheBook(), Math.random, [input?.value, ...others]);
+		const seers = role?.value === "seer" ? await realmSeerNames(domain) : [];
+		const name = rollFreeName(seers.length ? seers : await namesFromTheBook(), Math.random, [input?.value, ...others]);
 		if (!name) return ui.notifications.warn(t("domain.court.rollNameUnread"));
 		if (!input) return;
 		input.value = name;
@@ -178,7 +216,7 @@ function memberFromAnswers(data, member) {
 		role: data.role,
 		name: data.name,
 		seat: data.seat ?? member.seat,
-		leverage: data.leverage,
+		leverage: data.leverage ?? member.leverage,
 		note: data.note,
 		at: member.at,
 		// Still the Knight they were seated as, unless they're renamed as somebody else.
@@ -201,7 +239,7 @@ function memberFromAnswers(data, member) {
 export async function takeIntoCourt(domain) {
 	if (!domain?.isOwner) return null;
 	const fresh = newCourtMember(SERVES_A_SEAT, Date.now());
-	const data = await askAboutMember(fresh, "", { title: t("domain.court.addTitle"), ok: t("domain.court.add"), others: courtNames(domain) });
+	const data = await askAboutMember(fresh, "", { title: t("domain.court.addTitle"), ok: t("domain.court.add"), others: courtNames(domain), domain });
 	const member = data ? memberFromAnswers(data, fresh) : null;
 	if (!member) return null;
 	const id = foundry.utils.randomID();
@@ -224,7 +262,8 @@ export async function editCourtMember(domain, id) {
 	const data = await askAboutMember(member, held, {
 		title: t("domain.court.editTitle", { name: member.name || t(`domain.court.roles.${member.role}.one`) }),
 		ok: t("domain.court.save"),
-		others: courtNames(domain, id)
+		others: courtNames(domain, id),
+		domain
 	});
 	const answered = data ? memberFromAnswers(data, member) : null;
 	if (!answered) return false;
@@ -296,6 +335,8 @@ export async function seatCircle(domain, { intro = null } = {}) {
 	const besides = new Set(knightsBesidesRuler(domain).map((actor) => actor.id));
 	const offered = knights.filter((knight) => (besides.has(knight.id) && game.actors.get(knight.id)?.visible)
 		|| seated.some((each) => each.id === knight.id));
+	// A Knight Slain since they were seated is offered unticked, so saving lets them go from the Circle.
+	const sits = (knight) => seated.some((each) => each.id === knight.id) && !slainKnight(knight.id);
 	// Names written in by hand before the Circle held Knights stay offered, ticked, so they go only when unticked.
 	const written = seated.filter((each) => each.legacy).map((each, index) => ({ key: `written${index}`, name: each.name }));
 	const data = await inputDialog({
@@ -305,7 +346,11 @@ export async function seatCircle(domain, { intro = null } = {}) {
 		context: {
 			intro: intro ?? t("domain.council.circle.intro", { name: domain.name }),
 			circle: [
-				...offered.map((knight) => ({ ...knight, checked: seated.some((each) => each.id === knight.id) })),
+				...offered.map((knight) => ({
+					...knight,
+					name: slainKnight(knight.id) ? t("domain.council.circle.slainName", { name: knight.name }) : knight.name,
+					checked: sits(knight)
+				})),
 				...written.map(({ key, name }) => ({ id: key, name, checked: true }))
 			]
 		},

@@ -80,3 +80,6 @@ export function createRandom(seed) {
 export function randomSeed(source = Math.random) {
 	return Array.from({ length: SEED_LENGTH }, () => SEED_ALPHABET[Math.floor(source() * SEED_ALPHABET.length)]).join("");
 }
+
+/** @returns {ReturnType<typeof createRandom>} A fresh source of random numbers, for one press of a button. */
+export const freshRandom = () => createRandom(randomSeed());

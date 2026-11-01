@@ -410,3 +410,40 @@ export function upsertByKey(list, entry, { refresh = [], makeId = () => "" } = {
 	const { entries: next, changed } = patchEntry(entries, found.id, changes);
 	return { entries: next, added: null, changed };
 }
+
+/**
+ * @typedef {object} TrackWrite What a write to a thread is, in words: the same
+ *   whether this browser writes it or the active Referee's is asked to.
+ * @property {string[]} [forget] The keys of rows taken off, first.
+ * @property {{entry: object, refresh?: string[]}[]} [rows] Rows written once each by their key, as upsertByKey writes them; a row with no key is added.
+ * @property {TrackEdit[]} [edits] Changes to rows by id, as the Timeline's own buttons make them. Never asked of the Referee.
+ */
+
+/**
+ * @typedef {{op: "patch", id: string, changes: Partial<TimelineEntry>}
+ *   | {op: "move", id: string, delta: number}
+ *   | {op: "remove", id: string}} TrackEdit
+ */
+
+/** @type {Record<string, (entries: TimelineEntry[], edit: any) => {entries: TimelineEntry[]}>} */
+const EDITS = {
+	patch: (entries, { id, changes }) => patchEntry(entries, id, changes ?? {}),
+	move: (entries, { id, delta }) => moveEntry(entries, id, delta),
+	remove: (entries, { id }) => removeEntry(entries, id)
+};
+
+/**
+ * A write's rows, keys and edits, run over a thread's entries in that order:
+ * forget, then rows, then edits.
+ * @param {unknown} list
+ * @param {TrackWrite|null|undefined} write
+ * @param {() => string} [makeId] Foundry's randomID, passed in so this stays pure.
+ * @returns {{entries: TimelineEntry[]}}
+ */
+export function applyTrackWrite(list, { forget = [], rows = [], edits = [] } = {}, makeId = () => "") {
+	let entries = readEntries(list);
+	for (const key of forget) entries = removeByKey(entries, key).entries;
+	for (const { entry, refresh = [] } of rows) entries = upsertByKey(entries, entry, { refresh, makeId }).entries;
+	for (const edit of edits) entries = EDITS[edit?.op]?.(entries, edit).entries ?? entries;
+	return { entries };
+}

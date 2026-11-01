@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { forgetTheFight, recallAttack, rememberAttack, rememberedChoice, wieldedWith } from "../../module/actions/attack-memory.js";
+import { forgetTheFight, recallAttack, rememberAttack, rememberedChoice, wieldedWith, forTurn } from "../../module/actions/attack-memory.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 /** A world whose client settings live in a plain object. */
@@ -42,8 +42,24 @@ describe("rememberedChoice", () => {
 			confined: false,
 			mounted: false,
 			charge: false,
-			againstIndividuals: false
+			againstIndividuals: false,
+			turn: null
 		});
+	});
+});
+
+describe("forTurn", () => {
+	const kept = { source: { sword: true }, specialist: { sword: true }, engaged: true, confined: true, mounted: true, charge: false, againstIndividuals: false, turn: "c:2:1" };
+
+	it("unticks Engaged and the specialist die once their turn has passed, keeping the rest", () => {
+		expect(forTurn(kept, "c:2:3")).toEqual({ ...kept, engaged: false, specialist: {} });
+		expect(forTurn(kept, null)).toEqual({ ...kept, engaged: false, specialist: {} });
+	});
+
+	it("keeps them in the same turn, and outside a Combat where no turn was kept", () => {
+		expect(forTurn(kept, "c:2:1")).toBe(kept);
+		expect(forTurn({ ...kept, turn: null }, "c:3:0")).toEqual({ ...kept, turn: null });
+		expect(forTurn(null, "c:1:0")).toBeNull();
 	});
 });
 

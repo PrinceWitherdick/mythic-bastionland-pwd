@@ -1,4 +1,4 @@
-import { chooseDialog } from "../apps/ui.js";
+import { chooseActor } from "../apps/actor-pick.js";
 import { postCard, t } from "../chat/cards.js";
 import {
 	FALLEN_PATHS,
@@ -13,7 +13,7 @@ import { isKnight, isNpcKnight } from "../rules/knight-types.js";
 import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { makeFreshKnight } from "./new-knight.js";
-import { COMPANION_FLAG } from "./property.js";
+import { COMPANION_FLAG, linkedActor } from "./belonging.js";
 import { knightSquire } from "./squires.js";
 import { inCompany, playersOf, worldKnights } from "./knights.js";
 import { timelineFallen, timelineTookUp } from "./timeline-events.js";
@@ -28,19 +28,39 @@ import { timelineFallen, timelineTookUp } from "./timeline-events.js";
 
 /**
  * Every actor as rules/fallen.js reads them.
+ * @param {object} [options]
+ * @param {boolean} [options.players=true] Whether each Knight's players are wanted, as a successor's are.
  * @returns {object[]}
  */
-const worldCompanions = () => game.actors.map((actor) => ({
+export const worldCompanions = ({ players = true } = {}) => game.actors.map((actor) => ({
 	uuid: actor.uuid,
 	name: actor.name,
 	type: actor.type,
 	isSquire: Boolean(actor.system?.isSquire),
 	serves: actor.system?.serves ?? "",
 	companionOf: actor.getFlag(SYSTEM_ID, COMPANION_FLAG) ?? "",
+	slain: Boolean(actor.system?.slain),
 	// Only a Knight can be a successor, so only theirs are counted.
-	players: isKnight(actor) ? playersOf(actor) : [],
+	players: players && isKnight(actor) ? playersOf(actor) : [],
 	actor
 }));
+
+/**
+ * Who rides with a Knight besides their Squire, who is one of the Company in
+ * their own right: their steed and their followers, while they live. Everybody
+ * present has a Remedy's benefit (p9), these among them.
+ * @param {Actor} knight
+ * @param {{companions?: object[]}} [options] worldCompanions, where it's already gathered for several Knights.
+ * @returns {Actor[]}
+ */
+export function companionsOf(knight, { companions } = {}) {
+	const held = { uuid: knight.uuid, id: knight.id, squire: knight.system.squire, steed: knight.system.steed };
+	const linked = linkedActor(knight.system.steed);
+	const steed = linked && !linked.system?.slain ? linked : null;
+	const actors = companions ?? worldCompanions({ players: false });
+	const followers = followersOf(held, actors, squireOf(held, actors)).map((entry) => entry.actor);
+	return steed ? [steed, ...followers] : followers;
+}
 
 /**
  * @param {Actor} knight
@@ -101,6 +121,7 @@ export async function announceFallenKnight(knight, outcome) {
 	const paths = fallenPaths({ squire: Boolean(squire), followers: followers.length, successor: Boolean(heir) });
 	await timelineFallen(knight);
 
+	// The whole table sees a Knight fall, and their player needs its buttons, however the poster rolls.
 	return postCard(knight, "fallen", {
 		title: t("fallen.title"),
 		tagline: t("fallen.tagline", { name: knight.name }),
@@ -116,7 +137,7 @@ export async function announceFallenKnight(knight, outcome) {
 				follower: "fa-solid fa-people-group"
 			}[path]
 		}))
-	});
+	}, { mode: "public" });
 }
 
 /**
@@ -186,12 +207,21 @@ async function makeAnotherKnight(fallen) {
  * @returns {Promise<Actor|null>}
  */
 async function takeUpSuccessor(fallen, successor) {
-	if (!game.user.isGM && !successor.isOwner) {
-		ui.notifications.warn(t("fallen.successorNotYours", { name: successor.name }));
-		return null;
-	}
+	if (!mayTakeUp(successor)) return null;
 	if (successor.system.isSquire) return takeUpSquire(fallen, successor);
 	return takeUp(fallen, successor, "fa-solid fa-crown");
+}
+
+/**
+ * Whether this user may take somebody up: handing them over is the Referee's,
+ * so a player who doesn't own them yet is told to ask.
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+function mayTakeUp(actor) {
+	if (game.user.isGM || actor.isOwner) return true;
+	ui.notifications.warn(t("fallen.successorNotYours", { name: actor.name }));
+	return false;
 }
 
 /**
@@ -202,7 +232,7 @@ async function takeUpSuccessor(fallen, successor) {
  * @returns {Promise<Actor|null>}
  */
 async function takeUpSquire(fallen, squire) {
-	if (!(await knightSquire(squire))) return null;
+	if (!mayTakeUp(squire) || !(await knightSquire(squire))) return null;
 	await handOver(squire, fallen);
 	await timelineTookUp(fallen, squire);
 	squire.sheet.render({ force: true });
@@ -219,18 +249,12 @@ async function takeUpSquire(fallen, squire) {
  */
 async function takeUpFollower(fallen, followers) {
 	if (!followers.length) return null;
-	let taken = followers[0];
-	if (followers.length > 1) {
-		const choice = await chooseDialog({
-			title: t("fallen.paths.follower"),
-			icon: "fa-solid fa-people-group",
-			message: t("fallen.whichFollower", { name: foundry.utils.escapeHTML(fallen.name) }),
-			buttons: followers.map((follower, index) => ({ action: follower.id, label: follower.name, default: index === 0 }))
-		});
-		taken = followers.find((follower) => follower.id === choice);
-		if (!taken) return null;
-	}
-
+	const taken = await chooseActor(followers, {
+		title: t("fallen.paths.follower"),
+		icon: "fa-solid fa-people-group",
+		message: t("fallen.whichFollower", { name: fallen.name })
+	});
+	if (!taken || !mayTakeUp(taken)) return null;
 	return takeUp(fallen, taken, "fa-solid fa-people-group");
 }
 

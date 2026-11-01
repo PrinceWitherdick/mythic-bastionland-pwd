@@ -48,14 +48,17 @@ export function moraleTrigger({ outcome, vigourBefore, vigourAfter, vigourMax, p
 }
 
 /**
- * @param {{vigour: number, mortalWound?: boolean, slain?: boolean, warband?: boolean, defeated?: boolean, broken?: string}} member
- *   `broken` is one of MORALE_BREAKS once their Morale has failed, or blank.
- * @returns {boolean} Whether they are out of the fight: Slain, Mortally Wounded, fled or
+ * @param {{vigour: number, mortalWound?: boolean, slain?: boolean, warband?: boolean, defeated?: boolean, broken?: string,
+ *   fightsOn?: boolean, destroyed?: boolean, unruly?: boolean}} member
+ *   `broken` is one of MORALE_BREAKS once their Morale has failed, or blank. `fightsOn` marks one of the
+ *   Cast that fights on through a Mortal Wound, `destroyed` a creature that counts as a structure at 0GD,
+ *   and `unruly` a Warband broken at SPI 0 that's to count as down.
+ * @returns {boolean} Whether they are out of the fight: Slain, Mortally Wounded, destroyed, fled or
  *   surrendered, or marked defeated. VIG 0 alone only Exhausts somebody (p9), but wipes
  *   out a Warband however it came about (p11). Without VIG at all they're no fighter.
  */
-export const isDown = ({ vigour, mortalWound = false, slain = false, warband = false, defeated = false, broken = "" }) =>
-	defeated || mortalWound || slain || isMoraleBreak(broken) || !Number.isFinite(vigour) || (warband && vigour <= 0);
+export const isDown = ({ vigour, mortalWound = false, slain = false, warband = false, defeated = false, broken = "", fightsOn = false, destroyed = false, unruly = false }) =>
+	defeated || (mortalWound && !fightsOn) || slain || destroyed || unruly || isMoraleBreak(broken) || !Number.isFinite(vigour) || (warband && vigour <= 0);
 
 /**
  * isDown, read from an actor.
@@ -63,28 +66,56 @@ export const isDown = ({ vigour, mortalWound = false, slain = false, warband = f
  * @param {object} [options]
  * @param {boolean} [options.defeated] Whether their Combatant is marked defeated.
  * @param {boolean} [options.morale=true] Whether a broken Morale counts; false asks whether they're down some other way.
+ * @param {boolean} [options.orders=false] Whether a Warband broken at SPI 0 counts as down, as it does
+ *   when its side's number is counted: it follows no orders (p11), though it still acts for itself.
  * @returns {boolean}
  */
-export const downOf = (actor, { defeated = false, morale = true } = {}) => isDown({
+export const downOf = (actor, { defeated = false, morale = true, orders = false } = {}) => isDown({
 	vigour: actor.system.virtues?.vig.value,
 	mortalWound: actor.system.mortalWound,
+	fightsOn: Boolean(actor.system.fightsOn),
 	slain: Boolean(actor.system.slain),
+	destroyed: Boolean(actor.system.destroyed),
 	warband: actor.system.scale === "warband",
+	unruly: orders && actor.system.scale === "warband" && actor.system.virtues?.spi?.value === 0,
 	defeated,
 	broken: morale ? actor.system.moraleBroken : ""
 });
 
 /**
+ * How somebody's place in a Combat changes as they go down for good or get up
+ * again, where it's marked defeated for them: marked as they go down, and
+ * stood up once healed, patched up or repaired, unless their Morale still has
+ * them out. A place marked defeated by hand is left as it is, and one already
+ * out for broken Morale is kept out for this too, once that's cleared.
+ * @param {{defeated: boolean, downFlag?: boolean, brokeFlag?: boolean}} place As it stands, with the
+ *   flags saying it was marked for going down, or for broken Morale.
+ * @param {{out: boolean, broken: boolean}} now Whether they're out of the fight for good, and whether their Morale broke.
+ * @returns {{defeated?: boolean, downFlag?: boolean, brokeFlag?: boolean}|null} What changes, or null for nothing.
+ */
+export function downedPlace({ defeated, downFlag = false, brokeFlag = false }, { out, broken }) {
+	if (out) {
+		if (downFlag) return null;
+		if (!defeated) return { defeated: true, downFlag: true };
+		return brokeFlag ? { downFlag: true } : null;
+	}
+	if (!downFlag) return null;
+	return broken ? { defeated: true, downFlag: false, brokeFlag: true } : { defeated: false, downFlag: false };
+}
+
+/**
  * Whether a turn in the Combat Tracker should be passed over because its
- * character's Morale broke, without passing over every turn there is: with
- * nobody left who hasn't, the tracker is left where it stands.
- * @param {{broken: string}[]} turns Everybody in the turn order, the current one included.
+ * character's Morale broke, or they went down and were marked defeated for it,
+ * without passing over every turn there is: with nobody left still in the
+ * fight, the tracker is left where it stands.
+ * @param {{broken: string, down?: boolean}[]} turns Everybody in the turn order, the current one included.
  * @param {number} index The current turn.
  * @returns {boolean}
  */
 export function skipsBrokenTurn(turns, index) {
-	if (!isMoraleBreak(turns[index]?.broken)) return false;
-	return turns.some((turn) => !isMoraleBreak(turn.broken));
+	const out = (turn) => isMoraleBreak(turn?.broken) || Boolean(turn?.down);
+	if (!out(turns[index])) return false;
+	return turns.some((turn) => !out(turn));
 }
 
 /**

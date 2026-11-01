@@ -25,6 +25,12 @@ describe("logicalLines", () => {
 	it("starts a new line at each bullet, and tidies spacing", () => {
 		expect(logicalLines(["• Hums when", "nobody  listens.", "", "• Wants a quiet life."])).toEqual(["Hums when nobody listens.", "Wants a quiet life."]);
 	});
+
+	it("keeps a bullet's second sentence in it where told every line after a bullet is a bullet's", () => {
+		const printed = ["A2 (bark)", "Staff (d6)", "• Hums when nobody listens.", "Stops when watched.", "• Wants a quiet life."];
+		expect(logicalLines(printed, { bulleted: true })).toEqual(["A2 (bark)", "Staff (d6)", "Hums when nobody listens. Stops when watched.", "Wants a quiet life."]);
+		expect(logicalLines(printed)).toHaveLength(5);
+	});
 });
 
 describe("clipText", () => {

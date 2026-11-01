@@ -1,5 +1,5 @@
 import { inputDialog } from "../apps/ui.js";
-import { pickImageInto } from "../book-art/files.js";
+import { canBrowseFiles, pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { domainArms, rulingKnightOf } from "../rules/dominion.js";
 import { seenOrChosen, worldKnights } from "./knights.js";
@@ -21,6 +21,14 @@ function armsKnight(domain) {
 }
 
 /**
+ * @param {object} changes A Knight's update.
+ * @returns {boolean} Whether it can change which arms a Domain shows: their painting, which Domain they rule, or their name.
+ */
+export function knightChangesArms(changes) {
+	return "name" in changes || foundry.utils.hasProperty(changes, "system.heraldry") || foundry.utils.hasProperty(changes, "system.domain");
+}
+
+/**
  * What a Domain's sheet shows at its head, ready for the template.
  * @param {Actor} domain
  * @returns {{picture: string}|{heraldry: string, bearer: string, tooltip: string}}
@@ -35,7 +43,8 @@ export function domainArmsView(domain) {
 
 /**
  * Ask what a Domain should show at the head of its sheet: its ruler's arms,
- * another Knight's, or a picture of the user's choosing.
+ * another Knight's, or a picture of the user's choosing. A user who may
+ * not browse files isn't offered a new picture, though one already shown stays.
  * @param {Actor} domain
  */
 export async function chooseDomainArms(domain) {
@@ -44,6 +53,7 @@ export async function chooseDomainArms(domain) {
 	const others = worldKnights((knight) => knight !== ruler).filter(seenOrChosen((knight) => knight === chosen))
 		.sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
 	const { arms } = domain.system;
+	const browse = canBrowseFiles();
 	const data = await inputDialog({
 		title: t("domain.arms.title", { name: domain.name }),
 		icon: "fa-solid fa-shield-halved",
@@ -54,8 +64,10 @@ export async function chooseDomainArms(domain) {
 			knights: others.map((knight) => ({ uuid: knight.uuid, name: knight.name, selected: knight === chosen, painted: Boolean(knight.system.heraldry) }))
 		},
 		ok: { label: t("domain.arms.ok"), icon: "fa-solid fa-check" },
-		// Picking a Knight from the list means showing their arms.
 		render: (_event, dialog) => {
+			// A picture already shown can be kept by a user who can't choose another.
+			if (!browse && arms !== "picture") dropPictureChoice(dialog.element);
+			// Picking a Knight from the list means showing their arms.
 			const radio = dialog.element.querySelector("input[name='arms'][value='knight']");
 			dialog.element.querySelector("select[name='knight']")?.addEventListener("change", () => {
 				if (radio) radio.checked = true;
@@ -65,7 +77,8 @@ export async function chooseDomainArms(domain) {
 	if (!data) return;
 
 	if (data.arms === "picture") {
-		pickImageInto(domain, "img", "image", { "system.arms": "picture" });
+		// Kept as it is by a user who can't choose another.
+		if (browse) pickImageInto(domain, "img", "image", { "system.arms": "picture" });
 		return;
 	}
 	if (data.arms === "knight" && data.knight) {
@@ -73,4 +86,12 @@ export async function chooseDomainArms(domain) {
 		return;
 	}
 	await domain.update({ "system.arms": "ruler" });
+}
+
+/**
+ * Take the picture choice out of the arms window, for a user who can't open the FilePicker.
+ * @param {HTMLElement} element The window.
+ */
+function dropPictureChoice(element) {
+	element.querySelector("input[name='arms'][value='picture']")?.closest("label")?.remove();
 }

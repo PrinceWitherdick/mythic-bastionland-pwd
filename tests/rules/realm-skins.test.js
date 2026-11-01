@@ -61,7 +61,7 @@ describe("normaliseRealmLook", () => {
 	it("fills in the default for anything missing or unknown", () => {
 		expect(normaliseRealmLook(null)).toEqual(defaultRealmLook());
 		expect(normaliseRealmLook({ skin: "chalk", palette: "neon", bookIcons: true, custom: { terrainFit: "stretch", files: { forest: "a.png", "terrain-forest": "", seat: "b.png" } } }))
-			.toEqual({ skin: "sheet", palette: "parchment", custom: { folder: "", terrainFit: "hex", files: { seat: "b.png" } }, fade: { holding: 1, landmark: 1, myth: 1 } });
+			.toEqual({ skin: "sheet", palette: "parchment", custom: { folder: "", terrainFit: "hex", files: { seat: "b.png" } }, fade: { holding: 1, landmark: 1, myth: 1 }, arms: true });
 	});
 
 	it("reads pictures saved when terrain went by number under the terrain's name", () => {
@@ -74,9 +74,17 @@ describe("normaliseRealmLook", () => {
 			skin: "atlas",
 			palette: "ashen",
 			custom: { folder: `${REALM_CUSTOM_DIR}`, terrainFit: "icon", files: { "myth-2": "x.webp" } },
-			fade: { holding: 0.25, landmark: 0, myth: 1 }
+			fade: { holding: 0.25, landmark: 0, myth: 1 },
+			arms: false
 		};
 		expect(normaliseRealmLook(look)).toEqual(look);
+	});
+
+	it("shows rulers' arms on Holdings unless they're switched off", () => {
+		expect(defaultRealmLook().arms).toBe(true);
+		expect(normaliseRealmLook({ skin: "atlas" }).arms).toBe(true);
+		expect(normaliseRealmLook({ arms: "no" }).arms).toBe(true);
+		expect(normaliseRealmLook({ arms: false }).arms).toBe(false);
 	});
 
 	it("keeps each icon's fading between nothing and full, in hundredths, and full where it's unreadable", () => {
@@ -90,6 +98,10 @@ describe("lookForNewRealms", () => {
 	it("starts new Realms with every icon in full, whatever the Realm it was set on faded", () => {
 		const look = { skin: "atlas", palette: "ashen", fade: { holding: 0, landmark: 0.5, myth: 0 } };
 		expect(lookForNewRealms(look)).toEqual({ ...normaliseRealmLook(look), fade: { holding: 1, landmark: 1, myth: 1 } });
+	});
+
+	it("carries rulers' arms switched off over to new Realms", () => {
+		expect(lookForNewRealms({ arms: false }).arms).toBe(false);
 	});
 });
 
@@ -168,11 +180,13 @@ describe("skins of the GM's own", () => {
 	it("draws with its pictures over its base skin, and is known again in a look", () => {
 		const skin = readOwnSkin({ name: "Inked", base: "woodcut", terrainFit: "icon", files: { seat: "seat.webp" } }, folder);
 		const look = ownSkinLook(skin, { palette: "midnight" });
-		expect(look).toEqual({ skin: "woodcut", palette: "midnight", custom: { folder, terrainFit: "icon", files: { seat: `${folder}/seat.webp` } }, fade: { holding: 1, landmark: 1, myth: 1 } });
+		expect(look).toEqual({ skin: "woodcut", palette: "midnight", custom: { folder, terrainFit: "icon", files: { seat: `${folder}/seat.webp` } }, fade: { holding: 1, landmark: 1, myth: 1 }, arms: true });
 		expect(ownSkinOf(look, [skin])).toBe(skin);
 		expect(ownSkinOf(defaultRealmLook(), [skin])).toBeNull();
 		// The look it replaces keeps its fading.
 		expect(ownSkinLook(skin, { palette: "midnight", fade: { holding: 0.5, landmark: 1, myth: 1 } }).fade.holding).toBe(0.5);
+		// And whether it shows rulers' arms.
+		expect(ownSkinLook(skin, { arms: false }).arms).toBe(false);
 	});
 
 	it("puts a saved skin in the list by name, in place of what it was, and takes a removed one out", () => {

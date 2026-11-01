@@ -1,6 +1,6 @@
-import { askActiveGM } from "../ask-gm.js";
-import { t, warn } from "../chat/cards.js";
-import { queryAsker } from "../compat.js";
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
+import { gmAsker } from "../gm-asker.js";
+import { t } from "../chat/cards.js";
 import {
 	HEX_SHARED_FLAG,
 	HEX_SHARED_VERSION,
@@ -8,6 +8,7 @@ import {
 	forgetPartyNote,
 	forgetShared,
 	forgetTold,
+	keepBarriersMet,
 	normaliseShared,
 	normaliseSharedRecord,
 	recordBarrierMet,
@@ -93,6 +94,14 @@ export function recordBarriersMet(scene, met, byName) {
 }
 
 /**
+ * After the Realm is rolled again, forget the Barriers met that no longer stand found on the map.
+ * @param {Scene} scene
+ * @param {Set<string>} standing The edges of the Realm's revealed Barriers.
+ * @returns {Promise<boolean>}
+ */
+export const keepHexBarriersMet = (scene, standing) => editHexShared(scene, (shared) => keepBarriersMet(shared, standing));
+
+/**
  * Rub out the Company's note on a hex, on the Timeline too.
  * @returns {Promise<boolean>}
  */
@@ -167,14 +176,8 @@ export async function writePartyNote(scene, hex, text) {
 		await keepPartyNote(scene, hex, text, game.user);
 		return true;
 	}
-	if (!game.users.activeGM) {
-		warn("travels.party.needsGM");
-		return false;
-	}
 	const note = { sceneId: scene.id, hex: { col: hex.col, row: hex.row }, text: String(text ?? "") };
-	if (await askActiveGM(PARTY_NOTE_QUERY, note, "Couldn't write the Company's note")) return true;
-	warn("travels.party.refused");
-	return false;
+	return Boolean(await askActiveGMOrWarn(PARTY_NOTE_QUERY, note, "Couldn't write the Company's note", { absent: "travels.party.needsGM", refused: "travels.party.refused" }));
 }
 
 /**
@@ -186,8 +189,8 @@ export async function writePartyNote(scene, hex, text) {
  * @returns {Promise<boolean>}
  */
 export async function onPartyNoteQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const scene = game.scenes.get(data.sceneId);
 	if (!scene || !isRealmScene(scene) || typeof data.text !== "string") return false;
 	const hex = { col: data.hex?.col, row: data.hex?.row };

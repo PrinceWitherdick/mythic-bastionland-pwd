@@ -6,7 +6,9 @@
  * and last did. Pure, so it can be tested without Foundry.
  */
 import { normaliseWhen } from "./hex-lore.js";
-import { hexDistance, hexKey, hexLine, hexRecords, parseHexKey, sameHex } from "./realm-geometry.js";
+import { hexDistance, hexKey, hexRecords, parseHexKey, sameHex } from "./realm-geometry.js";
+import { openWay } from "./realm-movement.js";
+import { samePhase } from "./time.js";
 
 export const JOURNEY_VERSION = 1;
 
@@ -55,6 +57,17 @@ export const WALKED_METHODS = Object.freeze(["dragging", "keyboard"]);
  * @returns {"trek"|"gallop"|"cruise"|"beyond"}
  */
 export const companyPace = (hexes) => (hexes <= 1 ? "trek" : hexes === 2 ? "gallop" : hexes === 3 ? "cruise" : "beyond");
+
+/** The world setting that keeps the hexes the Company has come into this Phase: {when, count}, or null. */
+export const COMPANY_PACE_SETTING = "companyPace";
+
+/**
+ * The hexes the Company has come into this Phase, as the world keeps them.
+ * @param {{when?: object, count?: unknown}|null|undefined} said The kept count, with the Phase it was kept in.
+ * @param {object} now The calendar now.
+ * @returns {number} None where it was kept in another Phase.
+ */
+export const paceSoFar = (said, now) => (said && samePhase(said.when, now) ? Math.max(0, Number(said.count) || 0) : 0);
 
 /** @returns {Journey} */
 export const emptyJourney = () => ({ version: JOURNEY_VERSION, next: 1, hexes: {} });
@@ -149,19 +162,21 @@ export const visitsAt = (journey, hex) => journey?.hexes?.[hexKey(hex)] ?? null;
  * The hexes a move comes into, in the order it comes into them: each hex it
  * reaches that isn't the one it was already in. A walked move goes in a
  * straight line from each step to the next, so it also comes into each hex that
- * line crosses on the way.
+ * line crosses on the way, or, where a Barrier lies across that line, each hex
+ * of the way round it that the move was let take.
  * @param {({col: number, row: number}|null)[]} path The hex under each step of the move, null off the map.
  * @param {{col: number, row: number}|null} [from] The hex the move set off from.
  * @param {object} [options]
  * @param {object} [options.walkedAcross] The Realm's geometry, when the move was walked rather than put down at each step.
+ * @param {Set<string>|null} [options.barriers] The Realm's Barrier edge keys, which a walked move goes round.
  * @returns {{col: number, row: number}[]}
  */
-export function hexesEntered(path, from = null, { walkedAcross = null } = {}) {
+export function hexesEntered(path, from = null, { walkedAcross = null, barriers = null } = {}) {
 	const entered = [];
 	let here = from;
 	for (const hex of path ?? []) {
 		if (!hex || sameHex(hex, here)) continue;
-		entered.push(...(walkedAcross && here ? hexLine(walkedAcross, here, hex) : [hex]));
+		entered.push(...(walkedAcross && here ? openWay(walkedAcross, barriers, here, hex) : [hex]));
 		here = hex;
 	}
 	return entered;

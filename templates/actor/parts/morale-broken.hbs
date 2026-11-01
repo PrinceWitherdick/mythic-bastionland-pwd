@@ -1,0 +1,5 @@
+{{#if moraleBroken}}
+<li>
+	<button type="button" class="bastionland-condition bastionland-pill is-mark is-active" data-action="clearMoraleBreak" data-tooltip="{{moraleBroken.hint}}" aria-label="{{moraleBroken.hint}}" {{#unless editable}}disabled{{/unless}}>{{moraleBroken.label}} <i class="fa-solid fa-xmark" inert></i></button>
+</li>
+{{/if}}

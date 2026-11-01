@@ -30,7 +30,7 @@ When you pick a Knight in **Choose a Knight**, the right-hand side ends with **K
 
 ## Making the Seer an NPC (Referee)
 
-On a Knight's Seer page the Referee also sees **Make this Seer**. It brings the Seer into the world as an NPC of their own, built from the stat block on their Knight's page, and opens their sheet. If that Seer has been made already, it opens the one that exists rather than making a second. A Seer whose stat block the book doesn't give (or Import PDF hasn't read) can't be made, and you're told so.
+On a Knight's Seer page the Referee also sees **Make this Seer**. It brings the Seer into the world as an NPC of their own, built from the stat block on their Knight's page, and opens their sheet. If that Seer has been made already, in the world or by dragging them from the compendium, it opens the one that exists rather than making a second. A Seer whose stat block the book doesn't give (or Import PDF hasn't read) can't be made, and you're told so.
 
 Every Seer is also in the **NPCs** compendium, under the **Seers** folder, one sub-folder per d6 result, each with their portrait and a note saying which Knight they knighted. Drag one into the world when you need them. See [NPCs, Structures and Compendiums](NPCs-Structures-and-Compendiums).
 

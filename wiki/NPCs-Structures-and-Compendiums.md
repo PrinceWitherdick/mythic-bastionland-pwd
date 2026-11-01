@@ -48,6 +48,10 @@ A row of buttons sits under the header for anyone who can edit the NPC.
 
 When Morale fails, the card offers to mark them **Fled** or **Surrendered**, which takes them out of the Combat's turn order. The mark then shows among their conditions with an × on it. **Click the mark** ("Clear it: they're back in the fight") to take it off. The Morale card itself is covered in [Running Combat](Running-Combat).
 
+In a Combat, an NPC or NPC Knight who is Mortally Wounded, Slain, wiped out or destroyed is marked defeated, so their turns are skipped. Patch Up, healing or Repair stands them up again. Players' Knights are never marked.
+
+A Warband led from the front rolls Morale on its leader's SPI. Only the Warband is offered Fled or Surrendered.
+
 **Upkeep** asks what has worn the Warband down (**Ill-rested**, **Poorly fed** or **Driven too hard**), then rolls the SPI Loss and posts it. Virtue Loss is not Damage, so it never Mortally Wounds them.
 
 ### Scores and Armour
@@ -63,7 +67,8 @@ When Morale fails, the card offers to mark them **Fled** or **Surrendered**, whi
   - **By their gear** (the default) reads it off what they carry. Hover it to see which way it read them.
   - **In two hands**: held as a Knight holds them.
   - **All at once**: claws, teeth, or more hands than two. Every attack joins in.
-- **Counts as a structure**: tick this for a creature so big that only what harms a structure harms it. Walls and ships should be Structure actors instead.
+- **Counts as a structure**: tick this for a creature so big that only what harms a structure harms it. Walls and ships should be Structure actors instead. At 0 GD such a creature shows **Destroyed**: it makes no Attack, counts as down for Morale, and the after-Combat rest doesn't restore it.
+- **Fights on when Mortally Wounded**: for the few of the Cast that keep fighting through a Mortal Wound. They can still Attack and aren't dying of it. The book's Rotting Corpse comes with it ticked.
 
 ### Conditions
 
@@ -88,10 +93,10 @@ With **Warband** picked as the Scale, three more states join the conditions. The
 | State | When it lights |
 | --- | --- |
 | **Routed** | A Mortal Wound, or a failed Morale Save they fled from. |
-| **Broken** | SPI 0: they act only in their own interest. |
+| **Broken** | SPI 0: they act only in their own interest. Their Attack window says they follow no orders, and they count as down when their side's Morale is weighed. |
 | **Wiped Out** | VIG 0. |
 
-Warbands raised by a Domain are covered in [Domains and Courts](Domains-and-Courts).
+Warbands take no Scars. Warbands raised by a Domain are covered in [Domains and Courts](Domains-and-Courts).
 
 ## NPC Knights
 
@@ -123,7 +128,7 @@ The buttons:
 | --- | --- |
 | **Attack** | Only shown once the Structure carries a weapon, as a siege engine does. |
 | **Take Damage** | Damage, which only fire, siege engines or something big enough gets through. |
-| **Repair** | A day of repairs: GD straight back to its most, and a card in chat says so. It doesn't ask first. |
+| **Repair** | A day of repairs: GD straight back to its most, and a card in chat says so. It asks first only when the Structure is destroyed. |
 | **Collide** | Ships only. Rolls the Damage from colliding with another ship. |
 
 ### Colliding ships

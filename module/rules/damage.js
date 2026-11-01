@@ -58,6 +58,25 @@ export function spiritOutcome(result) {
 export const WARDED_OUTCOMES = Object.freeze(["mortal", "slain"]);
 
 /**
+ * Whether a blow's outcome takes its target out of the fight, which can leave
+ * their side at half its number and may be the revenge a Humiliation waits on
+ * (p9, p10). Slain or Mortally Wounded, unless they fight on through a Mortal
+ * Wound as some of the Cast do; or, for a creature that counts as a structure,
+ * destroyed at 0GD (p11). A ship or wall has no side to waver, so its
+ * destruction isn't counted here.
+ * @param {string} outcome A DamageOutcome.
+ * @param {object} [target]
+ * @param {boolean} [target.character=true] Has Virtues, unlike a ship or wall.
+ * @param {boolean} [target.fightsOn] Fights on through a Mortal Wound.
+ * @returns {boolean}
+ */
+export function downingOutcome(outcome, { character = true, fightsOn = false } = {}) {
+	if (outcome === "slain") return true;
+	if (outcome === "mortal") return !fightsOn;
+	return outcome === "destroyed" && character;
+}
+
+/**
  * The blow as it lands on a victim whose ally took the Mortal Wound in their
  * place (p66): their GD goes as it would have, but no VIG.
  * @param {DamageResult} result
@@ -86,9 +105,11 @@ export const wardedResult = (result, vigourBefore) => ({ ...result, vigour: vigo
  * @param {boolean} [args.structure]  A ship or structure is destroyed at 0GD (p11),
  *                                    and have no VIG to lose.
  * @param {boolean} [args.nonLethal]  Non-lethal Damage leaves at least 1 VIG, so it never Slays.
+ * @param {number} [args.vigourTimes=1] How many times over the VIG it costs is lost, as a horn doubles
+ *   it for the rest of a battle (p72). Whether that's a Mortal Wound is judged on what's lost.
  * @returns {DamageResult}
  */
-export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = false, immune = false, structure = false, nonLethal = false }) {
+export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = false, immune = false, structure = false, nonLethal = false, vigourTimes = 1 }) {
 	const dealt = Math.max(0, Math.trunc(damage) - Math.max(0, Math.trunc(armour)));
 	const unchanged = { dealt, guard, vigour, guardLoss: 0, vigourLoss: 0 };
 
@@ -113,7 +134,8 @@ export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = fal
 		return { ...unchanged, guard: guardAfter, guardLoss, outcome: "scar" };
 	}
 
-	const vigourLoss = Math.min(dealt - effectiveGuard, nonLethal ? Math.max(0, vigour - 1) : vigour);
+	const times = Math.max(1, Math.trunc(Number(vigourTimes)) || 1);
+	const vigourLoss = Math.min((dealt - effectiveGuard) * times, nonLethal ? Math.max(0, vigour - 1) : vigour);
 	const vigourAfter = vigour - vigourLoss;
 	if (vigourLoss === 0) {
 		// Exhausted at VIG 0 by Virtue Loss, Damage past their GD leaves them at 0 by Damage: Slain (p8).

@@ -70,6 +70,7 @@ describe("Macro compendium", () => {
 
 	it.each([
 		["module/actions/luck-macro.js", "luckRollMacro"],
+		["module/actions/attack-macro.js", "attackMacro"],
 		["module/actions/site-macro.js", "newSiteMacro"],
 		["module/actions/toolkit-macro.js", "gmToolkitMacro"],
 		["module/actions/session-macro.js", "endSessionMacro"],

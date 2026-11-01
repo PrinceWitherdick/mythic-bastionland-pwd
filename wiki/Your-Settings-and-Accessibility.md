@@ -52,6 +52,8 @@ The coloured cards for the Phase and the Season keep their own inks under a dark
 
 Under them, **Choose the Mark** opens the **Visited Marks** window: pick a **Pencilled Ring**, a **Tick** (the default), a **Cross** or the **Hex Edge**, each in a colour of your choosing, with **Default Colours** to go back. **Right-clicking the footprints button** beside the sidebar opens the same window. See [Travels and Places](Travels-and-Places).
 
+Whatever these settings, every parchment dialog can be resized by dragging its bottom-right corner, and so can the heraldry painter, the Knight Table and the Visited Marks window. A short list to pick from stands at its full length rather than scrolling.
+
 Every setting in these two groups changes only your browser. Hiding the Phase bar or the travel rules, for instance, hides them for you alone; everyone else keeps theirs.
 
 ## For the Referee

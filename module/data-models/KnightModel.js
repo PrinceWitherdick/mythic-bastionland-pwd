@@ -1,8 +1,9 @@
 import { AGES } from "../config.js";
 import { armourTotal } from "../rules/armour.js";
+import { stanceOf } from "../rules/stances.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
 import { SCORES, clearOutgrownMarks, conditionsFor } from "../rules/virtues.js";
-import { booleanField, characterFields, countField, htmlField, textField } from "./fields.js";
+import { booleanField, characterFields, moraleBrokenField, countField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
 
@@ -58,6 +59,9 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			successor: textField(),
 			// When they last changed between Knight and NPC Knight (kindStamp), so the change always has data to send.
 			kindChanged: new fields.NumberField({ required: true, nullable: false, integer: true, min: 0, initial: 0 }),
+			// "fled" or "surrendered" once a failed Morale Save took a Knight the Referee plays out of the
+			// fight (p10), until cleared. Players' Knights and Squires never make the Save.
+			moraleBroken: moraleBrokenField(),
 			...characterFields(),
 			glory: countField()
 		};
@@ -69,8 +73,10 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 		this.rank = rankForGlory(this.glory);
 		this.nextRank = nextRank(this.glory);
 		this.conditions = conditionsFor(this);
+		// What the stances they've taken up do to their Armour (p40, p78, p82).
+		this.stance = stanceOf(this.parent.items.filter((item) => item.type === "ability"));
 		// One of each type counts, and only while its condition holds (p12).
-		this.armour = armourTotal(this.parent.items.filter((item) => item.type === "armour").map((item) => item.system), this.conditions);
+		this.armour = armourTotal(this.parent.items.filter((item) => item.type === "armour").map((item) => item.system), { ...this.conditions, stance: this.stance });
 	}
 
 	/**

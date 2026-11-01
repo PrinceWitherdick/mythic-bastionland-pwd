@@ -15,19 +15,30 @@ vi.mock("../../module/apps/ui.js", () => ({
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 vi.mock("../../module/actions/dominion.js", () => ({ linkKnightDomain: vi.fn(), worldDomains: () => game.actors.filter((actor) => actor.type === "domain") }));
 vi.mock("../../module/actions/court.js", () => ({ addCourtMember: vi.fn(), courtNames: (domain) => Object.values(domain.system.court ?? {}).map(({ name }) => name) }));
-vi.mock("../../module/actions/homecoming.js", () => ({ realmHoldings: () => [], holdingOptions: (selected) => [{ value: "Scene.s1.Tile.h1", label: "Mill", selected: selected === "Scene.s1.Tile.h1" }] }));
+vi.mock("../../module/actions/homecoming.js", () => ({
+	FOUNDED_OPTION: "founded",
+	realmHoldings: () => [],
+	// The Holding offered, first and chosen, so a test can tell which it was.
+	holdingOptions: (selected) => [{ value: selected, label: "Holding", selected: selected === "Scene.s1.Tile.h1" || selected === "Scene.s1.Tile.h0" }]
+}));
 
 const realm = {
 	holdings: [
-		{ id: "h0", name: "High Keep", seat: true },
-		{ id: "h1", name: "Mill", seat: false }
+		{ id: "h0", name: "High Keep", seat: true, hex: { col: 1, row: 1 } },
+		{ id: "h1", name: "Mill", seat: false, hex: { col: 5, row: 5 } }
 	]
 };
 vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }) }));
 
+/** Where the Company Token stands, or null with none on the map. */
+let standing = null;
+vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => true) }));
+vi.mock("../../module/actions/company.js", () => ({ findCompanyToken: () => (standing ? {} : null), companyTokenHex: () => standing }));
+
 const { foundDomain, offerRulerDomain, seatCourtiers } = await import("../../module/actions/found-domain.js");
 const { addCourtMember } = await import("../../module/actions/court.js");
 const { linkKnightDomain } = await import("../../module/actions/dominion.js");
+const { askActiveGM } = await import("../../module/ask-gm.js");
 
 const knight = (id, name, player = true) => ({ id, name, type: "knight", visible: true, hasPlayerOwner: player, folder: null, ownership: player ? { default: 0, [`u-${id}`]: 3 } : { default: 0 }, system: {} });
 
@@ -36,6 +47,8 @@ beforeEach(() => {
 	asked = [];
 	created = [];
 	actors = [knight("k1", "Tal"), knight("k2", "Moss"), knight("k3", "Brand", false)];
+	actors.get = (id) => actors.find((actor) => actor.id === id);
+	vi.mocked(askActiveGM).mockClear();
 	vi.mocked(linkKnightDomain).mockClear();
 	vi.mocked(addCourtMember).mockClear();
 	globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { NONE: 0, OBSERVER: 2, OWNER: 3 } };
@@ -55,7 +68,7 @@ beforeEach(() => {
 		return out;
 	} } };
 	globalThis.Actor = { implementation: { create: vi.fn(async (data) => {
-		const domain = { ...data, sheet: { render: vi.fn() } };
+		const domain = { id: `d${created.length}`, ownership: { [game.user.id]: 3 }, ...data, sheet: { render: vi.fn() } };
 		created.push(domain);
 		return domain;
 	}) } };
@@ -68,6 +81,8 @@ describe("foundDomain", () => {
 		const domain = await foundDomain(actors[0]);
 		expect(domain).toMatchObject({ name: "Mill", type: "domain", system: { ruler: "Tal", holding: "Scene.s1.Tile.h1", seat: false, council: { circle: ["k2"] } } });
 		expect(linkKnightDomain).toHaveBeenCalledWith(actors[0], domain);
+		// Founded, so it takes the Holding from any Domain that ruled it; a copy wouldn't.
+		expect(Actor.implementation.create.mock.calls[0][1]).toEqual({ founded: true });
 		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss", "Brand"]);
 	});
 
@@ -76,6 +91,28 @@ describe("foundDomain", () => {
 		const domain = await foundDomain(actors[0]);
 		expect(domain.name).toContain("domain.newName");
 		expect(domain.system).toMatchObject({ holding: "", seat: false, council: { circle: [] } });
+	});
+
+	it("offers neither a Squire nor the Slain for its Circle (p7, p20)", async () => {
+		actors.push({ ...knight("s1", "Pip"), system: { isSquire: true } }, { ...knight("k4", "Ash"), system: { slain: true } });
+		await foundDomain(actors[0]);
+		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss", "Brand"]);
+	});
+
+	it("lets the players of the Knights in its Circle look at it, as well as the ruler’s own", async () => {
+		formData = { holding: "", name: "Ashford", "circle.k2": true };
+		const domain = await foundDomain(actors[0]);
+		expect(domain.ownership).toEqual({ default: 0, "u-k1": 3, "u-k2": 2 });
+		expect(askActiveGM).not.toHaveBeenCalled();
+	});
+
+	it("has a player who founds one ask the Referee to share it as they would have", async () => {
+		game.user = { id: "u-k1", isGM: false, can: () => true };
+		game.users.activeGM = {};
+		formData = { holding: "", name: "Ashford", "circle.k2": true };
+		const domain = await foundDomain(actors[0]);
+		expect(domain.ownership).toEqual({ "u-k1": 3 });
+		expect(askActiveGM).toHaveBeenCalledWith(expect.stringMatching(/.shareOwnership$/), { fromId: "k1", actorIds: [domain.id] }, expect.any(String));
 	});
 
 	it("founds nothing when the window is closed", async () => {
@@ -95,6 +132,14 @@ describe("offerRulerDomain", () => {
 		expect(asked[1].context.circle.filter(({ checked }) => checked).map(({ name }) => name)).toEqual(["Tal"]);
 		expect(domain.system).toMatchObject({ ruler: "Moss", council: { circle: ["k1"] } });
 		expect(domain.sheet.render).toHaveBeenCalled();
+	});
+
+	it("offers the Holding the Company was put down in, even the Seat, as the Ruler Start asked (p6)", async () => {
+		formData = (options) => (options.template === "who-rules" ? { ruler: "k2" } : { holding: options.context.holdings[0].value });
+		standing = { col: 1, row: 1 };
+		await offerRulerDomain({ id: "s1" });
+		standing = null;
+		expect(asked[1].context.holdings[0].value).toBe("Scene.s1.Tile.h0");
 	});
 
 	it("asks nothing before there are Knights, and founds nothing when left for later", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendRecap, calendarTurn, normalizeSessionEnd, offeredStep, passageStep, sessionRecap, TIME_STEPS, TIME_STEP_KEYS, timeStep, turnsSeasonOrAge } from "../../module/rules/session-end.js";
+import { appendRecap, normalizeSessionEnd, offeredStep, passageStep, sessionRecap, TIME_STEPS, TIME_STEP_KEYS, timeStep, turnsSeasonOrAge } from "../../module/rules/session-end.js";
 
 describe("TIME_STEPS", () => {
 	it("offers the book's four answers, in its order (p17)", () => {
@@ -28,21 +28,20 @@ describe("turnsSeasonOrAge", () => {
 });
 
 describe("passageStep", () => {
-	it("turns the Season now on a 1, where the calendar calls for a Season", () => {
-		expect(passageStep("now", "season")).toEqual({ step: "months", promised: null });
-	});
-
-	it("begins the new Age now on a 1 where Winter is ending, since an Age begins in Spring", () => {
-		expect(passageStep("now", "age")).toEqual({ step: "years", promised: null });
+	it("turns the Season now on a 1", () => {
+		expect(passageStep("now")).toEqual({ step: "months", promised: null });
 	});
 
 	it("leaves the turn to the end of the next session on a 2-3, and passes no time now", () => {
-		expect(passageStep("afterNextSession", "season")).toEqual({ step: "none", promised: "season" });
-		expect(passageStep("afterNextSession", "age")).toEqual({ step: "none", promised: "age" });
+		expect(passageStep("afterNextSession")).toEqual({ step: "none", promised: "season" });
 	});
 
 	it("carries the Season on, promising nothing, on a 4-6", () => {
-		expect(passageStep("continues", "season")).toEqual({ step: "none", promised: null });
+		expect(passageStep("continues")).toEqual({ step: "none", promised: null });
+	});
+
+	it("never begins a new Age, even as Winter ends: only the group's own Years does that", () => {
+		expect(["now", "afterNextSession", "continues"].map((result) => passageStep(result).step)).not.toContain("years");
 	});
 });
 
@@ -55,12 +54,6 @@ describe("offeredStep", () => {
 		expect(offeredStep({ promised: "age" })).toEqual({ step: "years", reason: "promised" });
 	});
 
-});
-
-describe("calendarTurn", () => {
-	it("turns the Age as Winter ends, since a new Age begins in Spring (p17), and the Season otherwise", () => {
-		expect(["spring", "harvest", "winter"].map(calendarTurn)).toEqual(["season", "season", "age"]);
-	});
 });
 
 describe("normalizeSessionEnd", () => {

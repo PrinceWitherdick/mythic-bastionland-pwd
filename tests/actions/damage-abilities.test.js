@@ -17,12 +17,16 @@ vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({}), ca
 vi.mock("../../module/actions/items.js", () => ({ armourConditionText: () => "" }));
 vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-updates.js"));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineMortalWound: vi.fn(async () => null), timelineWarded: vi.fn(async () => null) }));
+vi.mock("../../module/actions/lasting-dice.js", async (importOriginal) => ({ ...(await importOriginal()), temperWeapon: vi.fn(async () => true) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");
 const timeline = await import("../../module/actions/timeline-events.js");
 const { postCard } = await import("../../module/chat/cards.js");
-const { takeAttack, takeDamage } = await import("../../module/actions/damage.js");
+const { hornBlownFor } = await import("../../module/actions/stances.js");
+const { landMirrors, makersWith, rallied, sitsOn, takeAttack, takeDamage } = await import("../../module/actions/damage.js");
+const { rollScar } = await import("../../module/actions/scars.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
+const { temperWeapon } = await import("../../module/actions/lasting-dice.js");
 
 /** Somebody with Virtues, GD and Armour, whose updates land on them. */
 function character({ uuid = "Actor.boar", name = "Boar", type = "npc", vig = 12, spi = 10, guard = 3, armour = 1, items = [] } = {}) {
@@ -261,6 +265,22 @@ describe("an Attack card's Abilities as the Damage lands", () => {
 		expect(postCard.mock.calls.filter((call) => call[1] === "note")).toEqual([]);
 	});
 
+	it("tempers the weapon a Wound was dealt with, and nothing for a blow GD stops (p98)", async () => {
+		const tal = character({ uuid: "Actor.tal", name: "Tal", type: "knight" });
+		actors["Actor.tal"] = tal;
+		const tempers = { label: "Tempering", faces: 8, weapons: [{ id: "guisarme", name: "Bolt-guisarme" }] };
+		const blow = card({ tempers, dice: [{ faces: 10, result: 8, label: "Bolt-guisarme", deniedBy: null, item: "guisarme" }] });
+		inputDialog.mockResolvedValue({ damage: "8", armour: "0" });
+		await takeAttack(character({ guard: 2, armour: 0 }), blow);
+		expect(temperWeapon).toHaveBeenCalledWith(tal, "guisarme", expect.objectContaining({ uuid: "Actor.boar" }));
+
+		temperWeapon.mockClear();
+		await takeAttack(character({ uuid: "Actor.fox", name: "Fox", guard: 10, armour: 0 }), blow);
+		expect(temperWeapon).not.toHaveBeenCalled();
+		await takeAttack(character({ guard: 2, armour: 0 }), card({ dice: blow.dice }));
+		expect(temperWeapon).not.toHaveBeenCalled();
+	});
+
 	it("takes SPI rather than VIG for a blow that harms SPI", async () => {
 		const boar = character({ guard: 2, armour: 0 });
 		inputDialog.mockResolvedValue({ damage: "8", armour: "0" });
@@ -378,7 +398,7 @@ describe("a steed brought down (p10)", () => {
 		globalThis.CONFIG = { queries: {} };
 		globalThis.DOMParser = class {
 			parseFromString(html) {
-				return { querySelectorAll: () => ({ length: html.split("data-unhorsed").length - 1 }) };
+				return { querySelectorAll: () => Array.from({ length: html.split("data-unhorsed").length - 1 }, () => ({ dataset: {} })) };
 			}
 		};
 		try {
@@ -386,7 +406,7 @@ describe("a steed brought down (p10)", () => {
 			actors["Actor.kay"] = { testUserPermission: (user, level) => level === "OWNER" && user.id === "kay-player" };
 			const card = { id: "m1", isOwner: true, content: "<button data-unhorsed></button>", flags: { [SYSTEM_ID]: { unhorsed: "Actor.kay" } }, setFlag: vi.fn(async () => {}) };
 			game.messages = new Map([["m1", card]]);
-			const ask = (id) => CONFIG.queries[`${SYSTEM_ID}.spendButton`]({ messageId: "m1", key: "[data-unhorsed]#0" }, { user: { id } });
+			const ask = (id) => CONFIG.queries[`${SYSTEM_ID}.spendButton`]({ messageId: "m1", keys: ["[data-unhorsed]#0"] }, { user: { id } });
 			expect(await ask("another-player")).toBe(false);
 			expect(card.setFlag).not.toHaveBeenCalled();
 			expect(await ask("kay-player")).toBe(true);
@@ -394,6 +414,43 @@ describe("a steed brought down (p10)", () => {
 		} finally {
 			for (const key of ["Hooks", "CONFIG", "DOMParser"]) delete globalThis[key];
 		}
+	});
+});
+
+describe("the backlash and rally cards (players' audit)", () => {
+	/** The cards' wiring, and what drawing one shows this user. */
+	const drawn = async (selector, author) => {
+		const { registerAbilityBlows } = await import("../../module/actions/damage.js");
+		const hooks = [];
+		globalThis.Hooks = { on: (name, fn) => hooks.push(fn) };
+		globalThis.CONFIG = { queries: {} };
+		registerAbilityBlows();
+		const button = { dataset: {}, removed: false, remove() { this.removed = true; }, closest: () => null };
+		const html = { querySelector: (wanted) => (wanted === selector ? button : null), querySelectorAll: (wanted) => (wanted === selector ? [button] : []), addEventListener: () => {} };
+		for (const hook of hooks) hook({ id: "m1", isOwner: true, author, flags: {} }, html);
+		return button;
+	};
+
+	afterEach(() => {
+		for (const key of ["Hooks", "CONFIG"]) delete globalThis[key];
+	});
+
+	it("gives the rally to the Referee alone, even on a card a player posted", async () => {
+		game.user = { isGM: false };
+		expect((await drawn("[data-rally]", { isGM: false })).removed).toBe(true);
+		game.user = { isGM: true };
+		expect((await drawn("[data-rally]", { isGM: false })).removed).toBe(false);
+	});
+
+	it("posts a backlash for all to see, however the poster rolls", async () => {
+		const amber = character({ uuid: "Actor.amber", name: "Amber", type: "knight" });
+		actors["Actor.amber"] = amber;
+		const boar = character({ guard: 0, vig: 12, armour: 0 });
+		inputDialog.mockResolvedValue({ damage: "2", armour: "0" });
+		postCard.mockClear();
+		await takeAttack(boar, { attacker: "Actor.amber", backlash: true, dice: [{ faces: 6, result: 2 }], gambits: [], feats: [], targets: [], appliedTo: [] });
+		const offered = postCard.mock.calls.find(([, , context]) => context.action?.data === "backlash");
+		expect(offered?.[3]).toMatchObject({ mode: "public" });
 	});
 });
 
@@ -437,5 +494,145 @@ describe("the Timeline", () => {
 		await takeDamage(victim, { damage: 9 });
 		expect(timeline.timelineWarded).toHaveBeenCalledWith(ward, victim, { doomed: false });
 		expect(timeline.timelineMortalWound).not.toHaveBeenCalled();
+	});
+});
+
+describe("combat audit of 2026-10-29", () => {
+	const card = (extra = {}) => ({
+		attacker: "Actor.tal",
+		targets: [],
+		dice: [{ faces: 8, result: 8, label: "Lance", deniedBy: null }],
+		melee: true,
+		gambits: [],
+		feats: [],
+		appliedTo: [],
+		...extra
+	});
+
+	it("unhorses no Warband a blow can't harm, though a Dismount was spent (p11)", async () => {
+		const riders = character({ uuid: "Actor.riders", name: "Riders", guard: 3, armour: 0 });
+		Object.assign(riders.system, { scale: "warband", mounted: true });
+		inputDialog.mockResolvedValue({ damage: "8", armour: "0" });
+		const result = await takeAttack(riders, card({ gambits: [{ key: "dismount" }] }));
+		expect(result.outcome).toBe("unharmed");
+		expect(riders.system.mounted).toBe(true);
+	});
+
+	it("lets go of a Slain or dying leader rather than striking them again (p11)", async () => {
+		const kay = character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight" });
+		kay.system.slain = true;
+		actors["Actor.kay"] = kay;
+		const militia = character({ uuid: "Actor.militia", name: "Militia", guard: 3, armour: 0 });
+		Object.assign(militia.system, { scale: "warband", leader: "Actor.kay" });
+		inputDialog.mockResolvedValue({ damage: "5", armour: "0", "harm-warband": true });
+		await takeDamage(militia, { damage: 5 });
+		expect(militia.system.leader).toBe("");
+		expect(kay.update).not.toHaveBeenCalled();
+	});
+
+	it("throws an NPC rider whose Token sits on the fallen steed's (p10), on a Scene nobody is viewing", async () => {
+		const horse = character({ uuid: "Actor.horse", name: "Destrier", vig: 4, guard: 0, armour: 0 });
+		const rider = character({ uuid: "Actor.reeve", name: "Reeve" });
+		const walker = character({ uuid: "Actor.walker", name: "Walker" });
+		rider.system.mounted = true;
+		walker.system.mounted = true;
+		const scene = { grid: { size: 100 }, tokens: [] };
+		const placed = { x: 0, y: 0, width: 1, height: 1, parent: scene, actor: horse };
+		const riding = { x: 25, y: 25, width: 0.5, height: 0.5, parent: scene, actor: rider };
+		const beside = { x: 100, y: 0, width: 1, height: 1, parent: scene, actor: walker };
+		scene.tokens.push(placed, riding, beside);
+		horse.getDependentTokens = () => [placed];
+		inputDialog.mockResolvedValue({ damage: "20", armour: "0" });
+		await takeDamage(horse, { damage: 20 });
+		expect(rider.system.mounted).toBe(false);
+		expect(walker.system.mounted).toBe(true);
+		expect(postCard.mock.calls.some(([actor, , context]) => actor === rider && context.action?.data === "unhorsed")).toBe(true);
+	});
+
+	it("reads a rider's Token as sitting on a steed's by its centre", () => {
+		expect(sitsOn({ x: 25, y: 25, w: 50, h: 50 }, { x: 0, y: 0, w: 100, h: 100 })).toBe(true);
+		expect(sitsOn({ x: 100, y: 0, w: 100, h: 100 }, { x: 0, y: 0, w: 100, h: 100 })).toBe(false);
+	});
+
+	it("ends a stance held for the fight's turns once its Knight goes down (p40)", async () => {
+		const willow = { id: "willow", name: "Willow", type: "ability", system: { armourFloor: 4, onMove: true, lapses: "turn", inEffect: true } };
+		const quest = { id: "quest", name: "Quest", type: "ability", system: { oath: true, inEffect: true } };
+		const kay = character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight", vig: 8, guard: 0, armour: 0, items: [willow, quest] });
+		kay.updateEmbeddedDocuments = vi.fn(async () => []);
+		inputDialog.mockResolvedValue({ damage: "5", armour: "0" });
+		expect((await takeDamage(kay, { damage: 5 })).outcome).toBe("mortal");
+		expect(kay.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ _id: "willow", "system.inEffect": false }], expect.anything());
+	});
+
+	it("rallies the maker's side in their Combat, never the maker, and the Company only for its own (p74)", () => {
+		const knight = (uuid, type = "knight") => character({ uuid, name: uuid, type });
+		const [tal, kay, foe, lord] = [knight("Actor.tal"), knight("Actor.kay"), knight("Actor.foe"), knight("Actor.lord", "npcKnight")];
+		game.combats = [{ combatants: [
+			{ actor: tal, token: { disposition: 1 } },
+			{ actor: kay, token: { disposition: 1 } },
+			{ actor: foe, token: { disposition: -1 } }
+		] }];
+		expect(rallied(tal)).toEqual([kay]);
+		// A fight only set up on another Scene gives way to the one under way.
+		const ban = knight("Actor.ban");
+		game.combats = [
+			{ started: false, combatants: [{ actor: tal, token: { disposition: 1 } }, { actor: ban, token: { disposition: 1 } }] },
+			{ started: true, combatants: [{ actor: tal, token: { disposition: 1 } }, { actor: kay, token: { disposition: 1 } }] }
+		];
+		expect(rallied(tal)).toEqual([kay]);
+		game.combats = [];
+		game.actors.contents.push(tal, kay, lord);
+		expect(rallied(tal)).toEqual([kay]);
+		expect(rallied(lord)).toEqual([]);
+	});
+
+	it("gives a ship or structure that Scarred a Knight who mirrors nothing, not even a card (p116)", async () => {
+		actors["Actor.tal"] = { uuid: "Actor.tal", name: "Wall", type: "structure", isOwner: true, system: { guard: { value: 5, max: 5 } } };
+		const kay = character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight", guard: 2, armour: 0, items: [{ type: "ability", system: { mirror: true } }] });
+		rollScar.mockResolvedValueOnce({ apply: true, faces: 8 });
+		inputDialog.mockResolvedValue({ damage: "2", armour: "0" });
+		expect((await takeAttack(kay, card())).outcome).toBe("scar");
+		expect(postCard.mock.calls.filter((call) => call[1] === "note")).toEqual([]);
+	});
+
+	it("keeps a Wound given back for later where asked, as a duel's two blows land together (p116)", async () => {
+		const tal = character({ uuid: "Actor.tal", name: "Tal", type: "knight", vig: 12 });
+		actors["Actor.tal"] = tal;
+		const kay = character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight", guard: 2, armour: 0, items: [{ type: "ability", system: { mirror: true } }] });
+		inputDialog.mockResolvedValue({ damage: "5", armour: "0" });
+		const mirrors = [];
+		await takeAttack(kay, card(), { mirrors });
+		expect(tal.system.virtues.vig.value).toBe(12);
+		expect(mirrors).toHaveLength(1);
+		await landMirrors(mirrors);
+		expect(tal.system.virtues.vig.value).toBe(9);
+	});
+});
+
+describe("makersWith", () => {
+	it("offers a backlash or rally to whoever's own blow carries it, joiners included", () => {
+		expect(makersWith({ attacker: "Actor.amber", backlash: true, dice: [] }, "backlash")).toEqual(["Actor.amber"]);
+		const joint = { attacker: "Actor.moss", backlash: false, dice: [{ actor: "Actor.moss", backlash: false }, { actor: "Actor.amber", backlash: true }, { actor: "Actor.amber", backlash: true }] };
+		expect(makersWith(joint, "backlash")).toEqual(["Actor.amber"]);
+		expect(makersWith(joint, "rally")).toEqual([]);
+	});
+});
+
+describe("hornBlownFor", () => {
+	const knight = { uuid: "Actor.k" };
+	const combat = (started, flagged, actor = knight) => ({
+		started,
+		combatants: [{ actor, getFlag: () => false }, { actor: { uuid: "Actor.horn" }, getFlag: (scope, key) => flagged && scope === SYSTEM_ID && key === "wildHorn" }]
+	});
+
+	it("counts a horn only in a battle that has begun and that they fight in (p72)", () => {
+		game.combats = [combat(true, true)];
+		expect(hornBlownFor(knight)).toBe(true);
+		game.combats = [combat(false, true)];
+		expect(hornBlownFor(knight)).toBe(false);
+		game.combats = [combat(true, true, { uuid: "Actor.other" })];
+		expect(hornBlownFor(knight)).toBe(false);
+		game.combats = [combat(true, false)];
+		expect(hornBlownFor(knight)).toBe(false);
 	});
 });

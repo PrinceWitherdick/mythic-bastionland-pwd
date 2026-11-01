@@ -112,7 +112,7 @@ The map looks like the Realm Sheets, traced from the Blank Realm legend. **Realm
 
 #### Referee Tools
 
-Buttons in the Roll Tables tab roll the book's quick tables (the Luck Roll, Passage of Time, Travelling Blind, Dire Weather and more) and open the **Spark Tables**. Each Referee's hotbar gets the Toolkit, the Rulebook, End the Session, New Site and the Luck Roll.
+Buttons in the Roll Tables tab roll the book's quick tables (the Luck Roll, Passage of Time, Travelling Blind, Dire Weather and more) and open the **Spark Tables**. Each Referee's hotbar gets the Toolkit, the Rulebook, End the Session, New Site, the Luck Roll and Attack; each player's gets Attack, Places, the Timeline and the Luck Roll.
 
 ### Art and text from your own book
 

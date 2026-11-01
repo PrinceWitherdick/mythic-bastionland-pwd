@@ -2,7 +2,8 @@ import { hexTarget } from "../chat/hex-target.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { featureAt } from "../rules/realm.js";
 import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
-import { companyPace } from "../rules/journey.js";
+import { COMPANY_PACE_SETTING, companyPace, paceSoFar } from "../rules/journey.js";
+import { keyedSerialWrites } from "../rules/queue.js";
 import { samePhase } from "../rules/time.js";
 import { nextOmen } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -13,13 +14,14 @@ import { settleBlindTravel } from "./night-travel.js";
 import { hexesReached, keptBackByWeather } from "./held-back.js";
 import { rollFirstArrival } from "./hex-lore.js";
 import { welcomeHome } from "./homecoming.js";
-import { COMPANY_MOVED_HOOK, forgetMoveVisits, heldBack, setHeldBack } from "./journey.js";
+import { COMPANY_MOVED_HOOK, COMPANY_MOVES_FLAG, COMPANY_MOVE_UNDONE_HOOK, forgetMoveVisits, heldBack, setHeldBack } from "./journey.js";
 import { liveRealm } from "./myth-notes.js";
 import { getRealm, isRealmScene } from "./realm.js";
 import { realmKnown, revealMythsReached, secretsKeptOn } from "./solo.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { revealSighted } from "./sighted.js";
 import { gallop } from "./steeds.js";
+import { advancePhase } from "./time.js";
 import { markOmenOnEntering, wildernessRoll } from "./wilderness.js";
 
 /**
@@ -29,11 +31,9 @@ import { markOmenOnEntering, wildernessRoll } from "./wilderness.js";
  * Holding's mood is gauged on arriving (p18), and a second hex in a Phase is a
  * Gallop (p18). Each is told to the Referee on a card of their own, with a
  * button for what the book has them do, since a Token dragged by mistake
- * shouldn't spend an Omen or a steed's VIG.
+ * shouldn't spend an Omen or a steed's VIG. Travelling takes the whole Phase
+ * (p18), so a move that ends in a new hex also offers the Phase's end.
  */
-
-/** The hexes the Company has come into this Phase: {when, count}, or null. */
-const PACE_SETTING = "companyPace";
 
 /** What marks the arrival card's buttons. */
 const ARRIVAL_SELECTOR = "[data-arrival]";
@@ -55,16 +55,16 @@ function mythsEntered(scene, entered) {
  * Count the hexes come into this Phase, and say what pace that makes (p18).
  * @param {number} entered
  * @param {import("../rules/time.js").Calendar} now
- * @returns {Promise<{before: string, after: string, counted: number}>} With the hexes kept in the count.
+ * @returns {Promise<{before: string, after: string, count: number, counted: number}>} With the hexes come into this
+ *   Phase, and those kept in the count.
  */
 async function countPace(entered, now) {
-	const said = game.settings.get(SYSTEM_ID, PACE_SETTING);
-	const before = samePhase(said?.when, now) ? Number(said.count) || 0 : 0;
+	const before = paceSoFar(game.settings.get(SYSTEM_ID, COMPANY_PACE_SETTING), now);
 	const count = before + entered;
-	const pace = { before: companyPace(before), after: companyPace(count), counted: 0 };
+	const pace = { before: companyPace(before), after: companyPace(count), count, counted: 0 };
 	// Past a Cruise, more hexes make no other pace, so there's nothing new to keep.
 	if (pace.before !== "beyond") {
-		await game.settings.set(SYSTEM_ID, PACE_SETTING, { when: { ...now }, count });
+		await game.settings.set(SYSTEM_ID, COMPANY_PACE_SETTING, { when: { ...now }, count });
 		pace.counted = entered;
 	}
 	return pace;
@@ -78,9 +78,9 @@ async function countPace(entered, now) {
  * @returns {Promise<unknown>}
  */
 async function uncountPace({ when, paced } = {}) {
-	const said = game.settings.get(SYSTEM_ID, PACE_SETTING);
+	const said = game.settings.get(SYSTEM_ID, COMPANY_PACE_SETTING);
 	if (!paced || !said || !samePhase(said.when, when)) return null;
-	return game.settings.set(SYSTEM_ID, PACE_SETTING, { ...said, count: Math.max(0, (Number(said.count) || 0) - paced) });
+	return game.settings.set(SYSTEM_ID, COMPANY_PACE_SETTING, { ...said, count: Math.max(0, (Number(said.count) || 0) - paced) });
 }
 
 /**
@@ -98,6 +98,30 @@ function mythNotes(scene, entered) {
 		actions.push({ key: "omen", hex: hexKey(myth.hex), icon: "fa-solid fa-eye", label: t("arrival.omen") });
 	}
 	return { lines, actions };
+}
+
+/**
+ * @param {...({lines: string[], actions: object[]}|null)} notes
+ * @returns {{lines: string[], actions: object[]}} Their lines and buttons, in order.
+ */
+const joinNotes = (...notes) => ({
+	lines: notes.flatMap((note) => note?.lines ?? []),
+	actions: notes.flatMap((note) => note?.actions ?? [])
+});
+
+/**
+ * A Holding reached has its Local Mood rolled (p18).
+ * @param {Scene} scene
+ * @param {{col: number, row: number}|null} here Where the Company stopped.
+ * @returns {{lines: string[], actions: object[]}} Nothing where no Holding stands there.
+ */
+function holdingNotes(scene, here) {
+	const holding = here ? featureAt(getRealm(scene).realm, here).holding : null;
+	if (!holding) return { lines: [], actions: [] };
+	return {
+		lines: [t("arrival.holding", { hex: hexLabel(here, scene) })],
+		actions: [{ key: "mood", icon: "fa-solid fa-masks-theater", label: t("arrival.mood") }]
+	};
 }
 
 /**
@@ -129,18 +153,17 @@ async function arrivalNotes(scene, { entered, ended, from }, now) {
 		lines.push(t(`arrival.${pace.after}`));
 		if (pace.after === "gallop") actions.push({ key: "gallop", icon: "fa-solid fa-horse", label: t("arrival.gallopButton") });
 	}
-
-	const myths = mythNotes(scene, entered);
-	lines.push(...myths.lines);
-	actions.push(...myths.actions);
-
-	// A Holding reached has its Local Mood rolled (p18).
-	const holding = ended && here ? featureAt(getRealm(scene).realm, here).holding : null;
-	if (holding) {
-		lines.push(t("arrival.holding", { hex: hexLabel(here, scene) }));
-		actions.push({ key: "mood", icon: "fa-solid fa-masks-theater", label: t("arrival.mood") });
+	// Travelling takes the whole Phase (p18): once the Company stops, the Referee ends it here. Not while dire
+	// weather may be keeping it where it was, which Stay or Onward settles first.
+	const ends = ended && !held;
+	// A Holding's mood only once the Company is there.
+	const notes = joinNotes({ lines, actions }, mythNotes(scene, entered), ends ? holdingNotes(scene, here) : null);
+	if (ends) {
+		const phase = t(`time.phases.${now.phase}`);
+		notes.lines.unshift(t("arrival.travelled", { count: pace.count, phase }));
+		notes.actions.push({ key: "endPhase", icon: "fa-solid fa-hourglass-end", label: t("arrival.endPhase", { phase }) });
 	}
-	return { lines, actions, paced: pace.counted, held };
+	return { ...notes, paced: pace.counted, held };
 }
 
 /**
@@ -150,13 +173,21 @@ async function arrivalNotes(scene, { entered, ended, from }, now) {
  * @param {{entered?: object[], ended?: boolean, from?: object|null, chosen?: boolean}} moved
  * @param {object} [heldMove] Where dire weather may hold the move back.
  * @param {string|null} [heldMove.move] The id it's held back under.
- * @param {Record<string, number>|null} [heldMove.orders] The arrival each hex it came into became, by hex key.
+ * @param {Record<string, number>|Promise<Record<string, number>|null>|null} [heldMove.orders] The arrival each hex
+ *   it came into became, by hex key, or the journey's write that will say.
+ * @param {{col: number, row: number}[]} [heldMove.chose] The hexes the Company chose to come into, where a blind
+ *   roll then moved it, for Undo to forget; the hexes entered otherwise.
+ * @param {string[]} [heldMove.movements] The ids of the Tokens' moves that made it, which an Undo of one names.
  * @returns {Promise<ChatMessage|null>}
  */
-export async function noticeArrival(scene, { entered = [], ended = false, from = null, chosen = true }, { move = null, orders = null } = {}) {
+export async function noticeArrival(scene, { entered = [], ended = false, from = null, chosen = true }, { move = null, orders = null, chose = null, movements = [] } = {}) {
 	if (!game.user.isGM || !chosen || !isRealmScene(scene) || !entered.length) return null;
 	const now = getCalendar();
 	const { lines, actions, paced, held } = await arrivalNotes(scene, { entered, ended, from }, now);
+	keepMove(scene, { movements, from, entered: chose ?? entered, orders, paced, when: { ...now }, held: held ? move : null })
+		.catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's move for Undo`, error));
+	// The card keeps the arrivals only of a move held back, so only then does it wait for the journey's write.
+	if (held) orders = (await orders) ?? null;
 	if (!lines.length) return null;
 	const here = entered.at(-1);
 	// The Phase it came in and the hexes counted toward its pace, kept for buttons pressed later,
@@ -173,7 +204,7 @@ export async function noticeArrival(scene, { entered = [], ended = false, from =
  * @returns {{move?: string, orders?: Record<string, number>}} What an arrival card keeps of a held move.
  */
 function heldRecord(entered, move, orders) {
-	const mine = orders ? Object.fromEntries(entered.map(hexKey).filter((key) => Number.isFinite(orders[key])).map((key) => [key, orders[key]])) : {};
+	const mine = orders ? pickOrders(orders, entered) : {};
 	return { ...(move ? { move } : {}), ...(Object.keys(mine).length ? { orders: mine } : {}) };
 }
 
@@ -189,6 +220,112 @@ function heldRecord(entered, move, orders) {
 function postArrivalCard(scene, hex, { lines, actions }, arrived) {
 	return postCard(null, "arrival", { title: t("arrival.title"), target: hexTarget(hex, scene), lines, actions },
 		{ mode: "gm", flags: { [SYSTEM_ID]: { arrival: scene.id, arrived } } });
+}
+
+/**
+ * @typedef {object} MoveMade A chosen move of the Company's, kept for Undo.
+ * @property {string[]} movements The ids of the Tokens' moves that made it.
+ * @property {{col: number, row: number}|null} from
+ * @property {{col: number, row: number}[]} entered
+ * @property {Record<string, number>|null} orders The arrival each of its hexes became, by hex key.
+ * @property {number} paced The hexes it counted toward the Phase's pace.
+ * @property {object} when The Phase it came in.
+ * @property {string|null} held The id it's held back under by dire weather.
+ */
+
+/** How many moves back Undo can take the Company's visits and pace with it. */
+const MOVES_KEPT = 20;
+
+/** Each Realm's kept moves are written one change at a time, so none is written over another. */
+const movesWrites = keyedSerialWrites();
+
+/**
+ * @param {Scene} scene
+ * @returns {MoveMade[]} The Company's moves kept for Undo on a Realm, the last last.
+ */
+function movesKept(scene) {
+	const kept = scene.getFlag?.(SYSTEM_ID, COMPANY_MOVES_FLAG);
+	return Array.isArray(kept) ? kept.filter((made) => made && typeof made === "object") : [];
+}
+
+/**
+ * Change the moves kept for Undo on a Realm, after any change already being made.
+ * @template T
+ * @param {Scene} scene
+ * @param {(moves: MoveMade[]) => {moves?: MoveMade[], result?: T}|Promise<{moves?: MoveMade[], result?: T}>} change
+ *   The moves to keep, where they change, and what to answer.
+ * @returns {Promise<T>}
+ */
+function changeMovesKept(scene, change) {
+	return movesWrites(scene.id)(async () => {
+		const { moves, result } = await change(movesKept(scene));
+		if (moves) await (moves.length ? scene.setFlag(SYSTEM_ID, COMPANY_MOVES_FLAG, moves) : scene.unsetFlag(SYSTEM_ID, COMPANY_MOVES_FLAG));
+		return result;
+	});
+}
+
+/**
+ * Keep a chosen move for Undo, once the journey's write says what arrivals its
+ * hexes became, so the arrival card needn't wait for it.
+ * @param {Scene} scene
+ * @param {Omit<MoveMade, "orders"> & {orders: Record<string, number>|Promise<Record<string, number>|null>|null}} made
+ * @returns {Promise<void>}
+ */
+function keepMove(scene, made) {
+	// Waited for in turn, so the moves are kept in the order they were made.
+	return changeMovesKept(scene, async (moves) => {
+		const kept = await Promise.resolve(made.orders).catch(() => null);
+		const orders = kept ? pickOrders(kept, made.entered) : null;
+		return { moves: [...moves, { ...made, orders }].slice(-MOVES_KEPT) };
+	});
+}
+
+/**
+ * @param {Record<string, number>} orders
+ * @param {{col: number, row: number}[]} entered
+ * @returns {Record<string, number>} The arrivals a move's own hexes became.
+ */
+const pickOrders = (orders, entered) => Object.fromEntries(entered.map(hexKey).filter((key) => Number.isFinite(orders[key])).map((key) => [key, orders[key]]));
+
+/**
+ * A move of the Company's taken back with Undo, its Token put back in the hex
+ * it set off from: the visits it made and the hexes it counted toward the
+ * Phase's pace are forgotten, and it's no longer held back by dire weather.
+ * What it found stays found. The move is the one the Undo names; where it names
+ * none, the last kept, if it set off from where the Token was put back. A move
+ * not kept is left alone. GMs only.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} back The hex the Token was put back in.
+ * @param {string|null} [undone] The id of the Token's move the Undo took back.
+ * @returns {Promise<boolean>} Whether a move was taken back.
+ */
+export async function takeBackMove(scene, back, undone = null) {
+	if (!game.user.isGM || !scene) return false;
+	const made = await changeMovesKept(scene, (moves) => {
+		const index = undone ? moves.findLastIndex((move) => move.movements?.includes(undone)) : moves.length - 1;
+		const last = moves[index];
+		if (!last || (!undone && !sameHex(last.from, back))) return { result: null };
+		return { moves: moves.toSpliced(index, 1), result: last };
+	});
+	if (!made) return false;
+	// Each forgets a part of its own, so none waits on another.
+	await Promise.all([
+		made.orders ? forgetMoveVisits(scene, made.entered, made.orders) : null,
+		uncountPace({ when: made.when, paced: made.paced }),
+		made.held && heldBack(scene).move === made.held ? setHeldBack(scene, []) : null
+	]);
+	return true;
+}
+
+/**
+ * Forget a move kept for Undo that dire weather sent back, which Stay took back already.
+ * @param {Scene} scene
+ * @param {string|undefined} move The held move's id.
+ * @returns {Promise<void>}
+ */
+function dropHeldMove(scene, move) {
+	if (!move) return Promise.resolve();
+	return changeMovesKept(scene, (moves) => (moves.some((made) => made.held === move) ? { moves: moves.filter((made) => made.held !== move) } : {}));
 }
 
 /**
@@ -247,8 +384,7 @@ async function followMove(scene, moved) {
 	// a blind roll, having never been there, nor one a drift put it in among those held back from.
 	const into = held ? [] : chosen ? (landed.entered ?? []) : hexesReached(scene, landed);
 	await revealMythsReached(scene, [...(chosen && landed.from ? [landed.from] : []), ...into]);
-	const orders = held ? ((await landed.orders) ?? null) : null;
-	return noticeArrival(scene, landed, { move: held ? move : null, orders });
+	return noticeArrival(scene, landed, { move: held ? move : null, orders: landed.orders ?? null, chose: chosen ? (moved.entered ?? []) : null, movements: moved.movements ?? [] });
 }
 
 /**
@@ -298,16 +434,19 @@ const ARRIVAL_ACTIONS = {
 		await uncountPace(arrived);
 		if (arrived.held?.length) await forgetMoveVisits(scene, arrived.held, arrived.orders ?? null);
 		await setHeldBack(scene, []);
+		// Taken back already, so Undo has nothing more to take.
+		await dropHeldMove(scene, arrived.move);
 		return moved;
 	},
-	// Played alone, let on through dire weather: the hexes it came into are found, and any Myth's Omen offered.
+	// Played alone, let on through dire weather: the hexes it came into are found, any Myth's Omen offered,
+	// and a Holding's mood.
 	async onward(scene, _hex, arrived) {
 		const entered = arrived.held ?? [];
 		if (!entered.length) return null;
 		if (!stillHeld(scene, arrived)) return movedOn();
 		await setHeldBack(scene, []);
 		await reachHeldHexes(scene, entered);
-		const notes = mythNotes(scene, entered);
+		const notes = joinNotes(mythNotes(scene, entered), holdingNotes(scene, entered.at(-1)));
 		if (!notes.lines.length) return true;
 		return postArrivalCard(scene, entered.at(-1), notes, { when: arrived.when, paced: 0 });
 	},
@@ -319,14 +458,26 @@ const ARRIVAL_ACTIONS = {
 		if (outcome) await markOmenOnEntering(scene, hex, arrived.when ?? getCalendar());
 		return outcome;
 	},
-	mood: () => rollRefereeTable("mood")
+	mood: () => rollRefereeTable("mood"),
+	// The Phase the Company travelled in ends (p18), in the window that asks how it was spent, ticked as travelling.
+	// A card from a Phase already over has nothing left to end. Closing the window leaves the button to press again.
+	async endPhase(scene, _hex, arrived) {
+		if (arrived.when && !samePhase(arrived.when, getCalendar())) {
+			ui.notifications.info(t("arrival.phaseGone"));
+			return true;
+		}
+		return advancePhase({ scene, mode: "travel" });
+	}
 };
 
 /** Register what the Company's moves are counted in, follow its moves, and wire the card. Called during init. */
 export function registerArrivals() {
-	game.settings.register(SYSTEM_ID, PACE_SETTING, { scope: "world", config: false, type: Object, default: null });
+	game.settings.register(SYSTEM_ID, COMPANY_PACE_SETTING, { scope: "world", config: false, type: Object, default: null });
 	Hooks.on(COMPANY_MOVED_HOOK, (scene, move) => {
 		followMove(scene, move).catch((error) => console.error(`${SYSTEM_ID} | Couldn't follow the Company's move`, error));
+	});
+	Hooks.on(COMPANY_MOVE_UNDONE_HOOK, (scene, back, undone) => {
+		takeBackMove(scene, back, undone).catch((error) => console.error(`${SYSTEM_ID} | Couldn't take the Company's move back`, error));
 	});
 	registerCardButtons({
 		selector: ARRIVAL_SELECTOR,

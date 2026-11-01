@@ -1,7 +1,9 @@
 import { findByRoll } from "../book-art/art-index.js";
-import { askActiveGM } from "../ask-gm.js";
-import { t, warn } from "../chat/cards.js";
-import { deletionEntry, queryAsker, replacementEntry } from "../compat.js";
+import { gmAsker } from "../gm-asker.js";
+import { knightWithLists } from "../book-art/myth-tables.js";
+import { askActiveGMOrWarn } from "../ask-gm-warn.js";
+import { t } from "../chat/cards.js";
+import { deletionEntry, replacementEntry } from "../compat.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
 import { KNIGHT_TYPE, NPC_KNIGHT_START, NPC_KNIGHT_TYPE, becomesNpcKnight, isKnight, isNpcKnight, kindStamp } from "../rules/knight-types.js";
 import { rollKnightName } from "../rules/knight-names.js";
@@ -49,7 +51,7 @@ export async function makeNpcKnight(roll, index) {
 	const { scores } = await rollStartScores(start);
 	const update = knightUpdate({ start, virtues: scores, guard: scores.guard, knight, seer });
 	const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
-	const items = knightItems(knight, kitNames, kitWeaponNames());
+	const items = knightItems(await knightWithLists(index, knight), kitNames, kitWeaponNames());
 	const folder = (await npcFolder())?.id ?? null;
 	const name = rollKnightName(Math.random, worldKnights().map((actor) => actor.name));
 	return createKnightWithCompanions({ name, update, items, folder, type: NPC_KNIGHT_TYPE });
@@ -113,13 +115,8 @@ const JOIN_QUERY = `${SYSTEM_ID}.npcKnightJoins`;
 export async function joinCompany(actor) {
 	if (!isNpcKnight(actor)) return true;
 	if (game.user.isGM) return setKnightKind(actor, false);
-	if (!game.users.activeGM) {
-		warn("npcKnight.joinNeedsReferee", { name: actor.name });
-		return false;
-	}
-	if (await askActiveGM(JOIN_QUERY, { actorId: actor.id }, `Couldn't make ${actor.name} a Knight of the Company's`)) return true;
-	warn("npcKnight.joinRefused", { name: actor.name });
-	return false;
+	const notice = { absent: "npcKnight.joinNeedsReferee", refused: "npcKnight.joinRefused", data: { name: actor.name } };
+	return Boolean(await askActiveGMOrWarn(JOIN_QUERY, { actorId: actor.id }, `Couldn't make ${actor.name} a Knight of the Company's`, notice));
 }
 
 /**
@@ -130,8 +127,8 @@ export async function joinCompany(actor) {
  * @returns {Promise<boolean>}
  */
 export async function onJoinQuery(data = {}, context = {}) {
-	const asker = queryAsker(context);
-	if (!asker || !game.user.isGM) return false;
+	const asker = gmAsker(context);
+	if (!asker) return false;
 	const actor = game.actors.get(data?.actorId);
 	if (!isNpcKnight(actor) || !actor.testUserPermission(asker, "OWNER")) return false;
 	return setKnightKind(actor, false);

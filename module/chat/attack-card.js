@@ -1,11 +1,17 @@
+import { oncePerKey } from "../rules/queue.js";
+import { endStanceFromMove, takeStanceOnMove } from "../actions/stances.js";
+import { keepsSeat } from "../rules/property.js";
+import { abilitiesWith } from "../rules/ability-uses.js";
+import { isBladedName } from "../rules/attack-fx.js";
 import { cardTarget, dieLabel, joinAttack, poolRerollers, renderAttackCard, showRolls, sigilHolders } from "../actions/attack.js";
 import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
 import { singleArmour, takeAttack } from "../actions/damage.js";
 import { canDenyAttack, featRefusal, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
-import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
+import { chooseActor } from "../apps/actor-pick.js";
+import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
-import { greaterEffects, npcArmourWithout, tokenBox, withinArmsReach } from "../rules/armour.js";
+import { greaterEffects, npcArmourWithout, severEffects, tokenDocBox, withinArmsReach } from "../rules/armour.js";
 import {
 	DISMOUNT_FACES,
 	SAVE_VIRTUES,
@@ -19,6 +25,7 @@ import {
 	changeAttack,
 	damageAgainst,
 	diceShowing,
+	dieMaker,
 	focusCanBeStrong,
 	gambitAllowsSave,
 	gambitCanBeStrong,
@@ -30,32 +37,32 @@ import {
 	unappliedTargets,
 	withdrawLocked
 } from "../rules/attack.js";
-import { shownWeapons, weaponShown } from "../rules/gambit-marks.js";
+import { gambitPayer, shownWeapons, weaponShown } from "../rules/gambit-marks.js";
 import { damageReach } from "../rules/property-tab.js";
 import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { ATTACK_FLAG, attackOf } from "./attack-flag.js";
-import { queryAsker } from "../compat.js";
+import { ATTACK_FLAG, attackOf, ownsAnAttacker, targeted } from "./attack-flag.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
-import { askRuneTurn, spendUse } from "../actions/abilities.js";
+import { askRuneTurn, slay, spendUse } from "../actions/abilities.js";
 import { worldKnights } from "../actions/knights.js";
 import { KNIGHT_TYPES } from "../rules/knight-types.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
  * same target join in, then Deny, Gambits, and the Damage applied to the
- * targets. Only a message's author and GMs can update it, so a player who
- * joins, Denies or applies Damage on somebody else's card asks the active GM
- * to record it.
+ * targets. With a GM here, the active GM records every change, so two made at
+ * once are both kept; without one, only the card's author can.
  */
 
 const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 
 /**
- * Changes a player may ask the GM to record on a card they don't own, each
- * with what it takes of them: the change to record, or null when it's refused.
+ * Changes a user may ask the active GM to record, each with what it takes of
+ * them: the change to record, or null when it's refused. With a GM here the
+ * card's author asks too (statefulCard), so each allows what the author's
+ * own client lets them do.
  * A Deny must come from an actor the player owns, and so must a joiner, a
  * Focus, and the Gambits spent from the pooled dice of an Attack they roll in.
  * @type {Record<string, (change: object, attack: import("../rules/attack.js").AttackState, user: User) => object|null>}
@@ -63,18 +70,18 @@ const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 const CHANGE_GUARDS = Object.freeze({
 	deny: (change, attack, user) => {
 		const roller = ownedBy(change.actor, user);
-		return roller && { ...change, name: roller.name };
+		return roller && duelDenier(attack, roller) ? { ...change, name: roller.name } : null;
 	},
 	// Damage is taken only on those the player owns, as their own client takes it, named as the GM sees them.
 	// A settled card's targets whose Tokens are gone are closed out by whoever presses Apply.
 	applied: (change, attack, user) => {
 		if (attack.targets.length) {
 			const asked = new Set(Array.isArray(change.tokens) ? change.tokens : []);
-			const settled = attack.appliedTo.length > 0;
+			// A Token since deleted is nobody's, and any of the table may mark it dealt with.
 			const hit = attack.targets
 				.filter(({ uuid }) => asked.has(uuid))
 				.map(({ uuid }) => ({ uuid, token: fromUuidSync(uuid) }))
-				.filter(({ token }) => (token ? token.actor?.testUserPermission?.(user, "OWNER") : settled));
+				.filter(({ token }) => (token ? token.actor?.testUserPermission?.(user, "OWNER") : true));
 			const names = hit.filter(({ token }) => token).map(({ token }) => token.actor.name);
 			return hit.length ? { type: "applied", names, tokens: hit.map(({ uuid }) => uuid) } : null;
 		}
@@ -85,7 +92,7 @@ const CHANGE_GUARDS = Object.freeze({
 	// Only a foe the card was aimed at Saves against its Gambits; a card at nobody, whoever its reader picks.
 	gambitSave: (change, attack, user) => {
 		const roller = ownedBy(change.actor, user);
-		if (!roller || (attack.targets.length && !attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === roller.uuid))) return null;
+		if (!roller || (attack.targets.length && !targeted(attack, roller))) return null;
 		return { ...change, by: roller.name };
 	},
 	// Clearing a mark, or carrying out a Greater effect, is the business of whoever owns the foe.
@@ -105,10 +112,10 @@ const CHANGE_GUARDS = Object.freeze({
 		// A join that arrives after a Deny or Gambit is refused (p8), and changeAttack says so too.
 		return joiner && canJoin(attack) ? { ...change, name: joiner.name } : null;
 	},
-	gambit: (change, attack, user) => (ownsAnAttacker(attack, user) ? change : null),
+	gambit: (change, attack, user) => (ownsAnAttacker(attack, user) && offersGambit(attack, change.key) ? change : null),
 	// Taking back a Gambit already Saved against, carried out or rolled for is the Referee's alone.
 	withdraw: (change, attack, user) => (ownsAnAttacker(attack, user) ? { type: "withdraw", die: change.die, ...(user.isGM && change.force === true ? { force: true } : {}) } : null),
-	focus: (change, attack, user) => (isAttacker(attack, change.actor) && ownedBy(change.actor, user) ? change : null),
+	focus: (change, attack, user) => (isAttacker(attack, change.actor) && ownedBy(change.actor, user) && offersGambit(attack, change.key) ? change : null),
 	// The pool is rolled again by one of those making the Attack, and a die turned by whoever's rune it is.
 	reroll: (change, attack, user) => {
 		const by = ownedBy(change.actor, user);
@@ -124,6 +131,19 @@ const CHANGE_GUARDS = Object.freeze({
 
 /** The kinds of actor that make Attacks, and so can join one. */
 const ATTACKER_TYPES = Object.freeze([...KNIGHT_TYPES, "npc", "structure"]);
+
+/**
+ * @param {(Actor|null|undefined)[]} actors
+ * @returns {Actor[]} Those this user owns that can make an Attack, each once.
+ */
+export function ownedAttackers(actors) {
+	const seen = new Set();
+	return actors.filter((actor) => {
+		if (!actor?.isOwner || !ATTACKER_TYPES.includes(actor.type) || seen.has(actor.uuid)) return false;
+		seen.add(actor.uuid);
+		return true;
+	});
+}
 
 const attackCard = statefulCard({
 	flag: ATTACK_FLAG,
@@ -200,16 +220,6 @@ function waitingTargets(attack) {
 }
 
 /**
- * @param {import("../rules/attack.js").AttackState} attack
- * @param {User} [user] Whoever asks; this user when left out.
- * @returns {boolean} Whether they own one of those making the Attack, whose
- *   dice, pooled in a joint Attack, any of them may spend on Gambits (p8).
- */
-function ownsAnAttacker(attack, user = game.user) {
-	return attackersOf(attack).some((uuid) => fromUuidSync(uuid)?.testUserPermission?.(user, "OWNER"));
-}
-
-/**
  * @param {string} uuid
  * @param {User} user
  * @returns {Document|null} The document, when the user owns it.
@@ -231,24 +241,16 @@ function ownsMarkedFoe(change, attack, user) {
 	if (!marked) return false;
 	// A card rolled with no targets lands on whoever its reader targets, as targetActors has it.
 	if (change.type === "greater" && !attack.targets.length) return true;
-	return attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === marked.uuid);
+	return targeted(attack, marked);
 }
 
 /**
- * The active GM records a change for a player, as CHANGE_GUARDS lets them.
- * @param {{messageId: string, change: object}} data
- * @param {{user?: User}} context
- * @returns {Promise<boolean>}
+ * The active GM records a change for a player, as CHANGE_GUARDS lets them,
+ * the card's author included: the guards already allow what the author's own
+ * client does, and some, such as a forced withdraw, are the GM's alone.
+ * @type {(data: {messageId?: string, change?: object}, context: {user?: User}) => Promise<boolean>}
  */
-async function onChangeQuery({ messageId, change }, context) {
-	const user = queryAsker(context);
-	if (!user) return false;
-	const message = game.messages.get(messageId);
-	const attack = attackOf(message);
-	if (!attack || !Object.hasOwn(CHANGE_GUARDS, change?.type)) return false;
-	const allowed = CHANGE_GUARDS[change.type](change, attack, user);
-	return allowed ? attackCard.commit(message, allowed) : false;
-}
+const onChangeQuery = attackCard.answer((change, attack, user) => (Object.hasOwn(CHANGE_GUARDS, change.type) ? CHANGE_GUARDS[change.type](change, attack, user) : null));
 
 /**
  * The Attack cards this user can see, read for the weapons foes have shown.
@@ -319,22 +321,58 @@ function watchGambitChoice(dialog) {
 }
 
 /**
+ * Whether a Gambit can be performed on this Attack: a Dismount needs a mounted foe
+ * among its targets (p10), and one who can be thrown (p44). With nobody targeted,
+ * or none of them found, the Referee judges.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {string} key One of GAMBITS.
+ * @returns {boolean}
+ */
+function offersGambit(attack, key) {
+	if (key !== "dismount") return true;
+	const foes = attack.targets.length ? targetActors(attack) : [];
+	return !foes.length || foes.some((actor) => Boolean(actor.system.conditions?.mounted) && !keepsSeat(actor.items?.contents ?? []));
+}
+
+/**
+ * Deny comes before Gambits (p8), so before the first Gambit the attacker is
+ * told who could still Deny, and asked whether to go ahead. A Deny that comes
+ * anyway lets the Gambits be taken back (withdrawLocked).
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {Promise<boolean>}
+ */
+async function confirmBeforeDeny(attack) {
+	if (attack.gambits.length) return true;
+	// Who the Attack was made at, which a card rolled with no targets doesn't know: not whoever is targeted now.
+	const foes = attack.targets.length ? targetActors(attack) : [];
+	const deniers = foes.filter((actor) => canDenyAttack(attack, actor)).map((actor) => actor.name);
+	if (!deniers.length) return true;
+	return confirmDialog({
+		title: t("gambits.label"),
+		icon: "fa-solid fa-chess-knight",
+		message: [t("attack.denyFirst", { names: deniers.join(", ") }), t("attack.declareAnyway")]
+	});
+}
+
+/**
  * Ask which Gambit to perform.
  * @param {object} options
+ * @param {import("../rules/attack.js").AttackState} options.attack
  * @param {string} options.source   What pays for it, such as "d8 showing 5".
  * @param {boolean} options.strong  Offer the Strong Gambit choices.
- * @param {ReturnType<typeof impairOptions>} [options.weapons] What an Impair could name.
  * @returns {Promise<{key: string, strong: string|null, saveIn: string, weapon?: object}|null>}
  */
-async function chooseGambit({ source, strong, weapons = [] }) {
+async function chooseGambit({ attack, source, strong }) {
+	if (!(await confirmBeforeDeny(attack))) return null;
 	const virtue = (key) => t(`virtues.${key}.abbr`);
+	const weapons = impairOptions(attack);
 	const data = await inputDialog({
 		title: t("gambits.label"),
 		icon: "fa-solid fa-chess-knight",
 		template: "gambit",
 		context: {
 			source,
-			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
+			gambits: GAMBITS.filter((key) => offersGambit(attack, key)).map((key) => ({ key, label: t(`gambits.${key}`) })),
 			strong: strong ? STRONG_GAMBITS.map((key) => ({ key, label: t(`attack.strong.${key}`) })) : null,
 			saves: SAVE_VIRTUES.map((key, index) => ({ key, label: t("attack.saveIn", { virtue: virtue(key) }), selected: index === 0 })),
 			weapons: weapons.map(({ value, label }) => ({ value, label }))
@@ -374,23 +412,31 @@ function showDismount(key) {
  * Dismount whose d6 is rolled, only the Referee may, and is asked first, since what
  * was rolled is thrown away and what was done to a sheet stays done.
  * @param {ChatMessage} message
- * @param {import("../rules/attack.js").Gambit} gambit
- * @param {number} die
+ * @param {import("../rules/attack.js").Gambit} gambit One spent from a die.
  * @returns {Promise<boolean>}
  */
-async function withdrawGambit(message, gambit, die) {
+async function withdrawGambit(message, gambit) {
+	const { die } = gambit;
 	const locked = withdrawLocked(gambit);
-	if (!locked) return saveChange(message, { type: "withdraw", die });
-	if (!game.user.isGM) {
+	let taken;
+	if (!locked) taken = await saveChange(message, { type: "withdraw", die });
+	else if (!game.user.isGM) {
 		warn(`attack.takeBackLocked.${locked}`);
 		return false;
+	} else {
+		const confirmed = await confirmDialog({
+			title: t("attack.takeBackAnyway.title"),
+			icon: "fa-solid fa-rotate-left",
+			message: [t(`attack.takeBackLocked.${locked}`), t("attack.takeBackAnyway.ask")]
+		});
+		taken = confirmed ? await saveChange(message, { type: "withdraw", die, force: true }) : false;
 	}
-	const confirmed = await confirmDialog({
-		title: t("attack.takeBackAnyway.title"),
-		icon: "fa-solid fa-rotate-left",
-		message: [t(`attack.takeBackLocked.${locked}`), t("attack.takeBackAnyway.ask")]
-	});
-	return confirmed ? saveChange(message, { type: "withdraw", die, force: true }) : false;
+	// A Move taken back ends the stance it took up (p40).
+	if (taken && gambit.key === "move") {
+		const attack = attackOf(message);
+		await endStanceFromMove(fromUuidSync((attack && dieMaker(attack, attack.dice?.[die])) ?? ""), { message: message.id, die });
+	}
+	return taken;
 }
 
 /** Click a die of 4+ to spend it on a Gambit, or a spent one to take the Gambit back. */
@@ -398,17 +444,20 @@ async function onGambit(message, button) {
 	const attack = attackOf(message);
 	const die = Number(button.dataset.die);
 	const spent = attack.gambits.find((gambit) => gambit.die === die);
-	if (spent) return withdrawGambit(message, spent, die);
+	if (spent) return withdrawGambit(message, spent);
 	if (!canFundGambit(attack, die)) return;
 
 	const { faces, result } = attack.dice[die];
 	const choice = await chooseGambit({
+		attack,
 		source: t("attack.dieSource", { faces, result }),
-		strong: canFundStrongGambit(attack, die),
-		weapons: impairOptions(attack)
+		strong: canFundStrongGambit(attack, die)
 	});
 	if (!choice) return;
-	if (await saveChange(message, { type: "gambit", die, ...choice, bonus: await rollDismount(choice.key) })) showDismount(choice.key);
+	if (!(await saveChange(message, { type: "gambit", die, ...choice, bonus: await rollDismount(choice.key) }))) return;
+	showDismount(choice.key);
+	// A Gambit spent on Moving may put its maker in a stance (p40).
+	if (choice.key === "move") await takeStanceOnMove(fromUuidSync(dieMaker(attack, attack.dice[die])), { message: message.id, die });
 }
 
 /**
@@ -433,7 +482,7 @@ async function onFocus(message) {
 	const attacker = await chooseActor(able, { title: t("feats.focus.name"), message: t("attack.whoFocuses"), icon: "fa-solid fa-eye" });
 	if (!attacker) return;
 
-	const choice = await chooseGambit({ source: t("attack.focusSource", { name: attacker.name }), strong: focusCanBeStrong(attack, attacker.uuid), weapons: impairOptions(attack) });
+	const choice = await chooseGambit({ attack, source: t("attack.focusSource", { name: attacker.name }), strong: focusCanBeStrong(attack, attacker.uuid) });
 	if (!choice) return;
 	// The CLA Save is rolled now, for the card to keep, but Fatigue follows only once the card takes the Focus.
 	const save = await rollFeat(attacker, "focus");
@@ -451,6 +500,7 @@ async function onFocus(message) {
 	await payFeat(attacker, save);
 	await postFeat(attacker, "focus", save);
 	showDismount(choice.key);
+	if (choice.key === "move") await takeStanceOnMove(attacker);
 }
 
 /**
@@ -482,24 +532,6 @@ function answerers(pool, attack, also = () => true) {
 		seen.add(actor.uuid);
 		return true;
 	});
-}
-
-/**
- * Ask which of several actors acts, or take the only one without asking.
- * @param {Actor[]} actors
- * @param {{title: string, message: string, icon?: string}} ask
- * @returns {Promise<Actor|null>}
- */
-async function chooseActor(actors, { title, message, icon = "fa-solid fa-dice-d20" }) {
-	if (actors.length === 1) return actors[0];
-	const action = await chooseDialog({
-		title,
-		icon,
-		message,
-		buttons: actors.map((actor, index) => ({ action: String(index), label: actor.name, default: index === 0 }))
-	});
-	// Closing the window answers with null, which is nobody rather than the first of them.
-	return typeof action === "string" ? actors[Number(action)] ?? null : null;
 }
 
 /**
@@ -557,27 +589,46 @@ function denyOptions(attack) {
 		...targetActors(attack),
 		game.user.character
 	], attack, (actor) => Boolean(actor.system.knowsFeat?.("deny")));
-	const allowed = pool.filter((actor) => canDenyAttack(attack, actor));
+	const allowed = pool.filter((actor) => canDenyAttack(attack, actor) && duelDenier(attack, actor));
 	if (!allowed.length) return { pool, allowed, able: allowed };
-	const targets = canvas?.ready ? attack.targets.map((target) => fromUuidSync(target.uuid)).filter((token) => token?.object) : [];
+	const targets = attack.targets.map((target) => fromUuidSync(target.uuid)).filter(Boolean);
 	return { pool, allowed, able: allowed.filter((actor) => inDenyReach(targets, actor)) };
 }
 
 /**
+ * Whether somebody may Deny a blow in a duel: only the duellist it's aimed at,
+ * since a duel is fought between the two of them (p10). Any Attack else lets
+ * anybody the Feat allows.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+function duelDenier(attack, actor) {
+	return !attack.duel || targeted(attack, actor);
+}
+
+/**
  * Whether somebody stands where they could Deny (p10): a target of the Attack,
- * or an ally close enough to touch one. Where the map can't say, with nobody
- * targeted or the Denier or the targets off it, they're let be.
- * @param {TokenDocument[]} targets The Attack's targets on the map, none where the map can't say.
+ * or an ally close enough to touch one, on that target's Scene, whichever Scene
+ * this user is viewing. With nobody targeted, or no Token of theirs anywhere,
+ * they're let be; a Token only on another Scene is out of reach.
+ * @param {TokenDocument[]} targets The Attack's targets' Token documents.
  * @param {Actor} actor
  * @returns {boolean}
  */
 function inDenyReach(targets, actor) {
 	if (!targets.length) return true;
 	if (targets.some((token) => token.actor === actor || token.actor?.uuid === actor.uuid)) return true;
-	const placed = actor.getActiveTokens?.(false, false)?.[0];
-	if (!placed) return true;
-	const denier = { box: tokenBox(placed), side: placed.document.disposition };
-	return targets.some((token) => withinArmsReach(denier, { box: tokenBox(token.object), side: token.disposition }, canvas.grid.size));
+	// Their Tokens on every Scene, as the core keeps them, without making an actor for every Token in the world.
+	const theirs = actor.getDependentTokens?.({ linked: true }) ?? [];
+	// Nowhere on any Scene, the map can't say, so the table judges.
+	if (!theirs.length) return true;
+	return targets.some((target) => {
+		const scene = target.parent;
+		const size = scene?.grid?.size ?? canvas?.grid?.size ?? 100;
+		const box = { box: tokenDocBox(target, size), side: target.disposition };
+		return theirs.some((token) => token.parent === scene && withinArmsReach({ box: tokenDocBox(token, size), side: token.disposition }, box, size));
+	});
 }
 
 /**
@@ -651,14 +702,16 @@ async function onDeny(message) {
 /**
  * What is still to be had on an Attack before its Damage lands: dice of 4+ unspent,
  * a Deny somebody could still make, and Gambits whose Save hasn't been rolled,
- * which can't be once the Damage is applied (p10).
+ * which can't be once the Damage is applied (p10). The die dealing the Damage may
+ * be spent too, but isn't one left over, so it isn't counted.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {Actor[]} actors Who the Damage would land on.
  * @returns {string[]} One line each.
  */
 function stillToBeHad(attack, actors) {
 	const lines = [];
-	const unspent = attack.dice.filter((_die, index) => canFundGambit(attack, index)).length;
+	const dealing = damageAgainst(attack, cardTarget(attack)).die;
+	const unspent = attack.dice.filter((_die, index) => index !== dealing && canFundGambit(attack, index)).length;
 	if (unspent) lines.push(plural("attack.unspentGambits", unspent));
 	const deniers = actors.filter((actor) => canDenyAttack(attack, actor)).map((actor) => actor.name);
 	if (deniers.length) lines.push(t("attack.deniableDice", { names: deniers.join(", ") }));
@@ -687,14 +740,32 @@ export async function confirmApply(blows) {
 	});
 }
 
+/** Cards whose Damage this client is applying now. */
+const applying = oncePerKey();
+
 /**
  * Take the Damage on each waiting target this user owns, rolling a Scar with the
  * die that caused it. The targets other users own stay waiting for them, and
- * those of a settled card whose Tokens were deleted are closed out.
+ * those whose Tokens were deleted are closed out.
  */
 async function onApply(message, _button, event) {
+	// A second click while the first is still applying would land the blow twice.
+	await applying(message.id, () => applyFrom(message, event));
+}
+
+/**
+ * Apply an Attack card's Damage to those it waits on that this user owns.
+ * @param {ChatMessage} message
+ * @param {Event} [event]
+ */
+async function applyFrom(message, event) {
 	const attack = attackOf(message);
-	const gone = attack.appliedTo.length ? unappliedTargets(attack).filter(({ uuid }) => !fromUuidSync(uuid)).map(({ uuid }) => uuid) : [];
+	// A card at nobody lands once, on whoever its first reader targets.
+	if (!attack.targets.length && attack.appliedTo.length) return warn("attack.alreadyApplied");
+	// Nobody could mark the card, so it would stay to be applied again.
+	if (!message.isOwner && !game.users.activeGM) return warn("attack.needsGM");
+	// Tokens deleted before the Damage reached them are dealt with, so the card can settle.
+	const gone = unappliedTargets(attack).filter(({ uuid }) => !fromUuidSync(uuid)).map(({ uuid }) => uuid);
 	const waiting = waitingTargets(attack);
 	if (!waiting.length) {
 		if (gone.length) await saveChange(message, { type: "applied", names: [], tokens: gone });
@@ -707,14 +778,35 @@ async function onApply(message, _button, event) {
 	const names = [];
 	const tokens = [];
 	const actors = [];
+	let skipped = 0;
 	for (const { actor, token } of owned) {
+		// Somebody else may have applied it while the window stood open, or while the last target took theirs.
+		const now = attackOf(message);
+		if (!stillWaiting(now, token)) {
+			skipped += 1;
+			continue;
+		}
 		// Taken as the card has it unless something wants judging; Shift opens the Damage window regardless.
-		if (!(await takeAttack(actor, attack, { except: [message.id], quick: !event?.shiftKey }))) continue;
+		if (!(await takeAttack(actor, now, { except: [message.id], quick: !event?.shiftKey }))) continue;
 		names.push(actor.name);
 		actors.push(actor.uuid);
 		if (token) tokens.push(token);
 	}
 	if (names.length) await saveChange(message, { type: "applied", names, tokens: [...tokens, ...gone], actors });
+	else if (skipped === owned.length) warn("attack.alreadyApplied");
+}
+
+/**
+ * Whether the card, as it stands now, still waits on a target: the Token
+ * named, or for a card at nobody, whoever its reader targets.
+ * @param {import("../rules/attack.js").AttackState|null} attack
+ * @param {string|null} token The target's Token UUID, null on a card at nobody.
+ * @returns {boolean}
+ */
+function stillWaiting(attack, token) {
+	if (!attack) return false;
+	if (!token) return !attack.appliedTo.length;
+	return unappliedTargets(attack).some(({ uuid }) => uuid === token);
 }
 
 /**
@@ -738,13 +830,33 @@ export async function dismissGambitMark(actor, messageId, index) {
  * @param {import("../rules/attack.js").AttackState} attack
  * @returns {({actor: Actor} & import("../rules/armour.js").GreaterEffect)[]}
  */
-function greaterOptions(attack) {
+function greaterOptions(attack, gambit = null) {
+	const cuts = gambit ? cutsFor(attack, gambit) : null;
 	return targetActors(attack)
 		.filter((actor) => actor.isOwner)
 		.flatMap((actor) => {
 			const items = actor.items.map(({ id, name, type, system }) => ({ id, name, type, system }));
-			return greaterEffects(items, singleArmour(actor)).map((effect) => ({ actor, ...effect }));
+			const severed = cuts ? severEffects({ ...cuts, guard: actor.system.guard?.value ?? null }) : [];
+			return [
+				...greaterEffects(items, singleArmour(actor)).map((effect) => ({ actor, ...effect })),
+				...severed.map((effect) => ({ actor, effect, name: "", id: null }))
+			];
 		});
+}
+
+/**
+ * Whether whoever paid for a Gambit can cut with it as an Ability lets them
+ * (p114): they have it, and a die of theirs on the card came from a blade.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {object} gambit
+ * @returns {{severs: boolean, bladed: boolean}}
+ */
+function cutsFor(attack, gambit) {
+	const payer = gambitPayer(attack, gambit).uuid;
+	const actor = payer ? fromUuidSync(payer) : null;
+	const severs = Boolean(actor?.items && abilitiesWith(actor.items.contents, "severs").length);
+	const bladed = attack.dice.some((die) => dieMaker(attack, die) === payer && isBladedName(die.label));
+	return { severs, bladed };
 }
 
 /** What each Greater effect reads as once done, under `attack.greater.` */
@@ -759,6 +871,17 @@ const GREATER_DONE = Object.freeze({ disarm: "disarmed", unhelm: "unhelmed", bre
  * @returns {{text: string, carryOut: () => Promise<unknown>}} What happens, for the card, and doing it.
  */
 function greaterOutcome({ actor, effect, name, id }) {
+	// A limb taken is the table's to describe; a head taken Slays, if they're still at 0 GD (p114).
+	if (effect === "limb") return { text: t("attack.greater.limbDone", { name: actor.name }), carryOut: async () => {} };
+	if (effect === "head") {
+		return {
+			text: t("attack.greater.headDone", { name: actor.name }),
+			carryOut: async () => {
+				if ((actor.system.guard?.value ?? 0) !== 0) return warn("attack.greater.headGuarded", { name: actor.name });
+				return slay(actor);
+			}
+		};
+	}
 	const said = [t(`attack.greater.${GREATER_DONE[effect]}`, { name: actor.name, item: name })];
 	if (id) {
 		if (effect !== "break") said.push(t(effect === "disarm" ? "attack.greater.pickUp" : "attack.greater.putOn"));
@@ -781,7 +904,7 @@ async function onGreater(message, button) {
 	const gambit = attack.gambits[index];
 	if (!gambit || gambit.strong !== "greater" || gambit.greater) return;
 
-	const options = greaterOptions(attack);
+	const options = greaterOptions(attack, gambit);
 	// Anything else it does, as an Ability may say (p114), is written in by the attacker or the foe.
 	const mayWrite = game.user.isGM || ownsAnAttacker(attack) || targetActors(attack).some((actor) => actor.isOwner);
 	if (!options.length && !mayWrite) return warn("attack.greater.nothing");
@@ -823,12 +946,7 @@ function joinCandidates(attack) {
 		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
 		...(game.user.isGM ? [] : [game.user.character, ...worldKnights()])
 	];
-	const seen = new Set();
-	return pool.filter((actor) => {
-		if (!actor?.isOwner || !ATTACKER_TYPES.includes(actor.type) || seen.has(actor.uuid)) return false;
-		seen.add(actor.uuid);
-		return !isAttacker(attack, actor.uuid) && !struck.has(actor.uuid);
-	});
+	return ownedAttackers(pool).filter((actor) => !isAttacker(attack, actor.uuid) && !struck.has(actor.uuid));
 }
 
 /**
@@ -934,7 +1052,10 @@ function activateAttackCard(message, html) {
 
 	let denyButton = null;
 	let joinButton = null;
-	const attacking = message.isOwner || ownsAnAttacker(attack);
+	const ownsAttacker = ownsAnAttacker(attack);
+	const attacking = message.isOwner || ownsAttacker;
+	// Read once, for whichever of the Apply and the Greater button comes first.
+	let ownsTarget = null;
 	for (const button of card.querySelectorAll("[data-attack-action]")) {
 		const { attackAction } = button.dataset;
 		// A Gambit past taking back is the Referee's alone, who is asked before it goes.
@@ -943,7 +1064,10 @@ function activateAttackCard(message, html) {
 		if (attackAction === "deny") denyButton = button;
 		if (attackAction === "join") joinButton = button;
 		if (attackAction === "apply" || attackAction === "greater") {
-			button.hidden = attack.targets.length > 0 && !targetActors(attack).some((actor) => actor.isOwner);
+			// Those making the Attack may write in some other Greater effect too, as onGreater offers them.
+			ownsTarget ??= targetActors(attack).some((actor) => actor.isOwner);
+			const theirs = ownsTarget || (attackAction === "greater" && ownsAttacker);
+			button.hidden = attack.targets.length > 0 && !theirs;
 		}
 		// Shown to whoever owns the Knight whose Ability or rune it is.
 		if (attackAction === "reroll") button.hidden = !poolRerollers(attack).some(({ actor }) => actor.isOwner);

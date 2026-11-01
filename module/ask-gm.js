@@ -2,7 +2,8 @@ import { SYSTEM_ID } from "./system-id.js";
 
 /**
  * Ask the active GM's client to do what this user can't, giving up after ten
- * seconds. Whoever asks checks first that there is a GM, and says so if not.
+ * seconds. With no GM there's nobody to ask, and the answer is false; to tell
+ * the user so, ask through ask-gm-warn.js's askActiveGMOrWarn.
  * @param {string} name The query, as registered in CONFIG.queries.
  * @param {object} data
  * @param {string} failure What the console says if asking fails.

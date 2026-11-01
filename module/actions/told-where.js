@@ -34,3 +34,15 @@ export function whereItLies(g, { distance, direction, here }) {
  * @returns {string}
  */
 export const toldWhere = (g, from, to) => whereItLies(g, placeFrom(g, from, to));
+
+/**
+ * Which way something lies, without how far: the general or rough direction a
+ * teller who doesn't know its place can give (p19).
+ * @param {object} g
+ * @param {{direction: number|null, here: boolean}} known
+ * @returns {string}
+ */
+export function wayItLies(g, { direction, here }) {
+	if (here || direction === null) return t("explore.here");
+	return t("explore.way", { direction: directionName(g, direction) });
+}

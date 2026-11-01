@@ -15,7 +15,8 @@ export const SETUP_PARTS = Object.freeze(["terrain", "rivers", "holdings", "myth
  * @typedef {object} RealmSetup
  * @property {boolean} ignoreRules Whether the numbers are the GM's own rather than the book's.
  * @property {boolean} [ownSize] Whether only the map's size is the GM's own, as for a Realm made from a map
- *   of theirs, whose hexes or shape set how many it has (within OWN_SIZE_LIMITS); every other number stays the book's.
+ *   of theirs, whose hexes or shape set how many it has (within OWN_SIZE_LIMITS). Its Holdings, Myths and
+ *   Landmarks are the book's scaled to that size (sizedCounts, p202); every other number stays the book's.
  * @property {number} cols
  * @property {number} rows
  * @property {Record<string, boolean>} roll For each of SETUP_PARTS, whether it's rolled or left to draw by hand.
@@ -115,18 +116,29 @@ export function withinOwnSize(cols, rows, first = "cols") {
 /**
  * A setup with nothing missing. Unless the rules are ignored, every number is
  * the book's, whatever was given, but for a map whose size is the GM's own.
- * @param {Partial<RealmSetup>|null} [given] Omit for the book's.
+ * @param {Partial<RealmSetup> & {sizedTo?: {cols: number, rows: number}}|null} [given] Omit for the book's.
+ *   `sizedTo` asks for a typical Realm on a map of that size: on another than the book's, the given
+ *   setup with its Holdings, Myths and Landmarks scaled to it (sizedCounts, p202).
  * @returns {RealmSetup}
  */
 export function normaliseRealmSetup(given = null) {
+	if (given?.sizedTo) {
+		const { sizedTo, ...rest } = given;
+		const bookSize = sizedTo.cols === BOOK_SETUP.cols && sizedTo.rows === BOOK_SETUP.rows;
+		return normaliseRealmSetup(bookSize ? rest : { ...rest, ignoreRules: true, ...sizedCounts(sizedTo) });
+	}
 	// A setup saved before every river was kept alike calls its rivers `river`.
 	const asked = { ...given?.roll, rivers: given?.roll?.rivers ?? given?.roll?.river };
 	const roll = Object.fromEntries(SETUP_PARTS.map((part) => [part, asked[part] !== false]));
 	const number = (key, value) => within(value, BOOK_SETUP[key], SETUP_LIMITS[key]);
 	if (!given?.ignoreRules) {
 		const book = { ...BOOK_SETUP, roll, landmarks: { ...BOOK_SETUP.landmarks, types: {} } };
-		// Not the rules ignored: a Realm made from the GM's own map is only given as many as the map takes.
-		return given?.ownSize ? { ...book, ownSize: true, ...withinOwnSize(given.cols, given.rows) } : book;
+		if (!given?.ownSize) return book;
+		// Not the rules ignored: a Realm made from the GM's own map is only given as many hexes as the map takes,
+		// and as many of each thing for each hex as the book's map has (p202).
+		const size = withinOwnSize(given.cols, given.rows);
+		const sized = sizedCounts(size);
+		return { ...book, ownSize: true, ...size, ...sized, landmarks: { ...sized.landmarks, types: {} } };
 	}
 
 	const fewest = within(given.landmarks?.min, BOOK_SETUP.landmarks.min, SETUP_LIMITS.landmarks);
@@ -155,6 +167,25 @@ function landmarkCounts(types) {
 	return Object.fromEntries(BOOK_LANDMARK_TYPES
 		.filter((type) => !["", null, undefined].includes(given[type]) && Number.isFinite(Number(given[type])))
 		.map((type) => [type, within(given[type], 0, SETUP_LIMITS.landmarks)]));
+}
+
+/**
+ * A typical Realm's numbers for a map of another size: the book's own on its
+ * 12 by 12, and on any other as many for each hex as the book's map has, as
+ * the Referee on p202 divides them by four for a map a quarter the size.
+ * There's always at least one of each, and never more than six Myths.
+ * @param {{cols: number, rows: number}} size
+ * @returns {{holdings: number, myths: number, landmarks: {min: number, max: number}}}
+ */
+export function sizedCounts({ cols, rows }) {
+	const share = (cols * rows) / (BOOK_SETUP.cols * BOOK_SETUP.rows);
+	const scaled = (count) => Math.max(1, Math.round(count * share));
+	const fewest = scaled(BOOK_SETUP.landmarks.min);
+	return {
+		holdings: scaled(BOOK_SETUP.holdings),
+		myths: Math.min(SETUP_LIMITS.myths.max, scaled(BOOK_SETUP.myths)),
+		landmarks: { min: fewest, max: Math.max(fewest, scaled(BOOK_SETUP.landmarks.max)) }
+	};
 }
 
 /**

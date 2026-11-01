@@ -1,7 +1,7 @@
 import { changedKey } from "../compat.js";
 import { COMPANY_LAST_HEX_FLAG } from "./company.js";
 import { HEX_LORE_FLAG } from "./hex-lore.js";
-import { HELD_BACK_FLAG, JOURNEY_FLAG } from "./journey.js";
+import { COMPANY_MOVES_FLAG, HELD_BACK_FLAG, JOURNEY_FLAG } from "./journey.js";
 import { MYTH_NOTES_FLAG } from "./myth-notes.js";
 import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { HEX_SHARED_FLAG } from "../rules/hex-shared.js";
@@ -29,7 +29,7 @@ let hexFlags = null;
  * The system's Scene flags that keep something for each hex, or where the
  * Company stood, rather than the Realm, and where each shows. A new one goes
  * here alone. A hex's name is shown wherever the hex is; where the Company
- * stood when its Token went, nowhere.
+ * stood when its Token went, and the moves kept for Undo, nowhere.
  * @returns {Map<string, HexStoreFlag>}
  */
 export const hexStoreFlags = () => hexFlags ??= new Map([
@@ -41,8 +41,18 @@ export const hexStoreFlags = () => hexFlags ??= new Map([
 	[SIGHTED_FLAG, { journal: true, toolkit: [] }],
 	[TRACKED_HEXES_FLAG, { journal: false, toolkit: ["places"] }],
 	[MYTH_NOTES_FLAG, { journal: false, toolkit: ["myths", "time"] }],
-	[COMPANY_LAST_HEX_FLAG, { journal: false, toolkit: [] }]
+	[COMPANY_LAST_HEX_FLAG, { journal: false, toolkit: [] }],
+	[COMPANY_MOVES_FLAG, { journal: false, toolkit: [] }]
 ]);
+
+/**
+ * @param {string} flag One of hexStoreFlags.
+ * @returns {boolean} Whether any window or Journal entry shows it; the moves kept for Undo, say, show nowhere.
+ */
+export function shownHexFlag(flag) {
+	const where = hexStoreFlags().get(flag);
+	return !where || where.journal || where.toolkit.length > 0;
+}
 
 /** Scene fields no Realm, nor anything drawn of one, reads: the lighting, the thumbnail, Foundry's own bookkeeping. */
 const QUIET_FIELDS = new Set(["_id", "_stats", "thumb", "environment", "fog", "weather", "playlist", "playlistSound", "journal", "journalEntryPage", "navOrder", "sort", "folder"]);

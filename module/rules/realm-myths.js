@@ -63,6 +63,19 @@ export function rollFreeMyth(random, myths = []) {
 }
 
 /**
+ * A Seer for a Sanctum, rolled on the Knights table (p26), whose spreads run
+ * d6 then d12 as the Myths table's do. The Realm's other Sanctums keep their
+ * Seers, as a rolled Realm's do.
+ * @param {{pick: <T>(list: T[]) => T|undefined}} random
+ * @param {{seer?: {d6: number, d12: number}|null}[]} [landmarks] The Realm's other Landmarks.
+ * @returns {{d6: number, d12: number}|null} Null only where every Seer has a Sanctum already.
+ */
+export function rollFreeSeer(random, landmarks = []) {
+	const roll = rollFreeMyth(random, landmarks.flatMap((landmark) => landmark.seer ?? []));
+	return roll ? { d6: roll.d6, d12: roll.d12 } : null;
+}
+
+/**
  * Roll every one of a Realm's Myths again, no two alike. A Myth that was there
  * before can come up again: the dice don't remember, and the book doesn't say
  * they should.

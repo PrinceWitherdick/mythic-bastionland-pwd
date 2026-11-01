@@ -285,9 +285,9 @@ describe("wildernessSparkSet", () => {
 		expect(wildernessSparkSet(page(9)).map(({ index }) => index)).toEqual([0, 3, 6]);
 	});
 
-	it("falls back to the first three of a page the import couldn't read whole", () => {
-		expect(wildernessSparkSet(page(4)).map(({ index }) => index)).toEqual([0, 1, 2]);
-		expect(wildernessSparkSet(page(2)).map(({ index }) => index)).toEqual([0, 1]);
+	it("gives nothing from a page the import couldn't read whole, rather than other tables under these names", () => {
+		expect(wildernessSparkSet(page(4))).toEqual([]);
+		expect(wildernessSparkSet(page(8))).toEqual([]);
 	});
 
 	it("gives nothing for a page that was never read", () => {
@@ -296,6 +296,12 @@ describe("wildernessSparkSet", () => {
 
 	it("hands back the tables themselves, so a roll keeps the name the import read", () => {
 		expect(wildernessSparkSet(page(9)).map(({ table }) => table.name)).toEqual(["Table 0", "Table 3", "Table 6"]);
+	});
+
+	it("skips a place a page read whole left empty", () => {
+		const gappy = page(9);
+		gappy.tables[3] = null;
+		expect(wildernessSparkSet(gappy).map(({ index }) => index)).toEqual([0, 6]);
 	});
 });
 

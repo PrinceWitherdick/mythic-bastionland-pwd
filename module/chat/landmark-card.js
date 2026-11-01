@@ -1,7 +1,7 @@
 /**
  * The button a Wilderness card carries when the roll found a Landmark that asks
  * something of the Company (p14): a Monument's Sacrament, a Hazard to push
- * through, a Ruin's echo of a Myth the Realm doesn't hold. The card is whispered
+ * through, a Ruin's echo of a Myth the Realm isn't playing out now. The card is whispered
  * to the Referee, so only a GM sees the button at all.
  */
 import { takeLandmarkOffer } from "../actions/landmarks.js";

@@ -10,6 +10,7 @@ import { t } from "../chat/cards.js";
 import { finishPlacement } from "../rules/realm-drawing.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { hotbarFloor, mapOnScreen } from "./map-screen.js";
+import { waitDialog } from "./ui.js";
 
 /** What the window is taken for until it's been laid out, so it's placed from the first. */
 const UNMEASURED = Object.freeze({ width: 340, height: 220 });
@@ -77,10 +78,22 @@ function showRealm(element, realm) {
  * @param {import("../rules/realm.js").Realm} options.realm What's on the map now.
  * @param {() => Promise<import("../rules/realm.js").Realm|null>} options.roll Rolls another onto the same Scene.
  * @param {(() => unknown)|null} [options.myths] Opens the Realm's Myths to be settled. Omit to leave the offer out.
+ * @param {(() => import("../rules/realm.js").Realm|null)|null} [options.current] What's on the map now, read again
+ *   whenever `changedHook` is called, so the window keeps up with Myths settled while it's open.
+ * @param {string|null} [options.changedHook]
  * @returns {Promise<import("../rules/realm.js").Realm>} The Realm they kept.
  */
-export async function askToKeepRealm({ realm, roll, myths = null }) {
+export async function askToKeepRealm({ realm, roll, myths = null, current = null, changedHook = null }) {
 	let shown = realm;
+	/** @type {HTMLElement|null} */
+	let open = null;
+	const onChange = () => {
+		const now = current?.();
+		if (!now || !open) return;
+		shown = now;
+		showRealm(open, now);
+	};
+	const hookId = current && changedHook ? Hooks.on(changedHook, onChange) : null;
 	/** @type {Promise<void>|null} The roll being laid on the Scene, while there is one. */
 	let rolling = null;
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/keep-realm.hbs"), {
@@ -116,16 +129,15 @@ export async function askToKeepRealm({ realm, roll, myths = null }) {
 		return rolling;
 	};
 
-	await foundry.applications.api.DialogV2.wait({
+	// Closing the window keeps what's on the map: the Realm is already rolled onto its Scene.
+	await waitDialog({
 		window: { title: t("realm.keep.title"), icon: "fa-solid fa-dice" },
-		classes: ["bastionland-dialog"],
 		position: { width: UNMEASURED.width, ...(placement(UNMEASURED) ?? {}) },
 		content,
 		buttons: [{ action: "keep", label: t("realm.keep.keep"), icon: "fa-solid fa-check", default: true }],
-		// Closing the window keeps what's on the map: the Realm is already rolled onto its Scene.
-		rejectClose: false,
 		render: (_event, dialog) => {
 			const element = dialog.element;
+			open = element ?? null;
 			const settle = element?.querySelector("[data-keep-myths]");
 			if (settle && myths && !settle.dataset.wired) {
 				settle.dataset.wired = "true";
@@ -144,5 +156,6 @@ export async function askToKeepRealm({ realm, roll, myths = null }) {
 	// A roll set going as the window was closed is still being written: the Company
 	// and the Realm Key wait for it, so they're taken from the Realm that was kept.
 	await rolling;
+	if (hookId !== null) Hooks.off(changedHook, hookId);
 	return shown;
 }

@@ -154,6 +154,15 @@ const WEAPON_KINDS = Object.freeze([
 ]);
 
 const PROJECTILE_KINDS = new Set(["bow", "crossbow", "sling", "boulder", "bomb"]);
+
+/** Kinds of weapon with a blade, as an Ability that cuts with one asks (p114). */
+const BLADED_KINDS = new Set(["sword", "greatsword", "shortsword", "dagger", "axe", "handaxe", "greataxe", "polearm", "scythe", "sickle"]);
+
+/**
+ * @param {string} name A weapon's name.
+ * @returns {boolean} Whether its name says it has a blade: a sword, dagger, axe, sickle or bladed polearm.
+ */
+export const isBladedName = (name) => BLADED_KINDS.has(kindInName(name));
 const THROWN_KINDS = new Set(["javelin"]);
 const ON_TARGET_KINDS = new Set(["ram", "bite", "claw", "trample", "burst", "blood", "wreck"]);
 

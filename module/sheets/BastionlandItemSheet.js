@@ -7,9 +7,11 @@ import { scarForRoll } from "../rules/scars.js";
 import { ABILITY_NEEDS, ABILITY_POWERS, ATTACK_GRANTS, usesFrom } from "../rules/ability-uses.js";
 import { AFFLICTION_TIMES } from "../rules/afflictions.js";
 import { ABILITY_CADENCES, RESTOCK_CADENCES } from "../rules/restock.js";
+import { STANCE_LAPSES } from "../rules/stances.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { isKnight } from "../rules/knight-types.js";
+import { KIT_FLAG } from "../rules/ability-kits.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -101,6 +103,10 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			abilityPowers: item.type === "ability"
 				? ABILITY_POWERS.map((key) => ({ key, label: t(`ability.powers.${key}`), hint: t(`ability.powers.${key}Hint`), checked: item.system[key] }))
 				: [],
+			// The weapon it gave, an Attack with which spends a use of it (p112).
+			abilityWeaponOptions: item.type === "ability" ? this.#kitWeaponOptions() : null,
+			// When a stance it's taken up in ends on its own (p40, p78).
+			lapsesOptions: Object.fromEntries(STANCE_LAPSES.map((key) => [key, t(`ability.stance.lapses.${key || "never"}`)])),
 			// The only kind of Attack an Ability is used in (p68, p92).
 			needsOptions: Object.fromEntries(ABILITY_NEEDS.map((key) => [key, t(`ability.needs.${key || "any"}`)])),
 			// The Virtue a possession costs should something befall it (p62).
@@ -134,6 +140,20 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 		return (this.item.actor?.items ?? [])
 			.filter((each) => each.type === "weapon" && each.id !== this.item.id)
 			.map((each) => ({ id: each.id, name: each.name, either: each.system.either }));
+	}
+
+	/**
+	 * The weapons an Ability gave its owner, any of which it can be tied to,
+	 * so an Attack with it spends one of its uses (p112).
+	 * @returns {Record<string, string>|null} By kit key, or null where there are none and none is tied.
+	 */
+	#kitWeaponOptions() {
+		const tied = this.item.system.weapon;
+		const given = (this.item.parent?.items?.contents ?? []).filter((item) => item.type === "weapon" && item.flags?.[SYSTEM_ID]?.[KIT_FLAG]);
+		if (!given.length && !tied) return null;
+		const options = { "": t("ability.weaponNone"), ...Object.fromEntries(given.map((item) => [item.flags[SYSTEM_ID][KIT_FLAG], item.name])) };
+		if (tied && !(tied in options)) options[tied] = tied;
+		return options;
 	}
 
 	/**

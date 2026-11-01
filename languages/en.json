@@ -143,6 +143,8 @@
       "armourPiece": "{name} A{armour}",
       "armourPieceIdle": "{name} (doesn’t count now)",
       "armourNone": "Armour: none worn",
+      "armourStanceBonus": "{name} +{armour}",
+      "armourStanceFloor": "{name}: counts as A{armour}",
       "rollSave": "Roll a {virtue} Save",
       "newKnight": "New Knight",
       "newKnightHint": "Roll up a Knight from the book on this sheet. The new scores, Property, Ability and Passion replace the ones here. Scars stay.",
@@ -337,6 +339,11 @@
       "rank": "Rank is now {rank}.",
       "squire": "A Squire can’t gain Glory.",
       "nobody": "Nobody was ticked, so no Glory is awarded.",
+      "takeBack": {
+        "title": "Take Back the Glory?",
+        "intro": "Those ticked gained 1 Glory for “{award}”, which is now taken back. Untick anyone who keeps it. Closing this keeps everyone’s Glory.",
+        "ok": "Take It Back"
+      },
       "awards": {
         "myth": {
           "label": "Myth Resolved",
@@ -375,7 +382,26 @@
       "knighted": "{name} is Knighted.",
       "noLegacy": "Legacy: no successor named, so no Glory passes on.",
       "legacy": "Legacy: {name} gains {amount} Glory, half of theirs.",
-      "heirLine": "{name}: {line}"
+      "heirLine": "{name}: {line}",
+      "slain": "{name} is Slain, and can’t be named a successor.",
+      "legacySquire": "{name} is a Squire, and a Squire gains no Glory. Knighted now, they gain the {amount} Glory of this Legacy. Otherwise it’s lost.",
+      "legacyLost": "Legacy: {name} is still a Squire, so the {amount} Glory is lost."
+    },
+    "follower": {
+      "takeTitle": "Take On This Follower?",
+      "dropTitle": "Steed or Follower?",
+      "dropAsk": "What is {name} to {knight}?",
+      "dropOk": "Take Them On",
+      "as": {
+        "steed": "A steed, to ride",
+        "follower": "A follower, who rides with them"
+      },
+      "notYours": "Only the Referee can make {name} a follower, as you don’t own them.",
+      "leaves": "{name} follows {from} now, and would follow {knight} instead.",
+      "noLongerSteed": "{rider} rides {name} now, and would ride them no longer.",
+      "joined": "{name} now rides with {knight} as a follower.",
+      "notWarband": "{name} is a Warband, so neither a steed nor a follower.",
+      "fromDirectory": "Bringing somebody in from a compendium makes them anew, which needs a user who is allowed to create actors. Ask the Referee, or drag them from the Actors tab."
     },
     "seer": {
       "label": "Seer",
@@ -431,6 +457,13 @@
       "knightedTitle": "Knighted",
       "knightedTagline": "{name} is a Squire no longer",
       "knightedValue": "+{gain}, {from} → {to}",
+      "slainKnighting": "{name} is Slain, and can’t be Knighted.",
+      "slainServing": "{name} is Slain, and serves no Knight now.",
+      "servesAnother": "{name} serves {knight}. Only the Referee can move them to another Knight.",
+      "claimTitle": "Take This Squire?",
+      "moveFrom": "{name} serves {from} now, and would serve {knight} instead.",
+      "replaces": "{name} would no longer serve {knight}.",
+      "fromDirectory": "Drag the Squire from the Actors tab rather than a compendium.",
       "equipment": {
         "cudgel": "Cudgel",
         "axe": "Axe",
@@ -438,7 +471,9 @@
         "shortbow": "Shortbow",
         "shield": "Shield",
         "javelins": "Javelins"
-      }
+      },
+      "notYours": "Only the Referee can make {name} your Knight’s Squire, as you don’t own them.",
+      "releaseNeedsReferee": "{other} is let go, but only the Referee can change {name}, so their sheet still names them. Ask the Referee to finish it."
     },
     "age": {
       "label": "Age",
@@ -502,8 +537,11 @@
       "restored": "{virtue} restored to {value}.",
       "afterCombatTitle": "The Danger Has Passed",
       "afterCombat": "The fight is over. Restore Guard for {names}, and leave them no longer Fatigued or Exposed?",
+      "dyingAfterCombat": "The fight is over, and {names} still lie Mortally Wounded. Left untended for an hour they die; a few moments patch them up.",
       "restedAfterCombat": "The danger has passed: {names} restore Guard, and are no longer Fatigued or Exposed.",
       "rested": "A moment’s calm: GD restored to {value}, and no longer Fatigued or Exposed.",
+      "restedSworn": "A moment’s calm: no longer Fatigued or Exposed. GD stays at {value} while their quest is sworn.",
+      "swornHeld": "{names} get no GD back while their quest is sworn.",
       "restTitle": "Rest: {name}",
       "restIntro": "{name} takes a moment’s calm, once the danger has passed (Recovery, p9).",
       "restWhat": "GD returns to full, from {value} to {max}. Fatigue is removed, and they are no longer Exposed. A card in chat says so."
@@ -760,13 +798,20 @@
         "hint": "Only a steed that isn’t Exhausted can Gallop.",
         "blocked": "Nobody gallops: {names}",
         "noSteed": "{name} rides no steed.",
-        "exhausted": "{name}’s {steed} is Exhausted."
+        "exhausted": "{name}’s {steed} is Exhausted.",
+        "slain": "{name}’s {steed} is Slain."
       },
       "cantCreate": "Taking a steed creates it as an NPC, so it needs a user who is allowed to create actors. Ask the Referee, or drag a steed here from the Actors tab.",
       "clear": "No longer ride this steed",
-      "fromDirectory": "Drag the steed from the Actors tab rather than a compendium, so it can be targeted in combat.",
+      "riddenBy": "{rider} rides {steed}. Only the Referee can take it from them.",
+      "changeTitle": "Change Steeds?",
+      "takeFrom": "{rider} rides {steed} now, and would ride it no longer.",
+      "replaces": "{knight} would no longer ride {steed}.",
+      "leaves": "{steed} goes with {from} now, and would go with {knight} instead.",
+      "ledBy": "{steed} goes with {from}. Only the Referee can take it from them.",
       "trample": "Trample",
-      "cannotCreate": "You can’t make new actors, so {names} stayed on the sheet as Property. Ask the Referee to make them NPCs, then drag the steed onto the Steed box."
+      "cannotCreate": "You can’t make new actors, so {names} stayed on the sheet as Property. Ask the Referee to make them NPCs, then drag the steed onto the Steed box.",
+      "notYours": "Only the Referee can make {steed} your Knight’s steed, as you don’t own it."
     },
     "remedy": {
       "use": "Use Remedy ({virtue})",
@@ -775,7 +820,8 @@
       "passPhase": "Move on a Phase for the Remedy",
       "hint": "A Remedy takes a whole Phase to use, and its Virtue comes back before anything the Phase brings, Omens included.",
       "limit": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. Give it to somebody else to carry.",
-      "limitSteed": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. {steed} could carry it."
+      "limitSteed": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. {steed} could carry it.",
+      "othersNeedReferee": "{names} weren’t restored, as only the Referee can change characters you don’t own. Ask the Referee to restore them."
     },
     "ability": {
       "label": "Ability",
@@ -801,7 +847,17 @@
       "addLasting": "Add {die} for the rest of the fight",
       "usedUp": "{name} has no uses left.",
       "notInCombat": "{name} isn’t in a Combat.",
-      "grantsHint": "Offered in the Attack dialog. One with uses is offered unticked, and spends a use when ticked. One with no limit comes ticked.",
+      "tempers": "Given to the weapon each Wound is dealt with",
+      "tempersHint": "Each Wound a melee blow deals gives the weapon it was dealt with this die, joining every Attack made with that weapon until the Combat ends. Each Wound gives another, so no button is needed.",
+      "tempered": "{ability}: {name}’s {weapon} gains a d{faces} for the rest of the fight.",
+      "crowd": "Ticked when each side has",
+      "crowdHint": "In a Combat, it comes ticked in the Attack dialog once at least this many stand on each side. A Warband counts as a crowd. At 0 it never comes ticked.",
+      "weapon": "Spent by",
+      "weaponHint": "An Attack with this weapon spends one of its uses, and is refused when none are left.",
+      "weaponNone": "No weapon",
+      "grantsHint": "Offered in the Attack dialog. One with uses is offered unticked, and spends a use when ticked. One with no limit comes ticked, unless it adds a die or is only for some blows.",
+      "situational": "Only for some blows",
+      "situationalHint": "Offered unticked in the Attack dialog, to be ticked for the blows it fits, such as against a foe its words name.",
       "readUses": "Read from its description",
       "readUsesHint": "Fill in the uses from words such as “twice per day” in the description.",
       "noUsesRead": "Nothing in {name}’s description says how many uses it has and when they come back.",
@@ -812,7 +868,10 @@
       "needs": {
         "any": "Any Attack",
         "melee": "A melee Attack",
-        "charge": "A mounted charge"
+        "charge": "A mounted charge",
+        "ranged": "A ranged Attack",
+        "shield": "A melee Attack with a shield",
+        "still": "A melee Attack without moving"
       },
       "powersLabel": "Besides an Attack",
       "powers": {
@@ -823,8 +882,33 @@
         "coinFlip": "Flips a coin for a life",
         "coinFlipHint": "Its row has a coin: with one Token targeted, heads it dies, tails this Knight does.",
         "sigil": "Etches a rune for a number",
-        "sigilHint": "Its row has a star: at sunset, pick a number. A die showing it on an Attack card can be turned to another face, as many times as the number, until the next sunset."
-      }
+        "sigilHint": "Its row has a star: at sunset, pick a number. A die showing it on an Attack card can be turned to another face, as many times as the number, until the next sunset.",
+        "oath": "Swears a quest",
+        "oathHint": "Its row swears the quest and ends it. While it’s sworn, resting brings back no GD.",
+        "wildHorn": "Blows a horn that doubles VIG loss",
+        "wildHornHint": "In a Combat, its row has a horn: from then until the Combat ends, VIG lost to Damage is doubled for everybody in it.",
+        "mirror": "Gives back Wounds and Scars",
+        "mirrorHint": "When this Knight loses VIG to Damage, whoever dealt it loses as much, as Virtue Loss. When they’re Scarred, the dealer gets the same Scar.",
+        "severs": "Takes limbs and heads",
+        "seversHint": "A Strong Gambit’s Greater effect, made with a bladed weapon, can take a limb, or the head of a foe at 0 GD."
+      },
+      "stance": {
+        "label": "Stance",
+        "bonus": "Armour it adds",
+        "floor": "Armour it counts as at least",
+        "floorHint": "Not added to what’s worn: whichever is higher counts.",
+        "doublesShield": "Doubles the shield’s Armour",
+        "lapsesLabel": "Ends",
+        "lapses": {
+          "never": "When ended from its row",
+          "turn": "As their next turn starts"
+        },
+        "onMove": "Taken up by a Gambit spent on Moving",
+        "inEffect": "In effect now",
+        "hint": "Taken up and ended from its row on the sheet, where the Armour total then shows it. One that ends as their next turn starts ends by itself in a Combat."
+      },
+      "temperNeedsGM": "A Referee needs to be logged in to temper {name}’s weapon for you.",
+      "temperRefused": "The Referee couldn’t temper {name}’s weapon."
     },
     "passion": {
       "label": "Passion",
@@ -912,6 +996,8 @@
       "askTitle": "Morale: {name}",
       "askIntro": "{name} makes a SPI Save to hold firm rather than rout or surrender (Wavering Morale, p10). Roll when Wounded, or when a group loses half its number.",
       "askWhat": "A d20 is rolled against their SPI of {value}: {value} or less holds firm. On a failure, the card offers to mark them Fled or Surrendered, which takes them out of the Combat’s turn order.",
+      "askLedWhat": "Led from the front by {leader}, they roll once on {leader}’s SPI of {value}: {value} or less holds firm. On a failure, the card offers to mark the Warband Fled or Surrendered, which takes it out of the Combat’s turn order.",
+      "ledHint": "{leader} leads {warband} from the front, so the Warband rolls once on {leader}’s SPI.",
       "gone": "That character no longer exists.",
       "notOwner": "Only a Referee or {name}’s owner can roll their Morale.",
       "broke": {
@@ -959,6 +1045,10 @@
       "title": "Duel",
       "buttonHint": "Target the one Token you’ve agreed to duel, then press this.",
       "needTarget": "Target the one Token you’ve agreed to duel, then press Duel.",
+      "refused": {
+        "warband": "{name} is a Warband. A duel is fought between two single combatants.",
+        "structure": "{name} is a ship or structure, not a combatant who can duel."
+      },
       "intro": "{name} and {opponent} agree to fight. It goes as any fight does, except both Attacks, Gambits and all, are rolled and settled at once, and either may use Feats first.",
       "kind": "Kind",
       "kinds": {
@@ -1245,7 +1335,10 @@
       "holding": "They reached the Holding at {hex}. Roll its Local Mood to see how things stand there.",
       "mood": "Local Mood",
       "realmGone": "That Realm is no longer in this world.",
-      "movedOn": "The Company has moved since, so that choice no longer applies."
+      "movedOn": "The Company has moved since, so that choice no longer applies.",
+      "travelled": "Hexes travelled this {phase}: {count}. Travelling takes the whole Phase, so end it once the Company stops.",
+      "endPhase": "End the {phase}",
+      "phaseGone": "That Phase has already ended."
     },
     "phaseEnd": {
       "title": "The {phase} Ends",
@@ -1583,7 +1676,7 @@
       "rulerPlaceholder": "Who rules here",
       "lands": {
         "line": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each.",
-        "withLandmarks": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each, and the Landmarks in them: {landmarks}."
+        "withLandmarks": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each, and the Landmarks in them:"
       },
       "unworthy": {
         "line": "{name} holds {post} before rising to {rank}, and is sure to face opposition until their worthiness is proven.",
@@ -1650,7 +1743,8 @@
         "hint": "In some Realms it’s not the ruler who chooses, but gathered Seers or Knights-Elector.",
         "tagline": "{name} succeeds {ruler} in {domain}",
         "taglineBare": "{name} takes up the rule of {domain}",
-        "resistance": "Whoever takes the seat meets some resistance, and does well to show their authority quickly."
+        "resistance": "Whoever takes the seat meets some resistance, and does well to show their authority quickly.",
+        "heirFell": "{heir}, the successor named, is Slain: there is no living heir."
       },
       "conquest": {
         "button": "Seize by Force",
@@ -1693,7 +1787,8 @@
           "title": "The Circle",
           "intro": "Which Knights does {name} seat in its Circle?",
           "ok": "Seat Them",
-          "noKnights": "There are no other Knights in this world to seat."
+          "noKnights": "There are no other Knights in this world to seat.",
+          "slainName": "{name} (Slain)"
         }
       },
       "tasks": {
@@ -1706,7 +1801,8 @@
         "whatPlaceholder": "What are they to do?",
         "whatUnwritten": "An unwritten task",
         "scope": "Scope",
-        "scopeHint": "How long the work takes. It can be settled sooner, but it isn’t due until then.",
+        "scopeHint": "How long the work takes. It can be settled sooner, but it isn’t due until then. The calendar counts no Weeks, so a Week’s work falls due at the next Morning, where Weeks Pass moves to.",
+        "weekDue": "The calendar counts no Weeks, so it falls due at the next Morning, where Weeks Pass moves to.",
         "scopes": {
           "phase": {
             "label": "A Phase",
@@ -1821,10 +1917,21 @@
       "misruleEnds": "With fewer than three Crises left, the Domain comes out of misrule.",
       "rulerSlain": "{name}, who ruled {domain}, is Slain. The Domain passes to their successor: {successor}.",
       "rulerSlainNobody": "nobody is named yet",
+      "rulerSlainBare": "{name}, who ruled {domain}, is Slain.",
+      "rulerGone": "{name}, who ruled {domain}, is gone from this world. The Domain passes to their successor: {successor}.",
+      "rulerGoneBare": "{name}, who ruled {domain}, is gone from this world.",
+      "noLivingHeir": "{heir}, the successor they named, is Slain, so there is no living heir. The Referee says who takes up the Domain.",
+      "rulerLinksNeedReferee": "{name} has its new ruler, but only the Referee can change the Knights you don’t own, so their sheets still name the Domain they ruled. Ask the Referee to Pass On again once they’re here.",
+      "rulesAnother": "{name} already rules {other}. A Knight’s sheet keeps one Domain, so theirs opens {domain} now; {other} still names them its ruler.",
+      "crisisRollAgain": "{name} has already made its Crisis Roll this Season. Roll again? Coming home from a long absence calls for another.",
+      "dramaAgain": "{name} has already had its Drama in Court this Season. Roll again?",
       "rulerSlainGone": "That Domain is no longer in this world.",
       "misruleLeave": "{name} has fallen into misrule, and Knights leave. Untick each of its Circle who rides away.",
       "collections": "Increased Collections",
       "collectionsHint": "A Steward presses the Vassals for more, to pay for a war or a great work.",
+      "collectionsNoSteward": "Nobody holds the Steward’s seat, and it’s the Steward who squeezes the Vassals for more.",
+      "collectionsMisruleEnds": "Crises didn’t bring this misrule, so resolving them won’t end it. Untick Misrule on the Court page once the Referee says order is restored.",
+      "collectionsDebt": "The coffers are filled, and {name} is in Debt. Restock the treasury, resolving the Debt?",
       "drama": "Drama in Court",
       "dramaHint": "There’s drama at Court each Season. Roll to see how the ruler is drawn in.",
       "dramaPrompt": "Drama Spark Table: {prompt}",
@@ -1878,6 +1985,7 @@
         "servesSeat": "serves the {seat}",
         "holdsSeat": "Sits on the Council as {seat}",
         "leverageLine": "Leverage: {leverage}",
+        "leverageWhisper": "{name}, at the heart of the Drama in Court. {line}",
         "roles": {
           "retainer": {
             "one": "Retainer",
@@ -1912,7 +2020,9 @@
         "removeConfirmSeated": "Does {name} leave the Court? Their seat as {seat} stands empty, and what was written about this {role} goes with them.",
         "holdsLeverage": "Holds leverage over the ruler: {leverage}",
         "noLeverage": "Holds no leverage over the ruler, which is the ruler’s good fortune.",
-        "emptyHint": "Nobody serves in the Court yet, so there is nobody for the drama to fall to."
+        "emptyHint": "Nobody serves in the Court yet, so there is nobody for the drama to fall to.",
+        "leverageNeedsReferee": "The Referee isn’t here to be told what leverage {name}’s courtier holds. Tell them when they’re back.",
+        "leverageRefused": "The Referee couldn’t be told what leverage {name}’s courtier holds. Tell them yourself."
       },
       "authority": "Authority",
       "muster": "Can muster {count} Warbands. The Marshal decides their training and armament.",
@@ -1927,7 +2037,8 @@
       "found": "Found a New Domain",
       "newName": "{knight}’s Domain",
       "cantCreate": "Founding a Domain creates it, so it needs a user who is allowed to create actors. Ask the Referee, or drag an existing Domain onto this sheet.",
-      "fromDirectory": "Drag the Domain from the Actors tab rather than a compendium."
+      "fromDirectory": "Drag the Domain from the Actors tab rather than a compendium.",
+      "notYoursToRule": "Only the Referee can make {knight} the ruler of {domain}, as you don’t own it."
     },
     "goods": {
       "itemsPack": "Arms & Goods",
@@ -1983,7 +2094,10 @@
       "starts": {
         "wanderer": {
           "name": "Wanderer",
-          "hint": "Young Knights-Errant, newly come to the Realm in search of Glory. You choose where they arrive."
+          "hint": "Young Knights-Errant, newly come to the Realm in search of Glory. You choose where they arrive.",
+          "counsel": "Wanderers who lack direction may seek a Seer’s counsel (p6). This Realm’s Sanctums are home to {seers}.",
+          "seerAt": "{seer} in {hex}",
+          "noSanctum": "Wanderers who lack direction may seek a Seer’s counsel (p6), but this Realm has no Sanctum yet."
         },
         "courtier": {
           "name": "Courtier",
@@ -1999,7 +2113,10 @@
           "seatNow": "Seat the Knights at Court",
           "noKnights": "There are no Knights to seat yet.",
           "realmGone": "The Realm these Knights were to be seated in is gone.",
-          "seatGone": "The Seat of Power these Knights were to be seated at is no longer on the map."
+          "seatGone": "The Seat of Power these Knights were to be seated at is no longer on the map.",
+          "held": "This Realm has no Seat of Power yet, so the Court has no news and the Knights no places. Once a Holding is crowned, deliver them here.",
+          "deliver": "Deliver the Court’s News",
+          "noSeatYet": "This Realm still has no Seat of Power. Crown a Holding first."
         },
         "ruler": {
           "name": "Ruler",
@@ -2285,11 +2402,11 @@
       "nameHint": "Enter keeps the name, Esc leaves it as it was",
       "holding": {
         "roll": "Roll Up This Holding",
-        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and a Myth of the Realm each has heard of, and keep it all in this hex.",
+        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and the Myth nearest here that each has heard of, and keep it all in this hex.",
         "tagline": "Rolled up at",
         "personNamed": "{name}, {number} of {count}",
         "kept": "Someone here, {number} of {count} (p181)",
-        "noMyths": "This Realm has no Myths yet, so nobody here has heard of one.",
+        "noMyths": "This Realm has no Myths left unresolved, so nobody here has heard of one.",
         "none": "There’s no Holding in this hex to roll up.",
         "missing": "Run Import PDF with your rulebook to bring in the Civilisation and People Spark Tables."
       }
@@ -2454,6 +2571,9 @@
       "boardEmpty": "Nothing has been written on the Timeline yet.",
       "noJournal": "The Timeline is made the next time a Referee joins the game.",
       "writeFailed": "Couldn't write on the Timeline.",
+      "refereeKeeps": "Only the Referee can change the entries on this thread.",
+      "needsReferee": "Something that happened couldn't go on the Timeline. The Referee needs to be here to write it.",
+      "writeRefused": "Something that happened couldn't go on the Timeline, as only the Referee can write on that thread.",
       "readOnly": "This thread is written from the Timeline window.",
       "entry": {
         "newTitle": "New Entry",
@@ -2584,7 +2704,9 @@
           "label": "Season",
           "tooltip": "Slide to a Season"
         }
-      }
+      },
+      "deleteRefused": "Only the Referee can delete the Timeline.",
+      "pageDeleteRefused": "Only the Referee can delete a thread from the Timeline. Anyone can still write on it."
     },
     "gmToolkit": {
       "name": "Referee Toolkit",
@@ -2595,6 +2717,7 @@
       "companyHere": "The Company is here",
       "companyPictureHint": "Change the picture the Company’s Token carries on the Realm, even before they’re on the map. Right-clicking the Token offers the same.",
       "noCompany": "The Company isn’t on this Realm’s map",
+      "placeLeftOffCompany": "Place the Company on this Realm",
       "showHex": "Show on the Map",
       "wild": "The wilderness as last rolled",
       "wildChip": "{table}: {prompt}",
@@ -3090,7 +3213,8 @@
         "roll": "Roll",
         "rollHint": "Roll Unresolved Situations for this one.",
         "remove": "Take this situation off the list",
-        "unnamed": "A situation left unresolved"
+        "unnamed": "A situation left unresolved",
+        "share": "Show the players"
       },
       "crises": {
         "title": "Crisis Rolls still owed",
@@ -3120,11 +3244,18 @@
         "situation": "{situation} · {d6}: {result}",
         "glory": "Glory",
         "plans": "Next session",
-        "hint": "Ending a Session (p16)."
+        "hint": "Ending a Session (p16).",
+        "refereeOnly": "For the Referee alone: the table’s card leaves these out."
       }
     },
     "attack": {
       "title": "Attack",
+      "macro": {
+        "name": "Attack",
+        "who": "Who attacks?",
+        "nobody": "Select the Token you attack with. Without a Knight of your own, ask the Referee for one.",
+        "nobodyGM": "Select the Token of whoever attacks."
+      },
       "weapons": "Weapons and shields",
       "noWeapons": "Nothing is worn or wielded, so this Attack is unarmed and Impaired.",
       "bonus": "Bonus dice",
@@ -3162,7 +3293,12 @@
         "armour": "Armour {from} → {to}.",
         "pickUp": "Tick it on the sheet again once it’s back in hand.",
         "putOn": "Tick it on the sheet again once it’s back on.",
-        "npcBack": "Once it’s back, give them the point of Armour and its word in the note again."
+        "npcBack": "Once it’s back, give them the point of Armour and its word in the note again.",
+        "limb": "Take a limb",
+        "head": "Take the head",
+        "limbDone": "{name} loses a limb to the blade. Describe which, and what it leaves.",
+        "headDone": "{name}’s head is taken.",
+        "headGuarded": "{name} has GD again, so their head stays on."
       },
       "smite": "Smite for +d12",
       "smiteMark": "Smite for a lasting mark",
@@ -3189,10 +3325,21 @@
         "alone": "Made alone",
         "aloneHint": "Nobody may join this Attack, and it can’t be made as part of another’s.",
         "combine": "Join dice together",
-        "combineHint": "Before the roll, a window lets you join your dice into bigger ones, as big as their faces together: a d4 and a d8 make a d12. Nothing joins past a d12."
+        "combineHint": "Before the roll, a window lets you join your dice into bigger ones, as big as their faces together: a d4 and a d8 make a d12. Nothing joins past a d12.",
+        "ignoresImmunity": "Ignores immunities",
+        "ignoresImmunityHint": "Its Damage gets past whatever would stop it: a creature’s immunity, a Warband, or a structure.",
+        "backlash": "Costs d6 if they stay up",
+        "backlashHint": "If the target isn’t brought down, its maker takes d6 Damage.",
+        "rally": "Restores allies’ SPI",
+        "rallyHint": "If the target is brought down, a card offers to restore the SPI of the Knights fighting beside its maker."
       },
       "useAbility": "{name}: {grants}",
       "lastingDie": "{label} d{faces}",
+      "lastingDieMelee": "{label} d{faces} (melee)",
+      "lastingDieWeapon": "{label} d{faces} ({weapon})",
+      "crowdMet": "Ticked: at least {count} stand on each side of this Combat.",
+      "crowdShort": "Fewer than {count} stand on one side of this Combat. Tick it if more are fighting than the Combat Tracker shows.",
+      "crowdUnknown": "Outside a Combat the sides can’t be counted. Tick it when at least {count} fight on each side.",
       "lastingHint": "Kept for the rest of the fight. Untick it to leave it out of this blow alone.",
       "lastingDrop": "A die for the rest of the fight. Click to drop it.",
       "keepBonus": "Keep the bonus dice for the rest of the fight",
@@ -3211,7 +3358,13 @@
         "melee": "{name} is used only in a melee Attack, and a ranged weapon is ticked.",
         "meleeTag": "melee only",
         "charge": "{name} is used only on a mounted charge: tick the charge, or Mounted and Moved this turn.",
-        "chargeTag": "mounted charge only"
+        "chargeTag": "mounted charge only",
+        "ranged": "{name} is used only in a ranged Attack: tick a ranged weapon.",
+        "rangedTag": "ranged only",
+        "shield": "{name} is used only in a melee Attack with a shield: tick the shield.",
+        "shieldTag": "with a shield",
+        "still": "{name} is used only in a melee Attack made without moving this turn.",
+        "stillTag": "melee, not having moved"
       },
       "aloneJoin": "{name}’s blow is made alone, so it can’t join another’s Attack.",
       "shattered": "Shattered as it lands: {names}.",
@@ -3275,7 +3428,8 @@
       "setAside": {
         "slow": "{name} is Slow, so it can’t be used after moving.",
         "ranged": "{name} is purely ranged, so it can’t be used after beginning the turn engaged in melee.",
-        "mountedFoe": "{name}’s trample doesn’t join, since a steed tramples only enemies on foot."
+        "mountedFoe": "{name}’s trample doesn’t join, since a steed tramples only enemies on foot.",
+        "trapped": "{name} is held by a foe’s Trap until that foe’s next turn, so it can’t be used."
       },
       "refusals": {
         "exhausted": "{name} is Exhausted, so they can’t Attack after moving this turn.",
@@ -3283,6 +3437,7 @@
         "hefty": "Two Hefty items can’t be wielded together.",
         "long": "A Long weapon needs both hands, so it can’t be wielded with anything else.",
         "hands": "A weapon or shield fills a hand, so nobody holds more than two.",
+        "armLost": "{name} has lost an arm to a Mutilation and hasn’t yet learned to get by, so they hold fewer items, and no Long weapon, until the next Season.",
         "twoWays": "A weapon is fought one way at a time, and attacks printed with “or” between them are one or the other, so tick only one.",
         "allSetAside": "Every weapon chosen sits out this Attack, so there’s nothing to Attack with.",
         "smiteRanged": "Smite is only used before a melee Attack.",
@@ -3290,6 +3445,20 @@
         "smiteSwarm": "A swarm Impairs any blow that isn’t a Blast, and Smite with it, so Smite for a Blast instead."
       },
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
+      "outOfTheFight": {
+        "destroyed": "{name} is destroyed, so it makes no Attack until it’s repaired.",
+        "wipedOut": "{name} is wiped out, so it makes no Attack.",
+        "fled": "{name} fled, so they make no Attack.",
+        "surrendered": "{name} surrendered, so they make no Attack."
+      },
+      "smiteImpaired": "This Attack is Impaired, so Smite isn’t made: no Save, no Fatigue, no extra die.",
+      "selfTarget": "{name} can’t make an Attack at themself. Target somebody else.",
+      "targetDown": {
+        "slain": "{name} is already Slain.",
+        "destroyed": "{name} is already destroyed.",
+        "wipedOut": "{name} is already wiped out."
+      },
+      "brokenWarband": "{name} is broken: it follows no orders, and acts only in its own interest.",
       "againstIndividuals": "Against individuals",
       "againstIndividualsHint": "A Warband’s Attack on individuals gets +d12 and causes Blast Damage.",
       "individualsAll": "Ticked, since everybody targeted is an individual: {names}.",
@@ -3363,6 +3532,8 @@
       "unspentGambits": "{count} dice still show 4 or higher and could be spent on Gambits.",
       "unspentGambitsOne": "One die still shows 4 or higher and could be spent on a Gambit.",
       "deniableDice": "{names} could still Deny a die.",
+      "denyFirst": "{names} could still Deny a die, which comes before any Gambit. If they Deny after this, any Gambit spent on a die can be taken back and chosen again.",
+      "declareAnyway": "Declare a Gambit now?",
       "unsavedGambits": "{count} Gambits still wait on a Save, which can’t be rolled once the Damage lands.",
       "unsavedGambitsOne": "One Gambit still waits on a Save, which can’t be rolled once the Damage lands.",
       "stillWhose": "{name}’s Attack: {line}",
@@ -3386,6 +3557,7 @@
       "featUsed": "{name} has already used {feat} on this Attack.",
       "noTarget": "Target the Tokens this Attack hits, then apply the Damage.",
       "targetsGone": "The Tokens this Attack targeted are gone.",
+      "alreadyApplied": "This Attack’s Damage has already been applied.",
       "cantApply": "Only a Referee or the target’s owner can apply this Damage.",
       "needsGM": "A Referee needs to be logged in to change somebody else’s Attack card.",
       "changeRefused": "The Attack card changed before that could be recorded."
@@ -3396,6 +3568,17 @@
       "unhorsedRolled": "{name} takes {damage} from the fall.",
       "unhorsedCause": "Thrown from their steed",
       "unhorsedNotYours": "Only the rider’s owner or the Referee can deal this.",
+      "backlash": "{target} still stands, so {name}’s strike costs them.",
+      "backlashRoll": "Take d6 Damage",
+      "backlashRolled": "{name} takes {damage} Damage for the strike that failed.",
+      "backlashCause": "A strike that failed",
+      "backlashNotYours": "Only the striker’s owner or the Referee can deal this.",
+      "rally": "{target} falls to {name}, and their allies take heart.",
+      "rallyButton": "Restore the allies’ SPI",
+      "rallyTitle": "Taking Heart",
+      "rallyTagline": "SPI restored to those fighting beside {name}",
+      "rallyNobody": "Nobody fighting beside them that you can change has SPI to restore.",
+      "hornDoubled": "The horn doubles the VIG it costs.",
       "lastingMark": "{attacker}’s Smite leaves {name} a lasting mark (p187).",
       "title": "Take Damage",
       "amount": "Damage",
@@ -3407,7 +3590,7 @@
       "shieldwallHint": "3 or more allies in a wall formation, all bearing shields rather than bucklers.",
       "bucklerOnly": "A buckler doesn’t make a shieldwall.",
       "shieldwallFormed": "On the map, {count} of their side stand together, all bearing shields.",
-      "shieldwallFew": "On the map, fewer than 3 of their side stand together.",
+      "shieldwallFew": "On the map, fewer than 3 shield-bearers of their side stand together.",
       "shieldwallUnshielded": "On the map, not everyone standing together bears a shield: {names}.",
       "situational": "Armour that counts only sometimes",
       "situationalHint": "Tick each piece whose Armour counts against this Attack. The Armour above follows.",
@@ -3419,6 +3602,7 @@
       "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
       "nonLethalDown": "Non-lethal: down and out, but not dying.",
       "sparringDown": "Sparring: knocked down, but it’ll be shaken off when the duel ends.",
+      "fightsOn": "Mortally Wounded, but {name} fights on regardless.",
       "apply": "Apply",
       "dealt": "{dealt} Damage after Armour {armour}",
       "guardLine": "GD {from} → {to}",
@@ -3427,6 +3611,9 @@
       "spiritHurt": "Shaken in spirit, but not Wounded.",
       "drained": "{name} takes back {amount} VIG from {victim}: {from} → {to}.",
       "drainedAsk": "{name} takes back up to {amount} VIG from {victim}, for their player to write in.",
+      "mirrored": "{name} loses {amount} VIG as {victim}’s Wound comes back on them: {from} → {to}. Virtue Loss, so it Wounds nobody.",
+      "mirroredAsk": "{name} loses {amount} VIG as {victim}’s Wound comes back on them, for their owner to write in.",
+      "mirrorScarAsk": "{name} gets the same Scar {victim} just took, for their owner to roll its loss and write in.",
       "onWound": {
         "sleep": "{name} falls into a normal sleep.",
         "memory": "{name} is shown one of the attacker’s memories."
@@ -3465,7 +3652,8 @@
       },
       "warbandOutcomes": {
         "mortal": "Routed from the field.",
-        "slain": "Wiped out."
+        "slain": "Wiped out.",
+        "scar": "Left at exactly 0 GD. A Warband takes no Scar."
       },
       "structureOutcomes": {
         "evaded": "Holds, for now.",
@@ -3629,6 +3817,8 @@
       "chanceHint": "A chance it holds what’s wanted, as 1 in 2. Its row gets a die to roll it.",
       "poison": "Poison",
       "poisonHint": "As strong as it is rare: set its Rarity below.",
+      "keepsSeat": "Keeps its bearer in the saddle",
+      "keepsSeatHint": "No Dismount is offered against them, and none throws them or adds its d6 to their Damage.",
       "poisonTag": "{rarity} poison",
       "poisonTagBare": "Poison",
       "condition": "Counts",
@@ -3703,7 +3893,8 @@
       "damageLabelIgnores": "{name}: {loss} Damage {when}, ignoring Armour",
       "damageHint": "Take its toll now: Damage, which can Wound.",
       "washOff": "Washed off: it burns no more",
-      "burns": "{affliction} burns on: {amount} on {dice}."
+      "burns": "{affliction} burns on: {amount} on {dice}.",
+      "othersNeedReferee": "{names} weren’t afflicted, as only the Referee can change characters you don’t own. Ask the Referee to."
     },
     "deathWard": {
       "title": "Take the Mortal Wound?",
@@ -3713,6 +3904,26 @@
       "ok": "Go",
       "taken": "{name} takes the Mortal Wound in {victim}’s place.",
       "doomed": "{name} takes the blow in {victim}’s place, and Doom makes it their death."
+    },
+    "wildHorn": {
+      "blow": "Blow the horn",
+      "blown": "{name} blows the horn ({ability}). Until the fight ends, VIG lost to Damage is doubled for everybody in it.",
+      "notInCombat": "{name} isn’t in a Combat.",
+      "already": "A horn has already been blown in this fight."
+    },
+    "stance": {
+      "take": "Take up this stance",
+      "end": "End this stance",
+      "swear": "Swear the quest",
+      "fulfil": "End the quest: done, or abandoned",
+      "taken": "{name} takes up {ability}.",
+      "ended": "{name} ends {ability}.",
+      "sworn": "{name} swears a quest ({ability}). No GD comes back until it’s over.",
+      "fulfilled": "{name}’s quest is over ({ability}).",
+      "onMove": "{name} moves, and {ability} holds until their next turn.",
+      "takenBack": "The Gambit spent on Moving is taken back, so {name} no longer has {ability}.",
+      "needsGM": "A Referee needs to be logged in to change {name}’s stance for you.",
+      "refused": "The Referee couldn’t change {name}’s stance."
     },
     "coinFlip": {
       "use": "Flip the coin for the targeted Token",
@@ -3760,7 +3971,10 @@
     "abilityKits": {
       "chain": "Iron chain, lashed with both ends",
       "shockwave": "Shockwave on landing",
-      "bite": "Bite"
+      "bite": "Bite",
+      "radiance": "Burst of light",
+      "branchJavelin": "Branch, thrown",
+      "branchSpear": "Branch, as a greatspear"
     },
     "npc": {
       "tabs": {
@@ -3784,6 +3998,12 @@
       "scale": "Scale",
       "structure": "Counts as a structure",
       "structureHint": "So big that it is harmed only as a structure is: by fire, siege weapons or something just as large. Walls and ships are Structure actors.",
+      "fightsOn": "Fights on when Mortally Wounded",
+      "fightsOnHint": "A Mortal Wound doesn’t bring it down: it can still Attack, isn’t counted as down when Morale is weighed, and doesn’t die of the wound untended.",
+      "destroyed": {
+        "label": "Destroyed",
+        "hint": "Counting as a structure, it is destroyed at 0 GD and out of the fight until its GD comes back."
+      },
       "scales": {
         "individual": {
           "label": "Individual",
@@ -3886,6 +4106,8 @@
       "repair": "Repair",
       "repairHint": "A day of repairs restores its GD.",
       "repaired": "A day of repairs: GD restored to {value}.",
+      "repairDestroyedTitle": "Repair {name}?",
+      "repairDestroyed": "{name} was destroyed at 0 GD. Repair it only if there’s enough left to mend: a day of repairs brings all its GD back.",
       "collide": {
         "title": "Collide",
         "hint": "Roll the Damage this ship takes from colliding with another.",
@@ -4346,7 +4568,14 @@
         "wasted": {
           "text": "The Company tried to cross a Barrier, from {from} to {to}. The {phase} is lost to it, and the Wilderness Roll is still made.",
           "waste": "Waste the {phase}"
-        }
+        },
+        "travelNeedsGM": "The Company can’t travel until a Referee is logged in: nothing of the journey would be kept."
+      },
+      "ruler": {
+        "trek": "Trek",
+        "gallop": "Gallop: each steed loses d6 VIG",
+        "cruise": "Cruise: by boat or true road",
+        "beyond": "Too far for one Phase"
       },
       "controls": {
         "title": "Realm"
@@ -4406,6 +4635,7 @@
         },
         "omen": "Omen {omen} of {count}",
         "omensComplete": "All of its Omens have been seen.",
+        "drop": "They ended the Phase here, so where it can be, the Knights catch this Omen before it catches them.",
         "tied": "Myths {numbers} are equally near, so a roll chose between them.",
         "seer": "Home to {seer}, page {page}",
         "revealed": "Now revealed on the map."
@@ -4413,7 +4643,10 @@
       "reroll": {
         "title": "Reroll the Realm?",
         "confirm": "A new Realm is rolled onto this Scene, replacing its terrain, river, Holdings, Myths, Landmarks and Barriers. Tokens and anything else on the Scene stay.",
-        "confirmCustom": "A new Realm is rolled onto this Scene the way it was set up. Tokens and anything else on the Scene stay, and so does what you draw by hand: {parts}."
+        "confirmCustom": "A new Realm is rolled onto this Scene the way it was set up. Tokens and anything else on the Scene stay, and so does what you draw by hand: {parts}.",
+        "domains": "{count} Domains rule Holdings on this map. The new roll replaces those Holdings, so give each Domain its Holding again on its sheet.",
+        "domainsOne": "A Domain rules a Holding on this map. The new roll replaces that Holding, so give the Domain its Holding again on its sheet.",
+        "kept": "The Company’s visits and the notes on hexes stay. Marks of things seen from afar are cleared, and so are Barriers met that the new roll takes away. A Courtier Company at the old Seat of Power moves to the new one."
       },
       "keep": {
         "title": "Keep this Realm?",
@@ -4437,6 +4670,7 @@
         "duplicate": "A duplicate",
         "number": "A Myth numbered outside 1 to 6",
         "roll": "A roll off the table",
+        "repeated": "A Myth the Realm already holds",
         "omen": "An Omen count outside 0 to 6",
         "style": "A Holding of no known style",
         "type": "A Landmark of no known type",
@@ -4599,13 +4833,15 @@
       "monumentIntro": "A Phase spent at the Monument restores {virtue} in full, as a Sacrament would. Tick everybody who takes part.",
       "monumentHint": "The Phase is spent here, so its end comes next.",
       "hazardWhich": "Pushing through costs d6 of a Virtue, most often VIG. Which does this Hazard take?",
+      "hazardPick": "Choose who pushes through",
+      "offerGone": "That Landmark has been taken away or changed since the card was posted, so it no longer offers this.",
       "goBack": {
         "done": "The Company goes back the way it came, to {hex}. Travelling there takes the Phase as usual.",
         "noToken": "Only the Company’s own Token can be sent back. Move the Company’s Tokens back by hand.",
         "unknown": "The Company’s way here isn’t known, so move its Token back by hand."
       },
       "hazardIntro": "Everybody who pushes through loses d6 {virtue}.",
-      "ruinEchoes": "The ruin echoes this Myth, which the Realm doesn’t hold.",
+      "ruinEchoes": "The ruin echoes this Myth, which the Realm isn’t playing out now.",
       "ruinPrompt": "Its page suggests a ruin: {prompt}.",
       "promptFrom": "Named from the prompts on {myth}’s page (p{page}). Rename it in the hex’s Lay of the Land in Places.",
       "promptUnread": "Import PDF hasn’t read the prompts along the foot of that Myth’s page, so the Landmark keeps its name.",
@@ -4676,6 +4912,10 @@
           "landmark": "Landmarks",
           "myth": "Myths",
           "grid": "Hex lines"
+        },
+        "arms": {
+          "label": "Rulers’ arms on Holdings",
+          "hint": "Each Holding a Domain rules shows that Domain’s arms on a small shield, as a lord’s banner flew over the gate. Everyone sees them, except on a Holding hidden from the players."
         },
         "skins": {
           "sheet": {
@@ -4816,7 +5056,7 @@
             },
             "hazard": {
               "label": "Hazards",
-              "text": "The land itself resists. Find a way, push on at a cost of d6 VIG, or turn back."
+              "text": "The land itself resists. Find a way, push on at a cost of d6 from a Virtue (usually VIG), or turn back."
             },
             "curse": {
               "label": "Curses",
@@ -4841,10 +5081,11 @@
         "seatMany": "{count} Seats of Power, where the sheet has one",
         "seatDisputed": "{count} Holdings claim the Seat of Power",
         "myths": "{count} of {target} Myths",
-        "landmark": "{type}: {count} of {min}-{max}"
+        "landmark": "{type}: {count} of {min}-{max}",
+        "landmarkOne": "{type}: {count} of {target}"
       },
       "company": {
-        "intro": "Choose what the Company looks like, then carry them over the map and click the hex they stand in.",
+        "intro": "Choose the Company's Start and what they look like, then carry them over the map and click the hex they stand in. What the Start sets going comes when the Realm is finished.",
         "standing": "The Company stands in {hex}. Choose another picture, or take them up and stand them somewhere else.",
         "move": "Move the Company"
       },
@@ -4852,7 +5093,9 @@
         "button": "Finish the Realm",
         "hint": "Done drawing: bring back Travel and Exploration and whisper the Referees the Realm's key.",
         "title": "Finish the Realm",
-        "short": "This Realm has less than a typical one:",
+        "short": "Where this Realm differs from a typical one of its size:",
+        "walled": "Barriers wall {count} hexes off from the rest of the map. Nobody can travel there without crossing one.",
+        "walledOne": "Barriers wall one hex off from the rest of the map. Nobody can travel there without crossing one.",
         "anyway": "These numbers are a guide, not a law (p14). Finish the Realm as it is?",
         "done": "{name} is drawn. Travel and Exploration are back beside the map."
       },
@@ -4862,6 +5105,7 @@
     "warband": {
       "mustered": "{count} of {muster} Warbands raised.",
       "full": "Every Warband this Holding can raise is in the field.",
+      "lost": "{count} wiped out, which no longer count. Disband them to clear the list.",
       "spiritLine": "{abbr} {spi}",
       "cantCreate": "Mustering a Warband creates an actor, so it needs a user who is allowed to create actors. Ask the Referee.",
       "armourAbbr": "A",
@@ -4902,7 +5146,8 @@
       "dismiss": {
         "title": "Disband",
         "confirm": "Disband {name}? Its soldiers leave the service of {domain}. Their sheet stays in the Actors tab.",
-        "went": "{name} is disbanded and leaves the service of {domain}."
+        "went": "{name} is disbanded and leaves the service of {domain}.",
+        "goneHint": "Disband: wiped out, they no longer count against the muster"
       },
       "upkeep": {
         "title": "Upkeep",
@@ -4953,15 +5198,21 @@
       "cantCreate": "Making a new Knight creates an actor, so it needs a user who is allowed to create actors. Ask the Referee."
     },
     "cardButtons": {
-      "needsGM": "A Referee needs to be logged in to use this button on somebody else’s card."
+      "needsGM": "A Referee needs to be logged in to use this button on somebody else’s card.",
+      "alreadyPressed": "Somebody pressed that button first.",
+      "notKept": "The Referee didn’t keep that press, so nothing was done. Somebody may have pressed it first.",
+      "notYours": "That button is for whoever plays the one this card names, or the Referee.",
+      "stuck": "That button did nothing, but it couldn’t be freed to press again. Ask the Referee to do what it does by hand."
     },
     "hexTarget": {
-      "hint": "Point at it to ring the hex on the map. Click to go there."
+      "hint": "Point at it to ring the hex on the map. Click to go there.",
+      "notShown": "The Referee hasn’t shown you that Realm yet."
     },
     "explore": {
       "here": "in this very Hex",
       "away": "{distance} Hexes to the {direction}",
       "awayOne": "the next Hex to the {direction}",
+      "way": "off to the {direction}",
       "mark": "Mark it on the players’ map",
       "marked": "Marked on the players’ map: {count}.",
       "markedNothing": "The players’ map already shows all of it.",
@@ -5267,7 +5518,8 @@
       "save": "Save",
       "reset": "Start Over",
       "loadFailed": "This picture couldn't be loaded to frame.",
-      "video": "A moving picture can't be framed."
+      "video": "A moving picture can't be framed.",
+      "cantBrowse": "Choosing a picture needs permission to browse files. Ask the Referee."
     },
     "artPopout": {
       "showPlayers": "Show Players",
@@ -5469,6 +5721,9 @@
         "doom": "A Mortal Wound this Season Slays instead.",
         "humiliation": "Once revenge is had, a max GD of 12 or under goes up by d6."
       }
+    },
+    "share": {
+      "needsReferee": "Only you can see {names} for now. The Referee needs to be here to share them with the other players."
     }
   }
 }

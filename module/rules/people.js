@@ -6,8 +6,8 @@
  * the Myths each of them has heard of (p181). Pure, so it can be tested
  * without Foundry.
  */
-import { namedSpark } from "./hex-lore.js";
-import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkPrompt } from "./spark-tables.js";
+import { namedSpark, sparkSetAt } from "./hex-lore.js";
+import { SPARK_PAGES, sparkPrompt } from "./spark-tables.js";
 import { trimmedText } from "./text.js";
 
 /** The Spark Table page a person is rolled from. */
@@ -31,16 +31,10 @@ const HOLDING_POSITIONS = Object.freeze([0, 1, 2, 8]);
 /**
  * The tables to roll in one go for a Holding, from the Civilisation page.
  * @param {{tables: object[]}|null|undefined} page A page of the art index's spark payload.
- * @returns {{index: number, table: object}[]} Empty when the page was never read. A
- *   page missing some of its tables gives the first three it did read instead,
- *   since the places above only mean anything on a page read whole.
+ * @returns {{index: number, table: object}[]} Empty unless the page was read whole,
+ *   since the places above only mean anything there.
  */
-export function holdingSparkSet(page) {
-	const tables = page?.tables ?? [];
-	if (!tables.length) return [];
-	const places = tables.length === SPARK_TABLES_PER_PAGE ? HOLDING_POSITIONS : [0, 1, 2];
-	return places.filter((index) => tables[index]).map((index) => ({ index, table: tables[index] }));
-}
+export const holdingSparkSet = (page) => sparkSetAt(page, HOLDING_POSITIONS);
 
 /**
  * How many d12s rolling these tables takes: one for each column of each.
@@ -206,10 +200,11 @@ export const hexesWithPeople = (lore) => new Set(Object.entries(lore?.hexes ?? {
 	.map(([key]) => key));
 
 /**
- * The Myth of the Realm someone has heard of, by a die as big as the Realm has
- * Myths, as the Referee rolls one for each Knight to have heard of (p200).
- * @param {{myths: object[]}|null} realm
- * @param {number} roll From 1.
- * @returns {object|null} Null where the Realm has no Myths.
+ * The Myth somebody living at a Holding has heard of: a Vassal knows the Myth
+ * nearest their home (p19), so of several as near, a die as big as how many
+ * there are says which.
+ * @param {object[]} nearest The Myths nearest the Holding, as nearestMyths gives them.
+ * @param {number} [roll] From 1. Left out where only one is nearest.
+ * @returns {object|null} Null where there's no Myth to hear of.
  */
-export const heardOfMyth = (realm, roll) => realm?.myths?.[roll - 1] ?? null;
+export const heardOfMyth = (nearest, roll = 1) => nearest[roll - 1] ?? nearest[0] ?? null;

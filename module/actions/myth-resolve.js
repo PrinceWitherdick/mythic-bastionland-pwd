@@ -2,7 +2,9 @@ import { loadArtIndex, mythLookup, pageNote } from "../book-art/art-index.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { placeFeature } from "../rules/realm-edits.js";
 import { resolvedMyths } from "../rules/gm-toolkit.js";
+import { mythGloryFor } from "../rules/myth-notes.js";
 import { completedMythId } from "../rules/season-log.js";
+import { takeBackGlory } from "./glory.js";
 import { rollFreeMyth } from "./gm-toolkit.js";
 import { hexLabel } from "./hex-names.js";
 import { editMythNote, getMythNotes } from "./myth-notes.js";
@@ -30,23 +32,30 @@ import { timelineMythCompleted, timelineMythUndone } from "./timeline-events.js"
  */
 export async function resolveMyth(scene, myth, { name, award, note }) {
 	const completed = { id: completedMythId(scene.id, myth), name };
-	const [, , knights] = await Promise.all([
-		editMythNote(scene, myth, { ...(note === undefined ? {} : { note }), resolved: true }),
-		recordMythCompleted(completed),
-		award()
+	// The Season's record needs nobody's name, so it's kept while the Glory is given.
+	const recorded = recordMythCompleted(completed);
+	// Who was given Glory is kept with the Myth, so it can be taken back if the Myth is unresolved.
+	const knights = (await award()) ?? [];
+	await Promise.all([
+		editMythNote(scene, myth, { ...(note === undefined ? {} : { note }), resolved: true, glory: knights.map((knight) => knight.id) }),
+		recorded,
+		timelineMythCompleted({ scene, completedId: completed.id, name, knights })
 	]);
-	await timelineMythCompleted({ scene, completedId: completed.id, name, knights: knights ?? [] });
 }
 
 /**
- * A Myth marked unresolved again comes out of the Season's record and off the Timeline.
+ * A Myth marked unresolved again comes out of the Season's record and off the
+ * Timeline. The Referee is offered to take back the Glory it gave, which closing
+ * the question keeps.
  * @param {Scene} scene
  * @param {object} myth
  * @returns {Promise<void>}
  */
 export async function unresolveMyth(scene, myth) {
 	const completedId = completedMythId(scene.id, myth);
-	await Promise.all([editMythNote(scene, myth, { resolved: false }), forgetMythCompleted(completedId), timelineMythUndone(completedId)]);
+	const given = mythGloryFor(getMythNotes(scene), myth).map((id) => game.actors.get(id)).filter(Boolean);
+	// The Glory it gave is offered back while it comes off everywhere it's kept.
+	await Promise.all([editMythNote(scene, myth, { resolved: false }), forgetMythCompleted(completedId), timelineMythUndone(completedId), given.length && takeBackGlory("myth", given)]);
 }
 
 /**

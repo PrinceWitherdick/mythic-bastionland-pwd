@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyRealm, featureAt } from "../../module/rules/realm.js";
 import { hexKey, realmGeometry, sameHex } from "../../module/rules/realm-geometry.js";
 import { pairPonds, placeFeature } from "../../module/rules/realm-edits.js";
+import { freshRandom } from "../../module/rules/random.js";
 import { soloRealm } from "../../module/rules/solo.js";
 
 const g = realmGeometry();
@@ -19,7 +20,8 @@ vi.mock("../../module/actions/realm.js", () => ({
 	realmUndoState: () => ({ canUndo: false, canRedo: false }),
 	// Each edit lands on the Realm, as the Scene's would, and says whether anything changed.
 	editRealmByHand: vi.fn(async (_scene, edit) => {
-		const next = edit(realm, g);
+		// As the real one does, each edit by hand is handed a fresh die.
+		const next = edit(realm, g, { random: freshRandom() });
 		const changed = next !== realm;
 		realm = next;
 		return changed;

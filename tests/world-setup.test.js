@@ -72,6 +72,17 @@ describe("runWorldSetup", () => {
 		expect(settings.worldSetupDone).toEqual({ first: true, again: true });
 	});
 
+	it("lets a step skipped as a repeat stand for those that repeat it", async () => {
+		const run = vi.fn(async () => {});
+		await runWorldSetup([
+			{ key: "first", run },
+			{ key: "again", run, repeats: "first" },
+			{ key: "thrice", run, repeats: "again" }
+		]);
+		expect(run).toHaveBeenCalledOnce();
+		expect(settings.worldSetupDone).toEqual({ first: true, again: true, thrice: true });
+	});
+
 	it("does nothing for players or a GM who isn't the active GM", async () => {
 		for (const options of [{ isGM: false }, { activeGM: false }]) {
 			installWorld(options);

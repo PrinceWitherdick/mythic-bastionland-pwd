@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bookSteeds, gallopBlocked, steedBreedShown, steedStatLine, vigAfterGallop } from "../../module/rules/steeds.js";
+import { bookSteeds, gallopBlocked, looksLikeSteed, steedBreedShown, steedStatLine, vigAfterGallop } from "../../module/rules/steeds.js";
 
 const track = (value) => ({ value, max: value });
 
@@ -54,3 +54,22 @@ describe("steedBreedShown", () => {
 	});
 });
 
+describe("gallopBlocked, with a dead steed", () => {
+	it("stops a rider whose steed is Slain, whatever its VIG says", () => {
+		expect(gallopBlocked([{ name: "Ser A", steed: { name: "Charger", vig: 6, slain: true } }]))
+			.toEqual([{ name: "Ser A", reason: "slain", steed: "Charger" }]);
+	});
+});
+
+describe("looksLikeSteed", () => {
+	it("takes a book steed, a trampler or a horse by name to ride without asking", () => {
+		expect(looksLikeSteed({ name: "Bucephalus", breed: "Charger" })).toBe(true);
+		expect(looksLikeSteed({ name: "Old Grey", trample: true })).toBe(true);
+		expect(looksLikeSteed({ name: "Squire to Sir Ose’s Pony" })).toBe(true);
+	});
+
+	it("asks of anybody else", () => {
+		expect(looksLikeSteed({ name: "Hawk" })).toBe(false);
+		expect(looksLikeSteed({ name: "Torchbearer" })).toBe(false);
+	});
+});

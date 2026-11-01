@@ -56,6 +56,28 @@ export const slainUpdate = (actor, fate) => ({ ...SLAIN_UPDATE, ...unwrittenFate
 export const fullVirtues = (system) => Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
 
 /**
+ * What a moment of peace restores (Recovery, p9): GD to full and Fatigue gone,
+ * and with their guard back up, a marked Exposed goes too (p8). A Knight sworn
+ * to a quest gets no GD back until it's done (p94).
+ * @param {{guard?: {max: number}}} system
+ * @param {{sworn?: boolean}} [options]
+ * @returns {object} The update.
+ */
+export const restedUpdate = (system, { sworn = false } = {}) => ({
+	...(sworn || !system?.guard ? {} : { "system.guard.value": system.guard.max }),
+	"system.fatigued": false,
+	"system.exposed": false
+});
+
+/**
+ * @param {{guard?: {value: number, max: number}, fatigued?: boolean, exposed?: boolean}} system
+ * @param {{sworn?: boolean}} [options]
+ * @returns {boolean} Whether a moment of peace would change anything for them.
+ */
+export const needsRest = (system, { sworn = false } = {}) =>
+	Boolean(system?.fatigued || system?.exposed || (!sworn && system?.guard && system.guard.value < system.guard.max));
+
+/**
  * Keep a Virtue inside the range the rules allow.
  * @param {number} value
  * @returns {number}
@@ -96,20 +118,41 @@ export function conditionsFor({ virtues, fatigued, exposed, mortalWound, wounded
 
 /**
  * Why somebody can't act at all: Slain, or Mortally Wounded and so down and
- * dying until patched up (p8).
- * @param {{slain?: boolean, mortalWound?: boolean}} system
+ * dying until patched up (p8). One of the Cast whose stat block says it fights
+ * on through a Mortal Wound isn't down by it (`fightsOn`), nor dying of it.
+ * @param {{slain?: boolean, mortalWound?: boolean, fightsOn?: boolean}} system
  * @returns {"slain"|"mortalWound"|null} A condition key, or null when they can act.
  */
 export function downBy(system) {
 	if (system?.slain) return "slain";
-	if (system?.mortalWound) return "mortalWound";
+	if (system?.mortalWound && !system.fightsOn) return "mortalWound";
+	return null;
+}
+
+/**
+ * Why somebody is out of the fight: downBy's Slain or Mortally Wounded, a
+ * ship, structure or creature that counts as one destroyed at 0GD, or a
+ * Warband wiped out at VIG 0 however it got there (p11). With `morale`, also
+ * whoever fled or surrendered on failing Morale (p10).
+ * @param {{slain?: boolean, mortalWound?: boolean, fightsOn?: boolean, destroyed?: boolean, scale?: string,
+ *   virtues?: {vig?: {value: number}}, moraleBroken?: string}} system
+ * @param {{morale?: boolean}} [options]
+ * @returns {"slain"|"mortalWound"|"destroyed"|"wipedOut"|"fled"|"surrendered"|null}
+ */
+export function outOfFight(system, { morale = false } = {}) {
+	const down = downBy(system);
+	if (down) return down;
+	if (system?.destroyed) return "destroyed";
+	if (system?.scale === "warband" && system.virtues?.vig && system.virtues.vig.value <= 0) return "wipedOut";
+	if (morale && (system?.moraleBroken === "fled" || system?.moraleBroken === "surrendered")) return system.moraleBroken;
 	return null;
 }
 
 /**
  * Whether somebody lies dying of a Mortal Wound, until it's tended (p8). A
- * Warband's routs it from the battle instead, which no tending undoes (p11).
- * @param {{slain?: boolean, mortalWound?: boolean, scale?: string}} system
+ * Warband's routs it from the battle instead, which no tending undoes (p11),
+ * and one of the Cast that fights on through it isn't dying of it.
+ * @param {{slain?: boolean, mortalWound?: boolean, fightsOn?: boolean, scale?: string}} system
  * @returns {boolean}
  */
 export const isDying = (system) => downBy(system) === "mortalWound" && system.scale !== "warband";

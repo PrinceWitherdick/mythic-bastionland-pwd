@@ -142,11 +142,13 @@
 				{{#if ability}}
 				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.ability.label"}}: {{ability.name}}</h3>
 				<p>{{ability.text}}</p>
+				{{#if ability.list.length}}<ul>{{#each ability.list}}<li>{{this}}</li>{{/each}}</ul>{{/if}}
 				{{/if}}
 
 				{{#if passion}}
 				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.passion.label"}}: {{passion.name}}</h3>
 				<p>{{passion.text}}</p>
+				{{#if passion.list.length}}<ul>{{#each passion.list}}<li>{{this}}</li>{{/each}}</ul>{{/if}}
 				{{/if}}
 			</div>
 

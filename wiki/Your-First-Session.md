@@ -88,12 +88,13 @@ The system fills the first page of each hotbar once, moving anything already the
 
 | Slot | Referee | Player |
 | --- | --- | --- |
-| 1 | Referee Toolkit | Luck Roll |
+| 1 | Referee Toolkit | Attack |
 | 2 | Rulebook | Places |
 | 3 | New Site | Timeline |
 | 4 | Luck Roll | |
+| 5 | Attack | |
 | 9 | Import PDF | |
-| 0 | End the Session | |
+| 0 | End the Session | Luck Roll |
 
 The **6** key opens the Spark Tables for a Referee. In a solo world the Referee also gets **Places** and the **Timeline**. Every macro and key is listed on [Macros and Hotkeys](Macros-and-Hotkeys).
 

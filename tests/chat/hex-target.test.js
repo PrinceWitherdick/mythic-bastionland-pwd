@@ -21,6 +21,7 @@ const { hexTarget, registerHexTargets } = await import("../../module/chat/hex-ta
 
 /** What renderChatMessageHTML calls, one per registration. */
 let renders;
+let warn;
 let realm;
 let other;
 
@@ -43,16 +44,18 @@ function renderedChip(dataset) {
 
 beforeEach(() => {
 	renders = [];
-	realm = { id: "realm", view: vi.fn(async () => { canvas.scene = realm; }) };
+	realm = { id: "realm", view: vi.fn(async () => { canvas.scene = realm; }), testUserPermission: vi.fn(() => false) };
 	other = { id: "other", view: vi.fn() };
 	globalThis.Hooks = { on: (name, fn) => { if (name === "renderChatMessageHTML") renders.push(fn); } };
-	globalThis.game = { user: { isGM: true }, scenes: { get: (id) => ({ realm, other })[id] ?? null } };
+	warn = vi.fn();
+	globalThis.ui = { notifications: { warn } };
+	globalThis.game = { user: { isGM: true }, scenes: { get: (id) => ({ realm, other })[id] ?? null }, i18n: { localize: (key) => key } };
 	globalThis.canvas = { scene: other };
 	registerHexTargets();
 });
 
 afterEach(() => {
-	for (const key of ["Hooks", "game", "canvas"]) delete globalThis[key];
+	for (const key of ["Hooks", "game", "canvas", "ui"]) delete globalThis[key];
 	vi.clearAllMocks();
 });
 
@@ -76,6 +79,27 @@ describe("registerHexTargets", () => {
 		await fire("click");
 		expect(realm.view).not.toHaveBeenCalled();
 		expect(showHexOnMap).toHaveBeenCalledWith(realm, { col: 2, row: 3 });
+	});
+
+	it("keeps a player from a Realm the Referee hasn't shown them, saying so", async () => {
+		game.user.isGM = false;
+		const { fire } = renderedChip({ hexTarget: "5,7", hexScene: "realm" });
+		await fire("click");
+		expect(realm.testUserPermission).toHaveBeenCalledWith(game.user, "LIMITED");
+		expect(realm.view).not.toHaveBeenCalled();
+		expect(showHexOnMap).not.toHaveBeenCalled();
+		expect(warn).toHaveBeenCalledWith("bastionland.hexTarget.notShown");
+	});
+
+	it("takes a player to a Realm they may glimpse, or show them the hex on the one they're on", async () => {
+		game.user.isGM = false;
+		realm.testUserPermission.mockReturnValue(true);
+		await renderedChip({ hexTarget: "5,7", hexScene: "realm" }).fire("click");
+		expect(realm.view).toHaveBeenCalled();
+		realm.testUserPermission.mockReturnValue(false);
+		await renderedChip({ hexTarget: "2,3", hexScene: "realm" }).fire("click");
+		expect(showHexOnMap).toHaveBeenLastCalledWith(realm, { col: 2, row: 3 });
+		expect(warn).not.toHaveBeenCalled();
 	});
 
 	it("does nothing for a Realm this user can't see", async () => {

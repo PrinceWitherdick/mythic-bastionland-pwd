@@ -1,8 +1,8 @@
 import { calendarLabel, getCalendar } from "../actions/calendar.js";
 import {
 	addCrisis,
-	crisisRoll,
-	dramaInCourt,
+	crisisRollOnce,
+	dramaOnce,
 	increasedCollections,
 	namedSuccessor,
 	passOnDomain,
@@ -10,7 +10,7 @@ import {
 	seizeDomain
 } from "../actions/dominion.js";
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
-import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
+import { chooseDomainArms, domainArmsView, knightChangesArms } from "../actions/domain-arms.js";
 import { beginDesign, strikeOffDesign } from "../actions/grand-designs.js";
 import { domainLands, holdingChoices, realmHoldings } from "../actions/homecoming.js";
 import { worldKnights } from "../actions/knights.js";
@@ -222,7 +222,9 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 			circle: true,
 			knights: knights.map((knight) => {
 				const actor = knight.legacy ? null : game.actors.get(knight.id);
-				return { ...knight, uuid: actor?.visible ? actor.uuid : "" };
+				// A Knight Slain since they were seated is still listed, said to be Slain, till the Circle lets them go.
+				const name = actor?.system?.slain ? t("domain.council.circle.slainName", { name: knight.name }) : knight.name;
+				return { ...knight, name, uuid: actor?.visible ? actor.uuid : "" };
 			})
 		};
 	}
@@ -238,7 +240,8 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 			const held = seatOf(system.council, member.id);
 			// A Retainer granted a seat holds it; one who isn't may serve whoever took them on.
 			const serves = member.role === SERVES_A_SEAT && member.seat ? t("domain.court.servesSeat", { seat: seatLabel(member.seat) }) : "";
-			const leverage = member.leverage ? t("domain.court.leverageLine", { leverage: member.leverage }) : "";
+			// Leverage over the ruler is the Referee's to know (p21), so a player's sheet leaves it out.
+			const leverage = member.leverage && game.user.isGM ? t("domain.court.leverageLine", { leverage: member.leverage }) : "";
 			return {
 				id: member.id,
 				name: member.name || t("domain.court.unnamed"),
@@ -257,10 +260,12 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 	 * @returns {object}
 	 */
 	static #musterContext(domain) {
-		const { state, lines } = musterView(domain);
+		const { state, lines, lost } = musterView(domain);
+		const tally = t("warband.mustered", { count: state.mustered, muster: state.muster });
 		return {
 			lines,
-			tally: t("warband.mustered", { count: state.mustered, muster: state.muster }),
+			// The wiped out stay listed till they're disbanded, but no longer count against the muster (p11, p21).
+			tally: lost ? `${tally} ${t("warband.lost", { count: lost })}` : tally,
 			full: state.full ? t("warband.full") : null
 		};
 	}
@@ -271,7 +276,7 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 
 	/** @this {DomainSheet} */
 	static #onCrisisRoll() {
-		return crisisRoll(this.actor);
+		return crisisRollOnce(this.actor);
 	}
 
 	/** @this {DomainSheet} */
@@ -291,7 +296,7 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 
 	/** @this {DomainSheet} */
 	static #onDrama() {
-		return dramaInCourt(this.actor);
+		return dramaOnce(this.actor);
 	}
 
 	/** @this {DomainSheet} */
@@ -398,14 +403,6 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 		for (const [hook, id] of this.#knightHooks) Hooks.off(hook, id);
 		this.#knightHooks = [];
 	}
-}
-
-/**
- * @param {object} changes A Knight's update.
- * @returns {boolean} Whether it can change which arms a Domain shows: their painting, which Domain they rule, or their name.
- */
-function knightChangesArms(changes) {
-	return "name" in changes || foundry.utils.hasProperty(changes, "system.heraldry") || foundry.utils.hasProperty(changes, "system.domain");
 }
 
 /**

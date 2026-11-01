@@ -26,6 +26,16 @@ import { companyKnights, inCompany } from "./knights.js";
 /** The Knights deprived of essential needs last Morning, by id, so the next asks after them first. */
 const DEPRIVED_SETTING = "deprived";
 
+/**
+ * Forget who went without, as a Night ends with nobody of the Company to ask
+ * about or as weeks go by: last Morning's ticks are for the next Morning only. GMs only.
+ * @returns {Promise<unknown>}
+ */
+export async function forgetDeprived() {
+	if (!game.user.isGM || !(game.settings.get(SYSTEM_ID, DEPRIVED_SETTING) ?? []).length) return null;
+	return game.settings.set(SYSTEM_ID, DEPRIVED_SETTING, []);
+}
+
 /** Register who went without last Morning. Called during init. */
 export function registerPhaseEndSettings() {
 	game.settings.register(SYSTEM_ID, DEPRIVED_SETTING, { scope: "world", config: false, type: Array, default: [] });
@@ -43,14 +53,29 @@ export function registerPhaseEndSettings() {
  */
 
 /**
+ * Whether an unlinked Token could be somebody dying, read off its saved data so
+ * a Token whose own actor the core hasn't made yet isn't made one for nothing:
+ * one that changes nothing of its actor's Virtues and state is as they are.
+ * @param {TokenDocument} token
+ * @returns {boolean}
+ */
+function mayBeDying(token) {
+	const own = token._source?.delta?.system;
+	if (!token._source || (own && Object.keys(own).length)) return true;
+	const base = token.baseActor?.system;
+	return Boolean(base?.virtues && isDying(base));
+}
+
+/**
  * Everybody still Mortally Wounded: an hour without care is fatal (p8), and a
- * Phase is longer than that. The world's own, and anybody placed
- * on the Scene in view without an actor of their own. A Warband's Mortal Wound
+ * Phase is longer than that. The world's own, and anybody placed on any Scene,
+ * in view or not, without an actor of their own. A Warband's Mortal Wound
  * routs it from the battle rather than leaving it dying (p11), so none is listed.
  * @returns {Actor[]}
  */
 function mortallyWounded() {
-	const loose = (canvas?.scene?.tokens ?? []).filter((token) => !token.actorLink).map((token) => token.actor);
+	const scenes = new Set([...(game.scenes ?? []), canvas?.scene].filter(Boolean));
+	const loose = [...scenes].flatMap((scene) => [...(scene.tokens ?? [])]).filter((token) => !token.actorLink && mayBeDying(token)).map((token) => token.actor);
 	// Exhausted at VIG 0 by Virtue Loss, somebody dying is still alive to die of it.
 	return [...game.actors, ...loose].filter((actor) => actor?.system?.virtues && isDying(actor.system));
 }

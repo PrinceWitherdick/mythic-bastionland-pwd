@@ -1,8 +1,7 @@
 import { changeCompanyPicture } from "../apps/company-picture.js";
 import { COMPANY_FLAG } from "../actions/company.js";
-import { INK_HEX } from "../rules/colour.js";
-import { SHIELD_OUTLINE_PATH, SHIELD_PATH } from "../rules/heraldry.js";
-import { heraldryBadge, pathSteps } from "../rules/token-heraldry.js";
+import { heraldryBadge } from "../rules/token-heraldry.js";
+import { drawShield } from "./shield-graphics.js";
 import { t } from "../chat/cards.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { onCompanyDoubleClick } from "./travels-click.js";
@@ -10,25 +9,6 @@ import { isKnight } from "../rules/knight-types.js";
 
 /** Token flag set when the heraldry badge is hidden on that Token. */
 export const HIDE_HERALDRY_FLAG = "hideHeraldry";
-
-/** The sheet's ink (--bastionland-ink), for the shield's border. */
-
-/**
- * Trace a shield path onto a Graphics, already begun with a fill or line.
- * @param {PIXI.Graphics} graphics
- * @param {string} path
- * @param {number} scale
- * @param {{x: number, y: number}} at
- */
-function traceShield(graphics, path, scale, at) {
-	for (const [command, ...points] of pathSteps(path, scale, at.x, at.y)) {
-		if (command === "M") graphics.moveTo(...points);
-		else if (command === "L") graphics.lineTo(...points);
-		else if (command === "Q") graphics.quadraticCurveTo(...points);
-		else if (command === "C") graphics.bezierCurveTo(...points);
-		else graphics.closePath();
-	}
-}
 
 /**
  * The system's Token: a Knight's wears their heraldry on a small shield at the
@@ -98,22 +78,7 @@ export class BastionlandToken extends foundry.canvas.placeables.Token {
 		if (!texture) return;
 
 		const { width, height } = this.document.getSize();
-		const badge = heraldryBadge(art, Math.min(width, height));
-
-		const outline = this.heraldry.addChild(new PIXI.Graphics());
-		outline.beginFill(INK_HEX);
-		traceShield(outline, SHIELD_OUTLINE_PATH, badge.scale, badge.outline);
-		outline.endFill();
-
-		const painting = this.heraldry.addChild(new PIXI.Sprite(texture));
-		painting.position.set(badge.painting.x, badge.painting.y);
-		painting.width = badge.painting.width;
-		painting.height = badge.painting.height;
-		const field = this.heraldry.addChild(new PIXI.Graphics());
-		field.beginFill(0xffffff);
-		traceShield(field, SHIELD_PATH, badge.scale, badge.field);
-		field.endFill();
-		painting.mask = field;
+		drawShield(this.heraldry, texture, heraldryBadge(art, Math.min(width, height)));
 	}
 
 	/** Whether this is the one Token standing for the whole Company (p7). */

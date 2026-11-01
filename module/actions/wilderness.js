@@ -26,6 +26,7 @@ import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./la
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { inCompany, sidesWithCompany } from "./knights.js";
 import { keptFromMe } from "./solo.js";
+import { rollBetween, tiedHint } from "./tie-roll.js";
 import { omensMet, timelineLandmarkFound } from "./timeline-events.js";
 import { liveRealm } from "./myth-notes.js";
 import { omenSceneChips, omenSceneIds } from "./omen-scenes.js";
@@ -48,6 +49,17 @@ export function findCompany(scene, g, { selected: useSelected = true } = {}) {
 	const selected = useSelected && scene.id === canvas.scene?.id ? canvas.tokens.controlled.map((token) => token.document) : [];
 	const tokens = selected.length ? selected : scene.tokens.filter((token) => sidesWithCompany(token.actor));
 	return companyHex(tokens.map((token) => hexAt(g, token.getCenterPoint())));
+}
+
+/**
+ * @param {Scene} scene
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @returns {boolean} Whether the Company may stand in this hex: false only where its Tokens say it's elsewhere.
+ */
+function companyMayBeAt(scene, g, hex) {
+	const { hex: at } = findCompany(scene, g, { selected: false });
+	return !at || sameHex(at, hex);
 }
 
 /**
@@ -213,12 +225,9 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		const result = situationResult(d6, mode, situation, season);
 		city = cityOmenReplaces(result, worthyOfCityQuest(game.actors.filter(inCompany)), cityOmensSeen());
 		const choices = city ? 1 : mythChoices(situation, result);
-		if (choices > 1) {
-			const choice = await new Roll(`1d${choices}`).evaluate();
-			// Played alone, its size would count the Myths it chose between.
-			if (!keptFromMe()) rolls.push(choice);
-			pick = choice.total - 1;
-		}
+		const between = await rollBetween(choices);
+		if (between.shown) rolls.push(between.shown);
+		pick = between.pick;
 	}
 	// The whole Realm, so one whose Myths are all resolved has nothing left to show rather than no Myths.
 	const rolled = wildernessOutcome(whole, situation, { mode, d6, pick, season });
@@ -245,12 +254,13 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	const recorded = revealLandmark ? timelineLandmarkFound(scene, outcome.landmark.hex) : null;
 
 	const calendar = getCalendar();
-	// A Curse throws the Company off course, so the next travelling Phase is blind (p14).
-	if (outcome.landmark && throwsOffCourse(outcome.landmark.type)) await strikeOffCourse(calendar);
+	// A Curse throws the Company off course, so the next travelling Phase is blind (p14): the Company's
+	// own roll, not one the Referee makes for a hex it isn't in. Where nothing says where it is, it's the Company's.
+	if (outcome.landmark && throwsOffCourse(outcome.landmark.type) && companyMayBeAt(scene, g, where)) await strikeOffCourse(calendar);
 
 	const winter = calendar.season === "winter";
 	await Promise.all([
-		postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named }), { rolls, mode: "gm" }),
+		postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named, phaseEnded: Boolean(phase) }), { rolls, mode: "gm" }),
 		recorded
 	]);
 	if (city) await rollCityOmen();
@@ -260,7 +270,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 /**
  * @returns {object} What the Wilderness card shows.
  */
-function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named }) {
+function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named, phaseEnded }) {
 	const terrain = terrainAt(realm, g, where);
 
 	let myth = null;
@@ -308,9 +318,10 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 		d6: outcome.d6,
 		result: t(`realm.wilderness.results.${outcome.result}`),
 		myth,
-		// Played alone, the tie would number Myths not yet met.
-		tied: outcome.tied && !keptFromMe() ? t("realm.wilderness.tied", { numbers: outcome.tied.map((tied) => tied.number).join(", ") }) : null,
+		tied: outcome.tied ? tiedHint(outcome.tied) : null,
 		landmark,
+		// A Phase ended in a Myth's own hex finds the Knights ready for its Omen (p18). Merely coming in doesn't.
+		drop: phaseEnded && outcome.result === "mythHex" && !outcome.complete ? t("realm.wilderness.drop") : null,
 		// Once the Company is worthy of the City Quest, an Omen of the City comes in place of a random Myth's (p172).
 		cityQuest: city ? t("cityQuest.wildernessHint") : null,
 		winter: winter ? t("time.winterReminder") : null

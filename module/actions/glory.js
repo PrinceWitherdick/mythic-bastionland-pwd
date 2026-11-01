@@ -79,3 +79,30 @@ export async function awardGloryTo(key) {
 	]);
 	return { knights: company.map(({ actor }) => actor), entries };
 }
+
+/**
+ * Offer to take back the 1 Glory an award gave, as when a Myth is marked
+ * unresolved again. Those given it are listed ticked, and closing the question
+ * takes nothing back. GMs only.
+ * @param {string} key One of GLORY_AWARDS.
+ * @param {Actor[]} given Those it was given to.
+ * @returns {Promise<Actor[]>} Those it was taken back from.
+ */
+export async function takeBackGlory(key, given) {
+	const living = given.filter((actor) => actor?.system?.gainsGlory);
+	if (!game.user.isGM || !GLORY_AWARDS.includes(key) || !living.length) return [];
+	const title = t("glory.takeBack.title");
+	const company = await chooseCompany({
+		title,
+		icon: "fa-solid fa-crown",
+		intro: t("glory.takeBack.intro", { award: t(`glory.awards.${key}.label`) }),
+		ok: t("glory.takeBack.ok"),
+		present: living,
+		knightsOnly: true,
+		onlyGiven: true
+	});
+	if (!company?.length) return [];
+	const entries = await Promise.all(company.map(async ({ actor }) => ({ name: actor.name, lines: await adjustGlory(actor, -1) })));
+	await postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries });
+	return company.map(({ actor }) => actor);
+}

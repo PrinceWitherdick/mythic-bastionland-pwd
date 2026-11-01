@@ -5,12 +5,13 @@ import { IMPORT_SLOT, SESSION_SLOT, endHotbar, orderHotbar, slotWanted } from ".
 /**
  * The system's macros lead each user's hotbar: a GM's opens with the GM
  * Toolkit and ends with Import PDF and End the Session, in the slots Foundry
- * labels 9 and 0; a player's opens with the Luck Roll, then their Places and the Timeline.
+ * labels 9 and 0; a player's opens with the Attack, then their Places and the
+ * Timeline, and ends with the Luck Roll in the slot labelled 0.
  */
 
 /** The macros' flags, in the order they take the first slots. */
-export const GM_HOTBAR_ORDER = Object.freeze(["gmToolkitMacro", "rulebookMacro", "newSiteMacro", "luckRollMacro"]);
-export const PLAYER_HOTBAR_ORDER = Object.freeze(["luckRollMacro", "placesMacro", "timelineMacro"]);
+export const GM_HOTBAR_ORDER = Object.freeze(["gmToolkitMacro", "rulebookMacro", "newSiteMacro", "luckRollMacro", "attackMacro"]);
+export const PLAYER_HOTBAR_ORDER = Object.freeze(["attackMacro", "placesMacro", "timelineMacro"]);
 
 /** User flag set once this user's hotbar has been put in that order. */
 export const HOTBAR_ORDER_FLAG = "hotbarOrder";
@@ -21,11 +22,22 @@ export const HOTBAR_ORDER_FLAG = "hotbarOrder";
  */
 export const HOTBAR_ENDS_FLAG = "hotbarEnds";
 
+/**
+ * User flag set once this user's hotbar has been put in order with the Attack
+ * macro among the rest, a player's Luck Roll moving to the end for it.
+ */
+export const HOTBAR_ATTACK_FLAG = "hotbarAttack";
+
 /** @returns {Macro|undefined} The world's macro carrying this flag. */
 const macroOf = (flag) => game.macros.find((macro) => macro.getFlag(SYSTEM_ID, flag));
 
-/** @returns {Record<number, string|undefined>} A GM's macros for the first page's last slots, by slot. */
-const gmEnds = () => ({ [IMPORT_SLOT]: game.macros.get(IMPORT_MACRO_ID)?.id, [SESSION_SLOT]: macroOf("endSessionMacro")?.id });
+/** @returns {Macro|undefined} The macro, if this user may run it. */
+const runnable = (macro) => (macro && (game.user.isGM || macro.canExecute) ? macro : undefined);
+
+/** @returns {Record<number, string|undefined>} This user's macros for the first page's last slots, by slot. */
+const endsFor = (user) => (user.isGM
+	? { [IMPORT_SLOT]: game.macros.get(IMPORT_MACRO_ID)?.id, [SESSION_SLOT]: macroOf("endSessionMacro")?.id }
+	: { [SESSION_SLOT]: runnable(macroOf("luckRollMacro"))?.id });
 
 /** Replace this user's hotbar whole, as assignHotbarMacro does, so emptied slots are removed rather than merged back. */
 async function setHotbar(hotbar) {
@@ -38,22 +50,33 @@ async function setHotbar(hotbar) {
  * rearranges it afterwards keeps it their way. Run after every macro has its
  * slot. A user who loads before any GM has made the macros is ordered on a
  * later load.
+ *
+ * A user ordered before there was an Attack macro is ordered again, once, when
+ * it comes: then only what is still on their bar moves, so a macro they took
+ * off it stays off.
  */
 export async function ensureHotbarOrder() {
 	const user = game.user;
-	if (user.getFlag(SYSTEM_ID, HOTBAR_ORDER_FLAG)) return moveToEnds();
-	const order = user.isGM ? GM_HOTBAR_ORDER : PLAYER_HOTBAR_ORDER;
-	const ids = order
-		.filter(slotWanted)
-		.map(macroOf)
-		.filter((macro) => macro && (user.isGM || macro.canExecute))
-		.map((macro) => macro.id);
-	if (!ids.length) return;
+	const ordered = Boolean(user.getFlag(SYSTEM_ID, HOTBAR_ORDER_FLAG));
+	const attack = runnable(macroOf("attackMacro"));
+	if (ordered && (!attack || user.getFlag(SYSTEM_ID, HOTBAR_ATTACK_FLAG))) return moveToEnds();
 
-	const ordered = orderHotbar(user.hotbar ?? {}, ids);
-	await setHotbar(user.isGM ? endHotbar(ordered, gmEnds()) : ordered);
+	const hotbar = user.hotbar ?? {};
+	const onBar = (id) => !ordered || Object.values(hotbar).includes(id);
+	const ids = (user.isGM ? GM_HOTBAR_ORDER : PLAYER_HOTBAR_ORDER)
+		.filter(slotWanted)
+		.map((flag) => runnable(macroOf(flag))?.id)
+		.filter((id) => id && onBar(id));
+	const ends = Object.fromEntries(Object.entries(endsFor(user)).map(([slot, id]) => [slot, id && onBar(id) ? id : undefined]));
+	if (!ids.length && !Object.values(ends).some(Boolean)) return;
+
+	await setHotbar(endHotbar(orderHotbar(hotbar, ids), ends));
 	const flag = (key) => `flags.${SYSTEM_ID}.${key}`;
-	await user.update({ [flag(HOTBAR_ORDER_FLAG)]: true, ...(user.isGM ? { [flag(HOTBAR_ENDS_FLAG)]: true } : {}) });
+	await user.update({
+		[flag(HOTBAR_ORDER_FLAG)]: true,
+		...(user.isGM ? { [flag(HOTBAR_ENDS_FLAG)]: true } : {}),
+		...(attack ? { [flag(HOTBAR_ATTACK_FLAG)]: true } : {})
+	});
 }
 
 /**
@@ -65,6 +88,6 @@ export async function ensureHotbarOrder() {
 async function moveToEnds() {
 	const user = game.user;
 	if (!user.isGM || user.getFlag(SYSTEM_ID, HOTBAR_ENDS_FLAG)) return;
-	await setHotbar(endHotbar(user.hotbar ?? {}, gmEnds()));
+	await setHotbar(endHotbar(user.hotbar ?? {}, endsFor(user)));
 	await user.setFlag(SYSTEM_ID, HOTBAR_ENDS_FLAG, true);
 }

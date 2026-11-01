@@ -55,13 +55,23 @@ describe("setCompanyHex", () => {
 		const made = await setCompanyHex(scene, hex, { img: "company.webp", name: "The Company" });
 		expect(made).toMatchObject({ x: Math.round(corner.x), y: Math.round(corner.y), width: 1, height: 1 });
 		expect(made.x).not.toBe(Math.round(g.radius * (1.5 * (hex.col - 1) + 1) - (g.size / 2)));
-		expect(scene.createEmbeddedDocuments).toHaveBeenCalledWith("Token", [made]);
+		expect(scene.createEmbeddedDocuments).toHaveBeenCalledWith("Token", [made], {});
 	});
 
 	it("carries the picture chosen with the Realm when the Referee places the Company later", async () => {
 		const scene = { ...realmScene(), getFlag: (scope, key) => (scope === SYSTEM_ID && key === "companyImg" ? "banner.webp" : undefined) };
 		const made = await setCompanyHex(scene, hex, { name: "The Company" });
 		expect(made.texture.src).toBe("banner.webp");
+	});
+
+	it("takes back a Realm's no-Company mark once a Company stands on it, so a Token deleted later is offered back", async () => {
+		const scene = { ...realmScene(), getFlag: (scope, key) => scope === SYSTEM_ID && key === "noCompany", unsetFlag: vi.fn(async () => {}) };
+		await setCompanyHex(scene, hex, { name: "The Company" });
+		expect(scene.unsetFlag).toHaveBeenCalledWith(SYSTEM_ID, "noCompany");
+
+		const plain = { ...realmScene(), unsetFlag: vi.fn() };
+		await setCompanyHex(plain, hex, { name: "The Company" });
+		expect(plain.unsetFlag).not.toHaveBeenCalled();
 	});
 
 	it("moves the Token already standing to the same corner", async () => {
@@ -106,6 +116,8 @@ describe("a Company Token deleted", () => {
 		const back = await standCompanyAgain(scene);
 		expect(back).toMatchObject({ texture: { src: "systems/mythic-bastionland-pwd/assets/icons/company/cavalry.svg" } });
 		expect(back).toMatchObject({ x: Math.round(hexTopLeft(g, hex).x), y: Math.round(hexTopLeft(g, hex).y) });
+		// Made again where it stood, so the hex counts no new visit.
+		expect(scene.createEmbeddedDocuments.mock.calls.at(-1)[2]).toEqual({ bastionlandNotAMove: true });
 	});
 
 	it("puts nobody back while the Company still stands on the Realm", async () => {

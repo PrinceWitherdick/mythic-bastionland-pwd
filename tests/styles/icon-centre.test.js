@@ -278,6 +278,32 @@ describe("centring the letters", () => {
 		expect(input["margin-block-start"]).toBe("calc((1lh - var(--checkbox-size)) / 2)");
 	});
 
+	/*
+	 * The Domain's Landmarks, the Realm Appearance's arms tick and the Toolkit's
+	 * "isn't on this Realm's map" button were measured offline (bullets.mjs,
+	 * probe-radio-rows.mjs, probe-left-off.mjs: ≤0.8px at 1×, 1.25× and 1.5×,
+	 * 2026-10-29) as they are drawn: the browser's own disc beside IM Fell, the
+	 * shared tick row, and the banner's shared fact button. None may move its
+	 * words off what was measured.
+	 */
+	it("keeps the Domain's Landmarks on the browser's own disc, down a column", () => {
+		const list = rule("mythic-bastionland.css", ".bastionland-domain__landmarks");
+		expect(list["list-style"]).toBe("disc");
+		expect(list.display).toBeUndefined();
+		const drawn = rules.filter(({ selectors }) => selectors.some((selector) => selector.includes("bastionland-domain__landmarks") && /::?(before|after|marker)/.test(selector)));
+		expect(drawn.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
+	it.each([
+		".bastionland-realm-appearance__arms",
+		".bastionland-gm-toolkit__fact--quiet"
+	])("leaves %s centred by the shared rule it builds on", (name) => {
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => endsWith(selector, name.slice(1))));
+		expect(own.length, `no ${name} rule`).toBeGreaterThan(0);
+		const moved = own.filter(({ body }) => /(^|;|\s)(display|line-height|padding|padding-(top|bottom|block)|vertical-align):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

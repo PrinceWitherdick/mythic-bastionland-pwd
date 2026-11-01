@@ -21,7 +21,7 @@
  * Pure, so it can be tested without Foundry; the language file puts words to it.
  */
 import { featureAt, hexSummary, landmarkVariantOf, terrainAt, TERRAIN } from "./realm.js";
-import { edgeDirection, edgeKey, hexDistance, hexLine, neighbours, sameHex } from "./realm-geometry.js";
+import { barrierEdges, edgeDirection, edgeKey, hexDistance, hexLine, neighbours, sameHex } from "./realm-geometry.js";
 
 /** Who the Company can ask, in the order the book lists them. */
 export const FOLK_SOURCES = Object.freeze(["vassal", "roamer", "seer"]);
@@ -138,6 +138,7 @@ function landmarkKnown(g, home, landmark) {
  * @property {boolean} rumours          Warnings of danger without the means to undo it (Vassals and roamers).
  * @property {boolean} secrets          A Seer's knowledge of rules, secrets, weaknesses and cures.
  * @property {number} mythChoices       How many Myths the teller might have named, so a roll can pick one.
+ * @property {number} landmarkChoices   How many Landmarks lie equally near a roamer, so a roll can pick the one they know.
  */
 
 /**
@@ -148,9 +149,10 @@ function landmarkKnown(g, home, landmark) {
  * @param {string} options.source  One of FOLK_SOURCES.
  * @param {{col: number, row: number}} options.home Where they're asked.
  * @param {number} [options.pick]  Which of the Myths they might have named this one is, from 0.
+ * @param {number} [options.landmarkPick] Which of the equally near Landmarks a roamer knows, from 0.
  * @returns {Folklore|null} Null for somebody the Realm doesn't hold.
  */
-export function folkloreFrom(realm, g, { source, home, pick = 0 }) {
+export function folkloreFrom(realm, g, { source, home, pick = 0, landmarkPick = 0 }) {
 	if (!FOLK_SOURCES.includes(source)) return null;
 
 	if (source === "seer") {
@@ -164,17 +166,20 @@ export function folkloreFrom(realm, g, { source, home, pick = 0 }) {
 			landmarks: realm.landmarks.map((landmark) => landmarkKnown(g, home, landmark)),
 			rumours: false,
 			secrets: true,
-			mythChoices: 0
+			mythChoices: 0,
+			landmarkChoices: 0
 		};
 	}
 
 	// A Vassal speaks of the Myth nearest their home; a roamer of any Myth of the Realm.
 	const candidates = source === "vassal" ? nearestMyths(realm, g, home) : [...realm.myths].sort((a, b) => a.number - b.number);
-	const myth = candidates[Math.min(Math.max(0, pick), candidates.length - 1)] ?? null;
+	const myth = pickFrom(candidates, pick);
 	// Where the Myth borders their home, they know exactly where it is.
 	const precise = Boolean(myth) && source === "vassal" && hexDistance(g, myth.hex, home) <= ADJACENT;
 
-	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home) : nearestLandmarks(realm, g, home).slice(0, 1);
+	// A roamer knows the one nearest Landmark; several as near are settled by a die, as Myths are.
+	const nearest = source === "vassal" ? [] : nearestLandmarks(realm, g, home);
+	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home) : [pickFrom(nearest, landmarkPick)].filter(Boolean);
 	return {
 		source,
 		home,
@@ -182,9 +187,18 @@ export function folkloreFrom(realm, g, { source, home, pick = 0 }) {
 		landmarks: landmarks.map((landmark) => landmarkKnown(g, home, landmark)),
 		rumours: true,
 		secrets: false,
-		mythChoices: candidates.length
+		mythChoices: candidates.length,
+		landmarkChoices: nearest.length
 	};
 }
+
+/**
+ * @template T
+ * @param {T[]} list
+ * @param {number} pick From 0, held to the list.
+ * @returns {T|null} Null for an empty list.
+ */
+const pickFrom = (list, pick) => list[Math.min(Math.max(0, pick), list.length - 1)] ?? null;
 
 /**
  * What the Company can be shown of what it was told: a Myth whose place the
@@ -221,7 +235,7 @@ export function folkloreToMark(folklore) {
  * @returns {Survey}
  */
 export function surveyFrom(realm, g, hex, { vantage = false } = {}) {
-	const barriers = new Set(realm.barriers.map((barrier) => barrier.edge));
+	const barriers = barrierEdges(realm);
 	return {
 		here: hexSummary(realm, g, hex, { showHidden: true }),
 		vantage,

@@ -8,6 +8,7 @@ import {
 	landmarkEffect,
 	landmarkLabelKey,
 	landmarkMet,
+	landmarkOffers,
 	landmarkPrompt,
 	offCourseShown,
 	offCourseState,
@@ -60,6 +61,15 @@ describe("landmarkEffect", () => {
 	it("gives nothing for anything that isn't a Landmark type", () => {
 		expect(landmarkEffect("holding")).toBeNull();
 		expect(landmarkEffect(undefined)).toBeNull();
+	});
+});
+
+describe("landmarkOffers", () => {
+	it("lists what a Landmark offers, its main offer first, and nothing where none stands", () => {
+		expect(landmarkOffers("hazard")).toEqual(["pushThrough", "goBack"]);
+		expect(landmarkOffers("monument")).toEqual(["restoreSpirit"]);
+		expect(landmarkOffers("dwelling")).toEqual([]);
+		expect(landmarkOffers(undefined)).toEqual([]);
 	});
 });
 

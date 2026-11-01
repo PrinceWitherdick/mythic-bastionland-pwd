@@ -289,6 +289,34 @@ export function knightChoice(knight, seer = null) {
 }
 
 /**
+ * An Ability's or Passion's description, as its page gives it: its words, and
+ * the list of choices they end on, if any (p114, p166).
+ * @param {{text: string, list?: string[]}} part From the art index.
+ * @returns {string} HTML.
+ */
+export function bookDescription({ text, list = [] }) {
+	const items = (list ?? []).filter(Boolean);
+	const after = items.length ? `<ul>${items.map((item) => `<li>${escapeHTML(item)}</li>`).join("")}</ul>` : "";
+	return `<p>${escapeHTML(text)}</p>${after}`;
+}
+
+/**
+ * The update giving a Knight's Ability or Passion the list of choices an
+ * older import left off it. Only a description still exactly as that import
+ * wrote it is replaced, so anything written by hand is kept.
+ * @param {{id: string, type: string, name: string, system: object}[]} items The Knight's items.
+ * @param {"ability"|"passion"} type
+ * @param {{name: string, text: string, list?: string[]}|null} part From the art index, with its list.
+ * @returns {object|null} An item update, or null when there's nothing to replace.
+ */
+export function bookListUpdate(items, type, part) {
+	if (!part?.list?.length) return null;
+	const item = items.find((each) => each.type === type && each.name === part.name);
+	if (!item || item.system?.description !== bookDescription({ text: part.text })) return null;
+	return { _id: item.id, "system.description": bookDescription(part) };
+}
+
+/**
  * Items a Knight starts with: their Property as weapons, armour and gear,
  * their Ability and Passion, any weapon their Ability gives, and the standard kit.
  * @param {object|null} knight   A Knight from the art index.
@@ -304,7 +332,7 @@ export function knightItems(knight, kitNames, abilityWeaponNames = {}) {
 		const part = knight?.[type];
 		if (!part) continue;
 		// An Ability limited to so many uses, as its words say, starts counted.
-		const system = { description: `<p>${escapeHTML(part.text)}</p>`, ...(type === "ability" ? usesFrom(part.text) : {}) };
+		const system = { description: bookDescription(part), ...(type === "ability" ? usesFrom([part.text, ...(part.list ?? [])].join(" ")) : {}) };
 		items.push({ type, name: part.name, system: type === "ability" ? kittedAbility(system, kit) : system });
 	}
 	items.push(...kitWeapons(kit, (key) => abilityWeaponNames[key] ?? key, SYSTEM_ID));

@@ -14,6 +14,7 @@ import { t } from "../chat/cards.js";
 import { barrierState, featureStands, layRiver, paintTerrain, placeFeature, riverEnds, setBarrier, traceCourse, trimRiver } from "../rules/realm-edits.js";
 import { MARK_ALPHA, hidesTerrain, markedHexLettering, terrainMark } from "../rules/realm-map.js";
 import { allHexes, edgeAt, edgeSegment, hexAt, hexCentre, hexIndex, hexKey, hexTopLeft, sameHex } from "../rules/realm-geometry.js";
+import { BLOOD, VERDIGRIS, WATER } from "./inks.js";
 
 /** The grid highlight the Realm tools draw in. */
 const HIGHLIGHT = "bastionland-realm";
@@ -25,10 +26,6 @@ const HIGHLIGHT = "bastionland-realm";
  * marking has come. Drawn on this client alone: nobody else sees it.
  */
 const MARKS = "bastionland-realm-marks";
-
-const BLOOD = 0x8b1e1e;
-const VERDIGRIS = 0x2f6150;
-const WATER = 0x2e5f8a;
 
 /**
  * The brushes that stand a feature in a hex. Each says how to pick one up, what
@@ -563,7 +560,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			const feature = placeable.build(here);
 			const taking = erase || event.shiftKey || featureStands(realm, hex, feature);
 			if (taking && !placeable.at(here)) return;
-			editRealmByHand(scene, (current, geometry) => placeFeature(current, geometry, hex, taking ? null : feature));
+			// A Sanctum laid rolls for its Seer, as a rolled Realm's does.
+			editRealmByHand(scene, (current, geometry, byHand) => placeFeature(current, geometry, hex, taking ? null : feature, byHand));
 			if (!taking) placeable.laid?.();
 			return;
 		}

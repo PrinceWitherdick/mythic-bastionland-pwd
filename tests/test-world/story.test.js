@@ -175,8 +175,9 @@ vi.mock("../../module/actions/timeline-store.js", () => ({
 		if (target === "company") return { trackId: "company", kind: "company", name: "The Company" };
 		return target?.id ? { trackId: target.id, kind: target.type ?? "realm", name: target.name } : null;
 	},
-	mutateTrack: vi.fn(async (track, change) => {
-		const result = change(world.timeline[track.trackId]?.entries ?? []);
+	mutateTrack: vi.fn(async (track, write) => {
+		const { applyTrackWrite } = await import("../../module/rules/timeline.js");
+		const result = applyTrackWrite(world.timeline[track.trackId]?.entries ?? [], write, () => foundry.utils.randomID());
 		world.timeline[track.trackId] = { kind: track.kind, name: track.name, entries: result.entries };
 		return result;
 	})
@@ -775,6 +776,38 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		// The sellswords are let go, though their sheet stays.
 		expect(sellswords.flags[SYSTEM_ID]).toEqual({ warbandOrigin: "mercenaries", [TEST_FLAG]: true });
 		expect(wearWarbandDown).toHaveBeenCalledWith(warband, "poorlyFed");
+	});
+
+	it("has an NPC Knight with arms of their own ruling each Holding but Isolde's, so every Holding flies arms", async () => {
+		await populateTestWorld();
+		const { holdingRulers } = await import("../../module/rules/dominion.js");
+		const { "Dame Isolde Marrow": isolde } = knights();
+		const domains = world.actors.filter((actor) => actor.type === "domain");
+		const realms = [{ sceneId: world.scene.id, holdings: world.realm.holdings.map((holding, index) => ({ ...holding, id: `tile${index}` })) }];
+		const rulers = realms[0].holdings.map((holding) => holdingRulers(realms, domains, world.scene.id, holding.id));
+		expect(rulers.every((ruling) => ruling.length === 1)).toBe(true);
+		const neighbours = world.actors.filter((actor) => actor.type === "npcKnight");
+		expect(neighbours.map((knight) => knight.name)).toEqual(["Lord Aldric Vane", "Dame Mirela Thorne", "Sir Gaspard Lusk"]);
+		for (const knight of neighbours) {
+			const domain = domains.find((each) => each.uuid === knight.system.domain);
+			expect(domain.system.ruler).toBe(knight.name);
+			// Done for this Season, so the Referee isn't told they're owed.
+			expect(domain.system).toMatchObject({ crisisRolled: "2-2-harvest", dramaRolled: "2-2-harvest" });
+			expect(world.folders.find((folder) => folder.id === knight.folder)?.name).toBe("Neighbours");
+		}
+		// The Seat of Power is ruled as one.
+		const seat = rulers[world.realm.holdings.findIndex((holding) => holding.seat)][0];
+		expect(seat.system.seat).toBe(true);
+		expect(isolde.system.domain).toBe(domains[0].uuid);
+	});
+
+	it("draws arms at random, the charge in a tincture over each of the field's groups", async () => {
+		const { randomKnightArms } = await import("../../module/test-world/populate.js");
+		for (let index = 0; index < 50; index++) {
+			const arms = randomKnightArms();
+			expect(arms.field.length).toBeGreaterThan(0);
+			if (arms.charge) expect(arms.charge.tinctures).toHaveLength(arms.field.length);
+		}
 	});
 
 	it("gives Dame Isolde a Squire on a pony, and each Knight a folder of their own", async () => {

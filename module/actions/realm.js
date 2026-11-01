@@ -1,19 +1,20 @@
 import { hexLabel } from "./hex-names.js";
 import { hexTarget } from "../chat/hex-target.js";
-import { addDirectoryButton, confirmDialog, uncleanedContent } from "../apps/ui.js";
+import { addDirectoryButton, confirmDialog, inputDialog, waitDialog } from "../apps/ui.js";
 import { askToKeepRealm } from "../apps/keep-realm.js";
 import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
-import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
-import { keyChoices, postCard, t } from "../chat/cards.js";
+import { companyPlacementDone, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
+import { keyChoices, plural, postCard, t } from "../chat/cards.js";
 import { deletionEntry, scenePaper, tileReading, tileSettling } from "../compat.js";
 import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
-import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
-import { randomSeed } from "../rules/random.js";
+import { companyPictureContext, companyStartContext, resolveCompanyPicture, wireCompanyPicture, wireCompanyStart } from "../apps/company-picture.js";
+import { freshRandom, randomSeed } from "../rules/random.js";
 import { blogLandmarksOn } from "./blog-landmarks.js";
-import { BOOK_LANDMARK_TYPES, LANDMARKS_PER_TYPE, REALM_FLAG, holdingName, validateRealm } from "../rules/realm.js";
-import { REALM_DRAWING_FLAG, SECRET_DRAWING_STEPS, drawingShortfalls, secretRolls } from "../rules/realm-drawing.js";
+import { BOOK_LANDMARK_TYPES, LANDMARKS_PER_TYPE, REALM_FLAG, holdingName, realmSeats, seersSanctums, validateRealm } from "../rules/realm.js";
+import { parseHoldingRef } from "../rules/dominion.js";
+import { REALM_DRAWING_FLAG, SECRET_DRAWING_STEPS, drawingShortfalls, secretRolls, walledOffHexes } from "../rules/realm-drawing.js";
 import {
 	GRID_ALPHA,
 	LEVEL_ID,
@@ -31,14 +32,15 @@ import {
 import { defaultRealmLook, lookForNewRealms, normaliseRealmLook, refadedIcons } from "../rules/realm-skins.js";
 import { laidMapRect, normaliseRealmPicture } from "../rules/realm-map.js";
 import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wireMapPictureFields } from "./realm-map.js";
-import { generateRealm } from "../rules/realm-generator.js";
+import { generateRealm, keepMythPicks } from "../rules/realm-generator.js";
+import { mythRollKey } from "../rules/realm-myths.js";
 import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
-import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geometry.js";
+import { barrierEdges, BOOK_LAYOUT, hexAt, hexCentre, realmGeometry, sameHex } from "../rules/realm-geometry.js";
 import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
-import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
+import { SYSTEM_ID } from "../system-id.js";
+import { NO_COMPANY_FLAG, companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { announceStart } from "./starts.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireMapSizeFields } from "../apps/map-size-fields.js";
@@ -58,6 +60,9 @@ export const REALM_HISTORY_HOOK = `${SYSTEM_ID}.realmHistoryChanged`;
 
 /** Called on every client when a Realm Scene's look changes, with the Scene's id, or null for the look new Realms start with. */
 export const REALM_LOOK_HOOK = `${SYSTEM_ID}.realmLookChanged`;
+
+/** Called on this client when a look is tried out on a Realm Scene, or the trying out ends, with the Scene's id. */
+export const REALM_PREVIEW_HOOK = `${SYSTEM_ID}.realmLookPreviewed`;
 
 /** Register the Realm look settings. Called during init. */
 export function registerRealmSettings() {
@@ -243,7 +248,7 @@ function existingDocuments(scene) {
  * @param {Scene} scene
  * @returns {(tile: TileDocument) => object} A Tile's source data with its centre in x and y, read as the Scene's Tiles stand.
  */
-const tileCentreOn = (scene) => tileReading(realmTilesSettled(scene)).centred;
+export const tileCentreOn = (scene) => tileReading(realmTilesSettled(scene)).centred;
 
 /**
  * @param {Scene} scene A Realm Scene.
@@ -401,7 +406,7 @@ export async function refreshRealmScenes() {
  */
 const rollRealm = (options) => generateRealm({ ...options, blogLandmarks: blogLandmarksOn() });
 
-/** The look each Realm Scene is previewed in on this client, by Scene id, as normalised JSON. */
+/** The look each Realm Scene is previewed in on this client, by Scene id: normalised, and as JSON to compare. */
 const previews = new Map();
 
 /**
@@ -414,10 +419,23 @@ const previews = new Map();
 export function previewRealmLook(look) {
 	const scene = canvas?.scene;
 	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve();
-	const key = JSON.stringify(normaliseRealmLook(look));
-	if (key === (previews.get(scene.id) ?? JSON.stringify(getRealmLook(scene)))) return Promise.resolve();
-	previews.set(scene.id, key);
-	return queueRealmWrite(() => showRealmLook(scene, look, { redraw: true, preview: true }));
+	const shown = normaliseRealmLook(look);
+	const key = JSON.stringify(shown);
+	if (key === (previews.get(scene.id)?.key ?? JSON.stringify(getRealmLook(scene)))) return Promise.resolve();
+	previews.set(scene.id, { key, look: shown });
+	return queueRealmWrite(async () => {
+		await showRealmLook(scene, look, { redraw: true, preview: true });
+		Hooks.callAll(REALM_PREVIEW_HOOK, scene.id);
+	});
+}
+
+/**
+ * @param {Scene} scene
+ * @returns {import("../rules/realm-skins.js").RealmLook} The look a Realm Scene shows on this client: one being
+ *   tried out on it, or else its own.
+ */
+export function realmLookShown(scene) {
+	return (scene && previews.get(scene.id)?.look) || getRealmLook(scene);
 }
 
 /**
@@ -430,7 +448,10 @@ export function endRealmLookPreview({ redraw = true } = {}) {
 	const scenes = [...previews.keys()].map((id) => game.scenes.get(id)).filter(Boolean);
 	previews.clear();
 	return queueRealmWrite(async () => {
-		for (const scene of scenes) await showRealmLook(scene, getRealmLook(scene), { redraw });
+		for (const scene of scenes) {
+			await showRealmLook(scene, getRealmLook(scene), { redraw });
+			Hooks.callAll(REALM_PREVIEW_HOOK, scene.id);
+		}
 	});
 }
 
@@ -539,11 +560,13 @@ export const editRealm = (scene, edit, operation = {}) => changeRealm(scene, edi
  * Change a Realm by the Referee's hand: painting, Edit this hex, a Myth or
  * Seer chosen, a picture placed. Undo on the map can take it back.
  * @param {Scene} scene
- * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
+ * @param {(realm: object, g: object, byHand: {random: object}) => object} edit Returns the changed Realm.
+ *   `byHand` carries a fresh die for placeFeature and editFeature, so what's placed new is rolled as a
+ *   rolled Realm's is: a Myth on the Myths table, a Sanctum's Seer on the Knights table.
  * @param {object} [operation] As editRealm's.
  * @returns {Promise<boolean>} Whether anything was written.
  */
-export const editRealmByHand = (scene, edit, operation = {}) => changeRealm(scene, edit, { operation, record: true });
+export const editRealmByHand = (scene, edit, operation = {}) => changeRealm(scene, (realm, g) => edit(realm, g, { random: freshRandom() }), { operation, record: true });
 
 /** Each Realm Scene's Undo and Redo, by Scene id. This GM's own, until the page reloads. */
 const histories = new Map();
@@ -667,17 +690,63 @@ export async function syncRealmScene(scene) {
  */
 export async function rerollRealm(scene) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
-	const kept = SETUP_PARTS.filter((part) => getRealm(scene).realm.setup?.roll?.[part] === false);
-	const message = kept.length
-		? t("realm.reroll.confirmCustom", { parts: kept.map((part) => t(`realm.setup.parts.${part}`)).join(", ") })
-		: t("realm.reroll.confirm");
+	const before = getRealm(scene).realm;
+	const kept = SETUP_PARTS.filter((part) => before.setup?.roll?.[part] === false);
+	// Domains keep the Holdings they ruled, which the new roll replaces, so the Referee hears of them first.
+	const domains = game.actors.filter((actor) => actor.type === "domain" && parseHoldingRef(actor.system?.holding)?.sceneId === scene.id).length;
+	const message = [
+		kept.length
+			? t("realm.reroll.confirmCustom", { parts: kept.map((part) => t(`realm.setup.parts.${part}`)).join(", ") })
+			: t("realm.reroll.confirm"),
+		...(domains ? [plural("realm.reroll.domains", domains)] : []),
+		t("realm.reroll.kept")
+	];
 	const confirmed = await confirmDialog({ title: t("realm.reroll.title"), icon: "fa-solid fa-dice", message });
 	if (!confirmed) return null;
 
 	await rollRealmAgain(scene);
+	await tidyAfterReroll(scene, before);
+	await refreshThumbnail(scene);
 	await postRealmKey(scene);
 	return scene;
 }
+
+/**
+ * What a Realm rolled again in play leaves behind that no longer fits it.
+ * Marks of things seen from afar are cleared, since what they marked has gone
+ * and one could now light up over something new and hidden; so are Barriers
+ * met that no longer stand. A Courtier Company still standing at the old Seat
+ * of Power takes its place at the new one (p6). Visits and notes stay.
+ * @param {Scene} scene
+ * @param {object} before The Realm it held before.
+ * @returns {Promise<void>}
+ */
+async function tidyAfterReroll(scene, before) {
+	const { realm } = getRealm(scene);
+	const rolled = (part) => realm.setup?.roll?.[part] !== false;
+	// Each writes something of its own, so they go together.
+	const tidying = [];
+	if (rolled("holdings") || rolled("landmarks")) {
+		tidying.push(import("./sighted.js").then(({ getSighted, writeSightings }) => writeSightings(scene, { drop: Object.keys(getSighted(scene)) })));
+	}
+	if (rolled("barriers")) {
+		const standing = barrierEdges(realm, { revealed: true });
+		tidying.push(import("./hex-shared.js").then(({ keepHexBarriersMet }) => keepHexBarriersMet(scene, standing)));
+	}
+	const [oldSeat] = realmSeats(before);
+	const [newSeat] = realmSeats(realm);
+	const standing = companyTokenHex(scene);
+	if (realmStartOf(scene) === "courtier" && oldSeat && newSeat && standing && sameHex(standing, oldSeat.hex) && !sameHex(standing, newSeat.hex)) {
+		tidying.push(restandCompany(scene, newSeat.hex));
+	}
+	await Promise.all(tidying);
+}
+
+/**
+ * @param {object|null|undefined} realm
+ * @returns {string} Which Myth stands under each number, to tell whether the Referee has changed any.
+ */
+const mythPicksKey = (realm) => (realm?.myths ?? []).map((myth) => `${myth.number}:${myth.own ?? mythRollKey(myth)}`).sort().join();
 
 /**
  * Lay a newly rolled Realm over the one a Scene holds, set up as it was, and
@@ -685,15 +754,18 @@ export async function rerollRealm(scene) {
  * posted: the callers do that. Played alone, a Company already set down finds
  * the new Myth in its hex, as it does once a drawn Realm's secrets are settled.
  * @param {Scene} scene
+ * @param {object} [options]
+ * @param {boolean} [options.keepMyths] Keep the Myths the Scene holds, as the Referee settled them, in the new Realm.
  * @returns {Promise<object>} The Realm now on the Scene.
  */
-async function rollRealmAgain(scene) {
+async function rollRealmAgain(scene, { keepMyths = false } = {}) {
 	const g = sceneGeometry(scene);
 	const textures = currentRealmTextures(scene);
 	const rolled = await queueRealmWrite(async () => {
 		// Set up as it was first, keeping what the GM draws by hand.
 		const { realm: current } = getRealm(scene);
 		const realm = rollRealm({ seed: randomSeed(), setup: current.setup ?? null, geometry: g, base: current });
+		if (keepMyths) realm.myths = keepMythPicks(freshRandom(), g, realm, current.myths);
 		// The new seed and rivers go into the Scene's flag with the rest.
 		await writeRealm(scene, realm, g, textures, { replacing: true });
 		// Undo would lay the old Realm's pieces over the new one.
@@ -727,9 +799,9 @@ const REALM_MAKINGS = Object.freeze(["roll", "draw", "picture"]);
  * @returns {Promise<"roll"|"draw"|"picture"|null>}
  */
 async function chooseRealmMaking() {
-	const choice = await foundry.applications.api.DialogV2.wait({
+	const choice = await waitDialog({
 		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
-		classes: ["bastionland-dialog", "realm-making-dialog"],
+		classes: ["realm-making-dialog"],
 		// Left to size itself, the question's one long line stretches the window across the screen.
 		position: { width: 560 },
 		content: `<p>${t("realm.dialog.chooseMaking")}</p>`,
@@ -737,8 +809,7 @@ async function chooseRealmMaking() {
 			{ action: "roll", label: t("realm.dialog.making.roll"), icon: "fa-solid fa-dice", default: true },
 			{ action: "draw", label: t("realm.dialog.making.draw"), icon: "fa-solid fa-paintbrush" },
 			{ action: "picture", label: t("realm.dialog.making.picture"), icon: "fa-solid fa-image" }
-		],
-		rejectClose: false
+		]
 	});
 	return REALM_MAKINGS.includes(choice) ? choice : null;
 }
@@ -774,38 +845,37 @@ export async function newRealm() {
 		// Drawn by hand, the Company is chosen and placed from the last page of Creating a Realm, once there are hexes to stand in.
 		...(draw ? [] : [{ key: "company", icon: "fa-flag", label: t("company.title") }])
 	];
-	// As an element, so the Import map page's layout drawings (SVG) aren't cleaned away.
-	const content = uncleanedContent(await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/new-realm.hbs"), {
-		draw,
-		traced,
-		pages,
-		firstPage: pages[0],
-		making: t(`realm.dialog.making.${making}`),
-		name: defaultName,
-		seed: randomSeed(),
-		// Drawn by hand, only the map's size is left to set.
-		setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
-		...(traced ? mapPictureContext(null, { bareHint: t("realm.picture.bare.sizeNext") }) : {}),
-		// How far a map of the GM's own may run, for the Map size page to say.
-		sizeLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
-		...companyPictureContext(COMPANY_IMAGE),
-		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
-		startHint: t(`company.starts.${firstStart}.hint`),
-		soloSecrets: askSecrets ? keyChoices(SOLO_SECRET_WAYS, "solo.secrets.ways") : null
-	}));
-
-	const data = await foundry.applications.api.DialogV2.input({
-		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
-		classes: ["bastionland-dialog", "bastionland-rail-dialog-window"],
+	const data = await inputDialog({
+		title: t("realm.dialog.title"),
+		icon: "fa-solid fa-map",
+		template: "new-realm",
+		// So the Import map page's layout drawings (SVG) aren't cleaned away.
+		drawings: true,
+		context: {
+			draw,
+			traced,
+			pages,
+			firstPage: pages[0],
+			making: t(`realm.dialog.making.${making}`),
+			name: defaultName,
+			seed: randomSeed(),
+			// Drawn by hand, only the map's size is left to set.
+			setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
+			...(traced ? mapPictureContext(null, { bareHint: t("realm.picture.bare.sizeNext") }) : {}),
+			// How far a map of the GM's own may run, for the Map size page to say.
+			sizeLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
+			...companyPictureContext(COMPANY_IMAGE),
+			...companyStartContext(firstStart),
+			soloSecrets: askSecrets ? keyChoices(SOLO_SECRET_WAYS, "solo.secrets.ways") : null
+		},
+		classes: ["bastionland-rail-dialog-window"],
 		// Wide enough for the rail and the Custom Realm's rows beside it.
 		position: { width: 660 },
-		content,
 		ok: traced
 			? { label: t("realm.dialog.createTraced"), icon: "fa-solid fa-image" }
 			: draw
 				? { label: t("realm.dialog.createBlank"), icon: "fa-solid fa-paintbrush" }
 				: { label: t("realm.dialog.create"), icon: "fa-solid fa-dice" },
-		rejectClose: false,
 		render: (_event, dialog) => {
 			wireDialogRail(dialog.element);
 			wireSetupFields(dialog.element);
@@ -833,6 +903,9 @@ export async function newRealm() {
 	// A map of the GM's own takes as many hexes as they count on it, or its shape needs, which is no rule ignored.
 	if (traced) setup.ownSize = true;
 	const rules = normaliseRealmSetup(setup);
+	// The Start is the whole opening situation (p6), kept whether or not the Company is put on the map now.
+	// Drawn by hand, it's chosen on the last page of Creating a Realm, and begins as the first.
+	const start = !draw && COMPANY_STARTS.includes(data.start) ? data.start : firstStart;
 	const scene = await createRealmScene({
 		name: String(data.name ?? "").trim() || defaultName,
 		seed: String(data.seed ?? "").trim() || randomSeed(),
@@ -840,10 +913,10 @@ export async function newRealm() {
 		drawing: draw,
 		picture,
 		layout,
-		company: data.placeCompany ? {
-			start: COMPANY_STARTS.includes(data.start) ? data.start : firstStart,
-			img: await resolveCompanyPicture(data)
-		} : null,
+		start,
+		company: data.placeCompany ? { start, img: await resolveCompanyPicture(data) } : null,
+		// A Realm drawn by hand places its Company from its own last page instead.
+		companyLeftOff: !draw && !data.placeCompany,
 		// Nothing to look over where nothing was rolled: a Realm drawn by hand, or one whose every part is left to the GM.
 		review: SETUP_PARTS.some((part) => rules.roll[part]),
 		soloSecrets: askSecrets ? (SOLO_SECRET_WAYS.includes(data.soloSecrets) ? data.soloSecrets : SOLO_SECRET_WAYS[0]) : null
@@ -865,15 +938,8 @@ const buttonsShownWhenFinished = new Set();
  * that puts it in a hex.
  */
 function showRealmButtonsOnceFree() {
-	if (!isPlacingCompany()) {
-		showRealmButtons();
-		return;
-	}
-	const id = Hooks.on(COMPANY_PLACING_HOOK, () => {
-		if (isPlacingCompany()) return;
-		Hooks.off(COMPANY_PLACING_HOOK, id);
-		showRealmButtons();
-	});
+	if (isPlacingCompany()) companyPlacementDone().then(showRealmButtons);
+	else showRealmButtons();
 }
 
 /**
@@ -914,9 +980,7 @@ async function openRealmPainter(scene) {
  * @param {HTMLElement} element The dialog.
  */
 function wireCompanyFields(element) {
-	const start = element.querySelector('[name="start"]');
-	const hint = element.querySelector("[data-company-hint]");
-	if (start && hint) start.addEventListener("change", () => { hint.textContent = t(`company.starts.${start.value}.hint`); });
+	wireCompanyStart(element, element.querySelector('[name="start"]'));
 	wireCompanyPicture(element);
 }
 
@@ -929,11 +993,14 @@ function wireCompanyFields(element) {
  * @param {boolean} [options.drawing] Drawn by hand: the Scene is marked as still being drawn, and its key waits until it's finished.
  * @param {object|null} [options.picture] The pictures a Realm traced from a map drawn on paper is drawn by.
  * @param {string} [options.layout] How its hexes are laid out, one of REALM_LAYOUTS: the book's unless a map of the GM's own says otherwise.
+ * @param {string|null} [options.start] One of COMPANY_STARTS: the Company's Start (p6), remembered for Knights made later and
+ *   announced once the Realm is ready, whether or not the Company is put on the map. Defaults to the Company's.
  * @param {{start: string, img: string}|null} [options.company] Where the Company begins, or null to leave it off the map.
  * @param {boolean} [options.review] Show the Referee what was rolled and let them roll again before anything is settled on it.
  * @returns {Promise<Scene|null>}
  */
-export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, review = false, soloSecrets = null }) {
+export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, start = null, company = null, companyLeftOff = false, review = false, soloSecrets = null }) {
+	const begins = COMPANY_STARTS.includes(start) ? start : company?.start ?? null;
 	const { cols, rows } = normaliseRealmSetup(setup);
 	const geometry = realmGeometry({ cols, rows, layout });
 	const realm = rollRealm({ seed, setup, geometry });
@@ -949,10 +1016,9 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 			...(drawing ? drawingFlag(true) : {}),
 			// Played alone, who places the Realm's secrets as it's drawn.
 			...(drawing && soloSecrets ? { [`flags.${SYSTEM_ID}.${SOLO_SECRETS_FLAG}`]: soloSecrets } : {}),
-			// Remembered, so a Knight made later opens the chooser on the Start their Company took.
-			...(company?.start ? { [`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: company.start } : {}),
-			// A Realm drawn by hand hears what its Start sets going once it's finished.
-			...(drawing && company?.start ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: company.start } : {})
+			...(begins ? startFlags(begins, drawing) : {}),
+			// Left off by the Referee, so the map doesn't offer to place them.
+			...(companyLeftOff ? { [`flags.${SYSTEM_ID}.${NO_COMPANY_FLAG}`]: true } : {})
 		})
 	);
 
@@ -973,9 +1039,19 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 	if (review) {
 		/** @type {(() => Promise<void>)|null} Puts the Myths window away again, once one has been opened. */
 		let closeMyths = null;
+		// Once the Referee has settled any of the Myths by hand, Roll again keeps all six as they are.
+		let rolled = realm;
+		let settled = false;
 		await askToKeepRealm({
 			realm,
-			roll: () => rollRealmAgain(scene),
+			roll: async () => {
+				settled ||= mythPicksKey(getRealm(scene)?.realm) !== mythPicksKey(rolled);
+				rolled = await rollRealmAgain(scene, { keepMyths: settled });
+				return rolled;
+			},
+			// What's on the map, as the Myths window changes it.
+			current: () => getRealm(scene)?.realm ?? null,
+			changedHook: REALM_HISTORY_HOOK,
 			// A window of its own, like the Knight chooser, loaded only when one is asked for.
 			// Played alone, which six the Realm holds is left to the dice, unseen.
 			myths: keptFromMe()
@@ -1010,7 +1086,7 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 	// Drawn by hand, the Realm has nothing hidden in it yet.
 	if (!drawing) await postRealmKey(scene);
 	// What the Start sets going besides where the Company begins (p6).
-	if (company && !drawing) await announceStart(scene, company.start);
+	if (begins && !drawing) await announceStart(scene, begins);
 	return scene;
 }
 
@@ -1116,6 +1192,40 @@ const drawingFlag = (drawing) => ({ [`flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`]
 const START_DUE_FLAG = "startDue";
 
 /**
+ * Choose the Start of the Company on a Realm still being drawn (p6): Knights
+ * made later roll by it, and it's announced when the Realm is first finished.
+ * @param {Scene} scene
+ * @param {string} start One of COMPANY_STARTS.
+ * @returns {Promise<boolean>} Whether it was set.
+ */
+export async function setRealmStart(scene, start) {
+	if (!game.user.isGM || !isRealmScene(scene) || !COMPANY_STARTS.includes(start)) return false;
+	await scene.update(startFlags(start, isDrawingRealm(scene)));
+	return true;
+}
+
+/**
+ * The Start a Realm's Company took, remembered so a Knight made later opens the
+ * chooser on it; and on a Realm drawn by hand, due to set going once it's finished.
+ * @param {string} start
+ * @param {boolean} drawing
+ * @returns {object} Flag paths and their values.
+ */
+const startFlags = (start, drawing) => ({
+	[`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: start,
+	...(drawing ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: start } : {})
+});
+
+/**
+ * @param {Scene} scene
+ * @returns {string|null} The Start a Realm's Company took, if it remembers one.
+ */
+export const realmStartOf = (scene) => {
+	const start = scene?.getFlag(SYSTEM_ID, COMPANY_START_FLAG);
+	return COMPANY_STARTS.includes(start) ? start : null;
+};
+
+/**
  * @param {Scene|null|undefined} scene
  * @returns {boolean} Whether a Realm Scene is still being drawn by hand.
  */
@@ -1153,7 +1263,8 @@ const finishing = new Set();
 async function settleSoloSecrets(scene, way) {
 	await editRealm(scene, (realm, g) => {
 		if (way !== "dice") return settleOwnSecrets(realm, way === "show");
-		const rolled = rollRealm({ seed: randomSeed(), setup: { ...(realm.setup ?? {}), roll: secretRolls() }, geometry: g, base: realm });
+		// As many as the drawing asked for: on a map of another size than the book's, scaled to it (p202).
+		const rolled = rollRealm({ seed: randomSeed(), setup: { ...(realm.setup ?? {}), sizedTo: g, roll: secretRolls() }, geometry: g, base: realm });
 		return { ...realm, myths: rolled.myths, landmarks: rolled.landmarks, barriers: rolled.barriers };
 	});
 	await scene.setFlag(SYSTEM_ID, SOLO_SECRETS_FLAG, null);
@@ -1175,13 +1286,21 @@ export async function finishRealmDrawing(scene) {
 	try {
 		const secrets = secretsToSettle(scene);
 		// What the dice will place isn't missing, and played alone what's hidden goes uncounted.
-		const short = drawingShortfalls(realmKnown(getRealm(scene).realm, scene), { leave: drawingSecrets(scene).handed ? SECRET_DRAWING_STEPS : [] });
-		if (short.length) {
+		const handed = drawingSecrets(scene).handed;
+		const known = realmKnown(getRealm(scene).realm, scene);
+		const short = drawingShortfalls(known, { leave: handed ? SECRET_DRAWING_STEPS : [] });
+		// Barriers no one has placed yet wall nothing off; played alone, unseen ones aren't counted.
+		const walled = handed ? 0 : walledOffHexes(known, sceneGeometry(scene));
+		if (short.length || walled) {
 			const items = short.map((entry) => `<li>${foundry.utils.escapeHTML(drawingCountLabel(entry))}</li>`).join("");
 			const confirmed = await confirmDialog({
 				title: t("realmDrawing.finish.title"),
 				icon: "fa-solid fa-scroll",
-				message: `${t("realmDrawing.finish.short")}</p><ul>${items}</ul><p>${t("realmDrawing.finish.anyway")}`
+				message: [
+					...(short.length ? [t("realmDrawing.finish.short"), `<ul>${items}</ul>`] : []),
+					...(walled ? [plural("realmDrawing.finish.walled", walled)] : []),
+					t("realmDrawing.finish.anyway")
+				]
 			});
 			if (!confirmed) return false;
 		}
@@ -1208,10 +1327,13 @@ export async function finishRealmDrawing(scene) {
  * @param {import("../rules/realm-drawing.js").DrawingCount} entry
  * @returns {string} How far one part of a Realm's drawing has come, in words.
  */
-export function drawingCountLabel({ key, count, target, rivers = 0, disputed = false }) {
+export function drawingCountLabel({ key, count, target, max, rivers = 0, disputed = false }) {
 	const base = `realmDrawing.tally.${key}`;
 	if (BOOK_LANDMARK_TYPES.includes(key)) {
-		return t("realmDrawing.tally.landmark", { type: t(`realmDrawing.sections.landmarks.lines.${key}.label`), count, min: LANDMARKS_PER_TYPE.min, max: LANDMARKS_PER_TYPE.max });
+		const min = target ?? LANDMARKS_PER_TYPE.min;
+		const most = Math.max(min, max ?? LANDMARKS_PER_TYPE.max);
+		const type = t(`realmDrawing.sections.landmarks.lines.${key}.label`);
+		return most > min ? t("realmDrawing.tally.landmark", { type, count, min, max: most }) : t("realmDrawing.tally.landmarkOne", { type, count, target: min });
 	}
 	if (key === "river") return !rivers ? t(`${base}None`) : t(rivers > 1 ? `${base}s` : base, { count, rivers });
 	if (key === "seat") return t(count === 0 ? `${base}None` : count === 1 ? base : disputed ? `${base}Disputed` : `${base}Many`, { count });
@@ -1247,7 +1369,7 @@ async function postRealmKey(scene) {
 			seat: holding.seat,
 			where: where(holding.hex)
 		})),
-		sanctums: realm.landmarks.filter((landmark) => landmark.type === "sanctum" && landmark.seer).map((landmark) => {
+		sanctums: seersSanctums(realm).map((landmark) => {
 			const { name, page } = seerEntry(index, landmark.seer);
 			return { name, page, where: where(landmark.hex) };
 		}),

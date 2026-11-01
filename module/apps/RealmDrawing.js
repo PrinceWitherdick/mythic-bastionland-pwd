@@ -1,6 +1,6 @@
 import { hexLabel } from "../actions/hex-names.js";
 import { COMPANY_IMG_FLAG, companyPicture, companyTokenHex, findCompanyToken } from "../actions/company.js";
-import { drawingCountLabel, editRealmByHand, finishRealmDrawing, getRealm, isDrawingRealm, realmGridAlpha, realmUndoState, setRealmGridAlpha, stepRealmHistory } from "../actions/realm.js";
+import { drawingCountLabel, editRealmByHand, finishRealmDrawing, getRealm, isDrawingRealm, realmGridAlpha, realmStartOf, realmUndoState, setRealmGridAlpha, setRealmStart, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
 import { drawingSecrets, realmKnown } from "../actions/solo.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
@@ -13,10 +13,11 @@ import { GRID_ALPHA } from "../rules/realm-documents.js";
 import { clearRiver } from "../rules/realm-edits.js";
 import { MAP_ROLES } from "../rules/realm-map.js";
 import { REALM_TOOL_ICONS } from "../rules/realm.js";
+import { COMPANY_STARTS } from "../rules/company.js";
 import { RULEBOOK_HOOK } from "../rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { COMPANY_BUTTON_HOOK, closeCompanyButton, companyButtonBox, showCompanyButton } from "./CompanyButton.js";
-import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "./company-picture.js";
+import { companyPictureContext, companyStartContext, resolveCompanyPicture, wireCompanyPicture, wireCompanyStart } from "./company-picture.js";
 import { wireDialogRail } from "./dialog-rail.js";
 import { RealmPanel, brushHint, closeRealmPalette, realmSwatches, riverState, toggleRealmSeat } from "./RealmPanel.js";
 import { followMap, hotbarFloor, mapOnScreen, mapPanelScale, panelScreen } from "./map-screen.js";
@@ -221,7 +222,8 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 	/**
 	 * The Company's page: the picture gallery, holding what the GM has picked
 	 * there but not yet placed as the rules are drawn again after each edit, and
-	 * where the Company stands once it's on the map.
+	 * where the Company stands once it's on the map, and the Start they took (p6),
+	 * which is announced when the Realm is finished.
 	 * @param {Scene} scene
 	 * @returns {object}
 	 */
@@ -231,8 +233,10 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		const picture = companyPictureContext(field("companyImg") || token?.texture?.src || companyPicture(scene));
 		picture.colour = field("companyColour") || picture.colour;
 		const hex = token ? companyTokenHex(scene) : null;
+		const start = realmStartOf(scene) ?? COMPANY_STARTS[0];
 		return {
 			picture,
+			...companyStartContext(start),
 			standing: Boolean(token),
 			intro: hex ? t("realmDrawing.company.standing", { hex: hexLabel(hex, scene) }) : t("realmDrawing.company.intro"),
 			button: t(token ? "realmDrawing.company.move" : "company.placing.button"),
@@ -281,6 +285,8 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		const lines = this.element.querySelector("[data-grid-alpha]");
 		lines?.addEventListener("input", () => this.#setLines(Number(lines.value) / 100));
 		wireCompanyPicture(this.element);
+		// The Start is kept on the Scene as it's chosen, so closing the window early loses nothing.
+		wireCompanyStart(this.element, this.element.querySelector('[name="companyStart"]'), (start) => setRealmStart(canvas.scene, start));
 	}
 
 	/** @override */

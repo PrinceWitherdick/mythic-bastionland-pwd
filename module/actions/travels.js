@@ -28,7 +28,7 @@ import { companyTokenHex, findCompanyToken } from "./company.js";
 import { hexesWithPeopleIn } from "./hex-lore.js";
 import { getHexNames, hexName } from "./hex-names.js";
 import { getHexShared, getHexSharedRecord, partyNoteBy } from "./hex-shared.js";
-import { getHexVisits, getJourney, visitsLabel } from "./journey.js";
+import { getHexVisits, getJourney, realmKnownToPlayers, visitsLabel } from "./journey.js";
 import { getRealm, getRealmLook, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { getSighted, sightedMarkAt } from "./sighted.js";
 import { keptFromMe, realmKnown } from "./solo.js";
@@ -268,12 +268,20 @@ export function chosenHex(views, asked, anyIn = null) {
 }
 
 /**
- * The Realms the players' record can show, the one shown first.
+ * @param {Scene} scene A Realm.
+ * @returns {boolean} Whether this user may have it in their record: any for a GM; for a player, only one they may know of.
+ */
+const listedForMe = (scene) => Boolean(game.user?.isGM) || realmKnownToPlayers(scene);
+
+/**
+ * The Realms the players' record can show, the one shown first. A player is
+ * offered only the Realms they may know of, so a Realm the Referee hasn't
+ * shown them doesn't give its name away, nor is it opened in its stead.
  * @param {string|null} [chosen] The id last chosen.
  * @returns {{scenes: {id: string, name: string, selected: boolean}[], scene: Scene|null}}
  */
 export function travelsRealmChoice(chosen = null) {
-	const scenes = (game.scenes?.contents ?? [...(game.scenes ?? [])]).filter((scene) => isRealmScene(scene));
+	const scenes = (game.scenes?.contents ?? [...(game.scenes ?? [])]).filter((scene) => isRealmScene(scene) && listedForMe(scene));
 	// Where the Company stands and where it has been are read only if nothing before them settles it.
 	const id = pickTravelsRealm(scenes.map((scene) => ({
 		id: scene.id,
@@ -380,7 +388,8 @@ export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], fil
  */
 export function travelsHexDetail(sceneId, key, gmPart = null) {
 	const scene = sceneId ? game.scenes?.get(sceneId) : null;
-	const sources = scene ? travelsSources(scene) : null;
+	// A Realm kept from this player since their window last drew tells nothing of its hexes.
+	const sources = scene && listedForMe(scene) ? travelsSources(scene) : null;
 	const hex = parseHexKey(key);
 	if (!sources || !hex) return null;
 	const view = hexViews(sources)(hex);

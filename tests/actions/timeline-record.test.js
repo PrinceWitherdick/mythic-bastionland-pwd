@@ -7,10 +7,10 @@ vi.mock("../../module/actions/timeline-store.js", () => ({
 	removeKeyEverywhere: vi.fn(async () => {
 		if (fails) throw new Error("no");
 	}),
-	mutateTrack: vi.fn(async (track, change) => {
+	mutateTrack: vi.fn(async (track, write) => {
 		if (fails) throw new Error("no");
-		const result = change(entries);
-		entries = result.entries;
+		const { applyTrackWrite } = await import("../../module/rules/timeline.js");
+		entries = applyTrackWrite(entries, write, globalThis.foundry.utils.randomID).entries;
 		return { page: {} };
 	})
 }));
@@ -77,6 +77,13 @@ describe("recordOnTrack", () => {
 	it("writes a row about someone hidden on the hidden threads of several, and none of the rest", async () => {
 		await recordOnTracks(["company", { id: "k1" }, { id: "k9", secret: true }], { source: "circle", key: "e", about: [{ id: "d2", secret: true }] });
 		expect(vi.mocked(mutateTrack).mock.calls.map(([track]) => track.trackId)).toEqual(["k9"]);
+	});
+
+	it("hands the store each row in words, for a browser that must ask the Referee to write it", async () => {
+		await recordOnTrack({ id: "d1" }, { source: "founded", key: "founded", title: "Founded", refresh: ["title"], about: [{ id: "d1" }] });
+		const [[, write, options]] = vi.mocked(mutateTrack).mock.calls;
+		expect(options).toEqual({ create: true });
+		expect(write).toEqual({ rows: [{ entry: { season: "2-harvest", createdAt: expect.any(Number), authorId: "u1", source: "founded", key: "founded", title: "Founded" }, refresh: ["title"] }] });
 	});
 
 	it("writes on each thread once, however often it's named", async () => {

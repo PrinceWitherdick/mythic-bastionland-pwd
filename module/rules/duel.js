@@ -186,3 +186,17 @@ export function stakeChanges(duel, victor) {
  * @returns {boolean} Whether Glory can be staked: only Knights may, and a Squire isn't one yet.
  */
 export const canStakeGlory = (actors) => actors.length === 2 && actors.every((actor) => isKnight(actor) && !actor.isSquire);
+
+/**
+ * Why somebody can't be one of a duel's two combatants (p10): a Warband is two
+ * dozen fighting as one, and a ship or structure is no combatant at all.
+ * Neither could be harmed by a duellist's blows (p11).
+ * @param {{type: string, system?: object}|null|undefined} actor
+ * @returns {"warband"|"structure"|null}
+ */
+export function duelRefusal(actor) {
+	if (!actor) return null;
+	if (actor.system?.scale === "warband") return "warband";
+	if (actor.type === "structure" || actor.system?.structure) return "structure";
+	return null;
+}

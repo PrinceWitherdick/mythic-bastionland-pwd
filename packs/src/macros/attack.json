@@ -1,0 +1,19 @@
+{
+  "_id": "mbAttackMacro001",
+  "_key": "!macros!mbAttackMacro001",
+  "name": "Attack",
+  "type": "script",
+  "img": "systems/mythic-bastionland-pwd/assets/icons/macros/attack.svg",
+  "scope": "global",
+  "command": "game.system.api.attackFromHotbar();",
+  "folder": null,
+  "sort": 150000,
+  "ownership": {
+    "default": 2
+  },
+  "flags": {
+    "mythic-bastionland-pwd": {
+      "attackMacro": true
+    }
+  }
+}

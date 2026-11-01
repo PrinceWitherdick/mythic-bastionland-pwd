@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-	KIND_GROUPS, TIMELINE_SOURCES, addEntry, canMove, entriesDiff, entrySeason, groupByPeriod, isLeftover,
+	KIND_GROUPS, TIMELINE_SOURCES, addEntry, applyTrackWrite, canMove, entriesDiff, entrySeason, groupByPeriod, isLeftover,
 	moveEntry, normalizeEntry, patchEntry, periodRank, readEntries, realmSceneId, realmTrackId, removeByKey, removeEntry, sortEntries, sourceGroup,
 	timelineKeys, upsertByKey
 } from "../../module/rules/timeline.js";
@@ -137,5 +137,32 @@ describe("changes", () => {
 		expect(Object.keys(diff.added)).toEqual(["c"]);
 		expect(diff.removed).toEqual(["b"]);
 		expect(entriesDiff(stored, stored)).toBeNull();
+	});
+});
+
+describe("applyTrackWrite", () => {
+	const ids = () => { let n = 0; return () => `r${++n}`; };
+	const start = () => addEntry(addEntry([], { id: "a", key: "omen:a", title: "A", season: "1-spring" }).entries, { id: "b", title: "B", season: "1-spring" }).entries;
+
+	it("forgets keys, then writes rows once by key, then runs edits by id, in that order", () => {
+		const { entries } = applyTrackWrite(start(), {
+			forget: ["omen:a"],
+			rows: [{ entry: { key: "omen:a", title: "Again", season: "1-spring" } }, { entry: { title: "Hand", season: "1-spring" } }],
+			edits: [{ op: "patch", id: "b", changes: { title: "Bee" } }, { op: "move", id: "b", delta: 1 }]
+		}, ids());
+		expect(sortEntries(entries).map((e) => [e.id, e.title])).toEqual([["r1", "Again"], ["b", "Bee"], ["r2", "Hand"]]);
+	});
+
+	it("writes a row with a key once, refreshing only the fields it names", () => {
+		const write = { rows: [{ entry: { key: "omen:a", title: "New", place: "Here" }, refresh: ["place"] }] };
+		const [a] = applyTrackWrite(start(), write, ids()).entries;
+		expect([a.id, a.title, a.place]).toEqual(["a", "A", "Here"]);
+	});
+
+	it("removes by id, and leaves the entries be for an empty write or an unknown edit", () => {
+		expect(applyTrackWrite(start(), { edits: [{ op: "remove", id: "a" }] }).entries.map((e) => e.id)).toEqual(["b"]);
+		expect(applyTrackWrite(start(), {}).entries).toEqual(start());
+		expect(applyTrackWrite(start(), undefined).entries).toEqual(start());
+		expect(applyTrackWrite(start(), { edits: [{ op: "burn", id: "a" }, null] }).entries).toEqual(start());
 	});
 });

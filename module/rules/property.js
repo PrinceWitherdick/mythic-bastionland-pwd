@@ -116,6 +116,24 @@ export function lossOf(text) {
 	return { loss: { dice: match[1].toLowerCase(), virtue: match[2].toLowerCase(), when: tidy(match[3]) } };
 }
 
+/** A possession that keeps its rider in the saddle, as a fine saddle and tack does (p44). */
+const KEEPS_SEAT = /\bnever be dismounted\b/i;
+
+/**
+ * Whether a possession's line says its bearer is never dismounted (p44).
+ * @param {string} text The possession as printed.
+ * @returns {{keepsSeat?: true}}
+ */
+export const seatOf = (text) => (KEEPS_SEAT.test(String(text ?? "")) ? { keepsSeat: true } : {});
+
+/**
+ * Whether somebody carries something that keeps them in the saddle (p44),
+ * whole: a Dismount can't throw them.
+ * @param {{type: string, system: object}[]} items Their items.
+ * @returns {boolean}
+ */
+export const keepsSeat = (items) => (items ?? []).some((item) => item?.type === "gear" && item.system?.keepsSeat && !item.system.broken);
+
 /**
  * The odds a possession's line gives it, as a bag of tomes holding what's
  * wanted on a 1-in-2 chance (p88).
@@ -216,7 +234,7 @@ function armourConditionFrom(inner) {
  */
 function gearItem(text) {
 	const { name, count } = countedName(capitalise(tidy(text)));
-	const system = { ...stockOf(text, count), ...chanceOf(text), ...lossOf(text) };
+	const system = { ...stockOf(text, count), ...chanceOf(text), ...lossOf(text), ...seatOf(text) };
 	return Object.keys(system).length ? { type: "gear", name, system } : { type: "gear", name };
 }
 
@@ -432,9 +450,12 @@ export function retypedProperty(items) {
  * still has nothing of its own, so nothing a player set is undone.
  * @param {{id: string, type: string, name: string, system: object}[]} items A Knight's items.
  * @param {string[]} lines Their Property as the book prints it.
+ * @param {object} [options]
+ * @param {string[]} [options.only] Fill in only these fields, as a step for one detail read since does,
+ *   so a detail the Referee cleared after the first step isn't put back.
  * @returns {{_id: string, [key: string]: unknown}[]} Item updates.
  */
-export function possessionDetails(items, lines) {
+export function possessionDetails(items, lines, { only = null } = {}) {
 	const plain = (name) => String(name ?? "").replace(LEADING_COUNT, "").trim().toLowerCase();
 	const pieces = propertyItems(lines).items;
 	const updates = [];
@@ -453,12 +474,17 @@ export function possessionDetails(items, lines) {
 		if (got.chance && !had.chance?.of) update["system.chance"] = got.chance;
 		if (got.lingers && !had.lingers) update["system.lingers"] = got.lingers;
 		if (got.loss && !had.loss?.dice) update["system.loss"] = got.loss;
+		if (got.keepsSeat && !had.keepsSeat) update["system.keepsSeat"] = true;
 		if (got.condition && !had.condition) {
 			update["system.condition"] = got.condition;
 			update["system.situation"] = got.situation;
 		}
 		// "3 javelins" is "Javelins" now its count is kept.
 		if (LEADING_COUNT.test(item.name) && update["system.quantity"]) update.name = piece.name;
+		if (only) {
+			const kept = new Set(only.flatMap((field) => [`system.${field}`, ...(field === "condition" ? ["system.situation"] : []), ...(field === "quantity" ? ["name"] : [])]));
+			for (const key of Object.keys(update)) if (!kept.has(key)) delete update[key];
+		}
 		if (Object.keys(update).length) updates.push({ _id: item.id, ...update });
 	}
 	return updates;

@@ -12,6 +12,7 @@ import { keptHexes, mendPictures, rollPictures } from "./realm-pictures.js";
 import { BOOK_SETUP, SETUP_PARTS, isBookSetup, normaliseRealmSetup, setupBarriers } from "./realm-setup.js";
 import {
 	allHexes,
+	barrierEdges,
 	edgeDirection,
 	edgeKey,
 	hexDistance,
@@ -22,6 +23,7 @@ import {
 	parseEdgeKey,
 	parseHexKey,
 	realmGeometry,
+	reachedFrom,
 	turnBetween
 } from "./realm-geometry.js";
 
@@ -72,7 +74,7 @@ export function generateRealm({ seed, setup = null, geometry = null, base = null
 
 	// Kept Holdings stand on dry land, and a kept Barrier is never crossed by the river, which stays navigable.
 	const dry = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
-	const blocked = new Set(realm.barriers.map((barrier) => barrier.edge));
+	const blocked = barrierEdges(realm);
 	if (rules.roll.terrain) realm.terrain = generateTerrain(random, g, rules, dry);
 	else if (base?.terrain && base.variants) realm.variants = [...base.variants];
 	if (rules.roll.rivers) realm.rivers = [generateRiver(random, g, realm.terrain, blocked)].filter((course) => course.length);
@@ -342,6 +344,28 @@ export function remoteMythHex(random, g, realm) {
 }
 
 /**
+ * A newly rolled Realm holding the Myths the Referee settled on before the
+ * roll: each keeps its number and which Myth it is, and stands where the new
+ * roll put that number, or somewhere remote where it put none. Their Omens
+ * start unmet, as any new Realm's do.
+ * @param {{pick: <T>(list: T[]) => T|undefined}} random
+ * @param {object} g
+ * @param {import("./realm.js").Realm} realm As rolled.
+ * @param {import("./realm.js").Realm["myths"]} picks The Myths to keep.
+ * @returns {import("./realm.js").Realm["myths"]}
+ */
+export function keepMythPicks(random, g, realm, picks) {
+	const placed = [];
+	for (const pick of [...picks].sort((a, b) => a.number - b.number)) {
+		const hex = realm.myths.find((myth) => myth.number === pick.number)?.hex ?? remoteMythHex(random, g, { ...realm, myths: placed });
+		if (!hex) continue;
+		const which = pick.own ? { d6: null, d12: null, own: pick.own } : { d6: pick.d6, d12: pick.d12 };
+		placed.push({ id: null, hex: { ...hex }, number: pick.number, ...which, omen: 0, revealed: false });
+	}
+	return placed;
+}
+
+/**
  * Of a few hexes picked at random from the pool, the one furthest from those
  * given, which spreads Landmarks across the map.
  * @param {{col: number, row: number}[]} pool Not empty.
@@ -427,21 +451,7 @@ function placeBlogLandmarks(random, g, realm, share) {
  * @param {Set<string>} blocked Edge keys.
  * @returns {boolean}
  */
-export function isConnected(g, blocked) {
-	const start = { col: 1, row: 1 };
-	const reached = new Set([hexKey(start)]);
-	const queue = [start];
-	while (queue.length) {
-		const hex = queue.pop();
-		for (const { hex: next } of neighbours(g, hex)) {
-			const key = hexKey(next);
-			if (reached.has(key) || blocked.has(edgeKey(hex, next))) continue;
-			reached.add(key);
-			queue.push(next);
-		}
-	}
-	return reached.size === g.cols * g.rows;
-}
+export const isConnected = (g, blocked) => reachedFrom(g, blocked, { col: 1, row: 1 }).size === g.cols * g.rows;
 
 /**
  * Barriers along some hexes' edges, where the land drops away or can't be

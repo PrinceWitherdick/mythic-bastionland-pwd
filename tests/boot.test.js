@@ -57,7 +57,7 @@ function installFoundryStubs() {
 			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, JournalEntryPage: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, Combatant: { documentClass: class Combatant {} }, Combat: { documentClass: class Combat {} }, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {}, TextEditor: { enrichers: [] } };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, JournalEntryPage: { dataModels: {} }, Canvas: { layers: {} }, Token: { rulerClass: class TokenRuler {} }, Combatant: { documentClass: class Combatant {} }, Combat: { documentClass: class Combat {} }, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {}, TextEditor: { enrichers: [] } };
 	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, tours: { register: vi.fn() }, system: {}, user: { isGM: false, getFlag: () => undefined } };
 	globalThis.Hooks = {
@@ -222,6 +222,8 @@ describe("system boot", () => {
 		expect(hooks.renderChatMessageHTML).toBeTypeOf("function");
 		expect(CONFIG.queries[`${SYSTEM_ID}.changeAttack`]).toBeTypeOf("function");
 		expect(CONFIG.queries[`${SYSTEM_ID}.changeDuel`]).toBeTypeOf("function");
+		// The Referee finishes a player's sharing, parting of a Squire, and Remedies.
+		for (const name of ["shareOwnership", "releaseSquire", "remedy"]) expect(CONFIG.queries[`${SYSTEM_ID}.${name}`], name).toBeTypeOf("function");
 		expect(() => hooks.renderChatMessageHTML({ flags: {} }, { querySelector: () => null, querySelectorAll: () => [] })).not.toThrow();
 	});
 

@@ -27,6 +27,7 @@ import {
 	tintCompanyIcon
 } from "../rules/company-icons.js";
 import { ART_ROOT } from "../rules/book-art.js";
+import { COMPANY_STARTS } from "../rules/company.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { serialWrites } from "../rules/queue.js";
@@ -139,6 +140,31 @@ async function readIcons(keys) {
 			SOURCES.set(key, null);
 		}
 	}));
+}
+
+/**
+ * The Company's Start field (p6), as the New Realm dialog and the Drawing
+ * Company page both offer it.
+ * @param {string} chosen One of COMPANY_STARTS.
+ * @returns {{starts: {value: string, label: string, selected: boolean}[], startHint: string}}
+ */
+export const companyStartContext = (chosen) => ({
+	starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === chosen })),
+	startHint: t(`company.starts.${chosen}.hint`)
+});
+
+/**
+ * Keep the words under a Start field saying what the chosen Start means.
+ * @param {HTMLElement} element The window holding the field.
+ * @param {HTMLSelectElement|null} select
+ * @param {(start: string) => void} [onChange] Anything else to do as a Start is chosen.
+ */
+export function wireCompanyStart(element, select, onChange) {
+	select?.addEventListener("change", () => {
+		const hint = element.querySelector("[data-company-hint]");
+		if (hint) hint.textContent = t(`company.starts.${select.value}.hint`);
+		onChange?.(select.value);
+	});
 }
 
 /**

@@ -30,6 +30,7 @@ For a Realm laid over a map of your own that already draws its Holdings and Land
 - **Let go of a slider** to see it on the map, for you only. **Apply** saves it for everyone.
 - Each slider sets every icon of its kind, even one you had faded by hand.
 - A Landmark or Myth not yet found shows to you at half the strength you set.
+- **Rulers' arms on Holdings**, under the sliders, shows or hides the small shield each ruled Holding flies. It's on by default. See [Domains and Courts](Domains-and-Courts#arms-on-the-realm-map).
 
 The fading belongs to that Realm alone. New Realms start at full strength. See [Making a Realm](Making-a-Realm#importing-a-map-you-drew) for laying your own map under the hexes.
 

@@ -6,7 +6,6 @@
  * and a Passage of Time roll for a group that can't decide. Pure, so it can be
  * tested without Foundry; module/apps/SessionEnd.js puts the window to it.
  */
-import { SEASONS } from "./time.js";
 
 /**
  * How much time can pass, in the book's order, each with the turn it makes:
@@ -45,26 +44,17 @@ export const turnsSeasonOrAge = (key) => ["season", "age"].includes(timeStep(key
 const stepFor = (turn) => (turn === "age" ? "years" : "months");
 
 /**
- * Which turn the calendar calls for at a session's end. A new Age begins in
- * Spring (p17), so the Age turns when Winter ends and the Season turns otherwise.
- * @param {string} season The Season the game stands in.
- * @returns {"season"|"age"}
- */
-export const calendarTurn = (season) => (season === SEASONS[SEASONS.length - 1] ? "age" : "season");
-
-/**
  * Which step a Passage of Time roll (p17) points at. The table says only
- * "Season or Age", so which of the two it means is the one the calendar calls
- * for: an Age turn ends Winter, a Season turn every other Season.
+ * "Season or Age", and an Age turns only when the group picks Years, so the
+ * roll turns the Season, in Winter as in any other. Winter then gives way to
+ * Spring in the same Age, as the Months step does.
  * @param {string} result One of the passage table's results (rules/referee-rolls.js).
- * @param {"season"|"age"} planned Which turn the calendar calls for, from calendarTurn.
- * @returns {{step: string, promised: "season"|"age"|null}} The step it chooses, and a
+ * @returns {{step: string, promised: "season"|null}} The step it chooses, and a
  *   turn it puts at the end of the *next* session instead, to be remembered until then.
  */
-export function passageStep(result, planned) {
-	const turn = planned === "age" ? "age" : "season";
-	if (result === "now") return { step: stepFor(turn), promised: null };
-	if (result === "afterNextSession") return { step: "none", promised: turn };
+export function passageStep(result) {
+	if (result === "now") return { step: stepFor("season"), promised: null };
+	if (result === "afterNextSession") return { step: "none", promised: "season" };
 	return { step: "none", promised: null };
 }
 

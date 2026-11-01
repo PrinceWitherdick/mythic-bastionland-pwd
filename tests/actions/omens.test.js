@@ -27,7 +27,7 @@ vi.mock("../../module/actions/travels.js", () => ({ travelsSources: () => ({}), 
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null, mythEntry: () => ({ name: "The Myth", page: 40, entry: null }) }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollSpark: vi.fn() }));
 // The Realm's Seat stands on no Tile, so no card is left to seat the Knights later.
-vi.mock("../../module/actions/found-domain.js", () => ({ offerRulerDomain: vi.fn(), seatCourtiers: vi.fn(), seatOfPower: () => null, seatName: (seat) => seat.name }));
+vi.mock("../../module/actions/found-domain.js", () => ({ offerRulerDomain: vi.fn(), seatCourtiers: vi.fn(), seatOfPower: () => ({ name: "The Seat" }), seatName: (seat) => seat.name }));
 vi.mock("../../module/actions/wilderness.js", () => ({ findCompany: () => ({ hex: { col: 2, row: 2 } }) }));
 vi.mock("../../module/rules/wilderness.js", async (importOriginal) => ({
 	...(await importOriginal()),
@@ -101,7 +101,8 @@ function apply(data, changes) {
  * @param {object[]} myths
  */
 function realmScene(myths) {
-	const target = { id: "s1", name: "The Vale", isRealm: true, tiles: new Map() };
+	const target = { id: "s1", name: "The Vale", isRealm: true, tiles: new Map(), mythNotes: null };
+	target.getFlag = (_scope, key) => (key === "mythNotes" ? target.mythNotes : undefined);
 	for (const { id, ...myth } of myths) target.tiles.set(id, { id, parent: target, flags: { [SYSTEM_ID]: { [REALM_FLAG]: { kind: "myth", ...myth } } } });
 	target.updateEmbeddedDocuments = vi.fn(async (_type, updates, operation = {}) => {
 		// Foundry hands the hooks a copy of the options, then sends what they wrote to the server and back.
@@ -190,14 +191,35 @@ describe("Undo and Redo", () => {
 });
 
 describe("the Courtier start", () => {
+	/** Dice that come up as high as they go, so a tie for nearest picks the last of the Myths tied. */
+	const highRolls = () => {
+		globalThis.Roll = class {
+			constructor(formula) {
+				this.formula = formula;
+			}
+
+			async evaluate() {
+				this.total = Number(this.formula.split("d")[1]);
+				return this;
+			}
+		};
+	};
+
 	it("writes the nearest Myth's first Omen as news heard at the Seat, straight to its Tile", async () => {
-		vi.spyOn(Math, "random").mockReturnValue(0.9);
+		highRolls();
 		await announceStart(scene, "courtier");
-		vi.mocked(Math.random).mockRestore();
 		expect(scene.tiles.get("t4").flags[SYSTEM_ID][REALM_FLAG].omen).toBe(1);
 		expect(calls(record.recordOnTracks)).toHaveLength(1);
 		const [[, met]] = calls(record.recordOnTracks);
 		expect(met).toEqual([expect.objectContaining({ key: "omen:s1.4.5-1:1", title: 'timeline.auto.omenNews {"number":4}', place: "Hex 5.5" })]);
+	});
+
+	it("brings no news of a resolved Myth, which shows no more Omens (p27)", async () => {
+		scene.mythNotes = { version: 1, myths: { 4: { roll: "5-01", note: "", resolved: true } } };
+		highRolls();
+		await announceStart(scene, "courtier");
+		expect(scene.tiles.get("t4").flags[SYSTEM_ID][REALM_FLAG].omen).toBe(0);
+		expect(scene.tiles.get("t3").flags[SYSTEM_ID][REALM_FLAG].omen).toBe(2);
 	});
 });
 

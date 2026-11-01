@@ -5,22 +5,22 @@ A fight in Mythic Bastionland is a run of Attacks, and in this system each one i
 ## Making an Attack
 
 1. **Target** the Token (or Tokens) you're attacking. Hold `T` over a Token, or use Foundry's target tool.
-2. **Click Attack** on your Knight sheet's action bar.
+2. **Click Attack** on your Knight sheet's action bar, or press `1` for the **Attack** macro on your hotbar, which leaves the sheet shut and the map in view.
 3. **Tick what you attack with**, check the situation, and press **Roll Attack**.
 
-A Slain or Mortally Wounded Knight can't Attack; you're told why.
+A Slain or Mortally Wounded Knight can't Attack; you're told why. Nobody can Attack themself, and a target who is already Slain, destroyed or wiped out is named as such in the dialog.
 
 ![The Attack dialog for Dame Isolde Marrow against Old Gullet, with her mace, kite shield and dagger under Weapons and shields, the This turn ticks, Old Gullet's weakness ticked for +d8, the Bonus dice box, the Smite menu, the folded More for](images/combat-for-players-attack-dialog.webp)
 
 ### The Attack dialog
 
-- **Weapons and shields** lists everything you wear or wield, each with its dice and tags. Tick the ones this blow uses. Broken or used-up weapons are left out and named under the list. The dialog refuses an impossible grip (two Hefty items, a Long weapon with anything else, more than two hands' worth) and says why.
+- **Weapons and shields** lists everything you wear or wield, each with its dice and tags. Tick the ones this blow uses. Broken or used-up weapons are left out and named under the list. The dialog refuses an impossible grip (two Hefty items, a Long weapon with anything else, more than two hands' worth) and says why. A Knight who has lost an arm to a Scar holds fewer items, and no Long weapon, until the next Season.
 - A **specialist** weapon has a second tick under it: tick it when the situation it's made for comes up, to add its die.
 - **This turn**: **Moved this turn** (ticked for you when your Token has moved this turn in a Combat), **Began the turn engaged in melee**, and **Mounted**. Hover each for what it changes.
 - **Charging on (your steed) at enemies on foot** appears when you ride a steed: tick it to add its trample. It is greyed out when nobody targeted is on foot.
 - **Bonus dice**: type extra dice the Referee gives you, such as `d8`, or several as `d6, d12`. In a Combat you can tick **Keep the bonus dice for the rest of the fight**.
 - **Smite**: pick **Smite for +d12**, **Blast**, or **Smite for a lasting mark**. The VIG Save is made when you roll. The menu is greyed out while you're Fatigued or Impaired.
-- **Declared for this blow** lists what your Ability can lend this one blow. One with limited uses comes unticked and spends a use when you tick it.
+- **Declared for this blow** lists what your Ability can lend this one blow. One with limited uses comes unticked and spends a use when you tick it. One that fits only some blows comes unticked too: tick it for the blows it fits. One made only for a ranged Attack, a melee Attack with a shield, or a melee Attack without moving is refused for any other blow.
 - **More for this blow** (folded): **In a confined space**, **Charged a spearwall this turn**, and anything else to declare.
 - A foe's known weakness, a die you keep for the fight, and a Gambit that has Impaired you show as their own lines.
 
@@ -39,7 +39,8 @@ The card shows every die rolled, the highest marked, and the **Damage** (the hig
 - **Click a die showing 4 or more** to spend it on a Gambit. A window asks which Gambit, which Save the foe gets (VIG by default; the Referee may rule another), and for Impair, which of their weapons (or their whole next Attack).
 - A melee die of **8 or more** can also make a **Strong Gambit**: **No Save** or a **Greater effect**. Bolster and Move can't be Strong.
 - **Click a spent die** to take its Gambit back. Once the foe has made their Save against it, its Greater effect has been carried out, or it's a Dismount, only the Referee can take it back.
-- **Dismount** rolls its d6 as you declare it.
+- **Deny comes before any Gambit.** If somebody could still Deny when you spend your first die or Focus, you're told who and asked **Declare a Gambit now?** If they Deny after that, any Gambit spent on a die can be taken back and chosen again, even one already Saved against. A Greater effect already carried out stays.
+- **Dismount** is offered only when a target rides. Against a Warband, only a Blast unseats anyone. It rolls its d6 as you declare it.
 
 Each declared Gambit is listed on the card. Where the foe gets a Save, a **VIG Save** button (or whichever Save was picked) sits beside it for the foe's owner or the Referee to roll; a pass strikes the Gambit through. Only a foe the Attack was aimed at can make that Save. A **Greater effect** has a **Disarm, unhelm or break** button once the Save is settled: pick the foe's weapon to knock away, helm to take off, or wooden thing to break, or write in something else.
 
@@ -47,7 +48,7 @@ Only the attacker (and anyone who joined) can spend dice and Focus. Clicking any
 
 ### Gambit marks
 
-Impair, Stop and Trap outlast the Attack. While they hold, the foe's sheet shows a mark among their conditions, and their next Attack dialog says so (an Impair ticks Impaired for them). In a Combat the marks lapse by the turn order by themselves; outside one, clear a mark with the × on its pill once it has run its course.
+Impair, Stop and Trap outlast the Attack. While they hold, the foe's sheet shows a mark among their conditions, and their next Attack dialog says so (an Impair ticks Impaired for them). A Trap that holds a shield takes its Armour and its d4 Attack die until the trapper's next turn. In a Combat the marks lapse by the turn order by themselves; outside one, clear a mark with the × on its pill once it has run its course.
 
 ### Feats in a fight
 
@@ -70,7 +71,7 @@ Some Abilities add more buttons here, shown only to the Knight who has them: **R
 
 **Apply Damage** is shown to whoever owns a target, and to the Referee.
 
-- **Click Apply Damage** to take the Damage as the card has it. If dice of 4+ are still unspent, a Gambit still waits on its Save, or someone could still Deny, you're asked first. A Save can't be rolled once the Damage lands.
+- **Click Apply Damage** to take the Damage as the card has it. If dice of 4+ are still unspent (other than the one dealing the Damage), a Gambit still waits on its Save, or someone could still Deny, you're asked first. A Save can't be rolled once the Damage lands, and a card's Damage is applied only once.
 - A ranged blow, armour that counts only sometimes, a shield a Trap may hold, or anything else the table must judge opens the **Take Damage** window first.
 - **Shift-click Apply Damage** to open the Take Damage window anyway.
 - With several targets owned by different players, each applies their own; the button stays until every target has taken the blow.

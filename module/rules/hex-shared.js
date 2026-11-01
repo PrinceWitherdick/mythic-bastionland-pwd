@@ -153,7 +153,16 @@ export const sharedAt = (shared, hex) => shared?.hexes?.[hexKey(hex)] ?? null;
  * @returns {HexShared}
  */
 function withRecord(shared, hex, record) {
-	const key = hexKey(hex);
+	return withKeyed(shared, hexKey(hex), record);
+}
+
+/**
+ * @param {HexShared} shared
+ * @param {string} key From hexKey.
+ * @param {SharedRecord|null} record
+ * @returns {HexShared}
+ */
+function withKeyed(shared, key, record) {
 	const hexes = { ...shared.hexes };
 	if (record) hexes[key] = record;
 	else delete hexes[key];
@@ -259,9 +268,34 @@ export function forgetTold(shared, hex, id) {
 export function forgetBarrierMet(shared, hex, edge) {
 	const here = sharedAt(shared, hex);
 	if (!here?.met?.some((met) => met.edge === edge)) return shared;
-	const { met, ...rest } = here;
-	const kept = met.filter((one) => one.edge !== edge);
-	return withRecord(shared, hex, worthKeeping(kept.length ? { ...rest, met: kept } : rest));
+	return withRecord(shared, hex, keepingMet(here, (met) => met.edge !== edge));
+}
+
+/**
+ * @param {SharedRecord} record
+ * @param {(met: BarrierMet) => boolean} keep
+ * @returns {SharedRecord|null} The record with only the Barriers met that keep passes.
+ */
+function keepingMet(record, keep) {
+	const { met, ...rest } = record;
+	const kept = met.filter(keep);
+	return worthKeeping(kept.length ? { ...rest, met: kept } : rest);
+}
+
+/**
+ * Keep only the Barriers met that still stand, found, on the map: those the
+ * Realm rolled again in place of the old no longer bar the way, and a line
+ * about one rolled in its place, still hidden, would give it away.
+ * @param {HexShared} shared
+ * @param {Set<string>} standing The edges of the Realm's revealed Barriers.
+ * @returns {HexShared} Unchanged when every Barrier met still stands.
+ */
+export function keepBarriersMet(shared, standing) {
+	let next = shared;
+	for (const [key, record] of Object.entries(shared?.hexes ?? {})) {
+		if (record.met?.some((met) => !standing.has(met.edge))) next = withKeyed(next, key, keepingMet(record, (met) => standing.has(met.edge)));
+	}
+	return next;
 }
 
 /**

@@ -3,7 +3,7 @@
  * Four of the six do something: a Monument restores SPI as a Sacrament would, a
  * Hazard is pushed through for d6 in a Virtue, a Curse throws the Company off
  * course so the next travelling Phase counts as travelling blind (p18), and a
- * Ruin echoes a Myth the Realm doesn't currently hold. Dwellings and Sanctums
+ * Ruin echoes a Myth the Realm isn't playing out now. Dwellings and Sanctums
  * are places rather than demands, and a Sanctum's Seer is already rolled when
  * the Realm is made. Pure, so it can be tested without Foundry.
  */
@@ -53,6 +53,15 @@ export const LANDMARK_EFFECTS = Object.freeze(Object.fromEntries(LANDMARK_TYPES.
  * @returns {LandmarkEffect|null} Null for anything that isn't a Landmark type.
  */
 export const landmarkEffect = (type) => (LANDMARK_TYPES.includes(type) ? LANDMARK_EFFECTS[type] : null);
+
+/**
+ * @param {string|undefined} type One of LANDMARK_TYPES, or nothing where no Landmark stands.
+ * @returns {string[]} The LANDMARK_OFFERS it makes, the main one first: none for a type that asks nothing.
+ */
+export function landmarkOffers(type) {
+	const effect = landmarkEffect(type);
+	return effect ? [effect.offer, effect.also].filter(Boolean) : [];
+}
 
 /**
  * @param {string} type One of LANDMARK_TYPES.

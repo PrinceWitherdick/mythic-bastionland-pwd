@@ -5,11 +5,14 @@ import { canHoldPost, holdingRef, holdingRulers, parseHoldingRef } from "../rule
 import { escapeHTML } from "../rules/text.js";
 import { addCourtMember } from "./court.js";
 import { linkKnightDomain, worldDomains } from "./dominion.js";
-import { holdingOptions, realmHoldings } from "./homecoming.js";
+import { FOUNDED_OPTION, holdingOptions, realmHoldings } from "./homecoming.js";
 import { realmSeats } from "../rules/realm.js";
 import { getRealm } from "./realm.js";
+import { companyTokenHex } from "./company.js";
+import { sameHex } from "../rules/realm-geometry.js";
 import { inCompany, playersOf, seenOrChosen, worldKnights } from "./knights.js";
 import { timelineFounded } from "./timeline-events.js";
+import { domainOwnership, shareMade } from "./belonging.js";
 
 /**
  * Founding a Knight's Domain (Dominion, p20): which Holding it rules, what it's
@@ -43,7 +46,8 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 		ui.notifications.warn(t("domain.cantCreate"));
 		return null;
 	}
-	const others = worldKnights((actor) => actor !== knight).filter(seenOrChosen((actor) => circle.includes(actor)));
+	// The Circle seats Knights who could hold a post: knighted and alive (p7, p20).
+	const others = worldKnights((actor) => actor !== knight && canHoldPost(actor)).filter(seenOrChosen((actor) => circle.includes(actor)));
 	const data = await inputDialog({
 		title: t("domain.founding.title"),
 		icon: "fa-solid fa-chess-rook",
@@ -76,16 +80,19 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
  * @returns {Promise<Actor|null>}
  */
 export async function createDomain(knight, { name, holding = "", seat = false, circle = [] }) {
-	// Players who can see the Knight can see their Domain. Only a GM may hand ownership to others.
+	// Players who can see the Knight can see their Domain, and those whose Knights sit in its Circle look on.
+	// Only a GM may hand ownership to others, so a player asks the Referee to once it's made.
+	const seated = circle.map((id) => game.actors.get(id)).filter(Boolean);
 	const domain = await Actor.implementation.create({
 		name,
 		type: "domain",
 		folder: knight.folder?.id ?? null,
 		system: { ruler: knight.name, holding, seat, council: { circle } },
-		...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
-	});
+		...(game.user.isGM ? { ownership: domainOwnership(knight, seated) } : {})
+	}, { [FOUNDED_OPTION]: true });
 	if (!domain) return null;
 	await linkKnightDomain(knight, domain);
+	await shareMade([domain], knight);
 	await timelineFounded(knight, domain, game.scenes?.get(parseHoldingRef(holding)?.sceneId) ?? null);
 	return domain;
 }
@@ -114,9 +121,12 @@ export async function offerRulerDomain(scene) {
 	// Left for later, or closed, nobody rules yet.
 	const ruler = knights.find((knight) => knight.id === data?.ruler);
 	if (!ruler) return null;
-	// Any Holding will do, so the first that isn't the Seat of Power, which is under a wicked influence, is offered.
+	// The Holding the Company was put down in, as the Referee was asked to; failing that any will do, so the
+	// first that isn't the Seat of Power, which is under a wicked influence.
 	const holdings = getRealm(scene)?.realm.holdings.filter((holding) => holding.id) ?? [];
-	const first = holdings.find((holding) => !holding.seat) ?? holdings[0] ?? null;
+	const standing = companyTokenHex(scene);
+	const first = holdings.find((holding) => standing && sameHex(holding.hex, standing))
+		?? holdings.find((holding) => !holding.seat) ?? holdings[0] ?? null;
 	const domain = await foundDomain(ruler, {
 		holding: first ? holdingRef(scene.id, first.id) : "",
 		circle: knights.filter((knight) => knight !== ruler)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keyedSerialWrites, serialWrites } from "../../module/rules/queue.js";
+import { keyedSerialWrites, oncePerKey, serialWrites } from "../../module/rules/queue.js";
 
 /** A write that finishes when it's told to, noting when it ran. */
 function deferred(log, name) {
@@ -84,5 +84,27 @@ describe("keyedSerialWrites", () => {
 		held.release();
 		await Promise.all([first, second]);
 		expect(log.at(-1)).toBe("same key");
+	});
+});
+
+describe("oncePerKey", () => {
+	it("runs work for a key only once at a time, telling the second caller it's busy", async () => {
+		const once = oncePerKey();
+		let release;
+		const gate = new Promise((resolve) => { release = resolve; });
+		const busy = [];
+		const first = once(["a", "b"], () => gate.then(() => "done"));
+		expect(await once("b", async () => "twice", () => busy.push("b"))).toBe(1);
+		expect(await once("c", async () => "other")).toBe("other");
+		release();
+		expect(await first).toBe("done");
+		expect(await once("a", async () => "again")).toBe("again");
+		expect(busy).toEqual(["b"]);
+	});
+
+	it("frees the key when the work throws", async () => {
+		const once = oncePerKey();
+		await expect(once("a", async () => { throw new Error("no"); })).rejects.toThrow("no");
+		expect(await once("a", async () => "ok")).toBe("ok");
 	});
 });

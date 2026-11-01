@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { spreads } from "../../module/rules/book-art.js";
 import { CITY_QUEST_PAGES } from "../../module/rules/city-quest.js";
 import { fingerprint } from "../../module/rules/book-text.js";
-import { WARBAND_CAST, castActor, castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, fieldedAsWarband, mythCastFolders } from "../../module/rules/cast-npcs.js";
+import { FIGHTS_ON_CAST, WARBAND_CAST, castActor, castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, fieldedAsWarband, fightsOnByBook, mythCastFolders } from "../../module/rules/cast-npcs.js";
 import { CITY_CAST } from "../../module/rules/myth-cast.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
@@ -181,6 +181,12 @@ describe("castDetailUpdates", () => {
 		expect(castDetailUpdates(npc("swarm", ""), { system: { scale: "warband" } }, null)).toBeNull();
 	});
 
+	it("gives one of the Cast that fights on through a Mortal Wound that mark, once", () => {
+		const corpse = { type: "npc", system: { scale: "individual", notes: "", fightsOn: false } };
+		expect(castDetailUpdates(corpse, { system: { scale: "individual", fightsOn: true } }, null)).toEqual({ "system.fightsOn": true });
+		expect(castDetailUpdates({ ...corpse, system: { ...corpse.system, fightsOn: true } }, { system: { scale: "individual", fightsOn: true } }, null)).toBeNull();
+	});
+
 	it("leaves a scale the GM has set, a note already there, and a Cast with none", () => {
 		expect(castDetailUpdates(npc("warband", "<p>Bats &amp; more.</p>"), swarm, "Bats & more.")).toBeNull();
 		expect(castDetailUpdates(npc("individual", ""), { system: { scale: "individual" } }, null)).toBeNull();
@@ -203,5 +209,25 @@ describe("eitherUpdates", () => {
 	it("leaves weapons already marked, renamed or taken away", () => {
 		const printed = [weapon("Pound", "Pound"), weapon("Sweep", "Pound")];
 		expect(eitherUpdates([weapon("Pound", "Pound", "p1"), weapon("Great sweep", "", "s1")], printed)).toEqual([]);
+	});
+});
+
+describe("fightsOnByBook", () => {
+	const list = { "1-03": [fingerprint("Wade")] };
+
+	it("knows one listed under their Myth, by the name before the comma, and nobody else", () => {
+		expect(fightsOnByBook("1-03", "Wade", list)).toBe(true);
+		expect(fightsOnByBook("1-03", "Reed Spears", list)).toBe(false);
+		expect(fightsOnByBook("1-04", "Wade", list)).toBe(false);
+	});
+
+	it("lists the Rotting Corpse alone, by fingerprint", () => {
+		expect(Object.keys(FIGHTS_ON_CAST)).toEqual(["1-10"]);
+		expect(FIGHTS_ON_CAST["1-10"]).toEqual([[expect.any(Number), expect.stringMatching(/^[0-9a-z]{12}$/)]]);
+	});
+
+	it("marks only a listed one as fighting on", () => {
+		const of = { key: "1-10", name: "The Corpse", page: pageOf("1-10") };
+		expect(castActor({ name: "Somebody Else, of the Grave", stats: null, lines: [] }, of, 100, words).system.fightsOn).toBeUndefined();
 	});
 });

@@ -17,6 +17,11 @@
 			<button type="button" class="bastionland-gm-toolkit__fact bastionland-gm-toolkit__fact--button" data-action="showHex" data-hex="{{company.key}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}">
 				<i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.companyAt" hex=company.label}}
 			</button>
+			{{else if companyLeftOff}}
+			{{!-- A Realm made with the Company left off has no Place the Company button over its map, so this places them. --}}
+			<button type="button" class="bastionland-gm-toolkit__fact bastionland-gm-toolkit__fact--button bastionland-gm-toolkit__fact--quiet" data-action="placeLeftOffCompany" data-tooltip="{{localize 'bastionland.gmToolkit.placeLeftOffCompany'}}">
+				<i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.noCompany"}}
+			</button>
 			{{else if noCompany}}
 			<span class="bastionland-gm-toolkit__fact bastionland-gm-toolkit__fact--quiet"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.noCompany"}}</span>
 			{{/if}}

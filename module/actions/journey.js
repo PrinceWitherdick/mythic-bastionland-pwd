@@ -1,13 +1,14 @@
 import { t } from "../chat/cards.js";
 import { JOURNEY_VERSION, WALKED_METHODS, forgetVisit, forgetVisits, hexesEntered, lastOfEach, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
-import { hexAt, hexKey, parseHexKey } from "../rules/realm-geometry.js";
+import { barrierEdges, hexAt, hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
-import { COMPANY_FLAG, findCompanyToken, forcedMove, wentSomewhere } from "./company.js";
+import { COMPANY_FLAG, NOT_A_MOVE, findCompanyToken, forcedMove, wentSomewhere } from "./company.js";
 import { hexFlagEditor } from "./hex-flags.js";
 import { sidesWithCompany } from "./knights.js";
-import { isRealmScene, sceneGeometry } from "./realm.js";
+import { getRealm, isDrawingRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { timelineArrivals } from "./timeline-events.js";
+import { nameUndoneMoves, undoneMove } from "../canvas/undone-moves.js";
 
 /**
  * Where the Company has been on each Realm, kept on the Realm's Scene beside
@@ -25,6 +26,35 @@ export const JOURNEY_FLAG = "journey";
  */
 export function getJourney(scene) {
 	return normaliseJourney(isRealmScene(scene) ? scene.getFlag(SYSTEM_ID, JOURNEY_FLAG) : null);
+}
+
+/**
+ * Whether the players may know of a Realm: the one on show, one they've been
+ * let glimpse, or one the Company has travelled. Never one the Referee is
+ * still drawing by hand, whose secrets are in view on it.
+ * @param {Scene|null} scene
+ * @param {(scene: Scene) => boolean} [glimpsed] Whether the player asked of, or any player, may glimpse the
+ *   Scene: this user, unless said.
+ * @returns {boolean}
+ */
+export function realmKnownToPlayers(scene, glimpsed = glimpsedBy(game.user)) {
+	if (!isRealmScene(scene) || isDrawingRealm(scene)) return false;
+	return Boolean(scene.active) || glimpsed(scene) || travelledAny(scene);
+}
+
+/**
+ * @param {User} user
+ * @returns {(scene: Scene) => boolean} Whether that user may glimpse a Scene.
+ */
+export const glimpsedBy = (user) => (scene) => Boolean(scene.testUserPermission?.(user, "LIMITED"));
+
+/**
+ * @param {Scene} scene
+ * @returns {boolean} Whether the Company has come into any hex there, read without reading the whole journey.
+ */
+function travelledAny(scene) {
+	const hexes = scene.getFlag(SYSTEM_ID, JOURNEY_FLAG)?.hexes;
+	return Boolean(hexes) && typeof hexes === "object" && Object.entries(hexes).some(([key, visits]) => parseHexKey(key) && normaliseVisits(visits));
 }
 
 /**
@@ -119,6 +149,13 @@ export const forgetMoveVisits = (scene, hexes, orders = null) => editJourney(sce
 export const HELD_BACK_FLAG = "heldBack";
 
 /**
+ * The Scene flag holding the Company's last chosen moves, the last last, so a
+ * move taken back with Undo forgets its own visits and pace and no other's,
+ * after a reload or a change of Referee too. Written by the active GM's browser.
+ */
+export const COMPANY_MOVES_FLAG = "companyMoves";
+
+/**
  * @param {Scene|null} scene
  * @returns {{move: string|null, hexes: Set<string>, keys: Set<string>}} The move dire weather may be holding back,
  *   the hexes it came into, and those of them kept from being found, played alone, by their keys.
@@ -202,10 +239,18 @@ export const COMPANY_MOVED_HOOK = `${SYSTEM_ID}.companyMoved`;
 export const COMPANY_PLACED_HOOK = `${SYSTEM_ID}.companyPlaced`;
 
 /**
+ * Called on the active GM's client with the Scene, the hex the Company's
+ * Token was put back in when a move of its was taken back with Undo, and the
+ * id of the move taken back where it's known, so the move's visits and pace
+ * can be forgotten.
+ */
+export const COMPANY_MOVE_UNDONE_HOOK = `${SYSTEM_ID}.companyMoveUndone`;
+
+/**
  * Hexes come into and waiting to be written, by Scene id, so four Knights'
  * Tokens reaching the same hex together are one write. `entered` holds those
- * moved into rather than placed in.
- * @type {Map<string, {scene: Scene, hexes: {col: number, row: number}[], entered: {col: number, row: number}[], ended: boolean, from: {col: number, row: number}|null, chosen: boolean}>}
+ * moved into rather than placed in; `movements` the ids of the Tokens' moves.
+ * @type {Map<string, {scene: Scene, hexes: {col: number, row: number}[], entered: {col: number, row: number}[], ended: boolean, from: {col: number, row: number}|null, chosen: boolean, movements: string[]}>}
  */
 const arriving = new Map();
 
@@ -223,7 +268,7 @@ const onceEach = (hexes) => hexes.filter((hex, index) => index === hexes.findInd
 function writeArrivals() {
 	const waiting = [...arriving.values()];
 	arriving.clear();
-	for (const { scene, hexes, entered, ended, from, chosen } of waiting) {
+	for (const { scene, hexes, entered, ended, from, chosen, movements } of waiting) {
 		const visited = onceEach(hexes);
 		// Read before they're counted: the hexes it comes to for the first time go on the Timeline.
 		const first = visited.filter((hex) => !getHexVisits(scene, hex)?.count);
@@ -233,7 +278,7 @@ function writeArrivals() {
 			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
 		// Which arrival each hex became, once written, so a move taken back forgets its own and no other's.
 		const orders = recorded.catch(() => null);
-		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: lastOfEach(entered), ended, from, chosen, orders });
+		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: lastOfEach(entered), ended, from, chosen, orders, movements });
 		const moved = new Set(entered.map(hexKey));
 		const placed = visited.filter((hex) => !moved.has(hexKey(hex)));
 		if (placed.length) Hooks.callAll(COMPANY_PLACED_HOOK, scene, placed);
@@ -247,17 +292,20 @@ function writeArrivals() {
  * @param {boolean} [move.ended] Whether the move ended in a new hex.
  * @param {{col: number, row: number}|null} [move.from] The hex it set off from.
  * @param {boolean} [move.forced] Whether it was a move the Company didn't choose.
+ * @param {string} [move.id] The Token's move's id, which an Undo of it names.
  */
 function gather(scene, hexes, move = null) {
 	if (!hexes.length && !move?.ended) return;
 	if (!arriving.size) setTimeout(writeArrivals, GATHER);
-	const waiting = arriving.get(scene.id) ?? { scene, hexes: [], entered: [], ended: false, from: null, chosen: false };
+	const waiting = arriving.get(scene.id) ?? { scene, hexes: [], entered: [], ended: false, from: null, chosen: false, movements: [] };
 	waiting.hexes.push(...hexes);
 	if (move) waiting.entered.push(...hexes);
 	waiting.ended ||= Boolean(move?.ended);
 	// The first leg's start is where the whole move set off from.
 	waiting.from ??= move?.from ?? null;
 	waiting.chosen ||= Boolean(move) && !move.forced;
+	// A long move is handed over a leg at a time, each under the same id.
+	if (move?.id && !waiting.movements.includes(move.id)) waiting.movements.push(move.id);
 	arriving.set(scene.id, waiting);
 }
 
@@ -284,20 +332,21 @@ const keepsTheJourney = () => Boolean(game.user.isGM && game.users?.activeGM?.is
 
 /**
  * The hexes a leg of a Token's move comes into. A walked move comes into each
- * hex along its way, between its waypoints too; anything else only turns up
- * where it ends.
+ * hex along its way, between its waypoints too, going round any Barrier across
+ * the straight line as it was let; anything else only turns up where it ends.
  * @param {TokenDocument} token
  * @param {object} movement From the `moveToken` hook.
  * @param {object} g
+ * @param {Set<string>|null} [barriers] The Realm's Barrier edge keys.
  * @returns {{col: number, row: number}[]}
  */
-export function legHexes(token, movement, g) {
+export function legHexes(token, movement, g, barriers = null) {
 	const waypoints = movement?.passed?.waypoints ?? [];
 	if (!waypoints.length) return [];
 	const walked = WALKED_METHODS.includes(movement.method);
 	const steps = walked ? waypoints : waypoints.slice(-1);
 	const at = (position) => (position ? hexAt(g, token.getCenterPoint(position)) : null);
-	return hexesEntered(steps.map(at), at(movement.origin), { walkedAcross: walked ? g : null });
+	return hexesEntered(steps.map(at), at(movement.origin), { walkedAcross: walked ? g : null, barriers });
 }
 
 /**
@@ -318,25 +367,43 @@ export const forcedTravel = (movement, operation) => forcedMove(operation) || Bo
 function noticeMove(token, movement, operation) {
 	const scene = token?.parent;
 	if (!isRealmScene(scene) || !keepsTheJourney()) return;
+	if (movement?.method === "undo") return noticeUndo(token, movement, operation);
 	if (!wentSomewhere(movement, operation) || !movesAsCompany(token)) return;
 	const g = sceneGeometry(scene);
 	const from = movement?.origin ? hexAt(g, token.getCenterPoint(movement.origin)) : null;
-	gather(scene, legHexes(token, movement, g), { ended: endsInNewHex(token, movement, g), from, forced: forcedTravel(movement, operation) });
+	const barriers = barrierEdges(getRealm(scene)?.realm);
+	gather(scene, legHexes(token, movement, g, barriers), { ended: endsInNewHex(token, movement, g), from, forced: forcedTravel(movement, operation), id: movement?.id });
+}
+
+/**
+ * A move of the Company's taken back with Undo, which puts its Token back in
+ * another hex, or names the move it takes back: what follows the Company forgets that move.
+ * @param {TokenDocument} token
+ * @param {object} movement From the `moveToken` hook.
+ * @param {object} [operation] The update that moved it.
+ */
+function noticeUndo(token, movement, operation) {
+	const undone = undoneMove(token, operation);
+	if (!movesAsCompany(token) || (!undone && !endsInNewHex(token, movement, sceneGeometry(token.parent)))) return;
+	Hooks.callAll(COMPANY_MOVE_UNDONE_HOOK, token.parent, hexAt(sceneGeometry(token.parent), token.getCenterPoint()), undone);
 }
 
 /**
  * The Company's Token put on a Realm starts the Company's journey in its hex.
+ * One made again where the Company stood when its Token went isn't a visit.
  * @param {TokenDocument} token
+ * @param {object} [options] The creation's.
  */
-function noticeCompanyPlaced(token) {
+function noticeCompanyPlaced(token, options) {
 	const scene = token?.parent;
-	if (!isRealmScene(scene) || !keepsTheJourney() || !token.getFlag(SYSTEM_ID, COMPANY_FLAG)) return;
+	if (!isRealmScene(scene) || !keepsTheJourney() || !token.getFlag(SYSTEM_ID, COMPANY_FLAG) || options?.[NOT_A_MOVE]) return;
 	const hex = hexAt(sceneGeometry(scene), token.getCenterPoint());
 	if (hex) gather(scene, [hex]);
 }
 
 /** Follow the Company about each Realm. Called during init. */
 export function registerJourneyHooks() {
+	nameUndoneMoves();
 	Hooks.on("moveToken", noticeMove);
 	Hooks.on("createToken", noticeCompanyPlaced);
 }

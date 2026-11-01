@@ -25,6 +25,8 @@ const OWN_TURN_MARKS = Object.freeze(["impair", "stop"]);
  * @typedef {object} Place Where a Combat stands: the round, and how far through the turn order.
  * @property {number} round
  * @property {number} turn  Index into the turn order.
+ * @property {string|null} [combatant] Id of the combatant whose turn it is, which finds the turn
+ *   again after somebody joins or leaves the fight and the indexes shift. Older cards have none.
  *
  * @typedef {object} Mark What one landed Gambit holds over a foe.
  * @property {string} key          One of MARK_GAMBITS.
@@ -71,8 +73,9 @@ export function lapsePlace(key, laid, { ownTurn = null, attackerTurn = null } = 
 		const theirs = nextTurn(laid, ownTurn);
 		return { round: theirs.round, turn: theirs.turn + 1 };
 	}
-	// A Trapped shield comes free as the attacker's next turn begins.
-	if (!Number.isInteger(attackerTurn)) return null;
+	// A Trapped shield comes free as the attacker's next turn begins. One who has left the
+	// fight has no next turn in it, so it comes free as the next round begins.
+	if (!Number.isInteger(attackerTurn)) return { round: laid.round + 1, turn: 0 };
 	return nextTurn(laid, attackerTurn);
 }
 
@@ -89,6 +92,29 @@ export function markLapsed(mark, now) {
 	if (!mark.lapse) return false;
 	return comparePlaces(now, mark.lapse) >= 0;
 }
+
+/**
+ * Where an Attack was rolled, in today's turn order: its combatant's place
+ * now, where the card kept who that was and they are still in the fight, and
+ * otherwise the place as it was kept.
+ * @param {Place & {combat?: string}|null} laid
+ * @param {(id: string) => number|null} turnOfCombatant
+ * @returns {(Place & {combat?: string})|null}
+ */
+export function placeNow(laid, turnOfCombatant) {
+	if (!laid?.combatant) return laid;
+	const turn = turnOfCombatant(laid.combatant);
+	return Number.isInteger(turn) ? { ...laid, turn } : laid;
+}
+
+/**
+ * Whoever rolled a die into an Attack: whoever joined with it, or else the attacker.
+ * Kept here, where nothing is imported, so rules/attack.js can import it too.
+ * @param {import("./attack.js").AttackState} attack
+ * @param {object|undefined} die One of `attack.dice`.
+ * @returns {string|null|undefined} Their actor UUID.
+ */
+export const dieMaker = (attack, die) => die?.actor ?? attack.attacker;
 
 /**
  * Whoever performed a Gambit: whoever rolled the die it spent, in a joint
@@ -112,10 +138,12 @@ export function gambitPayer(attack, gambit) {
  * @param {object} [turns] As `lapsePlace` takes them.
  * @param {number|null} [turns.ownTurn]
  * @param {(uuid: string|null) => number|null} [turns.turnOf] Anybody's place in the turn order.
+ * @param {(id: string) => number|null} [turns.turnOfCombatant] A combatant's place in it now, by id,
+ *   so a card whose turn has since moved along the order is read where it stands now.
  * @returns {Mark[]}
  */
-export function attackMarks(attack, { ownTurn = null, turnOf = () => null } = {}) {
-	const laid = attack.place ?? null;
+export function attackMarks(attack, { ownTurn = null, turnOf = () => null, turnOfCombatant = () => null } = {}) {
+	const laid = placeNow(attack.place ?? null, turnOfCombatant);
 	return attack.gambits.flatMap((gambit, index) => {
 		if (!MARK_GAMBITS.includes(gambit.key) || gambit.dismissed || gambit.save?.passed) return [];
 		const payer = gambitPayer(attack, gambit);
@@ -160,7 +188,7 @@ export function shownWeapons(attacks, uuid) {
 	const shown = { ids: new Set(), labels: new Set() };
 	for (const attack of attacks) {
 		for (const die of attack?.dice ?? []) {
-			if ((die.actor ?? attack.attacker) !== uuid) continue;
+			if (dieMaker(attack, die) !== uuid) continue;
 			if (die.item) shown.ids.add(die.item);
 			else shown.labels.add(String(die.label ?? "").trim().toLowerCase());
 		}

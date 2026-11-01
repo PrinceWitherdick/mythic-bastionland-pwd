@@ -8,7 +8,7 @@ import { hexLabel } from "../actions/hex-names.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
-import { registerCardButtons } from "./cards.js";
+import { registerCardButtons, warn } from "./cards.js";
 
 const SELECTOR = "[data-hex-target]";
 
@@ -28,6 +28,15 @@ function chipTarget(chip) {
 	const scene = game.scenes.get(chip.dataset.hexScene) ?? null;
 	return { scene, hex: parseHexKey(chip.dataset.hexTarget) };
 }
+
+/**
+ * Whether this user may be taken to a chip's Realm: one already on their map,
+ * or one they may at least glimpse. Foundry draws any Scene it's asked to, so
+ * a player's chip mustn't open a Realm the Referee hasn't shown them.
+ * @param {Scene} scene
+ * @returns {boolean}
+ */
+const mayView = (scene) => game.user.isGM || canvas?.scene?.id === scene.id || Boolean(scene.testUserPermission?.(game.user, "LIMITED"));
 
 /**
  * Ring the hex a chip names on the map while the pointer is over it, for every
@@ -51,6 +60,10 @@ export function registerHexTargets() {
 		selector: SELECTOR,
 		handler: async (chip) => {
 			const { scene, hex } = chipTarget(chip);
+			if (scene && !mayView(scene)) {
+				warn("hexTarget.notShown");
+				return;
+			}
 			// A card about another Realm brings that Realm up first.
 			await viewAndShowHex(scene, hex);
 		}

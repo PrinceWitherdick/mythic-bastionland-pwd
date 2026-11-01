@@ -72,7 +72,7 @@ The window doesn't open at all when no Realm shows the Company, no Night is endi
 Each Season begins with a Feast, has a mass in its middle and ends with the Realm's collection (the Tax, the Tithe or the Levy). The **This Season** section lists all three in order, with where each falls (such as "Spring begins" or "Midspring"). The line under each event comes from your imported rulebook.
 
 - **Click Came to pass** beside an event to mark it, without moving time. Its card goes to chat in the Season's colours.
-- **Click Weeks Pass** (on the Time page or the bar) to carry the Company on to the next event. That event is marked, its card is posted, and the calendar moves to a new Morning. No Phase's end window opens.
+- **Click Weeks Pass** (on the Time page or the bar) to carry the Company on to the next event. That event is marked, its card is posted, and the calendar moves to a new Morning. No Phase's end window opens. The card also lists the Council tasks and Knights' tables that have come due.
 - When only the collection is left, it reads **Ends the Season**, and Weeks Pass turns the Season instead.
 
 The collection's card names the Domains that gather it. The Season's events are the Referee's only; players don't see the marks.
@@ -84,8 +84,9 @@ The collection's card names the Domains that gather it. The Season's events are 
 **Click Months Pass** in that window. Then:
 
 - The calendar moves to the first Morning of the next Season. After Winter comes the next Spring of the same Age.
-- Each ticked Knight has their Virtues restored, and any Scar that settles with the Season is settled. A Knight whose Doom lifts is told so.
-- Everyone else who is short of Virtues is restored too, NPCs and unticked Knights alike. The dead and the dying are left as they are.
+- Each ticked Knight has their Virtues restored and rests: GD back to full (not while sworn to a quest), Fatigue and Exposed gone, and a Mortal Wound cleared, since months on it has long been tended. A Knight whose Doom lifts is told so.
+- Everyone else who is short of Virtues or rest is restored the same way, NPCs and unticked Knights alike. The dead and the dying are left as they are.
+- Any Scar that settles with the Season is settled for everybody it reaches, ticked or not.
 - The Season's collection is marked as come to pass, and every Domain is settled. A Domain that falls into misrule is asked which of its Circle ride away. See [Domains and Courts](Domains-and-Courts).
 - A Season card goes to chat in the new Season's colours: each Knight on one line, then what is now due: Crisis Rolls, Drama in Court, Myths to replace (with a button for each), empty Council seats, finished Grand Designs, Council tasks and Knights' tables.
 - The turn is written into **Past Seasons** and onto [The Campaign Timeline](The-Campaign-Timeline).
@@ -99,7 +100,7 @@ On top of everything a Season's turn does:
 - The new Age begins in Spring.
 - Each ticked Knight gains 1 Glory.
 - The Old lose d12 VIG from their maximum. Anyone it takes to VIG 0 dies peacefully.
-- **Succession** asks the Knight to name a successor, and offers to Knight one who is still a Squire. **Legacy** gives the successor half the Knight's Glory, asking for a successor if none is named. See [Scars, Death and Successors](Scars-Death-and-Successors).
+- **Succession** asks the Knight to name a successor, and offers to Knight one who is still a Squire. **Legacy** gives the successor half the Knight's Glory, asking for a successor if none is named or the named one is Slain. A Squire can't hold Glory, so a Squire successor is offered Knighting first; declined, the Glory is lost. Squires themselves are offered only Duty. See [Scars, Death and Successors](Scars-Death-and-Successors).
 - NPCs and Referee-played Knights who are Old lose their VIG too, on one card.
 - Knights ticked to grow older reroll their Virtues for it. Then a second window offers every NPC with an Age, unticked, so you choose who else grows older.
 
@@ -155,7 +156,7 @@ Without FXMaster, no button is shown. A Referee whose world doesn't have it gets
 
 ### Dire Weather
 
-The world setting **Dire Weather** says when the land suffers it: **Never**, **In Winter, as in most Realms** (the default) or **All year round**. While it applies, the Dire Weather table is rolled each time Next Phase begins a new Phase, unless the Company is in a Holding or isn't on a Realm. Two looming results in a row count as dire. A dire result rolled during a Night means nobody outdoors gets proper sleep, which The Night Ends lists in its rules.
+The world setting **Dire Weather** says when the land suffers it: **Never**, **In Winter, as in most Realms** (the default) or **All year round**. While it applies, the Dire Weather table is rolled each time Next Phase begins a new Phase, unless the Company is in a Holding or isn't on a Realm. Two looming results in a row count as dire, but only when the second is rolled in the Phase straight after the first. A Phase with no roll, such as one spent in a Holding, breaks the run, and so do Weeks Pass, Months Pass, A Year Passes and a journey to a distant Realm. Those time skips roll the table for the Morning they land on, when it's due. A dire result rolled during a Night means nobody outdoors gets proper sleep, which The Night Ends lists in its rules.
 
 You can also roll it by hand: **Roll Dire Weather** in the travel rules beside the map, or **Referee Rolls** at the top of the Roll Tables sidebar.
 

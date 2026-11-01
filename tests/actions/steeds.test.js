@@ -26,11 +26,12 @@ beforeEach(() => {
 			}
 		}
 	};
+	globalThis.CONFIG = { queries: {} };
 	registerSteedNames();
 });
 
 afterEach(() => {
-	for (const name of ["Hooks", "foundry"]) delete globalThis[name];
+	for (const name of ["Hooks", "foundry", "CONFIG"]) delete globalThis[name];
 });
 
 describe("a steed given a name of its own", () => {

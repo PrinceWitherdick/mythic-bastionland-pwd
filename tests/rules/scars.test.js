@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SCARS, scarForRoll, scarRaisesGuardNow, settlesByTending } from "../../module/rules/scars.js";
+import { SCARS, armsLost, scarForRoll, scarRaisesGuardNow, settlesByTending } from "../../module/rules/scars.js";
 
 describe("SCARS", () => {
 	it("has one entry for each result from 1 to 12", () => {
@@ -36,5 +36,17 @@ describe("settlesByTending", () => {
 		expect(settlesByTending({ roll: 8, resolved: true })).toBe(false);
 		expect(settlesByTending({ roll: 10 })).toBe(false);
 		expect(settlesByTending({ roll: 12 })).toBe(false);
+	});
+});
+
+describe("armsLost", () => {
+	it("counts each arm a Mutilation took until the next Season settles it", () => {
+		expect(armsLost([{ roll: 10, detail: 3, resolved: false }])).toBe(1);
+		expect(armsLost([{ roll: 10, detail: 3 }, { roll: 10, detail: 4 }])).toBe(1);
+		expect(armsLost([{ roll: 10, detail: 4 }, { roll: 10, detail: 6 }])).toBe(2);
+		// A leg is the Referee's to judge, and a settled Scar is got by.
+		expect(armsLost([{ roll: 10, detail: 1 }, { roll: 10, detail: 5, resolved: true }])).toBe(0);
+		expect(armsLost([{ roll: 8, detail: 5 }, { roll: 10, detail: null }])).toBe(0);
+		expect(armsLost(undefined)).toBe(0);
 	});
 });

@@ -13,7 +13,7 @@ import {
 	surveyFrom
 } from "../rules/exploration.js";
 import { sameHex } from "../rules/realm-geometry.js";
-import { directionName, whereItLies } from "./told-where.js";
+import { directionName, wayItLies, whereItLies } from "./told-where.js";
 import { featureAt } from "../rules/realm.js";
 import { capitalise } from "../rules/text.js";
 import { VIRTUES, typedD20 } from "../rules/virtues.js";
@@ -25,6 +25,7 @@ import { advancePhase } from "./time.js";
 import { realmAndCompany } from "./wilderness.js";
 import { liveRealm } from "./myth-notes.js";
 import { keptFromMe, mythKeptFromMe } from "./solo.js";
+import { rollBetween } from "./tie-roll.js";
 import { companyKnights, inCompany } from "./knights.js";
 import { landmarkLabelKey } from "../rules/landmarks.js";
 
@@ -65,17 +66,19 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 	});
 	if (!data || !FOLK_SOURCES.includes(data.source)) return null;
 
-	// A teller who might name any of several Myths names one of them at random.
+	// A teller who might name any of several Myths names one of them at random, and
+	// a roamer with several Landmarks as near as each other knows one of those.
 	const rolls = [];
 	let folklore = folkloreFrom(realm, g, { source: data.source, home: where });
-	const choices = folklore?.mythChoices ?? 0;
-	if (choices > 1) {
-		const roll = await new Roll(`1d${choices}`).evaluate();
-		// Played alone, its size would count the Myths the teller chose between.
-		if (!keptFromMe()) rolls.push(roll);
-		// Only a die that fell on another Myth is worth reading the Realm again for.
-		if (roll.total > 1) folklore = folkloreFrom(realm, g, { source: data.source, home: where, pick: roll.total - 1 });
+	const picks = {};
+	for (const [choices, pick] of [[folklore?.mythChoices ?? 0, "pick"], [folklore?.landmarkChoices ?? 0, "landmarkPick"]]) {
+		if (choices <= 1) continue;
+		const between = await rollBetween(choices);
+		if (between.shown) rolls.push(between.shown);
+		picks[pick] = between.pick;
 	}
+	// Only a die that fell on another one is worth reading the Realm again for.
+	if (picks.pick || picks.landmarkPick) folklore = folkloreFrom(realm, g, { source: data.source, home: where, ...picks });
 
 	const index = await loadArtIndex();
 	const mark = folkloreToMark(folklore);
@@ -92,12 +95,12 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 			// Goblin's missing children without knowing it for the Goblin (p19). One whose place they know is found.
 			const named = myth && (known.precise || !mythKeptFromMe(myth, scene));
 			const { name, page } = named ? mythEntry(index, myth) : { name: null, page: null };
-			// Only a teller who knows just where it lies names its hex.
+			// Only a teller who knows just where it lies names its hex, or how far off it is: the rest give only its way (p19).
 			return {
 				number: known.number,
 				name,
 				page,
-				where: known.precise ? `${capitalise(whereItLies(g, known))}.` : t("explore.folklore.rough", { where: capitalise(whereItLies(g, known)) }),
+				where: known.precise ? `${capitalise(whereItLies(g, known))}.` : t("explore.folklore.rough", { where: capitalise(wayItLies(g, known)) }),
 				target: known.precise ? hexTarget(known.hex, scene) : null
 			};
 		}),
@@ -167,8 +170,11 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 	});
 	if (!data || !SEARCH_AIMS.includes(data.aim)) return null;
 
-	if (data.aim === SEARCH_SAVE_AIM) await rollExplorationSave(knights.find((knight) => knight.id === data.who), data.virtue, data.what, typedD20(data.rolled));
-	else await postSurvey({ scene, realm, g, where, vantage: data.aim === "vantage" });
+	if (data.aim === SEARCH_SAVE_AIM) {
+		// Nobody to roll means nothing was searched, so the Phase isn't spent either.
+		const save = await rollExplorationSave(knights.find((knight) => knight.id === data.who), data.virtue, data.what, typedD20(data.rolled));
+		if (!save) return null;
+	} else await postSurvey({ scene, realm, g, where, vantage: data.aim === "vantage" });
 
 	// Each of the three uses up the Phase, unless the Referee says otherwise.
 	if (data.phase) await advancePhase({ scene, mode: "travel" });
