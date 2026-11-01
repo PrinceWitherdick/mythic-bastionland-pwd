@@ -37,7 +37,7 @@ import { isDrawingRealm, isRealmScene } from "./realm.js";
  */
 
 /** A write to a thread a player's browser can't make or write, asked of the active Referee. */
-export const TRACK_WRITE_QUERY = `${SYSTEM_ID}.timelineWrite`;
+const TRACK_WRITE_QUERY = `${SYSTEM_ID}.timelineWrite`;
 
 /** The Timeline's entry's id as last found: a render asks for it many times, and each search goes through every journal. */
 let timelineJournalId = null;
@@ -550,7 +550,10 @@ const syncSoon = afterBurst((ids) => syncTrackPages({ seen: ids.filter(Boolean) 
 function realmShownChanged(scene, changes) {
 	const has = (path) => foundry.utils.hasProperty(changes, path);
 	if ("active" in changes || "ownership" in changes || has(`flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`)) return true;
-	return has(`flags.${SYSTEM_ID}.${JOURNEY_FLAG}`) && findTrackPage(realmTrackId(scene.id))?.ownership?.default === CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
+	if (!has(`flags.${SYSTEM_ID}.${JOURNEY_FLAG}`)) return false;
+	// A page the Referee hid by hand stays hidden, however far the Company goes.
+	const page = findTrackPage(realmTrackId(scene.id));
+	return page?.ownership?.default === CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE && defaultBySystem(page);
 }
 
 /**
@@ -560,11 +563,7 @@ function realmShownChanged(scene, changes) {
  * @param {JournalEntry} journal
  * @returns {false|void} False to refuse.
  */
-export function refuseTimelineDelete(journal) {
-	if (game.user?.isGM || !journal?.getFlag?.(SYSTEM_ID, TIMELINE_JOURNAL_FLAG)) return;
-	warn("timeline.deleteRefused");
-	return false;
-}
+export const refuseTimelineDelete = (journal) => refusePlayerDelete(journal, "timeline.deleteRefused");
 
 /**
  * Keep a player from deleting any page of the Timeline. Anyone may write on
@@ -574,9 +573,16 @@ export function refuseTimelineDelete(journal) {
  * @param {JournalEntryPage} page
  * @returns {false|void} False to refuse.
  */
-export function refuseTimelinePageDelete(page) {
-	if (game.user?.isGM || !page?.parent?.getFlag?.(SYSTEM_ID, TIMELINE_JOURNAL_FLAG)) return;
-	warn("timeline.pageDeleteRefused");
+export const refuseTimelinePageDelete = (page) => refusePlayerDelete(page?.parent, "timeline.pageDeleteRefused");
+
+/**
+ * @param {JournalEntry|undefined} journal The Timeline, or what may be.
+ * @param {string} warning
+ * @returns {false|void} False to refuse a player.
+ */
+function refusePlayerDelete(journal, warning) {
+	if (game.user?.isGM || !journal?.getFlag?.(SYSTEM_ID, TIMELINE_JOURNAL_FLAG)) return;
+	warn(warning);
 	return false;
 }
 

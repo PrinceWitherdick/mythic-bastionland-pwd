@@ -94,6 +94,12 @@ export const isBlogLandmark = (type) => BLOG_LANDMARK_TYPES.includes(type);
 export const isLandmarkVariant = (type, variant) => Boolean(LANDMARK_VARIANTS[type]?.includes(variant));
 
 /**
+ * @param {{landmarks?: object[]}|null|undefined} realm
+ * @returns {object[]} Its Sanctums that are home to a Seer.
+ */
+export const seersSanctums = (realm) => (realm?.landmarks ?? []).filter((landmark) => landmark.type === "sanctum" && landmark.seer);
+
+/**
  * @param {unknown} pair
  * @returns {boolean} Whether it's a Pond pair's number.
  */

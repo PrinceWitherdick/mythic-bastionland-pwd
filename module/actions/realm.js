@@ -12,7 +12,7 @@ import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, companyStartContext, resolveCompanyPicture, wireCompanyPicture, wireCompanyStart } from "../apps/company-picture.js";
 import { freshRandom, randomSeed } from "../rules/random.js";
 import { blogLandmarksOn } from "./blog-landmarks.js";
-import { BOOK_LANDMARK_TYPES, LANDMARKS_PER_TYPE, REALM_FLAG, holdingName, realmSeats, validateRealm } from "../rules/realm.js";
+import { BOOK_LANDMARK_TYPES, LANDMARKS_PER_TYPE, REALM_FLAG, holdingName, realmSeats, seersSanctums, validateRealm } from "../rules/realm.js";
 import { parseHoldingRef } from "../rules/dominion.js";
 import { REALM_DRAWING_FLAG, SECRET_DRAWING_STEPS, drawingShortfalls, secretRolls, walledOffHexes } from "../rules/realm-drawing.js";
 import {
@@ -35,7 +35,7 @@ import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wire
 import { generateRealm, keepMythPicks } from "../rules/realm-generator.js";
 import { mythRollKey } from "../rules/realm-myths.js";
 import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
-import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry, sameHex } from "../rules/realm-geometry.js";
+import { barrierEdges, BOOK_LAYOUT, hexAt, hexCentre, realmGeometry, sameHex } from "../rules/realm-geometry.js";
 import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
@@ -730,7 +730,7 @@ async function tidyAfterReroll(scene, before) {
 		tidying.push(import("./sighted.js").then(({ getSighted, writeSightings }) => writeSightings(scene, { drop: Object.keys(getSighted(scene)) })));
 	}
 	if (rolled("barriers")) {
-		const standing = new Set(realm.barriers.filter((barrier) => barrier.revealed).map((barrier) => barrier.edge));
+		const standing = barrierEdges(realm, { revealed: true });
 		tidying.push(import("./hex-shared.js").then(({ keepHexBarriersMet }) => keepHexBarriersMet(scene, standing)));
 	}
 	const [oldSeat] = realmSeats(before);
@@ -1016,12 +1016,9 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 			...(drawing ? drawingFlag(true) : {}),
 			// Played alone, who places the Realm's secrets as it's drawn.
 			...(drawing && soloSecrets ? { [`flags.${SYSTEM_ID}.${SOLO_SECRETS_FLAG}`]: soloSecrets } : {}),
-			// Remembered, so a Knight made later opens the chooser on the Start their Company took.
-			...(begins ? { [`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: begins } : {}),
+			...(begins ? startFlags(begins, drawing) : {}),
 			// Left off by the Referee, so the map doesn't offer to place them.
-			...(companyLeftOff ? { [`flags.${SYSTEM_ID}.${NO_COMPANY_FLAG}`]: true } : {}),
-			// A Realm drawn by hand hears what its Start sets going once it's finished.
-			...(drawing && begins ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: begins } : {})
+			...(companyLeftOff ? { [`flags.${SYSTEM_ID}.${NO_COMPANY_FLAG}`]: true } : {})
 		})
 	);
 
@@ -1203,12 +1200,21 @@ const START_DUE_FLAG = "startDue";
  */
 export async function setRealmStart(scene, start) {
 	if (!game.user.isGM || !isRealmScene(scene) || !COMPANY_STARTS.includes(start)) return false;
-	await scene.update({
-		[`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: start,
-		...(isDrawingRealm(scene) ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: start } : {})
-	});
+	await scene.update(startFlags(start, isDrawingRealm(scene)));
 	return true;
 }
+
+/**
+ * The Start a Realm's Company took, remembered so a Knight made later opens the
+ * chooser on it; and on a Realm drawn by hand, due to set going once it's finished.
+ * @param {string} start
+ * @param {boolean} drawing
+ * @returns {object} Flag paths and their values.
+ */
+const startFlags = (start, drawing) => ({
+	[`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: start,
+	...(drawing ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: start } : {})
+});
 
 /**
  * @param {Scene} scene
@@ -1363,7 +1369,7 @@ async function postRealmKey(scene) {
 			seat: holding.seat,
 			where: where(holding.hex)
 		})),
-		sanctums: realm.landmarks.filter((landmark) => landmark.type === "sanctum" && landmark.seer).map((landmark) => {
+		sanctums: seersSanctums(realm).map((landmark) => {
 			const { name, page } = seerEntry(index, landmark.seer);
 			return { name, page, where: where(landmark.hex) };
 		}),

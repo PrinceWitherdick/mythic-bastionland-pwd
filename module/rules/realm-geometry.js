@@ -423,10 +423,13 @@ export function edgeKey(a, b) {
 }
 
 /**
- * @param {{barriers?: {edge: string}[]}|null|undefined} realm
+ * @param {{barriers?: {edge: string, revealed?: boolean}[]}|null|undefined} realm
+ * @param {{revealed?: boolean}} [options] Keep only the revealed Barriers (true) or only the hidden ones (false).
  * @returns {Set<string>} The edgeKeys of the Realm's Barriers.
  */
-export const barrierEdges = (realm) => new Set((realm?.barriers ?? []).map((barrier) => barrier.edge));
+export const barrierEdges = (realm, { revealed } = {}) => new Set((realm?.barriers ?? [])
+	.filter((barrier) => revealed === undefined || Boolean(barrier.revealed) === revealed)
+	.map((barrier) => barrier.edge));
 
 /**
  * @param {object} g

@@ -1,5 +1,5 @@
 import { hexLabel } from "./hex-names.js";
-import { inputDialog } from "../apps/ui.js";
+import { chooseOne } from "../apps/actor-pick.js";
 import { loadArtIndex, mythEntry, pageNote } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
@@ -126,15 +126,14 @@ export async function pushThroughHazard() {
 	const title = t("realm.landmarks.effects.hazard.offer");
 	const icon = LANDMARK_EFFECTS.hazard.icon;
 	const order = [usual, ...VIRTUES.filter((key) => key !== usual)];
-	const picked = await inputDialog({
+	const virtue = (await chooseOne(order.map((key) => ({ key, name: t(`virtues.${key}.label`) })), {
 		title,
 		icon,
-		template: "virtue-pick",
-		context: { legend: t("realm.landmarks.hazardWhich"), virtues: order.map((key) => ({ id: key, name: t(`virtues.${key}.label`) })) },
-		ok: { label: t("realm.landmarks.hazardPick"), icon }
-	});
-	const virtue = picked?.virtue;
-	if (!VIRTUES.includes(virtue)) return null;
+		message: t("realm.landmarks.hazardWhich"),
+		ok: t("realm.landmarks.hazardPick"),
+		full: true
+	}))?.key;
+	if (!virtue) return null;
 
 	const company = await whoTakesPart({
 		title: t("realm.landmarks.effects.hazard.offer"),

@@ -173,13 +173,13 @@ export function folkloreFrom(realm, g, { source, home, pick = 0, landmarkPick = 
 
 	// A Vassal speaks of the Myth nearest their home; a roamer of any Myth of the Realm.
 	const candidates = source === "vassal" ? nearestMyths(realm, g, home) : [...realm.myths].sort((a, b) => a.number - b.number);
-	const myth = candidates[Math.min(Math.max(0, pick), candidates.length - 1)] ?? null;
+	const myth = pickFrom(candidates, pick);
 	// Where the Myth borders their home, they know exactly where it is.
 	const precise = Boolean(myth) && source === "vassal" && hexDistance(g, myth.hex, home) <= ADJACENT;
 
 	// A roamer knows the one nearest Landmark; several as near are settled by a die, as Myths are.
 	const nearest = source === "vassal" ? [] : nearestLandmarks(realm, g, home);
-	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home) : nearest.slice(...pickOne(nearest, landmarkPick));
+	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home) : [pickFrom(nearest, landmarkPick)].filter(Boolean);
 	return {
 		source,
 		home,
@@ -193,15 +193,12 @@ export function folkloreFrom(realm, g, { source, home, pick = 0, landmarkPick = 
 }
 
 /**
- * The bounds of one entry to slice out of a list, held to the list.
- * @param {any[]} list
- * @param {number} pick From 0.
- * @returns {[number, number]}
+ * @template T
+ * @param {T[]} list
+ * @param {number} pick From 0, held to the list.
+ * @returns {T|null} Null for an empty list.
  */
-function pickOne(list, pick) {
-	const at = Math.min(Math.max(0, pick), Math.max(0, list.length - 1));
-	return [at, at + 1];
-}
+const pickFrom = (list, pick) => list[Math.min(Math.max(0, pick), list.length - 1)] ?? null;
 
 /**
  * What the Company can be shown of what it was told: a Myth whose place the

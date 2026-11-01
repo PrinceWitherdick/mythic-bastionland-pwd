@@ -7,13 +7,13 @@ import { keptFromMe } from "./solo.js";
  * or Landmarks not yet met. Kept apart from solo.js so a test standing in for
  * `keptFromMe` stands in for it here too.
  * @param {number} choices
- * @returns {Promise<{pick: number, roll: Roll|null, shown: Roll|null}>} The index picked, the die
- *   (none for one choice or fewer), and the die again if it may go on the card.
+ * @returns {Promise<{pick: number, shown: Roll|null}>} The index picked, and the die if it may go on
+ *   the card (none for one choice or fewer).
  */
 export async function rollBetween(choices) {
-	if (choices <= 1) return { pick: 0, roll: null, shown: null };
+	if (choices <= 1) return { pick: 0, shown: null };
 	const roll = await new Roll(`1d${choices}`).evaluate();
-	return { pick: roll.total - 1, roll, shown: keptFromMe() ? null : roll };
+	return { pick: roll.total - 1, shown: keptFromMe() ? null : roll };
 }
 
 /**

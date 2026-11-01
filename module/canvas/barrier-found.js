@@ -160,7 +160,7 @@ export function onBarrierFound(message) {
 	if (message?.action !== BARRIER_FOUND || !game.user.isGM || !Array.isArray(message.edges) || typeof message.name !== "string" || !message.name) return;
 	const scene = game.scenes.get(message.sceneId);
 	if (!isRealmScene(scene)) return;
-	const revealed = new Set(getRealm(scene).realm.barriers.filter((barrier) => barrier.revealed).map((barrier) => barrier.edge));
+	const revealed = barrierEdges(getRealm(scene).realm, { revealed: true });
 	const edges = [...new Set(message.edges)].filter((edge) => typeof edge === "string" && revealed.has(edge));
 	tellFound(scene, edges, message.name.slice(0, 100));
 }
@@ -176,7 +176,7 @@ export function onBarrierFound(message) {
  * @returns {Promise<void>}
  */
 async function foundBarriers(scene, edges, name, from) {
-	const hidden = new Set(getRealm(scene).realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
+	const hidden = barrierEdges(getRealm(scene).realm, { revealed: false });
 	const found = edges.filter((edge) => hidden.has(edge));
 
 	tellFound(scene, found, name);

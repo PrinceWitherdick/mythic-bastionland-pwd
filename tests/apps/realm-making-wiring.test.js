@@ -45,7 +45,7 @@ describe("a Realm rolled again in play", () => {
 		expect([...at].sort((a, b) => a - b)).toEqual(at);
 		// Marks seen from afar go, Barriers met keep only the found ones still standing, and a Courtier Company moves to the new Seat.
 		expect(reroll).toContain("writeSightings(scene, { drop: Object.keys(getSighted(scene)) })");
-		expect(reroll).toContain("new Set(realm.barriers.filter((barrier) => barrier.revealed).map((barrier) => barrier.edge))");
+		expect(reroll).toContain("barrierEdges(realm, { revealed: true })");
 		expect(reroll).toContain("keepHexBarriersMet(scene, standing)");
 		expect(reroll).toContain('realmStartOf(scene) === "courtier"');
 		expect(reroll).toContain("tidying.push(restandCompany(scene, newSeat.hex));");

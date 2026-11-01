@@ -46,10 +46,11 @@ function paceKey(token, before, distance) {
  * Company on a Realm, or the drag hasn't left its hex.
  * @param {TokenDocument|undefined} token
  * @param {number} distance The distance dragged so far, in the Scene's grid units.
+ * @param {number|null} [before] As paceBefore has it, where already read.
  * @returns {{key: string, label: string, ink: string}|null} With its colour as CSS has it.
  */
-export function rulerPace(token, distance) {
-	const key = paceKey(token, paceBefore(token), distance);
+export function rulerPace(token, distance, before = paceBefore(token)) {
+	const key = paceKey(token, before, distance);
 	return key ? { key, label: t(`realm.ruler.${key}`), ink: `#${PACE_COLOURS[key].toString(16).padStart(6, "0")}` } : null;
 }
 
@@ -71,12 +72,18 @@ export function realmTokenRuler(Base) {
 			return super.refresh(state);
 		}
 
+		/** @returns {number|null} As paceBefore has it, for this refresh. */
+		#paceBefore() {
+			if (this.#before === undefined) this.#before = paceBefore(this.token?.document);
+			return this.#before;
+		}
+
 		/** @override */
 		_getWaypointLabelContext(waypoint, state) {
 			const context = super._getWaypointLabelContext(waypoint, state);
 			// Told where the drag ends, once.
 			if (!context || waypoint.next) return context;
-			const pace = rulerPace(this.token?.document, waypoint.measurement?.distance ?? 0);
+			const pace = rulerPace(this.token?.document, waypoint.measurement?.distance ?? 0, this.#paceBefore());
 			return pace ? { ...context, pace } : context;
 		}
 
@@ -84,9 +91,7 @@ export function realmTokenRuler(Base) {
 		_getGridHighlightStyle(waypoint, offset) {
 			const style = super._getGridHighlightStyle(waypoint, offset);
 			if (!style) return style;
-			const token = this.token?.document;
-			if (this.#before === undefined) this.#before = paceBefore(token);
-			const key = paceKey(token, this.#before, waypoint.measurement?.distance ?? 0);
+			const key = paceKey(this.token?.document, this.#paceBefore(), waypoint.measurement?.distance ?? 0);
 			return key ? { ...style, color: PACE_COLOURS[key] } : style;
 		}
 	};

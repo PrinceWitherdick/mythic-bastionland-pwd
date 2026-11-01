@@ -1,6 +1,6 @@
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
-import { OMEN_COUNT, REALM_FLAG } from "../rules/realm.js";
+import { OMEN_COUNT, REALM_FLAG, seersSanctums } from "../rules/realm.js";
 import { nextOmen, wildernessSituation } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { isRealmScene, sceneGeometry } from "./realm.js";
@@ -53,8 +53,7 @@ export async function announceStart(scene, start) {
 async function seekCounsel(scene) {
 	if (keptFromMe()) return null;
 	const index = await loadArtIndex();
-	const sanctums = liveRealm(scene).landmarks.filter((landmark) => landmark.type === "sanctum" && landmark.seer);
-	const seers = sanctums.map((landmark) => t("company.starts.wanderer.seerAt", { seer: seerEntry(index, landmark.seer).name, hex: hexLabel(landmark.hex, scene) }));
+	const seers = seersSanctums(liveRealm(scene)).map((landmark) => t("company.starts.wanderer.seerAt", { seer: seerEntry(index, landmark.seer).name, hex: hexLabel(landmark.hex, scene) }));
 	return postCard(null, "note", {
 		icon: "fa-solid fa-eye",
 		text: seers.length ? t("company.starts.wanderer.counsel", { seers: seers.join("; ") }) : t("company.starts.wanderer.noSanctum")

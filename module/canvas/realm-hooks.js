@@ -11,7 +11,7 @@ import {
 	syncRealmScene
 } from "../actions/realm.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
-import { realmSceneChanges } from "../actions/scene-changes.js";
+import { realmSceneChanges, shownHexFlag } from "../actions/scene-changes.js";
 import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
@@ -189,10 +189,12 @@ export function registerRealmHooks() {
 	Hooks.on("updateScene", (scene, changes) => {
 		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
 		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").
-		const { realm, system, hexFlags } = realmSceneChanges(changes);
+		const { realm, system, hexFlags: written } = realmSceneChanges(changes);
 		if (!isRealmScene(scene) && !system) return;
 		// Most writes are what's kept for its hexes -- the Company's visits, a hex's notes or name --
 		// which leave the Realm as it was read, and the weather, which no Realm window shows.
+		// Those nothing shows, such as the moves kept for Undo, draw nothing again.
+		const hexFlags = new Set([...written].filter(shownHexFlag));
 		if (realm) realmChanged(scene.id);
 		else if (hexFlags.size) showLater(scene.id, hexFlags.has(HEX_NAMES_FLAG) ? "names" : "hex", hexFlags);
 		if (foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`)) Hooks.callAll(REALM_LOOK_HOOK, scene.id);

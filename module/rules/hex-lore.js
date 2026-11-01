@@ -348,11 +348,12 @@ export function setNote(lore, hex, note) {
  * @param {readonly number[]} positions Where the tables stand on a page read whole.
  * @returns {{index: number, table: object}[]} Empty unless the page was read whole: the
  *   places only mean anything there, and other tables would be rolled under their names.
+ *   A place the reading left empty is skipped.
  */
 export function sparkSetAt(page, positions) {
 	const tables = page?.tables ?? [];
 	if (tables.length !== SPARK_TABLES_PER_PAGE) return [];
-	return positions.map((index) => ({ index, table: tables[index] }));
+	return positions.filter((index) => tables[index]).map((index) => ({ index, table: tables[index] }));
 }
 
 /**

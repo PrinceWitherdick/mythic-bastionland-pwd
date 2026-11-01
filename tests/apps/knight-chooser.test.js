@@ -14,11 +14,13 @@ const lang = JSON.parse(read("languages/en.json"));
 
 describe("the Start a new Knight's chooser opens on", () => {
 	it("is remembered on the Realm, whether or not the Company is put on the map, and drawn by hand too (p6)", () => {
-		expect(realm).toContain("...(begins ? { [`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: begins } : {}),");
+		expect(realm).toContain("...(begins ? startFlags(begins, drawing) : {}),");
+		expect(realm).toContain("[`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: start,");
 		expect(realm).toContain("const start = !draw && COMPANY_STARTS.includes(data.start) ? data.start : firstStart;");
 		expect(realm).toContain("if (begins && !drawing) await announceStart(scene, begins);");
 		// Drawn by hand, the Company's page sets it, and Finish announces it.
-		expect(realm).toContain("...(isDrawingRealm(scene) ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: start } : {})");
+		expect(realm).toContain("await scene.update(startFlags(start, isDrawingRealm(scene)));");
+		expect(realm).toContain("...(drawing ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: start } : {})");
 		expect(read("module/apps/RealmDrawing.js")).toContain("(start) => setRealmStart(canvas.scene, start)");
 		expect(read("templates/apps/realm-drawing.hbs")).toContain('name="companyStart"');
 	});

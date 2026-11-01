@@ -297,6 +297,12 @@ describe("wildernessSparkSet", () => {
 	it("hands back the tables themselves, so a roll keeps the name the import read", () => {
 		expect(wildernessSparkSet(page(9)).map(({ table }) => table.name)).toEqual(["Table 0", "Table 3", "Table 6"]);
 	});
+
+	it("skips a place a page read whole left empty", () => {
+		const gappy = page(9);
+		gappy.tables[3] = null;
+		expect(wildernessSparkSet(gappy).map(({ index }) => index)).toEqual([0, 6]);
+	});
 });
 
 describe("takenEntries", () => {

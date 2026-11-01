@@ -71,7 +71,7 @@ export function allowRealmMove(token, movement, operation) {
 	// A hidden Barrier found by walking into it isn't hidden any more, and the
 	// Company's attempt wastes the Phase.
 	if (problem.reason === "barrier") {
-		const hidden = new Set(entry.realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
+		const hidden = barrierEdges(entry.realm, { revealed: false });
 		reportTurnedBack(scene, {
 			edges: barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)),
 			from: problem.from,

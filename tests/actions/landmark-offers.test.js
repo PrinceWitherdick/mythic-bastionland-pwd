@@ -68,11 +68,11 @@ describe("a Monument", () => {
 
 describe("pushing through a Hazard", () => {
 	it("asks for the Virtue from a list with VIG first, then costs it to all who push through", async () => {
-		vi.mocked(inputDialog).mockResolvedValue({ virtue: "cla" });
+		vi.mocked(inputDialog).mockResolvedValue({ choice: "1" });
 		await pushThroughHazard();
 		const [[asked]] = vi.mocked(inputDialog).mock.calls;
-		expect(asked.template).toBe("virtue-pick");
-		expect(asked.context.virtues.map((each) => each.id)).toEqual(["vig", "cla", "spi"]);
+		expect(asked.template).toBe("pick-one");
+		expect(asked.context.choices.map((each) => each.name)).toEqual(["virtues.vig.label", "virtues.cla.label", "virtues.spi.label"]);
 		expect(vi.mocked(chooseCompany).mock.calls[0][0]).toMatchObject({ companions: true });
 		expect(vi.mocked(virtueLoss).mock.calls[0].slice(0, 2)).toEqual([[knight, steed], "cla"]);
 	});

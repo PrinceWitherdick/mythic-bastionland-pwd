@@ -308,9 +308,12 @@ export async function takeBackMove(scene, back, undone = null) {
 		return { moves: moves.toSpliced(index, 1), result: last };
 	});
 	if (!made) return false;
-	if (made.orders) await forgetMoveVisits(scene, made.entered, made.orders);
-	await uncountPace({ when: made.when, paced: made.paced });
-	if (made.held && heldBack(scene).move === made.held) await setHeldBack(scene, []);
+	// Each forgets a part of its own, so none waits on another.
+	await Promise.all([
+		made.orders ? forgetMoveVisits(scene, made.entered, made.orders) : null,
+		uncountPace({ when: made.when, paced: made.paced }),
+		made.held && heldBack(scene).move === made.held ? setHeldBack(scene, []) : null
+	]);
 	return true;
 }
 

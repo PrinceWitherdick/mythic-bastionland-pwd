@@ -7,6 +7,7 @@ import {
 	DIRECTIONS,
 	REALM_LAYOUTS,
 	allHexes,
+	barrierEdges,
 	directionNames,
 	edgeAt,
 	edgeDirection,
@@ -266,6 +267,17 @@ describe("edges", () => {
 		const rows = realmGeometry({ layout: "evenRows" });
 		const first = hexCentre(rows, { col: 1, row: 1 });
 		expect(edgeAt(rows, { x: first.x, y: first.y - 70 })).toBeNull();
+	});
+});
+
+describe("barrierEdges", () => {
+	const realm = { barriers: [{ edge: "1,1|2,1", revealed: true }, { edge: "3,3|3,4" }, { edge: "5,5|6,5", revealed: false }] };
+
+	it("names every Barrier, or only the revealed or the hidden ones", () => {
+		expect(barrierEdges(realm)).toEqual(new Set(["1,1|2,1", "3,3|3,4", "5,5|6,5"]));
+		expect(barrierEdges(realm, { revealed: true })).toEqual(new Set(["1,1|2,1"]));
+		expect(barrierEdges(realm, { revealed: false })).toEqual(new Set(["3,3|3,4", "5,5|6,5"]));
+		expect(barrierEdges(null, { revealed: true })).toEqual(new Set());
 	});
 });
 

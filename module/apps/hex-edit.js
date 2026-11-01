@@ -3,6 +3,7 @@ import { editRealmByHand, getRealm, realmUndoState } from "../actions/realm.js";
 import { loadArtIndex, mythEntry, mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { freshRandom } from "../rules/random.js";
+import { oncePerKey } from "../rules/queue.js";
 import { offeredLandmarks } from "../actions/blog-landmarks.js";
 import {
 	HOLDING_STYLES,
@@ -299,7 +300,7 @@ export function chooseHexMyth(scene, hex) {
 }
 
 /** The Sanctums whose Seer is being rolled, by Scene and hex, so a second click doesn't roll twice. */
-const seersRolling = new Set();
+const seersRolling = oncePerKey();
 
 /**
  * Roll which Seer lives at a Sanctum, on the Knights table (p26). As in a
@@ -309,18 +310,11 @@ const seersRolling = new Set();
  * @param {{col: number, row: number}} hex
  */
 export async function rollHexSeer(scene, hex) {
-	const key = `${scene.id}:${hexKey(hex)}`;
-	if (seersRolling.has(key)) return;
-	seersRolling.add(key);
-	try {
-		await editRealmByHand(scene, (realm, g) => {
-			const { landmark } = featureAt(realm, hex);
-			const seer = landmark ? rollFreeSeer(freshRandom(), realm.landmarks) : null;
-			return seer ? placeFeature(realm, g, hex, { kind: "landmark", type: landmark.type, seer }) : realm;
-		});
-	} finally {
-		seersRolling.delete(key);
-	}
+	await seersRolling(`${scene.id}:${hexKey(hex)}`, () => editRealmByHand(scene, (realm, g) => {
+		const { landmark } = featureAt(realm, hex);
+		const seer = landmark ? rollFreeSeer(freshRandom(), realm.landmarks) : null;
+		return seer ? placeFeature(realm, g, hex, { kind: "landmark", type: landmark.type, seer }) : realm;
+	}));
 }
 
 /**
