@@ -4,10 +4,17 @@
  * wears theirs. Only the choosing and the geometry live here, so they can be
  * tested without a canvas.
  */
+import { ICON_SCALE } from "./realm-documents.js";
 import { heraldryBadge } from "./token-heraldry.js";
 
-/** The shield's height, as a share of the Holding's icon. Small enough to clear a Seat's crown at its top. */
-export const ARMS_SHARE = 0.34;
+/** The shield's height, as a share of the Holding's icon: about twice a Token's, to read on the map. */
+export const ARMS_SHARE = 0.68;
+
+/** The gap between a Seat's crown and the shield beside it, as a share of the Holding's icon. */
+const CROWN_GAP = 0.025;
+
+/** How far the shield rises above the icon's top, as a share of the icon. */
+const ARMS_RISE = 0.05;
 
 /** How strongly the Referee sees arms on a Holding hidden from the players, as Foundry shows hidden Tiles. */
 export const HIDDEN_ALPHA = 0.5;
@@ -39,10 +46,20 @@ export const HIDDEN_ALPHA = 0.5;
  */
 
 /**
+ * Where a Holding's shield goes: at its icon's top right, starting just right
+ * of where a Seat's crown hangs over the icon's middle, so a Seat shows both.
  * @param {{x: number, y: number, width: number, height: number}} box A Holding's icon.
- * @returns {ReturnType<typeof heraldryBadge>} Where its shield goes.
+ * @returns {ReturnType<typeof heraldryBadge>}
  */
-export const holdingArmsBadge = (box) => heraldryBadge(box, Math.min(box.width, box.height), { share: ARMS_SHARE });
+export function holdingArmsBadge(box) {
+	const side = Math.min(box.width, box.height);
+	const badge = heraldryBadge(box, side, { share: ARMS_SHARE });
+	const crownHalf = (side * ICON_SCALE.seat) / ICON_SCALE.holding / 2;
+	const dx = box.x + box.width / 2 + crownHalf + side * CROWN_GAP - badge.outline.x;
+	const dy = box.y - side * ARMS_RISE - badge.outline.y;
+	const move = (point) => ({ ...point, x: point.x + dx, y: point.y + dy });
+	return { ...badge, outline: move(badge.outline), field: move(badge.field), painting: move(badge.painting) };
+}
 
 /**
  * The domain's arms as a Holding shows them.

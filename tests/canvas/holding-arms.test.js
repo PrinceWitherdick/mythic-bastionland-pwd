@@ -13,6 +13,10 @@ class FakeDisplay {
 	x = 0;
 	y = 0;
 	position = { set: (x, y) => { this.x = x; this.y = y; } };
+	listeners = {};
+	on(event, listener) {
+		(this.listeners[event] ??= []).push(listener);
+	}
 	addChild(child) {
 		this.children.push(child);
 		child.parent = this;
@@ -23,17 +27,8 @@ class FakeDisplay {
 	}
 	destroy() {
 		this.destroyed = true;
+		for (const listener of this.listeners.destroyed ?? []) listener();
 	}
-}
-
-class FakeGraphics extends FakeDisplay {
-	beginFill() {}
-	endFill() {}
-	moveTo() {}
-	lineTo() {}
-	quadraticCurveTo() {}
-	bezierCurveTo() {}
-	closePath() {}
 }
 
 class FakeSprite extends FakeDisplay {
@@ -43,12 +38,47 @@ class FakeSprite extends FakeDisplay {
 	}
 }
 
+/** A texture painted from a canvas, which records what was painted on it. */
+class FakeTexture {
+	constructor(baseTexture) {
+		this.baseTexture = baseTexture;
+	}
+	destroy(base) {
+		this.destroyed = base ? "with its base" : true;
+	}
+}
+
+class FakeBaseTexture {
+	constructor(source, options) {
+		Object.assign(this, { source, options });
+	}
+}
+
+/** A 2D canvas, keeping the calls its shield was painted with. */
+function fakeCanvas() {
+	const calls = [];
+	const context = new Proxy({}, {
+		get: (target, name) => (name in target ? target[name] : (...args) => calls.push([name, ...args])),
+		set: (target, name, value) => { target[name] = value; return true; }
+	});
+	return { width: 0, height: 0, calls, getContext: () => context };
+}
+
 /** Each picture's load, held back until a test lets it go. */
 let loads;
-globalThis.PIXI = { Container: FakeDisplay, Graphics: FakeGraphics, Sprite: FakeSprite };
+globalThis.PIXI = {
+	Container: FakeDisplay,
+	Sprite: FakeSprite,
+	Texture: FakeTexture,
+	BaseTexture: FakeBaseTexture,
+	MIPMAP_MODES: { OFF: "no mipmap" },
+	SCALE_MODES: { LINEAR: "linear" }
+};
+globalThis.document = { createElement: () => fakeCanvas() };
+globalThis.Path2D = class { constructor(path) { this.path = path; } };
 globalThis.foundry = {
 	canvas: {
-		loadTexture: (src) => new Promise((resolve) => loads.push({ src, resolve: (texture = { src, width: 10, height: 10 }) => resolve(texture) }))
+		loadTexture: (src) => new Promise((resolve) => loads.push({ src, resolve: (texture = { src, width: 10, height: 10, baseTexture: { resource: { source: `image:${src}` } } }) => resolve(texture) }))
 	}
 };
 
@@ -110,21 +140,38 @@ describe("drawHoldingArms", () => {
 		expect(layer().eventMode).toBe("none");
 		expect(layer().children).toHaveLength(1);
 		const [shield] = layer().children;
-		const sprite = shield.children.find((child) => child instanceof FakeSprite);
-		expect(sprite.texture.src).toBe("arms.webp");
-		// Its shield is masked to the field.
-		expect(sprite.mask).toBeInstanceOf(FakeGraphics);
+		const [sprite] = shield.children;
+		// Painted once, smoothly, in a 2D canvas: its ink, then the arms cut to the field.
+		const { source, options } = sprite.texture.baseTexture;
+		expect(options).toEqual({ mipmap: "no mipmap", scaleMode: "linear" });
+		const names = source.calls.map(([name]) => name);
+		expect(names.indexOf("clip")).toBeGreaterThan(names.indexOf("fill"));
+		const image = source.calls.find(([name]) => name === "drawImage");
+		expect(image[1]).toBe("image:arms.webp");
+		expect(names.indexOf("drawImage")).toBeGreaterThan(names.indexOf("clip"));
+	});
+
+	it("throws its painted shield away with it", async () => {
+		const drawn = drawHoldingArms();
+		await finishLoads();
+		await drawn;
+		const [sprite] = layer().children[0].children;
+		sprite.destroy();
+		expect(sprite.texture.destroyed).toBe("with its base");
 	});
 
 	it("sets the shield at the icon's top right, though the Tile is placed by its middle", async () => {
 		const drawn = drawHoldingArms();
 		await finishLoads();
 		await drawn;
-		const sprite = layer().children[0].children.find((child) => child instanceof FakeSprite);
-		const { painting } = holdingArmsBadge({ x: 100, y: 100, width: 80, height: 80 });
-		expect([sprite.x, sprite.y, sprite.width, sprite.height]).toEqual([painting.x, painting.y, painting.width, painting.height]);
-		// Hanging just past the icon's right edge, not half an icon beyond it.
-		expect(sprite.x + sprite.width).toBeLessThan(200);
+		const [sprite] = layer().children[0].children;
+		const badge = holdingArmsBadge({ x: 100, y: 100, width: 80, height: 80 });
+		expect([sprite.x, sprite.y]).toEqual([badge.outline.x, badge.outline.y]);
+		// As large as the badge, give or take the canvas rounding up to whole pixels.
+		expect(sprite.width).toBeCloseTo(badge.width, 0);
+		expect(sprite.height).toBeCloseTo(badge.height, 0);
+		// Hanging a little past the icon's right edge, not half an icon beyond it.
+		expect(sprite.x + sprite.width).toBeLessThan(220);
 		expect(sprite.y).toBeLessThan(120);
 	});
 

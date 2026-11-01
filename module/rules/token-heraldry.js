@@ -38,32 +38,3 @@ export function heraldryBadge(art, side = Math.min(art.width, art.height), { sha
 	};
 	return { scale, width: outlineWidth * scale, height: outlineHeight * scale, outline, field, painting };
 }
-
-/**
- * A shield path as drawing steps, moved and scaled. It reads the absolute
- * M, L, H, V, Q, C and Z commands the shield's paths use; H and V become L.
- * @param {string} path
- * @param {number} scale
- * @param {number} dx Added to every x once scaled.
- * @param {number} dy Added to every y once scaled.
- * @returns {Array<[string, ...number[]]>} Such as ["M", 0, 7], ["Q", …], ["Z"].
- */
-export function pathSteps(path, scale, dx, dy) {
-	const steps = [];
-	let [x, y] = [0, 0];
-	for (const [, command, args] of path.matchAll(/([MLHVQCZ])([^MLHVQCZ]*)/gi)) {
-		if (command !== command.toUpperCase()) throw new Error(`Relative path command "${command}" isn't supported`);
-		const numbers = args.trim() ? args.trim().split(/[\s,]+/).map(Number) : [];
-		if (command === "Z") {
-			steps.push(["Z"]);
-			continue;
-		}
-		if (command === "H") [x] = numbers;
-		else if (command === "V") [y] = numbers;
-		else [x, y] = numbers.slice(-2);
-		const points = command === "H" || command === "V" ? [x, y] : numbers;
-		const moved = points.map((value, index) => value * scale + (index % 2 === 0 ? dx : dy));
-		steps.push([command === "H" || command === "V" ? "L" : command, ...moved]);
-	}
-	return steps;
-}
