@@ -482,12 +482,17 @@
 	font-size: var(--bastionland-font-note);
 }
 
-/* The weapon or Feat the die came from, held under it rather than stretching it. */
+/*
+ * The weapon or Feat the die came from, held under it rather than stretching it.
+ * The clamp clips at the line box, and IM Fell's g, j, p and q hang 0.283em under
+ * the baseline: at 1.2 the box stops 0.256em under it and cuts their tails off.
+ */
 .bastionland-die__label {
 	display: -webkit-box;
 	max-width: 100%;
 	overflow: hidden;
 	font-size: var(--bastionland-font-floor);
+	line-height: 1.3;
 	text-align: center;
 	overflow-wrap: anywhere;
 	-webkit-box-orient: vertical;
