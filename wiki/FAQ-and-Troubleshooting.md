@@ -56,9 +56,6 @@ On the same Settings tab: **Text Size** up to 1.40, **High Contrast**, a plainer
 **The travel rules beside the map, the time bar or the hex label are in my way.**
 Each can be hidden for your browser alone on the Settings tab: **Travel Rules beside the Realm Map**, **Phase, Season and Age at the Top of the Screen** and **Name the Realm Hex under the Pointer**. Everyone else keeps theirs.
 
-**Why are my Tokens round?**
-Token pictures are cropped to a circle by default. To show a picture whole, untick **Round picture** under **Fit** in its Token Config (or the Prototype Token, for every Token placed from it). Setting the **Shape** to Rectangle unticks it too. The Company Token and Tokens with Foundry's Dynamic Ring are always shown whole.
-
 **A player's sheet looks different from mine.**
 Colour scheme, text size, typeface and the rest are per-browser settings. Each person sets their own.
 

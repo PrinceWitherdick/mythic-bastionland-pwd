@@ -70,7 +70,6 @@ import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { BastionlandToken, registerTokenHeraldryHooks } from "./module/canvas/BastionlandToken.js";
 import { registerRealmTokenRuler } from "./module/canvas/realm-token-ruler.js";
-import { registerRoundTokenHooks } from "./module/canvas/round-tokens.js";
 import { registerSoloPlaceables } from "./module/canvas/solo-placeables.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
@@ -435,8 +434,6 @@ Hooks.once("init", () => {
 	// Solo play keeps the Realm's secrets off the Referee's map too.
 	registerSoloPlaceables();
 	registerTokenHeraldryHooks();
-	// Token pictures are round unless their Round picture tick is off; new Tokens take the Ellipse shape to match.
-	registerRoundTokenHooks();
 	// Foundry's own Undo key reaches the Realm layer; Redo has no key of Foundry's.
 	game.keybindings.register(SYSTEM_ID, "redoRealm", {
 		name: "bastionland.realm.keybinding.redo.name",
