@@ -38,14 +38,16 @@ To hide the panels in your own browser only, untick **Travel Rules beside the Re
 
 ## When the Company moves
 
-One Token stands for the whole Company, and every player can move it. As it comes into a hex, the Referees are whispered a **Where the Company Came** card when the move calls for something:
+One Token stands for the whole Company, and every player can move it. While it is dragged, Foundry's ruler names the pace beside the distance (**Trek**, **Gallop**, **Cruise**, or too far for one Phase) and tints the path to match. Each move that stops in a new hex whispers the Referees a **Where the Company Came** card. It counts the hexes travelled this Phase, has an **End the** (Phase) button, since travelling takes the whole Phase, and offers what the hex calls for:
 
 - **A Myth's hex**: entering it shows the Myth's next Omen. **Reveal its next Omen** does it.
 - **A Holding**: **Local Mood** rolls how things stand there.
 - **A second hex this Phase** is a Gallop: **Gallop** costs each steed d6 VIG. A third is a Cruise, and further is noted as beyond any way of travelling.
 - **Dire weather** keeps the Company in its hex. **Keep them where they were** moves the Token back.
 
-Nothing is spent until you press a button, so a Token dragged by mistake costs nothing.
+Nothing is spent until you press a button, so a Token dragged by mistake costs nothing. To take a move back, press `Ctrl`+`Z` as for any Token: the visits and pace it made are forgotten, and whatever it found stays found.
+
+The Company can't travel while no Referee is logged in, since nothing of the journey would be kept. A player's move is refused and says so.
 
 When the Company comes to rest, Places opens on its new hex for you (see [Places and the Lay of the Land](Places-and-the-Lay-of-the-Land#opening-places)), and a wilderness hex with nothing in it yet has its land rolled.
 
@@ -73,6 +75,7 @@ It asks whether the Company ended the Phase **Travelling** or **Camping outdoors
 
 - **A Landmark found** is revealed on the map, and named from the prompt a random page of your book prints for its kind if it had no name. A Sanctum names the Seer who lives there.
 - **An Omen** is counted on its Myth.
+- **A Phase ended in a Myth's own hex** adds a line: where it can be, the Knights catch this Omen before it catches them.
 - **Hex chips** on the card name each hex: point at one to ring it on the map, click it to go there.
 
 ## Landmarks
@@ -81,10 +84,10 @@ The Wilderness card, and the Landmark tab of a hex in Places, carry what each ki
 
 | Landmark | Button | What it does |
 | --- | --- | --- |
-| Monument | **Spend a Phase: Restore SPI** | Tick who takes part; their SPI is restored in full, as a Sacrament would. The Phase's end comes next. |
-| Hazard | **Push Through** | Asks which Virtue the Hazard takes (most often VIG); everybody who pushes through loses d6 of it. |
+| Monument | **Spend a Phase: Restore SPI** | Tick who takes part, steeds and followers included; their SPI is restored in full, as a Sacrament would. The Phase's end comes next. |
+| Hazard | **Push Through** | Asks which Virtue the Hazard takes (most often VIG) from a list, and who pushes through, steeds and followers included; each loses d6 of it. |
 | Hazard | **Go Back** | Sends the Company Token back to the hex it came from. |
-| Ruin | **Echo a Myth** | Rolls a Myth the Realm doesn't hold and whispers it to the Referees, to hint at. |
+| Ruin | **Echo a Myth** | Rolls a Myth the Realm isn't playing out now, a resolved one included, and whispers it to the Referees, to hint at. |
 | Curse | | Throws the Company off course: travel in the next Phase is travelling blind. |
 
 While a Curse holds, the Referee Toolkit's Time page shows **Thrown Off Course**, with **Roll Travelling Blind** and **They Hold Their Course** to let the blight go. During the cursed Phase, each move of the Company Token is rolled for already.
@@ -114,7 +117,7 @@ Three actions, each from the Rest and Exploration panel or from a hex's Lay of t
 
 ### Ask Somebody
 
-Asks **Who is asked**: **A Vassal**, **A Knight or Vagabond**, or **A Seer**. Each knows a different amount, read off the map: the nearest Myth and which way it lies, a random Myth and the nearest Landmark, or everything. **Ask Them** posts a **Gathering Folklore** card listing the Myths and Landmarks they know, each with a hex chip where they can name the hex.
+Asks **Who is asked**: **A Vassal**, **A Knight or Vagabond**, or **A Seer**. Each knows a different amount, read off the map: the nearest Myth still unresolved, a random Myth and the nearest Landmark, or everything. A teller who can't name a Myth's hex says which way it lies instead. **Ask Them** posts a **Gathering Folklore** card listing the Myths and Landmarks they know, each with a hex chip where they can name the hex.
 
 ### Search the Hex
 

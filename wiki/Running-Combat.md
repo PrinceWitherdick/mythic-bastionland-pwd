@@ -21,7 +21,8 @@ Each ticked character makes a CLA Save, and one **Surprise** card in chat shows 
 What differs for you:
 
 - **You own every card.** Any die of 4 or more on an NPC's card can be clicked to spend it on a Gambit, and **Focus** works for the NPC as it does for a Knight.
-- **Taking a Gambit back late.** Once a Gambit has been Saved against or its Greater effect carried out, or for any Dismount, only you can take it back, on any card. You're asked first, since whatever was rolled for it is lost and anything done to a sheet stays done.
+- **Taking a Gambit back late.** Once a Gambit has been Saved against or its Greater effect carried out, or for any Dismount, only you can take it back, on any card. You're asked first, since whatever was rolled for it is lost and anything done to a sheet stays done. A Deny made after the Gambits lets the attacker take theirs back too.
+- **Out of the fight.** A fled or surrendered NPC, a fled, surrendered or wiped-out Warband, and a destroyed structure make no Attack; the dialog says why. A Broken Warband still attacks, but follows no orders.
 - **Feats for the Cast.** An NPC can only Smite, Focus or Deny if the Feat is marked under **Feats** on its sheet.
 - **Joining an Attack.** To have a second NPC roll into the same Attack, select its Token and press **Join this Attack** on the card. A Referee is offered only the selected Tokens, since you own everybody.
 - **Who sees the card.** The card follows the chat's roll mode. Posted privately, the players can't see it, and so can't Deny on it, and the blows on the map are shown only to Referees.
@@ -56,7 +57,7 @@ Morale only touches those the players don't play: NPCs, and Knights you play you
 
 **A single character.** When the Damage card says an NPC is Wounded, it carries a **Roll Morale** button that only its owner sees. The SPI Save posts a **Morale** card. You can also press **Morale** on the NPC's sheet; that one first opens a window saying what the Save does, and rolls once you press **Accept**.
 
-**When Morale breaks.** A failed Save's card offers **Fled** and **Surrendered**. Either one marks the NPC on its sheet, marks its Combatant defeated, and passes over its turn in the tracker. The mark shows as a pill among the NPC's conditions: **click the ×** on it when they rally, or if it was pressed by mistake. They go back into the turn order unless they're down some other way. Only NPCs get these buttons; a Knight you play just shows the result.
+**When Morale breaks.** A failed Save's card offers **Fled** and **Surrendered**. Either one marks the NPC on its sheet, marks its Combatant defeated, and passes over its turn in the tracker. The mark shows as a pill among the NPC's conditions: **click the ×** on it when they rally, or if it was pressed by mistake. They go back into the turn order unless they're down some other way. NPCs and NPC Knights get these buttons; an NPC Knight's mark shows on the Knight sheet the same way.
 
 **A whole side.** Sides are read from Token disposition (Friendly, Neutral, Hostile). Once half or more of a side of two or more is down (Mortally Wounded, Slain, fled, surrendered or marked defeated), a **Wavering Morale** card is whispered to the Referees, once per side per Combat. It names who is still standing and offers:
 
@@ -72,7 +73,7 @@ Morale only touches those the players don't play: NPCs, and Knights you play you
 An NPC set to the **Warband** scale on its sheet fights as a unit. Mustering one for a Domain is on [Domains and Courts](Domains-and-Courts).
 
 - **Against individuals.** A Warband's Attack dialog has an **Against individuals** box that adds +d12 and makes the Attack a Blast. It ticks itself when everyone targeted is a single person or beast, and unticks when a Warband, swarm or structure is among them. Hover it to see why.
-- **Led from the front.** Pick a leader under **Led from the front by** and the dice of the weapons they would wield join the Warband's roll, or a single d4 if they're Impaired or unarmed. Select the leader's Token first to have them listed. A Slain or dying Knight can't lead. Until their next turn they take whatever Damage gets past the Warband's Armour: on their own if you own them, otherwise a note in chat tells their player to apply it. The leader is let go at the start of their next turn, when the Combat ends, or with the × beside their name on the Warband's sheet.
+- **Led from the front.** Pick a leader under **Led from the front by** and the dice of the weapons they would wield join the Warband's roll, or a single d4 if they're Impaired or unarmed. Select the leader's Token first to have them listed. A Slain or dying Knight can't lead, and nobody leads two Warbands at once. Until their next turn they take whatever Damage gets past the Warband's Armour: on their own if you own them, otherwise a note in chat tells their player to apply it. The leader is let go at the start of their next turn, when the Combat ends, or with the × beside their name on the Warband's sheet. A leader who goes down stops taking the Warband's Damage.
 - **Hitting a Warband.** Only a Blast or another large-scale Attack harms a Warband. Where the card can't tell, the **Take Damage** window asks. A Warband's own Attack is large-scale, so it can harm another Warband.
 - **Its state.** The sheet shows **Routed** (a Mortal Wound or fleeing), **Broken** (SPI 0) and **Wiped Out** (VIG 0) as they happen. A Warband's Morale card comes when its VIG first drops to half or below, not on every Wound.
 - **Upkeep.** A Warband's sheet has an **Upkeep** button. Pick what has worn them down (**Ill-rested**, **Poorly fed** or **Driven too hard**) and press **Roll SPI Loss**. It takes d6 SPI and posts the result; at SPI 0 the card says they no longer take orders.
@@ -112,7 +113,7 @@ What the players are shown:
 
 ## When the fight ends
 
-Ending the encounter in the Combat Tracker asks the Referee, in a window titled **The Danger Has Passed**, whether to restore Guard for everyone who fought and clear their Fatigue and Exposed. Structures and the Slain are left out. Any Warband leaders are let go at the same time.
+Ending the encounter in the Combat Tracker asks the Referee, in a window titled **The Danger Has Passed**, whether to restore Guard for everyone who fought and clear their Fatigue and Exposed. Structures and the Slain are left out. Any Warband leaders are let go at the same time. If anyone still lies Mortally Wounded, you're whispered who, since left untended they die.
 
 ## Referee rolls
 

@@ -2,7 +2,7 @@
 
 A **Domain** is an actor for a Holding someone rules (the book's p20 to p21). Its sheet keeps the ruler and their successor, the Holding on the Realm map, the Council and the tasks it has in hand, the Court, the Crises the Domain faces, its Grand Designs and the Warbands it has raised. The buttons along its top make the Domain's rolls: the Crisis Roll, Increased Collections and Drama in Court. A Knight who rules a Domain gets a button for it on their own sheet.
 
-![The demo world's Domain sheet on its Rule page, with Dame Isolde Marrow's arms in the header, the toolbar of five buttons, the Lordship block with Ruler, Successor and Holding filled in, the Authority block listing a mustered Warband with i](images/domains-and-courts-rule.webp)
+![The demo world's Domain sheet on its Rule page, with Dame Isolde Marrow's arms in the header, the toolbar of four buttons, Lordship with the Landmarks its rule reaches, Authority with a mustered Warband, the Council, and Pass On beside Seize by Force at the foot](images/domains-and-courts-rule.webp)
 
 ## Getting a Domain
 

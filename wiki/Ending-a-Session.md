@@ -51,8 +51,9 @@ This section only appears for **Months** and **Years**, since unresolved situati
 - **Click Add a situation** for a new row, and type what was left hanging.
 - **Click Roll** on a row to roll the Unresolved Situation table for it. The card goes to chat, and the result shows under the row.
 - **Click the ×** to take a row off the list.
+- **Show the players**, under the list, shares the situations. Unticked, the rolls are whispered to you, and the summary card leaves them out: they go on a card of their own for the Referee alone.
 
-Only rows you rolled make it onto the summary card. A rolled row with no name is listed as "A situation left unresolved".
+Only rows you rolled make it onto the summary. A rolled row with no name is listed as "A situation left unresolved".
 
 ### Crisis Rolls still owed
 
@@ -85,9 +86,10 @@ If the time step can't be carried out, nothing else happens and the window stays
 
 | What | Where it goes | Who sees it |
 | --- | --- | --- |
-| Passage of Time and Unresolved Situation rolls | A chat card each, as you roll | Whoever your chat mode lets see it |
+| Passage of Time rolls | A chat card each, as you roll | Whoever your chat mode lets see it |
+| Unresolved Situation rolls | A chat card each, as you roll | The Referee alone, unless **Show the players** is ticked |
 | Glory awards | A chat card each, as you award; Tournament and Battle awards on the Timeline too | Whoever your chat mode lets see it; the Timeline is for everyone |
-| The summary card | Chat, when the session ends. It lists how much time passed, each rolled situation and its result, the Glory awarded, and the players' plans | Whoever your chat mode lets see it |
+| The summary card | Chat, when the session ends. It lists how much time passed, each rolled situation and its result (when shared), the Glory awarded, and the players' plans | Whoever your chat mode lets see it |
 | Your recap | The Season's notes on the Referee Toolkit; on the Timeline as well if the share box is ticked | The Toolkit is the Referee's alone. The Timeline is for everyone |
 | The players' plans | The Season's notes, the summary card and the Timeline row | Everyone who sees the card or the Timeline |
 

@@ -110,7 +110,7 @@ Each field saves as soon as you change it.
 - **Terrain**: the hex's terrain.
 - **In this hex**: Nothing, Holding, Myth or Landmark.
 - A **Holding** has its **Style**, its **Name**, a **Seat of Power** tick, and **Disputed**, for a Seat another Holding also claims.
-- A **Myth** has its **Number**, the Myth rolled for it with **Roll** and **Choose**, the Omens seen with **-** and **+**, and whether it is revealed to players. **Choose** opens the Realm's Myths window on this one.
+- A **Myth** has its **Number**, the Myth rolled for it with **Roll** and **Choose**, the Omens seen with **-** and **+**, and whether it is revealed to players. **Choose** opens the Realm's Myths window on this one. A Myth rolled anew with **Roll** starts with no Omens seen; dice you type in by hand are a correction, and keep them.
 - A **Landmark** has its **Type** and its **Name**. A Sanctum also has its Seer, with **Roll**. A Grotto, Fountain or Willow has **Which** of its three it is, with a die to roll it. A Pond has **Leads To**: the other Pond it's paired with, or none, so it leads out of this Realm.
 - **Barriers**: each of the hex's six edges, set to None, Hidden or Revealed.
 - **Undo** and **Redo** at the foot.
@@ -128,6 +128,8 @@ To change one hex's picture, click it again with the same terrain in the brush. 
 ## Reroll the Realm
 
 **Reroll the Realm** rolls a new Realm onto the Scene in view. It asks first, and names any parts you set up to draw by hand, which it keeps. Tokens, Tiles and Drawings of your own stay. A new Realm Key is whispered to the Referees, and the Undo history is cleared.
+
+On a Realm already in play, the warning says what stays and what goes. The Company's visits and hex notes stay. Marks of things seen from afar are cleared, and so are Barriers met that the new roll takes away. A Courtier Company at the old Seat of Power moves to the new one. Any Domain ruling a Holding here is named, so you can give it its new Holding on its sheet.
 
 ## See also
 

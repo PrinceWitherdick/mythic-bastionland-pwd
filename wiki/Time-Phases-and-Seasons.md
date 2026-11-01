@@ -72,7 +72,7 @@ The window doesn't open at all when no Realm shows the Company, no Night is endi
 Each Season begins with a Feast, has a mass in its middle and ends with the Realm's collection (the Tax, the Tithe or the Levy). The **This Season** section lists all three in order, with where each falls (such as "Spring begins" or "Midspring"). The line under each event comes from your imported rulebook.
 
 - **Click Came to pass** beside an event to mark it, without moving time. Its card goes to chat in the Season's colours.
-- **Click Weeks Pass** (on the Time page or the bar) to carry the Company on to the next event. That event is marked, its card is posted, and the calendar moves to a new Morning. No Phase's end window opens.
+- **Click Weeks Pass** (on the Time page or the bar) to carry the Company on to the next event. That event is marked, its card is posted, and the calendar moves to a new Morning. No Phase's end window opens. The card also lists the Council tasks and Knights' tables that have come due.
 - When only the collection is left, it reads **Ends the Season**, and Weeks Pass turns the Season instead.
 
 The collection's card names the Domains that gather it. The Season's events are the Referee's only; players don't see the marks.
@@ -84,8 +84,9 @@ The collection's card names the Domains that gather it. The Season's events are 
 **Click Months Pass** in that window. Then:
 
 - The calendar moves to the first Morning of the next Season. After Winter comes the next Spring of the same Age.
-- Each ticked Knight has their Virtues restored, and any Scar that settles with the Season is settled. A Knight whose Doom lifts is told so.
-- Everyone else who is short of Virtues is restored too, NPCs and unticked Knights alike. The dead and the dying are left as they are.
+- Each ticked Knight has their Virtues restored and rests: GD back to full (not while sworn to a quest), Fatigue and Exposed gone, and a Mortal Wound cleared, since months on it has long been tended. A Knight whose Doom lifts is told so.
+- Everyone else who is short of Virtues or rest is restored the same way, NPCs and unticked Knights alike. The dead and the dying are left as they are.
+- Any Scar that settles with the Season is settled for everybody it reaches, ticked or not.
 - The Season's collection is marked as come to pass, and every Domain is settled. A Domain that falls into misrule is asked which of its Circle ride away. See [Domains and Courts](Domains-and-Courts).
 - A Season card goes to chat in the new Season's colours: each Knight on one line, then what is now due: Crisis Rolls, Drama in Court, Myths to replace (with a button for each), empty Council seats, finished Grand Designs, Council tasks and Knights' tables.
 - The turn is written into **Past Seasons** and onto [The Campaign Timeline](The-Campaign-Timeline).

@@ -79,6 +79,8 @@ See [Scars, Death and Successors](Scars-Death-and-Successors#successors).
 ### Ability, Passion, Feats and Gambits
 
 - **Ability** and **Passion** are rows like any possession: click the name to show it in chat, and hover for the pencil that opens it. A Passion's row has a wine glass to indulge it and restore SPI. A Knight with no Ability or Passion has **+ Ability** / **+ Passion** buttons.
+- **Stances.** An Ability that takes up a stance or swears a quest has a button on its row: **Take up this stance** or **Swear the quest**. While it holds, it shows as a pill among the Conditions, and the Armour total counts it. It ends by its own rule (some as the Knight's next turn starts), from its row again, or with the × on its pill. While a quest is sworn, resting brings back no GD.
+- Some Abilities add other buttons to their row, such as a horn to blow in a Combat.
 - **Feats** lists Smite, Focus and Deny. Clicking one only shows it to the table: each is really performed during an Attack. See [Saves, Luck and Feats](Saves-Luck-and-Feats#feats).
 - **Gambits** lists every Gambit. Click one to post its rule to chat. See [Combat for Players](Combat-for-Players#gambits).
 

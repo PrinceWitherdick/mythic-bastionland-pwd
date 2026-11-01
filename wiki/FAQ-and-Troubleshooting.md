@@ -8,7 +8,7 @@ Answers to the questions that come up most, and what to do when something looks 
 Yes. The system ships none of the book's text or art, so without your own copy there are no Knights, Seers or Myths to choose from, no Spark Tables, no portraits and no compendiums. Bring it in once and everything fills in. See [Bringing In Your Rulebook](Bringing-In-Your-Rulebook).
 
 **Do I need any modules?**
-No. Everything is built in. A few optional modules add 3D dice, Attack animations and sounds, weather on the map and round tokens. See [Installing and Recommended Modules](Installing-and-Recommended-Modules).
+No. Everything is built in. A few optional modules add 3D dice, Attack animations and sounds, weather on the map and framed tokens. See [Installing and Recommended Modules](Installing-and-Recommended-Modules).
 
 **Does it work on Foundry v13?**
 Yes, v13 and v14 both, with the same features. The one difference you may notice is Foundry's own look: v14 draws its interface dark unless you change it. The system's sheets stay on parchment either way, unless you pick another **Colour Scheme**.
@@ -56,6 +56,9 @@ On the same Settings tab: **Text Size** up to 1.40, **High Contrast**, a plainer
 **The travel rules beside the map, the time bar or the hex label are in my way.**
 Each can be hidden for your browser alone on the Settings tab: **Travel Rules beside the Realm Map**, **Phase, Season and Age at the Top of the Screen** and **Name the Realm Hex under the Pointer**. Everyone else keeps theirs.
 
+**Why are my Tokens round?**
+Token pictures are cropped to a circle by default. To show a picture whole, untick **Round picture** under **Fit** in its Token Config (or the Prototype Token, for every Token placed from it). Setting the **Shape** to Rectangle unticks it too. The Company Token and Tokens with Foundry's Dynamic Ring are always shown whole.
+
 **A player's sheet looks different from mine.**
 Colour scheme, text size, typeface and the rest are per-browser settings. Each person sets their own.
 
@@ -66,6 +69,9 @@ By default a Knight a living character already is can't be rolled, chosen or typ
 
 **My players can't make their own Knights.**
 The system lets players create actors once, when the world is first set up, and their **Create Actor** then offers only a Knight. If you took that permission away under **Configure Permissions**, give **Create New Actors** back to players there.
+
+**A player says a button was refused.**
+Some things are the Referee's alone, and the system stops a player who tries them from their own client: ruling a Domain they don't own, deleting the Timeline or one of its threads, or seeing a Realm the Referee hasn't shown them. When two people press the same button at once, both presses land, and a button meant to be pressed once tells the second person someone pressed it first.
 
 ## The Realm map
 

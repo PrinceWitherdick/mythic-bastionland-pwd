@@ -6,7 +6,7 @@ No book text or art ships with the system. Point it at your own PDF of the book 
 
 This wiki covers what the system does and how to use it, including a lot that's easy to miss. If you only read one page, read [Hidden Tricks](Hidden-Tricks).
 
-![The Realm of Gravenmoor on the map, with the Company's Token, ticks on the hexes it has visited and the time bar at the top](images/home-realm.webp)
+![The Realm of Gravenmoor on the map, with the Company's Token, ticks on the hexes it has visited, a ruled Holding flying its Domain's blue shield, and the time bar at the top](images/home-realm.webp)
 
 ## Start here
 

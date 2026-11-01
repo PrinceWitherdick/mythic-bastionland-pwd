@@ -81,7 +81,7 @@ When the table agrees a Myth is over, however it ended:
 
 A resolved Myth gets a **Resolved** chip, is written on the Timeline (with the Knights you ticked) and in the current Season's record on the Toolkit's **Time** page.
 
-**Not Resolved** on the card undoes it: the mark, the Season's record and the Timeline entry all go.
+**Not Resolved** on the card undoes it: the mark, the Season's record and the Timeline entry all go. If it gave Glory, **Take Back the Glory?** lists those Knights, ticked: untick anyone who keeps theirs and press **Take It Back**. Closing the window keeps everyone's Glory.
 
 ## Replacing a resolved Myth
 

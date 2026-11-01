@@ -93,7 +93,7 @@ One Token stands for the whole Company on the Realm. It belongs to no Actor, so 
 
 ### Its picture
 
-The Referee chooses the Token's picture when the Realm is made, and can change it later: **right-click the Token** and press the **flag** in its HUD, or use **Company picture** on the Referee Toolkit's Settings page. The window offers eight icons, a colour for them (ink, the heraldic tinctures, or a colour of your own), or any picture of the Referee's own. A picture of the Referee's own is kept in the gallery to choose again; the **×** in its corner takes it out of the gallery again.
+The Referee chooses the Token's picture when the Realm is made, and can change it later: **right-click the Token** and press the **flag** in its HUD, or use **Company picture** on the Referee Toolkit's Settings page. The window offers eight icons, a colour for them (ink, the heraldic tinctures, or a colour of your own), or any picture of the Referee's own. A picture of the Referee's own is kept in the gallery to choose again; the **×** in its corner takes it out of the gallery again. Unlike other Tokens, the Company's picture is never cropped round.
 
 ### If the Token goes missing
 

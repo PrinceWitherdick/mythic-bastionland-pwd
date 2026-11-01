@@ -45,7 +45,7 @@ A Realm set up your own way remembers it. **Reroll the Realm** later rolls it th
 
 A rolled Realm is only an offer. A small **Keep this Realm?** window opens at the foot of the map, counting the Holdings, Myths, Landmarks, Barriers and rivers that came up.
 
-- **Roll again** lays a fresh Realm on the same Scene. Press it as often as you like.
+- **Roll again** lays a fresh Realm on the same Scene. Press it as often as you like. Myths you picked by hand are kept.
 - **Choose the Myths** opens the Realm's Myths window, to reroll a Myth or pick one of the book's 72 for it. See [Myths and Omens](Myths-and-Omens).
 - **Keep this Realm** settles it.
 
@@ -68,17 +68,17 @@ While a Realm is being drawn:
 
 ![The Creating a Realm window beside a part-painted blank Realm, open on the Wilderness page, with the rail of pages and their ticks, Undo and Redo at the rail's foot, the terrain swatches under the tally, and Finish the Realm under the map](images/making-a-realm-creating-window.webp)
 
-A rail of pages down its left side follows the book's steps. Each page shows the rules for that step, a tally of how far you have got, and the part of the palette that paints it. A page gets a tick once everything on it is done.
+A rail of pages down its left side follows the book's steps. Each page shows the rules for that step, a tally of how far you have got, and the part of the palette that paints it. The tallies scale with the map's size, so a small Realm asks for fewer of each. A page gets a tick once everything on it is done.
 
 | Page | What you do there |
 | --- | --- |
 | **Pictures** | Imported maps only: line the picture up again, change it, and set how strongly the hex lines show. |
 | **Wilderness** | Paint terrain, lay Barriers and draw rivers. |
 | **Holdings** | Place the Holdings, then choose which one is your Seat of Power, the Realm's chief Holding. |
-| **Myth Hexes** | Myths are placed with **Inspect hexes**: click a hex, and Edit this hex opens beside Places. |
+| **Myth Hexes** | Myths are placed with **Inspect hexes**: click a hex, and Edit this hex opens beside Places. A Myth placed by hand rolls one the Realm doesn't hold yet, and a Sanctum rolls a free Seer. |
 | **Landmarks** | Place the book's six kinds of Landmark, and **Other** for one of your own (and the blog's six, while **More Landmarks (Blog)** is on). **What each one is** folds out a line on each kind. |
 | Book sections | Once your PDF is imported, the book's other sections of p14 stand between these, in its own words. |
-| **The Company** | Choose the Company's picture and carry it to a hex. Reads **Move the Company** once it stands somewhere. |
+| **The Company** | Choose the Company's Start and picture, and carry it to a hex. Reads **Move the Company** once it stands somewhere. What the Start sets going comes when the Realm is finished. |
 
 - **Undo** and **Redo** sit at the foot of the rail.
 - A die written in the rules, such as the d12 in a cluster's size, is a button: **click it** to roll that die and see the result beside the word. Nothing is posted or written.
@@ -88,7 +88,7 @@ Every brush, click and modifier is on [Painting and Editing the Realm](Painting-
 
 ### Finish the Realm
 
-A **Finish the Realm** button stands under the map while you draw. Press it when you are done. If the Realm has less than a typical one (fewer Holdings, no Seat, and so on), it lists what is short and asks whether to finish anyway: the numbers are a guide, not a law. Finishing brings Travel and Exploration back beside the map for everyone, switches you to **Inspect hexes**, and whispers the Realm Key.
+A **Finish the Realm** button stands under the map while you draw. Press it when you are done. If the Realm has less than a typical one (fewer Holdings, no Seat, and so on), it lists what is short and asks whether to finish anyway: the numbers are a guide, not a law. It also warns of any hexes Barriers wall off from the rest of the map, which nobody can reach without crossing one. Finishing brings Travel and Exploration back beside the map for everyone, switches you to **Inspect hexes**, and whispers the Realm Key.
 
 Clicking the paint brush on a finished hand-drawn Realm puts it back into drawing. A rolled Realm never goes into drawing.
 

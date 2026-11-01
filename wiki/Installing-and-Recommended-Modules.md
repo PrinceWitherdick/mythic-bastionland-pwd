@@ -33,7 +33,7 @@ None of these is needed. Each one adds something when it is installed and turned
 | [JB2A](https://foundryvtt.com/packages/JB2A_DnD5e) | The animations Sequencer plays. The free edition is enough; the Patreon edition works too. |
 | [SoundFx Library](https://foundryvtt.com/packages/soundfxlibrary) | Gives Attacks their sound, with or without Sequencer. |
 | [FXMaster](https://foundryvtt.com/packages/fxmaster) | Draws the weather on the Scene the players are on. FXMaster+ works the same way. |
-| [Tokenizer](https://foundryvtt.com/packages/vtta-tokenizer) | Makes round map tokens from Knight and NPC portraits, with a frame and background of your choosing. |
+| [Tokenizer](https://foundryvtt.com/packages/vtta-tokenizer) | Makes map tokens from Knight and NPC portraits, with a frame and background of your choosing. The system already crops Token pictures round without it. |
 
 A new world whose Referee is missing any of these gets a **Recommended Modules** card in chat, whispered to the Referee, with a **Manage Modules** button. A world already in play without FXMaster is told about the weather once, the same way.
 

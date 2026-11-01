@@ -47,7 +47,7 @@ Foundry's number keys run the hotbar's slots, so a player targets with `T` and p
 
 Players can run the Attack, Luck Roll, Places and Timeline macros but not the Referee's. The system keeps each macro's script up to date as it changes, and a name you give a macro is kept.
 
-![The Referee's hotbar at the foot of the screen with Referee Toolkit, Rulebook, New Site and Luck Roll in slots 1 to 4, Import PDF in slot 9 and End the Session in slot 0, each a white drawing on a dark square tile](images/macros-and-hotkeys-hotbar.webp)
+![The Referee's hotbar at the foot of the screen with Referee Toolkit, Rulebook, New Site, Luck Roll and Attack in slots 1 to 5, Import PDF in slot 9 and End the Session in slot 0, each a white drawing on a dark square tile](images/macros-and-hotkeys-hotbar.webp)
 
 ## The Mythic Bastionland Macros compendium
 
