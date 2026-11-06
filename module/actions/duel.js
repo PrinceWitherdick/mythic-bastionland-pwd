@@ -1,7 +1,23 @@
-import { inputDialog } from "../apps/ui.js";
+import { confirmDialog, inputDialog } from "../apps/ui.js";
+import { askUser } from "../ask-gm.js";
 import { attackOf } from "../chat/attack-flag.js";
 import { postCard, statefulCard, t, warn } from "../chat/cards.js";
-import { DUEL_KINDS, awaitsAttack, canStakeGlory, changeDuel, createDuel, duelRefusal, opponentOf, readyToResolve } from "../rules/duel.js";
+import { queryAsker } from "../compat.js";
+import {
+	awaitsAttack,
+	canStakeGlory,
+	changeDuel,
+	createDuel,
+	DUEL_KINDS,
+	duelAsItStands,
+	duelistDown,
+	duelRefusal,
+	opponentOf,
+	readyToResolve,
+	stakesGlory
+} from "../rules/duel.js";
+import { escapeHTML } from "../rules/text.js";
+import { outOfFight } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 /**
@@ -13,6 +29,25 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 export const DUEL_QUERY = `${SYSTEM_ID}.changeDuel`;
 
+/** Asks a duelist's player, or the Referee, whether they'll stake Glory on a duel they're challenged to. */
+export const STAKE_QUERY = `${SYSTEM_ID}.agreeToStake`;
+
+/** How long the other side has to agree to a stake before the duel goes ahead without one. */
+const STAKE_TIMEOUT_MS = 60000;
+
+/**
+ * Whether an Attack card is still in chat: one deleted is no Attack, and its duelist rolls again.
+ * @param {string} id
+ * @returns {boolean}
+ */
+const attackCardHere = (id) => Boolean(game.messages?.get(id));
+
+/**
+ * @param {import("../rules/duel.js").DuelState|null} duel
+ * @returns {import("../rules/duel.js").DuelState|null} The duel as it stands, an Attack card deleted from chat forgotten.
+ */
+const standing = (duel) => duelAsItStands(duel, attackCardHere);
+
 /**
  * Template data for a duel card at any point.
  * @param {import("../rules/duel.js").DuelState} duel
@@ -20,22 +55,32 @@ export const DUEL_QUERY = `${SYSTEM_ID}.changeDuel`;
 export function duelCardContext(duel) {
 	const [first, second] = duel.duelists;
 	const victor = duel.duelists.find((duelist) => duelist.uuid === duel.victor);
+	const outcome = duel.closed
+		? t(`duel.closed.${duel.closed.reason}`, { name: duel.closed.name })
+		: victor ? t("duel.won", { name: victor.name }) : t("duel.endedNoVictor");
 	return {
 		title: duel.sparring ? t("duel.sparringTitle", { kind: t(`duel.kinds.${duel.kind}.label`) }) : t(`duel.kinds.${duel.kind}.label`),
 		tagline: t("duel.versus", { first: first.name, second: second.name }),
 		duelists: duel.duelists.map((duelist) => ({
 			uuid: duelist.uuid,
 			name: duelist.name,
-			status: t(duelist.attack ? "duel.rolled" : "duel.waiting"),
+			status: t(duelistDown(duel, duelist.uuid) ? "duel.downStatus" : duelist.attack ? "duel.rolled" : "duel.waiting"),
 			wins: t("duel.wins", { name: duelist.name })
 		})),
 		exchanges: duel.exchanges ? t("duel.exchanges", { count: duel.exchanges }) : null,
-		// Sparring says all a bloodless bout would, and more.
-		notes: [duel.stake && t("duel.stakeNote"), duel.sparring ? t("duel.sparringNote") : duel.bloodless && t("duel.bloodlessNote")].filter(Boolean),
+		notes: [
+			duel.stake && t("duel.stakeNote"),
+			// A stake offered and not taken up: the duel goes ahead without one.
+			duel.stakeAnswer && t(`duel.stakeDeclined.${duel.stakeAnswer}`, { name: second.name }),
+			// Closed for a duelist gone or Slain, nobody won it, so the stake stayed where it was.
+			duel.closed && duel.stake && t("duel.stakeUnmoved"),
+			// Sparring says all a bloodless bout would, and more.
+			duel.sparring ? t("duel.sparringNote") : duel.bloodless && t("duel.bloodlessNote")
+		].filter(Boolean),
 		// Resolve stays live before both Attacks are in, and says what it waits for.
-		resolveHint: readyToResolve(duel) ? null : t("duel.notReady"),
+		resolveHint: readyToResolve(standing(duel)) ? null : t("duel.notReady"),
 		ended: duel.ended,
-		outcome: victor ? t("duel.won", { name: victor.name }) : t("duel.endedNoVictor")
+		outcome
 	};
 }
 
@@ -47,13 +92,29 @@ function renderDuelCard(duel) {
 	return foundry.applications.handlebars.renderTemplate(templatePath("chat/duel.hbs"), duelCardContext(duel));
 }
 
-const duelCard = statefulCard({ flag: "duel", query: DUEL_QUERY, notices: "duel", change: changeDuel, render: renderDuelCard, fits: duelChangeFits });
+// An Attack card since deleted is no Attack, so its duelist may roll another in its place. Forgetting
+// one is the change that writes that on the card, so it's made on the duel as written.
+const duelCard = statefulCard({
+	flag: "duel",
+	query: DUEL_QUERY,
+	notices: "duel",
+	change: (duel, change) => changeDuel(change?.type === "forget" ? duel : standing(duel), change),
+	render: renderDuelCard,
+	fits: duelChangeFits
+});
 
 /**
  * @param {ChatMessage|undefined} message
- * @returns {import("../rules/duel.js").DuelState|null}
+ * @returns {import("../rules/duel.js").DuelState|null} The duel on a card, as it stands.
  */
-export const duelOf = duelCard.stateOf;
+export const duelOf = (message) => standing(duelCard.stateOf(message));
+
+/**
+ * @param {ChatMessage|undefined} message
+ * @returns {import("../rules/duel.js").DuelState|null} The duel as written on its card, holding
+ *   any Attack card since deleted until that's forgotten.
+ */
+export const writtenDuelOf = duelCard.stateOf;
 
 /**
  * Whether a change fits the duel it's made on: an Attack must be an Attack
@@ -64,6 +125,8 @@ export const duelOf = duelCard.stateOf;
  * @returns {boolean}
  */
 function duelChangeFits(message, change) {
+	// Only an Attack card that's really gone is forgotten.
+	if (change?.type === "forget") return !attackCardHere(change.message);
 	if (change?.type !== "attack") return true;
 	// The Attack card's state, as attack-card.js keeps it.
 	const attack = attackOf(game.messages.get(change.message));
@@ -79,7 +142,21 @@ function duelChangeFits(message, change) {
 export const saveDuelChange = duelCard.save;
 
 /**
- * The newest duel still waiting on this actor's Attack.
+ * Whether a duelist can still be fought in their duel: not deleted, Slain or
+ * otherwise out of the fight, nor knocked down in a sparring bout.
+ * @param {import("../rules/duel.js").DuelState} duel
+ * @param {import("../rules/duel.js").Duelist} duelist
+ * @returns {boolean}
+ */
+function standsInDuel(duel, duelist) {
+	const actor = fromUuidSync(duelist.uuid);
+	return Boolean(actor) && !outOfFight(actor.system, { morale: true }) && !duelistDown(duel, duelist.uuid);
+}
+
+/**
+ * The newest duel still waiting on this actor's Attack. One whose other
+ * duelist is gone, Slain or out of the fight, or knocked down sparring, is
+ * over in all but name, so it never takes over the survivor's next Attack.
  * @param {Actor} actor
  * @returns {{message: ChatMessage, duel: object, opponent: object}|null}
  */
@@ -87,7 +164,23 @@ export function openDuelFor(actor) {
 	const messages = game.messages.contents;
 	for (let index = messages.length - 1; index >= 0; index--) {
 		const duel = duelOf(messages[index]);
-		if (duel && awaitsAttack(duel, actor.uuid)) return { message: messages[index], duel, opponent: opponentOf(duel, actor.uuid) };
+		if (!duel || !awaitsAttack(duel, actor.uuid)) continue;
+		const opponent = opponentOf(duel, actor.uuid);
+		if (standsInDuel(duel, opponent)) return { message: messages[index], duel, opponent };
+	}
+	return null;
+}
+
+/**
+ * A sparring bout still going on in which this actor was knocked down: they
+ * make no Attack until it ends (p188).
+ * @param {Actor} actor
+ * @returns {import("../rules/duel.js").DuelState|null}
+ */
+export function knockedDownIn(actor) {
+	for (const message of game.messages ?? []) {
+		const duel = duelOf(message);
+		if (duelistDown(duel, actor.uuid)) return duel;
 	}
 	return null;
 }
@@ -96,16 +189,17 @@ export function openDuelFor(actor) {
  * The active GM records a change for a player. The card's author may make
  * any change, as their own client does with no GM here. Otherwise an Attack
  * must be the player's own duelist's, and anything else needs them to own
- * both duelists, since they have already applied its Damage or Glory. An
- * Attack must also be on a card that duelist rolled for this duel, which
- * every commit checks.
+ * both duelists, since they have already applied its Damage or Glory: both
+ * still here, that is, as a duelist since deleted is nobody's. An Attack must
+ * also be on a card that duelist rolled for this duel, which every commit checks.
  * @type {(data: {messageId?: string, change?: object}, context: {user?: User}) => Promise<boolean>}
  */
 export const onDuelQuery = duelCard.answer((change, duel, user, { authored }) => {
 	if (authored) return change;
 	const owns = (uuid) => Boolean(fromUuidSync(uuid)?.testUserPermission(user, "OWNER"));
-	const allowed = change.type === "attack" ? owns(change.actor) : duel.duelists.every(({ uuid }) => owns(uuid));
-	return allowed ? change : null;
+	if (change.type === "attack") return owns(change.actor) ? change : null;
+	const here = duel.duelists.filter(({ uuid }) => fromUuidSync(uuid));
+	return here.length && here.every(({ uuid }) => owns(uuid)) ? change : null;
 });
 
 /**
@@ -120,19 +214,102 @@ export function duelistScores(actor) {
 
 /**
  * Keep the Bloodless box ticked while Sparring is, since a bout whose Damage
- * is shaken off leaves no Scar either.
+ * is shaken off leaves no Scar either, and the Stake box unticked and locked,
+ * since a practice bout is no contest of Glory. Each goes back to what was
+ * chosen as Sparring is unticked.
  * @param {foundry.applications.api.DialogV2} dialog
  */
-function tieBloodlessToSparring(dialog) {
+export function tieTicksToSparring(dialog) {
 	const form = dialog.element.querySelector("form");
 	const sparring = form?.querySelector("[name='sparring']");
 	const bloodless = form?.querySelector("[name='bloodless']");
 	if (!sparring || !bloodless) return;
+	// A stake that was never open to them stays locked whatever Sparring says.
+	const stake = form.querySelector("[name='stake']:not(:disabled)");
 	let chosen = bloodless.checked;
+	let staked = Boolean(stake?.checked);
 	bloodless.addEventListener("change", () => { chosen = bloodless.checked; });
+	stake?.addEventListener("change", () => { staked = stake.checked; });
 	sparring.addEventListener("change", () => {
 		bloodless.checked = sparring.checked || chosen;
 		bloodless.disabled = sparring.checked;
+		if (!stake) return;
+		stake.checked = !sparring.checked && staked;
+		stake.disabled = sparring.checked;
+	});
+}
+
+/**
+ * The actor who fights a duel for this one, and their Token: for an NPC
+ * sheet opened from the sidebar, the Token in play it stands for, selected
+ * first, since an unlinked Token's actor is its own and the one the duel's
+ * blows land on.
+ * @param {Actor} actor
+ * @returns {{actor: Actor, token: TokenDocument|null}}
+ */
+function duelistInPlay(actor) {
+	const tokens = actor.getActiveTokens(false, true);
+	if (actor.isToken || actor.prototypeToken?.actorLink !== false) return { actor, token: tokens[0] ?? null };
+	const selected = (globalThis.canvas?.tokens?.controlled ?? []).map((token) => token.document).find((token) => tokens.includes(token));
+	const token = selected ?? tokens[0] ?? null;
+	return { actor: token?.actor ?? actor, token };
+}
+
+/**
+ * Who answers whether a duelist stakes Glory, which needs a willing opponent
+ * (p6): a player who owns them and is here, their own character's player
+ * first, or otherwise the Referee, who speaks for the Referee's own and for
+ * absent players.
+ * @param {Actor} opponent
+ * @returns {User|null|undefined} The user to ask; null when whoever challenges
+ *   speaks for both sides already; undefined when nobody is here to answer.
+ */
+export function stakeAnswerer(opponent) {
+	const players = game.users.filter((user) => user.active && !user.isGM && opponent.testUserPermission(user, "OWNER"));
+	if (players.some((user) => user.isSelf)) return null;
+	if (players.length) return players.find((user) => user.character?.id === opponent.id) ?? players[0];
+	if (game.user.isGM) return null;
+	return game.users.activeGM ?? undefined;
+}
+
+/**
+ * Ask the other side whether they'll stake Glory on the duel.
+ * @param {Actor} opponent
+ * @param {{kind: string, challenger: string, opponent: string}} asked The duel's kind,
+ *   and both duelists' names as the table sees them.
+ * @returns {Promise<boolean|null>} Whether they agreed, or null when nobody answered.
+ */
+async function agreesToStake(opponent, asked) {
+	const answerer = stakeAnswerer(opponent);
+	if (answerer === null) return true;
+	if (!answerer) return null;
+	ui.notifications.info(t("duel.stakeAsking", { name: asked.opponent }));
+	const answer = await askUser(answerer, STAKE_QUERY, { uuid: opponent.uuid, ...asked }, `Couldn't ask whether ${asked.opponent} stakes Glory`, { timeout: STAKE_TIMEOUT_MS, fallback: null });
+	return typeof answer === "boolean" ? answer : null;
+}
+
+/**
+ * A challenger asks this client whether the duelist it answers for will stake
+ * Glory on a duel: yes or no, and closing the window is no.
+ * @param {{uuid?: string, kind?: string, challenger?: string, opponent?: string}} data
+ * @param {object} context
+ * @returns {Promise<boolean>}
+ */
+export async function onStakeQuery(data = {}, context = {}) {
+	const asker = queryAsker(context);
+	const opponent = typeof data?.uuid === "string" ? fromUuidSync(data.uuid) : null;
+	if (!asker || !opponent?.testUserPermission?.(game.user, "OWNER")) return false;
+	const kind = DUEL_KINDS.includes(data.kind) ? data.kind : DUEL_KINDS[0];
+	const name = (value, fallback) => escapeHTML(typeof value === "string" && value ? value : fallback);
+	return confirmDialog({
+		title: t("duel.stakeAsk.title"),
+		icon: "fa-solid fa-crown",
+		message: [
+			t("duel.stakeAsk.message", { challenger: name(data.challenger, asker.name), opponent: name(data.opponent, opponent.name), kind: t(`duel.kinds.${kind}.label`) }),
+			t("duel.stakeAsk.terms")
+		],
+		yes: { label: t("duel.stakeAsk.agree") },
+		no: { label: t("duel.stakeAsk.refuse") }
 	});
 }
 
@@ -140,11 +317,13 @@ function tieBloodlessToSparring(dialog) {
  * Two combatants agree to a duel: the actor, and the one Token this user
  * targets. It opens on a plain duel, whether either is mounted or not, since
  * a joust is the rarer of the two and is asked for when it's meant. Posts the
- * duel card that follows them.
- * @param {Actor} actor
+ * duel card that follows them. Glory staked needs the other side to agree,
+ * and without that the duel goes ahead with nothing staked.
+ * @param {Actor} sheetActor The actor whose sheet it's asked from.
  * @returns {Promise<ChatMessage|null>}
  */
-export async function challengeToDuel(actor) {
+export async function challengeToDuel(sheetActor) {
+	const { actor, token: own } = duelistInPlay(sheetActor);
 	const targets = [...game.user.targets].filter((token) => token.actor && token.actor.uuid !== actor.uuid);
 	if (targets.length !== 1) {
 		warn("duel.needTarget");
@@ -152,40 +331,54 @@ export async function challengeToDuel(actor) {
 	}
 	const [target] = targets;
 	const opponent = target.actor;
-	// A duel is between two combatants (p10), which no Warband or structure is.
-	for (const [who, name] of [[actor, actor.name], [opponent, target.document.name]]) {
+	const names = { challenger: own?.name ?? actor.name, opponent: target.document.name };
+	// A duel is between two combatants (p10), which no Warband or structure is, nor anybody Slain or dying (p8).
+	for (const [who, name] of [[actor, names.challenger], [opponent, names.opponent]]) {
 		const refusal = duelRefusal(who);
 		if (refusal) {
 			warn(`duel.refused.${refusal}`, { name });
 			return null;
 		}
 	}
-	const stakeable = canStakeGlory([actor, opponent].map(({ type, system }) => ({ type, isSquire: Boolean(system.isSquire) })));
+	const sides = [actor, opponent].map(({ type, system }) => ({ type, isSquire: Boolean(system.isSquire) }));
+	const stakeable = canStakeGlory(sides);
 
 	const data = await inputDialog({
 		title: t("duel.title"),
 		icon: "fa-solid fa-hand-fist",
 		template: "duel",
 		context: {
-			intro: t("duel.intro", { name: actor.name, opponent: target.document.name }),
+			intro: t("duel.intro", { name: names.challenger, opponent: names.opponent }),
 			kinds: DUEL_KINDS.map((key) => ({ key, label: t(`duel.kinds.${key}.label`), hint: t(`duel.kinds.${key}.hint`), selected: key === DUEL_KINDS[0] })),
 			stakeLocked: !stakeable,
 			stakeHint: t(stakeable ? "duel.stakeHint" : "duel.stakeKnightsOnly")
 		},
 		ok: { label: t("duel.start") },
-		render: (_event, dialog) => tieBloodlessToSparring(dialog)
+		render: (_event, dialog) => tieTicksToSparring(dialog)
 	});
 	if (!data) return null;
 
-	const own = actor.getActiveTokens(false, true)[0] ?? null;
+	const sparring = Boolean(data.sparring);
+	const kind = DUEL_KINDS.includes(data.kind) ? data.kind : DUEL_KINDS[0];
+	// Sparring stakes nothing (createDuel holds to that too), and a stake needs a willing opponent (p6).
+	let stake = stakeable && Boolean(data.stake) && !sparring;
+	let stakeAnswer = null;
+	if (stake) {
+		const agreed = await agreesToStake(opponent, { kind, ...names });
+		if (agreed !== true) {
+			stake = false;
+			stakeAnswer = agreed === false ? "refused" : "unanswered";
+		}
+	}
 	const duel = createDuel({
-		kind: data.kind,
-		stake: stakeable && Boolean(data.stake),
+		kind,
+		stake,
+		stakeAnswer,
 		bloodless: Boolean(data.bloodless),
-		sparring: Boolean(data.sparring),
+		sparring,
 		duelists: [
-			{ uuid: actor.uuid, name: own?.name ?? actor.name, token: own?.uuid ?? null, scores: duelistScores(actor) },
-			{ uuid: opponent.uuid, name: target.document.name, token: target.document.uuid, scores: duelistScores(opponent) }
+			{ uuid: actor.uuid, name: names.challenger, token: own?.uuid ?? null, scores: duelistScores(actor), knight: stakesGlory(sides[0]) },
+			{ uuid: opponent.uuid, name: names.opponent, token: target.document.uuid, scores: duelistScores(opponent), knight: stakesGlory(sides[1]) }
 		]
 	});
 	if (!duel) return null;

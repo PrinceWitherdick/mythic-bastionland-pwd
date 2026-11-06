@@ -48,7 +48,11 @@ describe("the duel card", () => {
 		const duel = createDuel({ duelists });
 		expect(duelCardContext(duel).resolveHint).toBe("bastionland.duel.notReady");
 		const ready = { ...duel, duelists: duel.duelists.map((duelist) => ({ ...duelist, attack: "message-x" })) };
+		game.messages = new Map([["message-x", {}]]);
 		expect(duelCardContext(ready).resolveHint).toBeNull();
+		// An Attack card since deleted is no Attack, before anybody forgets it on the card.
+		game.messages.delete("message-x");
+		expect(duelCardContext(ready).resolveHint).toBe("bastionland.duel.notReady");
 	});
 });
 
@@ -270,7 +274,7 @@ describe("a sparring duel's buttons", () => {
 
 		// Nothing more comes back, and no Glory moves, from a win pressed afterwards or time passing.
 		await press({ duelAction: "end", victor: "Actor.ada" });
-		await hooks.calendarChanged();
+		await hooks.calendarChanged(null, null, ["phase"]);
 		expect(actors["Actor.ada"].update).toHaveBeenCalledOnce();
 		expect(postCard).toHaveBeenCalledOnce();
 	});
@@ -283,26 +287,35 @@ describe("a sparring duel's buttons", () => {
 
 	it("is shaken off as time passes, closing quietly a bout with nothing to put back", async () => {
 		const quiet = renderDuel(sparring());
-		await hooks.calendarChanged();
+		await hooks.calendarChanged(null, null, ["phase"]);
 		expect(quiet.message.flags[SYSTEM_ID].duel.ended).toBe(true);
 		expect(postCard).not.toHaveBeenCalled();
 
 		actors["Actor.bram"].system.virtues.vig.value = 4;
 		const hurt = renderDuel(sparring());
-		await hooks.calendarChanged();
+		await hooks.calendarChanged(null, null, ["phase"]);
 		expect(hurt.message.flags[SYSTEM_ID].duel.ended).toBe(true);
 		expect(actors["Actor.bram"].system.virtues.vig.value).toBe(9);
 		expect(postCard.mock.calls[0][2].tagline).toBe("bastionland.duel.shaken.timePassed");
 	});
 
+	it("isn't shaken off by time turned back, as an Undo does, which puts back the bouts it ended", async () => {
+		const bout = renderDuel(sparring());
+		const night = { age: 1, year: 1, season: "spring", day: 2, phase: "night" };
+		await hooks.calendarChanged({ ...night, phase: "afternoon" }, night, []);
+		expect(bout.message.flags[SYSTEM_ID].duel.ended).toBe(false);
+		await hooks.calendarChanged(night, { ...night, phase: "afternoon" }, ["night", "phase"]);
+		expect(bout.message.flags[SYSTEM_ID].duel.ended).toBe(true);
+	});
+
 	it("is left to the active GM, and never closes a duel that isn't sparring", async () => {
 		const plain = renderDuel(createDuel({ duelists }));
-		await hooks.calendarChanged();
+		await hooks.calendarChanged(null, null, ["phase"]);
 		expect(plain.message.flags[SYSTEM_ID].duel.ended).toBe(false);
 
 		game.users.activeGM = { isSelf: false };
 		const bout = renderDuel(sparring());
-		await hooks.calendarChanged();
+		await hooks.calendarChanged(null, null, ["phase"]);
 		await hooks.deleteCombat(combatOf("Actor.ada"));
 		expect(bout.message.flags[SYSTEM_ID].duel.ended).toBe(false);
 	});
@@ -386,5 +399,386 @@ describe("an Attack recorded on a duel card", () => {
 		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, { user: { id: "bram-player" } })).toBe(false);
 		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, {})).toBe(false);
 		expect(adaAttack()).toBeNull();
+	});
+});
+
+const { adjustGlory } = await import("../../module/actions/glory.js");
+const { confirmDialog } = await import("../../module/apps/ui.js");
+const { openDuelFor, onDuelQuery: answerDuelQuery, onStakeQuery, stakeAnswerer, tieTicksToSparring, knockedDownIn, duelCardContext: contextOf } = await import("../../module/actions/duel.js");
+
+describe("duel audit of 2026-11-04", () => {
+	let hooks;
+	let actors;
+
+	/** A duelist as the card reads them. */
+	const duelist = (uuid, name, system = {}) => ({
+		uuid,
+		name,
+		type: "knight",
+		isOwner: true,
+		system: { guard: { value: 3 }, virtues: { vig: { value: 10 } }, wounded: false, ...system },
+		testUserPermission: () => true,
+		update: vi.fn(async () => {})
+	});
+
+	/** Chat as Foundry keeps it: a Collection iterated by its documents, with `contents`. */
+	const chat = (entries) => new (class extends Map {
+		[Symbol.iterator]() {
+			return this.values();
+		}
+
+		get contents() {
+			return [...this.values()];
+		}
+	})(entries);
+
+	/** A duel card, drawn in chat, and a way to press its buttons. */
+	const renderDuel = (duel, id = "duel-1") => {
+		const message = { id, isOwner: true, flags: { [SYSTEM_ID]: { duel } } };
+		message.update = vi.fn(async (changes) => { message.flags[SYSTEM_ID].duel = changes[`flags.${SYSTEM_ID}.duel`]; });
+		game.messages.set(message.id, message);
+		let listener;
+		const card = { addEventListener: (_type, fn) => { listener = fn; } };
+		registerDuelCards();
+		hooks.renderChatMessageHTML(message, { querySelector: () => card });
+		const press = (dataset) => {
+			const button = { dataset, disabled: false };
+			button.closest = () => button;
+			return listener({ target: button, preventDefault() {} });
+		};
+		return { message, press, duel: () => message.flags[SYSTEM_ID].duel };
+	};
+
+	/** Both Attacks in, on cards still in chat. */
+	const rolled = (duel) => ({ ...duel, duelists: duel.duelists.map((each, index) => ({ ...each, attack: ["attack-a", "attack-b"][index] })) });
+
+	beforeEach(() => {
+		hooks = {};
+		actors = { "Actor.ada": duelist("Actor.ada", "Ada"), "Actor.bram": duelist("Actor.bram", "Bram") };
+		globalThis.Hooks = { on: (name, fn) => { hooks[name] = fn; } };
+		globalThis.CONFIG = { queries: {} };
+		globalThis.fromUuidSync = (uuid) => actors[uuid] ?? null;
+		globalThis.foundry = { utils: { escapeHTML: (text) => text }, applications: { handlebars: { renderTemplate: async () => "<section></section>" } } };
+		game.messages = chat([["attack-a", { id: "attack-a", attack: { appliedTo: [] } }], ["attack-b", { id: "attack-b", attack: { appliedTo: [] } }]]);
+		game.users = Object.assign([], { activeGM: { isSelf: true } });
+		game.user.isGM = true;
+		ui.notifications.info = vi.fn();
+		ui.notifications.warn = vi.fn();
+	});
+
+	afterEach(() => {
+		for (const key of ["Hooks", "CONFIG", "fromUuidSync", "foundry"]) delete globalThis[key];
+	});
+
+	describe("a duel left open", () => {
+		it("never takes over the survivor's next Attack once the other is gone, Slain or out of the fight", () => {
+			renderDuel(createDuel({ duelists }), "duel-old");
+			renderDuel(createDuel({ duelists }), "duel-new");
+			expect(openDuelFor(actors["Actor.ada"]).message.id).toBe("duel-new");
+			for (const system of [{ slain: true }, { mortalWound: true }, { moraleBroken: "fled" }]) {
+				Object.assign(actors["Actor.bram"].system, system);
+				expect(openDuelFor(actors["Actor.ada"])).toBeNull();
+				actors["Actor.bram"].system = duelist("Actor.bram", "Bram").system;
+			}
+			delete actors["Actor.bram"];
+			expect(openDuelFor(actors["Actor.ada"])).toBeNull();
+		});
+
+		it("skips a duel whose other duelist is gone for an older one still fought", () => {
+			renderDuel(createDuel({ duelists }), "duel-old");
+			renderDuel(createDuel({ duelists: [duelists[0], { uuid: "Actor.cole", name: "Cole", token: "Token.c" }] }), "duel-new");
+			expect(openDuelFor(actors["Actor.ada"]).message.id).toBe("duel-old");
+		});
+
+		it("can be ended with a duelist deleted, moving only the survivor's Glory", async () => {
+			const { press, duel } = renderDuel(createDuel({ stake: true, duelists }));
+			delete actors["Actor.bram"];
+			await press({ duelAction: "end", victor: "Actor.bram" });
+			expect(duel().ended).toBe(false);
+			expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.duel.gone");
+			await press({ duelAction: "end", victor: "Actor.ada" });
+			expect(duel()).toMatchObject({ ended: true, victor: "Actor.ada" });
+			expect(adjustGlory).toHaveBeenCalledOnce();
+			expect(adjustGlory).toHaveBeenCalledWith(actors["Actor.ada"], 1);
+		});
+
+		it("can be ended by a player who owns the duelist still here, asked of the Referee", async () => {
+			const { message } = renderDuel(createDuel({ duelists }));
+			message.author = { id: "gm" };
+			actors["Actor.ada"].testUserPermission = (user) => user.id === "ada-player";
+			delete actors["Actor.bram"];
+			expect(await answerDuelQuery({ messageId: "duel-1", change: { type: "end", victor: "Actor.ada" } }, { user: { id: "ada-player" } })).toBe(true);
+		});
+
+		it("is closed by the active Referee as a duelist is deleted or Slain, with no Glory moved", async () => {
+			const plain = renderDuel(createDuel({ stake: true, duelists }), "duel-plain");
+			const bout = renderDuel(createDuel({ sparring: true, duelists }), "duel-bout");
+			actors["Actor.bram"].system.slain = true;
+			await hooks.updateActor(actors["Actor.bram"], { system: { slain: true } });
+			expect(plain.duel()).toMatchObject({ ended: true, victor: null, closed: { name: "Bram", reason: "slain" } });
+			expect(adjustGlory).not.toHaveBeenCalled();
+			// Sparring closes its own way, shaken off.
+			expect(bout.duel().ended).toBe(false);
+			const context = contextOf(plain.duel());
+			expect(context.outcome).toBe("bastionland.duel.closed.slain");
+			expect(context.notes).toContain("bastionland.duel.stakeUnmoved");
+
+			const gone = renderDuel(createDuel({ duelists: [duelists[0], { uuid: "Actor.cole", name: "Cole", token: "Token.c" }] }), "duel-gone");
+			await hooks.deleteToken({ uuid: "Token.c" });
+			expect(gone.duel().closed).toEqual({ name: "Cole", reason: "gone" });
+		});
+
+		it("looks over the chat once for a batch of deletions, such as a Scene's Tokens cleared", async () => {
+			const { duel } = renderDuel(createDuel({ duelists }));
+			delete actors["Actor.bram"];
+			const first = hooks.deleteToken({ uuid: "Token.x" });
+			const second = hooks.deleteActor({ uuid: "Actor.bram" });
+			expect(second).toBe(first);
+			await first;
+			expect(duel().closed).toEqual({ name: "Bram", reason: "gone" });
+			// Once it's begun, a later deletion looks again.
+			const later = hooks.deleteToken({ uuid: "Token.y" });
+			expect(later).not.toBe(first);
+			await later;
+		});
+
+		it("is left alone by an update that slays nobody, and by a Referee who isn't the active one", async () => {
+			const { duel } = renderDuel(createDuel({ duelists }));
+			await hooks.updateActor(actors["Actor.bram"], { system: { guard: { value: 1 } } });
+			expect(duel().ended).toBe(false);
+			game.users.activeGM = { isSelf: false };
+			delete actors["Actor.bram"];
+			await hooks.deleteActor({ uuid: "Actor.bram" });
+			expect(duel().ended).toBe(false);
+		});
+	});
+
+	describe("an Attack card deleted", () => {
+		it("is forgotten by the duel, so its duelist rolls again", async () => {
+			const { duel } = renderDuel(rolled(createDuel({ duelists })));
+			game.messages.delete("attack-a");
+			await hooks.deleteChatMessage({ id: "attack-a" });
+			expect(duel().duelists.map(({ attack }) => attack)).toEqual([null, "attack-b"]);
+			expect(openDuelFor(actors["Actor.ada"]).message.id).toBe("duel-1");
+		});
+
+		it("counts as no Attack even before the Referee's client forgets it", () => {
+			renderDuel(rolled(createDuel({ duelists })));
+			expect(openDuelFor(actors["Actor.ada"])).toBeNull();
+			game.messages.delete("attack-a");
+			expect(openDuelFor(actors["Actor.ada"]).message.id).toBe("duel-1");
+		});
+	});
+
+	describe("Resolve", () => {
+		it("lands each blow once, however many times it's pressed while the first press works", async () => {
+			const { press } = renderDuel(rolled(createDuel({ duelists })));
+			let answer;
+			confirmApply.mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }));
+			const first = press({ duelAction: "resolve" });
+			const second = press({ duelAction: "resolve" });
+			await second;
+			answer(true);
+			await first;
+			expect(takeAttack).toHaveBeenCalledTimes(2);
+			expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.cardButtons.alreadyPressed");
+		});
+
+		it("reads each card again as its blow lands, so one applied meanwhile isn't applied twice", async () => {
+			const { press } = renderDuel(rolled(createDuel({ duelists })));
+			confirmApply.mockImplementationOnce(async () => {
+				game.messages.get("attack-a").attack = { appliedTo: ["Bram"] };
+				return true;
+			});
+			await press({ duelAction: "resolve" });
+			expect(takeAttack).toHaveBeenCalledOnce();
+			expect(takeAttack.mock.calls[0][0]).toBe(actors["Actor.ada"]);
+		});
+
+		it("lands the Attack as it stands, with a Deny made while the windows stood open", async () => {
+			const { press } = renderDuel(rolled(createDuel({ duelists })));
+			const denied = { appliedTo: [], dice: [{ faces: 8, result: 6, deniedBy: "Bram" }] };
+			confirmApply.mockImplementationOnce(async () => {
+				game.messages.get("attack-a").attack = denied;
+				return true;
+			});
+			await press({ duelAction: "resolve" });
+			expect(takeAttack.mock.calls[0][1]).toBe(denied);
+		});
+
+		it("knocks a sparring duelist taken to a Mortal Wound out of the bout (p188)", async () => {
+			const { press, duel } = renderDuel(rolled(createDuel({ sparring: true, duelists })));
+			takeAttack.mockResolvedValueOnce({ outcome: "mortal" });
+			await press({ duelAction: "resolve" });
+			expect(duel().duelists.map(({ down }) => down)).toEqual([false, true]);
+			expect(contextOf(duel()).duelists[1].status).toBe("bastionland.duel.downStatus");
+			// Nor does the bout take over Ada's next Attack, with Bram down, though it waits on one from her.
+			game.messages.delete("attack-a");
+			expect(openDuelFor(actors["Actor.ada"])).toBeNull();
+			expect(knockedDownIn(actors["Actor.bram"])).toBeTruthy();
+			expect(knockedDownIn(actors["Actor.ada"])).toBeNull();
+		});
+	});
+
+	describe("the challenge", () => {
+		/** A challenger, and the one Token they target. */
+		const challenge = ({ challenger = {}, opponent = {} } = {}) => {
+			const actor = { ...duelist("Actor.ada", "Ada"), getActiveTokens: () => [], ...challenger };
+			const foe = { ...duelist("Actor.bram", "Bram"), ...opponent };
+			game.user.targets = new Set([{ actor: foe, document: { uuid: "Token.b", name: "Bram" } }]);
+			return { actor, foe };
+		};
+		const posted = () => postCard.mock.calls.at(-1)[3].flags[SYSTEM_ID].duel;
+
+		it("refuses a duelist Slain or Mortally Wounded, before any dialog", async () => {
+			const slain = challenge({ opponent: { system: { slain: true } } });
+			expect(await challengeToDuel(slain.actor)).toBeNull();
+			expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.duel.refused.slain");
+			const dying = challenge({ challenger: { system: { mortalWound: true } } });
+			expect(await challengeToDuel(dying.actor)).toBeNull();
+			expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.duel.refused.mortalWound");
+			expect(inputDialog).not.toHaveBeenCalled();
+		});
+
+		it("fights an unlinked NPC sheet's duel with its Token in play, selected first", async () => {
+			const token = (id) => ({ uuid: `Scene.s.Token.${id}`, name: `Boar ${id}`, actor: { ...duelist(`Scene.s.Token.${id}.Actor.boar`, "Boar"), type: "npc" } });
+			const [one, two] = [token("t1"), token("t2")];
+			const { actor } = challenge({ challenger: { uuid: "Actor.boar", type: "npc", isToken: false, prototypeToken: { actorLink: false }, getActiveTokens: () => [one, two] } });
+			globalThis.canvas = { tokens: { controlled: [{ document: two }] } };
+			inputDialog.mockResolvedValueOnce({ kind: "duel" });
+			await challengeToDuel(actor);
+			delete globalThis.canvas;
+			expect(posted().duelists[0]).toMatchObject({ uuid: "Scene.s.Token.t2.Actor.boar", token: "Scene.s.Token.t2", name: "Boar t2" });
+		});
+
+		it("lets a Knight stake Glory against a non-Knight, whose Glory never moves", async () => {
+			const { actor } = challenge({ opponent: { type: "npc" } });
+			inputDialog.mockResolvedValueOnce({ kind: "duel", stake: true });
+			await challengeToDuel(actor);
+			expect(inputDialog.mock.calls[0][0].context.stakeLocked).toBe(false);
+			expect(posted()).toMatchObject({ stake: true, stakeAnswer: null });
+			expect(posted().duelists.map(({ knight }) => knight)).toEqual([true, false]);
+		});
+
+		it("asks the active Referee whether the Referee's own opponent stakes, for a player challenging", async () => {
+			game.user.isGM = false;
+			const query = vi.fn(async () => true);
+			game.users.activeGM = { isSelf: false, query };
+			const { actor } = challenge({ opponent: { type: "npcKnight", testUserPermission: () => false } });
+			inputDialog.mockResolvedValueOnce({ kind: "joust", stake: true });
+			await challengeToDuel(actor);
+			expect(query).toHaveBeenCalledWith(`${SYSTEM_ID}.agreeToStake`, { uuid: "Actor.bram", kind: "joust", challenger: "Ada", opponent: "Bram" }, { timeout: 60000 });
+			expect(ui.notifications.info).toHaveBeenCalledWith("bastionland.duel.stakeAsking");
+			expect(posted().stake).toBe(true);
+		});
+
+		it("goes ahead without a stake, and says so, when refused or unanswered", async () => {
+			game.user.isGM = false;
+			for (const [answer, said] of [[async () => false, "refused"], [async () => { throw new Error("timed out"); }, "unanswered"], [async () => undefined, "unanswered"]]) {
+				game.users.activeGM = { isSelf: false, query: vi.fn(answer) };
+				const { actor } = challenge({ opponent: { type: "npc", testUserPermission: () => false } });
+				inputDialog.mockResolvedValueOnce({ kind: "duel", stake: true });
+				await challengeToDuel(actor);
+				expect(posted()).toMatchObject({ stake: false, stakeAnswer: said });
+				expect(contextOf(posted()).notes).toContain(`bastionland.duel.stakeDeclined.${said}`);
+			}
+			// With no Referee here, nobody can answer for the Referee's own.
+			game.users.activeGM = null;
+			const { actor } = challenge({ opponent: { type: "npc", testUserPermission: () => false } });
+			inputDialog.mockResolvedValueOnce({ kind: "duel", stake: true });
+			await challengeToDuel(actor);
+			expect(posted()).toMatchObject({ stake: false, stakeAnswer: "unanswered" });
+		});
+
+		it("asks the opponent's player, and nobody when the challenger answers for both sides", async () => {
+			const query = vi.fn(async () => true);
+			const player = { id: "bram-player", active: true, isGM: false, isSelf: false, character: { id: "bram" }, query };
+			game.users.push(player);
+			const opponent = { id: "bram", testUserPermission: (user) => user === player };
+			expect(stakeAnswerer(opponent)).toBe(player);
+			const { actor } = challenge({ opponent });
+			inputDialog.mockResolvedValueOnce({ kind: "duel", stake: true });
+			await challengeToDuel(actor);
+			expect(query).toHaveBeenCalledOnce();
+
+			// The Referee speaks for an NPC, and a player for a character they own.
+			expect(stakeAnswerer({ testUserPermission: () => false })).toBeNull();
+			game.users.push({ id: "me", active: true, isGM: false, isSelf: true });
+			expect(stakeAnswerer({ testUserPermission: () => true })).toBeNull();
+		});
+
+		it("stakes nothing on sparring, and asks nobody", async () => {
+			game.user.isGM = false;
+			const query = vi.fn(async () => true);
+			game.users.activeGM = { isSelf: false, query };
+			const { actor } = challenge({ opponent: { testUserPermission: () => false } });
+			inputDialog.mockResolvedValueOnce({ kind: "duel", stake: true, sparring: true });
+			await challengeToDuel(actor);
+			expect(query).not.toHaveBeenCalled();
+			expect(posted()).toMatchObject({ stake: false, stakeAnswer: null, sparring: true });
+		});
+	});
+
+	describe("the stake question", () => {
+		it("is put to whoever answers for the duelist, yes or no", async () => {
+			confirmDialog.mockResolvedValueOnce(false);
+			expect(await onStakeQuery({ uuid: "Actor.bram", kind: "joust", challenger: "Ada", opponent: "Bram" }, { user: { name: "Ada's player" } })).toBe(false);
+			expect(confirmDialog.mock.calls[0][0].message[0]).toBe("bastionland.duel.stakeAsk.message");
+			expect(await onStakeQuery({ uuid: "Actor.bram", kind: "duel" }, { user: { name: "Ada's player" } })).toBe(true);
+		});
+
+		it("is refused for somebody this client doesn't answer for, or from nobody", async () => {
+			actors["Actor.bram"].testUserPermission = () => false;
+			expect(await onStakeQuery({ uuid: "Actor.bram" }, { user: { name: "Ada's player" } })).toBe(false);
+			expect(await onStakeQuery({ uuid: "Actor.ada" }, {})).toBe(false);
+			expect(confirmDialog).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("the duel dialog's ticks", () => {
+		/** A checkbox, as the form holds it. */
+		const box = ({ checked = false, disabled = false } = {}) => {
+			const listeners = [];
+			return {
+				checked,
+				disabled,
+				addEventListener: (_type, fn) => listeners.push(fn),
+				tick(value) {
+					this.checked = value;
+					for (const fn of listeners) fn();
+				}
+			};
+		};
+		const dialogWith = (boxes) => ({
+			element: {
+				querySelector: () => ({
+					querySelector: (selector) => {
+						const name = selector.match(/name='(\w+)'/)[1];
+						const found = boxes[name];
+						return selector.includes(":not(:disabled)") && found?.disabled ? null : found ?? null;
+					}
+				})
+			}
+		});
+
+		it("locks the Stake box unticked while Sparring is ticked, and gives it back after", () => {
+			const boxes = { sparring: box(), bloodless: box(), stake: box() };
+			tieTicksToSparring(dialogWith(boxes));
+			boxes.stake.tick(true);
+			boxes.sparring.tick(true);
+			expect(boxes.stake).toMatchObject({ checked: false, disabled: true });
+			expect(boxes.bloodless).toMatchObject({ checked: true, disabled: true });
+			boxes.sparring.tick(false);
+			expect(boxes.stake).toMatchObject({ checked: true, disabled: false });
+			expect(boxes.bloodless).toMatchObject({ checked: false, disabled: false });
+		});
+
+		it("leaves a Stake box that was never open locked", () => {
+			const boxes = { sparring: box(), bloodless: box(), stake: box({ disabled: true }) };
+			tieTicksToSparring(dialogWith(boxes));
+			boxes.sparring.tick(true);
+			boxes.sparring.tick(false);
+			expect(boxes.stake.disabled).toBe(true);
+		});
 	});
 });

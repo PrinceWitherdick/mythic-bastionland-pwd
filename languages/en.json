@@ -1022,7 +1022,8 @@
       },
       "triggers": {
         "wounded": "{name} is Wounded: a SPI Save, or they rout or surrender.",
-        "halved": "{name} has lost half its number: a SPI Save, or it routs or surrenders."
+        "halved": "{name} has lost half its number: a SPI Save, or it routs or surrenders.",
+        "halvedLed": "{name} has lost half its number: a Save on the SPI of {leader}, who leads it from the front, or it routs or surrenders."
       },
       "group": {
         "title": "Wavering Morale",
@@ -1048,7 +1049,9 @@
       "needTarget": "Target the one Token you’ve agreed to duel, then press Duel.",
       "refused": {
         "warband": "{name} is a Warband. A duel is fought between two single combatants.",
-        "structure": "{name} is a ship or structure, not a combatant who can duel."
+        "structure": "{name} is a ship or structure, not a combatant who can duel.",
+        "slain": "{name} is Slain, and can fight no duel.",
+        "mortalWound": "{name} is Mortally Wounded, and can fight no duel until patched up."
       },
       "intro": "{name} and {opponent} agree to fight. It goes as any fight does, except both Attacks, Gambits and all, are rolled and settled at once, and either may use Feats first.",
       "kind": "Kind",
@@ -1063,8 +1066,21 @@
         }
       },
       "stake": "Stake Glory",
-      "stakeHint": "Fought in public, a duel or joust can have Glory staked on it, if both agree: the winner gains 1, the loser loses 1.",
-      "stakeKnightsOnly": "Only two Knights can stake Glory, and a Squire isn’t a Knight yet.",
+      "stakeHint": "Fought in public, a duel or joust can have Glory staked on it, if the other side agrees: the winner gains 1, the loser loses 1. Only a Knight’s Glory moves, and a sparring bout stakes none.",
+      "stakeKnightsOnly": "Only a Knight can stake Glory, and a Squire isn’t a Knight yet.",
+      "stakeAsking": "Asking whether {name} will stake Glory on it…",
+      "stakeAsk": {
+        "title": "Stake Glory?",
+        "message": "{challenger} challenges {opponent} to a {kind}, with Glory staked on it.",
+        "terms": "Fought in public, the winner gains 1 Glory and the loser loses 1, where they’re a Knight. Refuse, and it goes ahead with nothing staked.",
+        "agree": "Agree",
+        "refuse": "Refuse"
+      },
+      "stakeDeclined": {
+        "refused": "{name} wouldn’t stake Glory, so the duel goes ahead with none staked.",
+        "unanswered": "Nobody answered for {name} in time, so the duel goes ahead with no Glory staked."
+      },
+      "stakeUnmoved": "Nobody won it, so no staked Glory moved. The Referee can give any that’s due by hand.",
       "bloodless": "Bloodless",
       "bloodlessHint": "Training, or a duel that isn’t to the death. Scars only come from real, deadly combat, so it leaves none.",
       "sparring": "Sparring",
@@ -1085,7 +1101,7 @@
       "rolled": "Attack rolled",
       "waiting": "Yet to Attack",
       "exchanges": "Exchanges resolved: {count}",
-      "stakeNote": "Glory is staked: the victor gains 1, and the loser loses 1.",
+      "stakeNote": "Glory is staked: the victor gains 1, and the loser loses 1, where they’re a Knight.",
       "bloodlessNote": "Bloodless: a blow that would cause a Scar leaves none.",
       "howTo": "Each duelist presses Attack on their sheet, then uses Feats and declares Gambits on their card. A Referee, or whoever owns both, then resolves the two Attacks together.",
       "resolve": "Resolve Both Attacks",
@@ -1093,6 +1109,12 @@
       "noVictor": "No victor",
       "won": "{name} is the victor.",
       "endedNoVictor": "The duel ends without a victor.",
+      "closed": {
+        "gone": "{name} is gone, so the duel is over without a victor.",
+        "slain": "{name} was Slain, so the duel is over without a victor."
+      },
+      "downStatus": "Knocked down",
+      "knockedDown": "{name} was knocked down in a sparring bout, and is out of it until it ends.",
       "attackIn": "Part of the {kind} with {name}",
       "attackInSparring": "Part of the {kind} with {name}, a sparring bout",
       "attackHint": "Targets the other duelist, and holds the Damage back until both Attacks are in.",

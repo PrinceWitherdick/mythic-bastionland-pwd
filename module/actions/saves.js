@@ -163,7 +163,7 @@ export function moraleBreakButtons(group) {
  * @param {Actor} actor
  * @returns {Actor|null} Null for anybody but a Warband led that way.
  */
-function moraleLeaderOf(actor) {
+export function moraleLeaderOf(actor) {
 	if (actor?.system?.scale !== "warband" || !actor.system.leader) return null;
 	const leader = fromUuidSync(actor.system.leader);
 	if (!leader?.system?.virtues?.spi || leader.uuid === actor.uuid || outOfFight(leader.system, { morale: true })) return null;

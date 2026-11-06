@@ -55,7 +55,8 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chatIsPublic, playBlowFx } from "./attack-fx.js";
 import { alternateText } from "./items.js";
 import { recallAttack, rememberAttack, rememberedTicks, wieldedWith } from "./attack-memory.js";
-import { openDuelFor, saveDuelChange } from "./duel.js";
+import { knockedDownIn, openDuelFor, saveDuelChange } from "./duel.js";
+import { mountedNow } from "../rules/duel.js";
 import { canDenyAttack, featContext, payFeat, rollFeat } from "./feats.js";
 import { leaderCandidates } from "./leading.js";
 import { structureHarm } from "../rules/structures.js";
@@ -283,15 +284,18 @@ function targetDownHint({ uuid, name }) {
  * whether it's a swarm, which one person's Attack only harms Impaired unless
  * it's a Blast (p61). A Token whose actor can't be found is taken to
  * be one person on foot. A Warband is told apart too, since a Warband's Attack
- * at individuals gets +d12 and Blast (p11).
+ * at individuals gets +d12 and Blast (p11). The other duelist in a joust rides,
+ * as both do (p10), before they've rolled and been marked so, unless thrown
+ * in an earlier exchange.
  * @param {{uuid: string}} target
+ * @param {{duel: object}|null} [duel] The duel it's a blow in, as openDuelFor finds it.
  * @returns {{mounted: boolean, structure: boolean, swarm: boolean, warband: boolean}}
  */
-function standingOf({ uuid }) {
+function standingOf({ uuid }, duel = null) {
 	const actor = fromUuidSync(uuid)?.actor;
 	if (!actor) return { mounted: false, structure: false, swarm: false, warband: false };
 	return {
-		mounted: Boolean(actor.system.conditions?.mounted),
+		mounted: mountedNow(actor, duel?.duel, uuid),
 		structure: actor.type === "structure" || Boolean(actor.system.structure),
 		swarm: actor.type === "npc" && actor.system.scale === "swarm",
 		warband: actor.type === "npc" && actor.system.scale === "warband"
@@ -308,7 +312,7 @@ function standingOf({ uuid }) {
  * @returns {{checked: boolean, tip: string|null}}
  */
 function individualsTick(targets, remembered) {
-	const standing = targets.map(standingOf);
+	const standing = targets.map((target) => standingOf(target));
 	const all = atIndividuals(standing);
 	if (all === null) return { checked: remembered, tip: null };
 	if (all) return { checked: true, tip: t("attack.individualsAll", { names: targets.map(({ name }) => name).join(", ") }) };
@@ -320,10 +324,11 @@ function individualsTick(targets, remembered) {
  * Why a charge's trample can't join an Attack at these targets, for the Attack
  * dialog to say beside its charge box.
  * @param {{uuid: string, name: string}[]} targets
+ * @param {object|null} [duel] The duel it may be a blow in, as openDuelFor finds it.
  * @returns {string|null} Null when it joins, or nobody is targeted yet.
  */
-function trampleBarred(targets) {
-	if (trampleJoins(targets.map(standingOf))) return null;
+function trampleBarred(targets, duel = null) {
+	if (trampleJoins(targets.map((target) => standingOf(target, duel)))) return null;
 	return t("attack.chargeBarred", { names: targets.map(({ name }) => name).join(", ") });
 }
 
@@ -584,6 +589,11 @@ async function planAttack(actor, joining = null) {
 		ui.notifications.warn(t(`attack.outOfTheFight.${out}`, { name: actor.name }));
 		return null;
 	}
+	// Knocked down sparring, they're out of the bout till it ends, though nobody is left dying (p188).
+	if (knockedDownIn(actor)) {
+		ui.notifications.warn(t("duel.knockedDown", { name: actor.name }));
+		return null;
+	}
 	const sources = attackSources(actor);
 	const mount = mountOf(actor);
 	const { conditions } = actor.system;
@@ -615,7 +625,7 @@ async function planAttack(actor, joining = null) {
 		return null;
 	}
 	// Nobody on foot among the targets leaves the steed nobody to trample.
-	const chargeBarred = mount ? trampleBarred(aimedAt) : null;
+	const chargeBarred = mount ? trampleBarred(aimedAt, duel) : null;
 	// A joint Attack is one Attack, so a weakness whose die is already on the card adds no second (p188).
 	const weaknesses = joining?.dice.some((die) => die.weakness) ? [] : weaknessesOf(aimedAt);
 	const ticks = rememberedTicks(remembered);
@@ -1020,7 +1030,8 @@ const withCard = (made, card) => ({
  */
 async function rollAt(plan, group) {
 	const { weaponDice, dice, pool, mount, exploited } = plan;
-	const standing = group.map(standingOf);
+	// The other duelist in a joust rides, marked so or not yet (p10).
+	const standing = group.map((target) => standingOf(target, plan.inDuel));
 	const trampleOut = weaponDice.some((die) => die.trample) && !trampleJoins(standing);
 	const unarmed = trampleOut && !pool.impaired && weaponDice.every((die) => die.trample);
 	const swarmed = !pool.impaired && !unarmed && swarmImpairs({ blast: plan.blast, largeScale: plan.warband }, standing);

@@ -5,6 +5,8 @@ import { abilitiesWith } from "../rules/ability-uses.js";
 import { isBladedName } from "../rules/attack-fx.js";
 import { cardTarget, dieLabel, joinAttack, poolRerollers, renderAttackCard, showRolls, sigilHolders } from "../actions/attack.js";
 import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
+import { duelOf } from "../actions/duel.js";
+import { mountedNow } from "../rules/duel.js";
 import { singleArmour, takeAttack } from "../actions/damage.js";
 import { canDenyAttack, featRefusal, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
@@ -323,7 +325,8 @@ function watchGambitChoice(dialog) {
 /**
  * Whether a Gambit can be performed on this Attack: a Dismount needs a mounted foe
  * among its targets (p10), and one who can be thrown (p44). With nobody targeted,
- * or none of them found, the Referee judges.
+ * or none of them found, the Referee judges. The other duelist in a joust rides,
+ * as both do, before they've rolled and been marked so, unless thrown already.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {string} key One of GAMBITS.
  * @returns {boolean}
@@ -331,7 +334,8 @@ function watchGambitChoice(dialog) {
 function offersGambit(attack, key) {
 	if (key !== "dismount") return true;
 	const foes = attack.targets.length ? targetActors(attack) : [];
-	return !foes.length || foes.some((actor) => Boolean(actor.system.conditions?.mounted) && !keepsSeat(actor.items?.contents ?? []));
+	const duel = attack.duel ? duelOf(game.messages?.get(attack.duel)) : null;
+	return !foes.length || foes.some((actor) => mountedNow(actor, duel) && !keepsSeat(actor.items?.contents ?? []));
 }
 
 /**
@@ -695,7 +699,7 @@ async function onDeny(message) {
 	// Fatigue follows the SPI Save only once the card takes the Deny.
 	const save = await rollFeat(denier, "deny");
 	if (!save || !(await saveChange(message, { type: "deny", die, actor: denier.uuid, name: denier.name }))) return;
-	await payFeat(denier, save);
+	await payFeat(denier, save, "deny");
 	await postFeat(denier, "deny", save);
 }
 

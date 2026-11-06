@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
+import { createDuel } from "../../module/rules/duel.js";
 
 vi.mock("../../module/actions/attack.js", () => ({
 	renderAttackCard: vi.fn(async () => "<section></section>"),
@@ -878,6 +879,23 @@ describe("rules check of 2026-10-27", () => {
 		inputDialog.mockClear();
 		await renderCard(attackState({ targets: [] })).click("gambit");
 		expect(offered()).toContain("dismount");
+	});
+
+	it("offers a Dismount at the other rider in a joust before they're marked Mounted, unless thrown already (p10)", async () => {
+		const joust = createDuel({ kind: "joust", duelists: [{ uuid: "Actor.foe", name: "Foe" }, { uuid: "Actor.k", name: "Ser Kay" }] });
+		const card = renderCard(attackState({ duel: "duel-1" }));
+		const duelCard = { id: "duel-1", flags: { [SYSTEM_ID]: { duel: joust } } };
+		const attackCard = card.message;
+		game.messages.get = (id) => (id === "duel-1" ? duelCard : attackCard);
+		await card.click("gambit");
+		expect(offered()).toContain("dismount");
+
+		// Thrown in the exchange before, Ser Kay fights on foot.
+		inputDialog.mockClear();
+		duelCard.flags[SYSTEM_ID].duel = { ...joust, exchanges: 1 };
+		tokens["Scene.s.Token.k"].actor.system.mounted = false;
+		await card.click("gambit");
+		expect(offered()).not.toContain("dismount");
 	});
 
 	it("records no Dismount a player asks for at a foe on foot", async () => {

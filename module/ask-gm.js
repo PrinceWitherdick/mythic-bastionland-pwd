@@ -9,11 +9,24 @@ import { SYSTEM_ID } from "./system-id.js";
  * @param {string} failure What the console says if asking fails.
  * @returns {Promise<unknown>} The GM's answer, or false when there was none.
  */
-export async function askActiveGM(name, data, failure) {
+export const askActiveGM = (name, data, failure) => askUser(globalThis.game?.users?.activeGM, name, data, failure);
+
+/**
+ * Ask a user's client a query, giving up after the timeout.
+ * @param {User|null|undefined} user Who to ask; with nobody, the answer is the fallback.
+ * @param {string} name The query, as registered in CONFIG.queries.
+ * @param {object} data
+ * @param {string} failure What the console says if asking fails.
+ * @param {object} [options]
+ * @param {number} [options.timeout] How long to wait, in milliseconds.
+ * @param {unknown} [options.fallback] The answer when there was none.
+ * @returns {Promise<unknown>} Their answer, or the fallback.
+ */
+export async function askUser(user, name, data, failure, { timeout = 10000, fallback = false } = {}) {
 	try {
-		return (await globalThis.game?.users?.activeGM?.query(name, data, { timeout: 10000 })) ?? false;
+		return (await user?.query(name, data, { timeout })) ?? fallback;
 	} catch (error) {
 		console.warn(`${SYSTEM_ID} | ${failure}`, error);
-		return false;
+		return fallback;
 	}
 }

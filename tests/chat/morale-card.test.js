@@ -4,7 +4,9 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 vi.mock("../../module/actions/saves.js", () => ({
 	rollMorale: vi.fn(async () => ({ passed: false })),
 	// An NPC, or a Knight the Referee plays, keeps the mark (actions/saves.js).
-	keepsMoraleMark: (actor) => actor?.type === "npc" || actor?.type === "npcKnight"
+	keepsMoraleMark: (actor) => actor?.type === "npc" || actor?.type === "npcKnight",
+	// A Warband led from the front, as actions/saves.js finds its leader.
+	moraleLeaderOf: vi.fn((actor) => actor?.leader ?? null)
 }));
 vi.mock("../../module/actions/scars.js", () => ({ offerRevenge: vi.fn(async () => []) }));
 vi.mock("../../module/actions/leading.js", () => ({ letGoOf: vi.fn(async () => {}) }));
@@ -18,7 +20,7 @@ const { postCard } = await import("../../module/chat/cards.js");
 const { offerRevenge } = await import("../../module/actions/scars.js");
 const { letGoOf } = await import("../../module/actions/leading.js");
 const { askActiveGM } = await import("../../module/ask-gm.js");
-const { breakMorale, clearMoraleBreak, onGroupMoraleQuery, promptGroupMorale, registerMoraleCards } = await import("../../module/chat/morale-card.js");
+const { breakMorale, clearMoraleBreak, moralePrompt, onGroupMoraleQuery, promptGroupMorale, registerMoraleCards } = await import("../../module/chat/morale-card.js");
 
 let hooks;
 let warnings;
@@ -442,5 +444,26 @@ describe("going down for good", () => {
 		const combat = fakeCombat([fakeCombatant("c1", fakeNpc("Actor.ann")), fakeCombatant("c2", fakeNpc("Actor.bo"), { defeated: true, flags: { downed: true } })], { turn: 1 });
 		await hooks.combatTurnChange(combat);
 		expect(combat.nextTurn).toHaveBeenCalledOnce();
+	});
+});
+
+describe("the Morale line on a Damage card (p10)", () => {
+	afterEach(() => {
+		delete globalThis.fromUuidSync;
+	});
+
+	it("names whose SPI a Warband led from the front rolls on", () => {
+		const militia = { uuid: "Actor.militia", leader: { name: "Ser Kay" } };
+		globalThis.fromUuidSync = (uuid) => (uuid === militia.uuid ? militia : null);
+		expect(moralePrompt({ name: "Militia", uuid: "Actor.militia" }, "halved")).toMatchObject({ uuid: "Actor.militia", text: "bastionland.morale.triggers.halvedLed" });
+	});
+
+	it("says a SPI Save, as ever, for a Warband nobody leads and for one Wounded", () => {
+		globalThis.fromUuidSync = (uuid) => ({ uuid });
+		expect(moralePrompt({ name: "Militia", uuid: "Actor.militia" }, "halved").text).toBe("bastionland.morale.triggers.halved");
+		expect(moralePrompt({ name: "Boar", uuid: "Actor.boar" }, "wounded").text).toBe("bastionland.morale.triggers.wounded");
+		// A Seer has no Actor to look up.
+		expect(moralePrompt({ name: "Seer" }, "halved")).toEqual({ text: "bastionland.morale.triggers.halved" });
+		expect(moralePrompt({ name: "Boar", uuid: "Actor.boar" }, null)).toBeNull();
 	});
 });
