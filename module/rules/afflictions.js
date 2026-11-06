@@ -46,7 +46,7 @@ const IGNORES_ARMOUR = /\bignor(?:e|es|ing)\s+(?:all\s+)?armou?r\b/i;
 const KEEPS_ON = new RegExp(`\\bdamage\\s+(${Object.values(TIME_WORDS).join("|")})`, "i");
 
 /** @param {string} dice @returns {string} "1d8" for "d8". */
-const counted = (dice) => {
+export const counted = (dice) => {
 	const lower = dice.toLowerCase();
 	return lower.startsWith("d") ? `1${lower}` : lower;
 };

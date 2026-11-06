@@ -1,4 +1,5 @@
 import { AGES, FEATS, NPC_SCALES, NPC_WIELDS, WEAKNESS_DICE } from "../config.js";
+import { featBySeal } from "../rules/knight-powers.js";
 import { clearOutgrownMarks, conditionsFor } from "../rules/virtues.js";
 import { warbandState } from "../rules/warbands.js";
 import { afflictionsField, booleanField, characterFields, countField, moraleBrokenField, textField } from "./fields.js";
@@ -73,6 +74,7 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 	 * @returns {boolean}
 	 */
 	knowsFeat(key) {
-		return Boolean(this.feats[key]);
+		// A Knight's seal on their arms lets them Smite or Deny once (p70).
+		return Boolean(this.feats[key]) || featBySeal(this, this.parent?.items ?? [], key);
 	}
 }

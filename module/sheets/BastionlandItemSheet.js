@@ -2,7 +2,8 @@ import { t } from "../chat/cards.js";
 import { ARMOUR_KINDS, PROPERTY_TYPES } from "../config.js";
 import { RARITIES } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
-import { ALTERNATE_QUALITIES, DIE_SIZES, SPECIALIST_DICE, insteadOfChanges, insteadOfOptions } from "../rules/attack.js";
+import { POSSESSION_EFFECTS } from "../rules/possession-effects.js";
+import { ALTERNATE_FLAGS, DIE_SIZES, SPECIALIST_DICE, insteadOfChanges, insteadOfOptions } from "../rules/attack.js";
 import { scarForRoll } from "../rules/scars.js";
 import { ABILITY_NEEDS, ABILITY_POWERS, ATTACK_GRANTS, usesFrom } from "../rules/ability-uses.js";
 import { AFFLICTION_TIMES } from "../rules/afflictions.js";
@@ -111,13 +112,16 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			needsOptions: Object.fromEntries(ABILITY_NEEDS.map((key) => [key, t(`ability.needs.${key || "any"}`)])),
 			// The Virtue a possession costs should something befall it (p62).
 			lossVirtueOptions: { "": t("item.lossNone"), ...Object.fromEntries(VIRTUES.map((key) => [key, t(`virtues.${key}.abbr`)])) },
+			// What a possession does when used (rules/possession-effects.js).
+			effectOptions: Object.fromEntries(POSSESSION_EFFECTS.map((key) => [key, t(`possessionEffects.kinds.${key || "none"}`)])),
 			// A weapon's Damage that burns on each round, or each day (p173).
 			lingersOptions: { "": t("item.lingersNever"), ...Object.fromEntries(AFFLICTION_TIMES.map((key) => [key, t(`afflictions.when.${key}`)])) },
 			// Weapons, armour and gear can be rare, counted, restocked and broken.
 			isPossession: PROPERTY_TYPES.includes(item.type),
 			insteadOf: this.#insteadOf(),
-			alternateQualities: item.type === "weapon"
-				? ALTERNATE_QUALITIES.map((key) => ({ key, label: t(`item.${key}`), hint: t(`item.${key}Hint`), checked: item.system.alternate[key] }))
+			// A weapon fought two ways, or a shield that can also be thrown or struck with.
+			alternateQualities: item.type === "weapon" || (item.type === "armour" && item.system.kind === "shield")
+				? ALTERNATE_FLAGS.map((key) => ({ key, label: t(`item.${key}`), hint: t(`item.${key}Hint`), checked: item.system.alternate?.[key] }))
 				: [],
 			conditionOptions: Object.fromEntries(ARMOUR_CONDITIONS.map((key) => [key, t(`item.conditions.${key || "always"}`)])),
 			rarityOptions: { "": t("item.noRarity"), ...Object.fromEntries(RARITIES.map((key) => [key, t(`goods.rarities.${key}`)])) },

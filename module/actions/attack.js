@@ -3,7 +3,7 @@ import { plural, postCard, t } from "../chat/cards.js";
 import { combatPlace, marksOn } from "../chat/gambit-marks.js";
 import { GAMBITS } from "../config.js";
 import {
-	ALTERNATE_QUALITIES,
+	ALTERNATE_FLAGS,
 	HARM_BARS,
 	ON_WOUND,
 	atIndividuals,
@@ -49,7 +49,7 @@ import { stripHTML } from "../rules/text.js";
 import { WOUND_EFFECTS, abilitiesWith, abilityOffers, abilityUpdatesAfterAttack, declarableBy, declaredGrants, etchedNumber, linkedAbilities, readyForAttack, sideCounts, unmetNeed, warbandFighting } from "../rules/ability-uses.js";
 import { KIT_FLAG } from "../rules/ability-kits.js";
 import { combatantOf, keepLastingDice, lastingDiceOf, lastingDieLabel } from "./lasting-dice.js";
-import { diceForBlow } from "../rules/lasting-dice.js";
+import { diceAimedAt, diceForBlow } from "../rules/lasting-dice.js";
 import { downBy, outOfFight } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chatIsPublic, playBlowFx } from "./attack-fx.js";
@@ -65,6 +65,8 @@ import { worldKnights } from "./knights.js";
 import { isKnight } from "../rules/knight-types.js";
 import { handsLeft } from "./scars.js";
 import { steedOf } from "./steeds.js";
+import { offerDrawnFire } from "./knight-powers.js";
+import { wornWarnings } from "./possession-effects.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample", "noHand", "lingers"]);
@@ -106,14 +108,16 @@ function attackSources(actor) {
 		const alternate = item.system.alternate;
 		if (!alternate?.damage?.trim()) return [source];
 		const how = alternate.label?.trim() || alternateText(item.system);
-		return [source, {
+		// Something fought only its other way, as a shield with no Attack die of its own that can be thrown.
+		const main = parseDice(item.system.damage).length ? [source] : [];
+		return [...main, {
 			id: `${item.id}-alt`,
 			name: t("attack.alternateName", { name: item.name, how }),
 			item,
 			system: {
 				...source.system,
 				damage: alternate.damage,
-				...Object.fromEntries(ALTERNATE_QUALITIES.map((key) => [key, alternate[key]])),
+				...Object.fromEntries(ALTERNATE_FLAGS.map((key) => [key, Boolean(alternate[key])])),
 				heftyMounted: false
 			}
 		}];
@@ -127,7 +131,7 @@ function attackSources(actor) {
  */
 function armedWith(actor) {
 	return actor.items
-		.filter((item) => item.system.equipped && parseDice(item.system.damage).length)
+		.filter((item) => item.system.equipped && (parseDice(item.system.damage).length || parseDice(item.system.alternate?.damage ?? "").length))
 		.map((item) => ({
 			id: item.id,
 			name: item.name,
@@ -637,7 +641,9 @@ async function planAttack(actor, joining = null) {
 	const aim = { joining, duel, offers, trapped: shieldTrapped(marks) };
 	// Dice they keep for the rest of the fight.
 	const combatant = combatantOf(actor);
-	const lasting = lastingDiceOf(actor, combatant).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
+	// One kept against a single foe is offered only at them (p42).
+	const aimedActors = aimedAt.map(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid).filter(Boolean);
+	const lasting = diceAimedAt(lastingDiceOf(actor, combatant), aimedActors).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
 	// How many stand on each side of their Combat, for an Ability that needs a crowd (p38).
 	const sides = offers.some((offer) => offer.crowd) ? sidesAround(combatant) : null;
 
@@ -675,7 +681,9 @@ async function planAttack(actor, joining = null) {
 				...(actor.system.warband?.broken ? [t("attack.brokenWarband", { name: actor.name })] : []),
 				...marks.map((mark) => mark.hint),
 				...aimedAt.filter((target) => standingOf(target).swarm).map(({ name }) => t("attack.swarmHint", { name })),
-				...aimedAt.flatMap(targetDownHint)
+				...aimedAt.flatMap(targetDownHint),
+				// A helm that Impairs a foe's first ever Attack at its wearer (p42): said, for the Referee to judge.
+				...aimedAt.flatMap(({ uuid }) => wornWarnings(fromUuidSync(uuid)?.actor))
 			],
 			weaknesses: weaknesses.map(({ name, text, die }, index) => ({
 				index,
@@ -846,7 +854,7 @@ async function planAttack(actor, joining = null) {
 		const leaderUuid = leader?.uuid ?? "";
 		if (warband && actor.system.leader !== leaderUuid) update["system.leader"] = leaderUuid;
 		if (actor.isOwner && Object.keys(update).length) await actor.update(update);
-		if (smite) await payFeat(actor, smite.save);
+		if (smite) await payFeat(actor, smite.save, "smite");
 		await useUpThrown(chosen);
 		// A charge that shatters the lance it's made with (p92).
 		if (declared.shatters) await shatter(chosen);
@@ -1127,6 +1135,8 @@ export async function attack(actor) {
 	// thrown weapon or Smite (p112).
 	await plan.settle();
 	if (inDuel) await saveDuelChange(inDuel.message, { type: "attack", actor: actor.uuid, message: messages[0].id });
+	// A Knight whose stance draws the fire makes a foe who struck somebody else pay (p128).
+	await offerDrawnFire(actor, groups.flat());
 	playBlows(plan);
 	return messages;
 }

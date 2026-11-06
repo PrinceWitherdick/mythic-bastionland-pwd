@@ -1,10 +1,11 @@
 import { ARMOUR_KINDS } from "../config.js";
 import { ABILITY_NEEDS, ABILITY_POWERS, ATTACK_GRANTS, SIGIL_MAX } from "../rules/ability-uses.js";
 import { AFFLICTION_TIMES } from "../rules/afflictions.js";
+import { POSSESSION_EFFECTS } from "../rules/possession-effects.js";
 import { RARITIES, specialistRarity } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
 import { STANCE_LAPSES } from "../rules/stances.js";
-import { ALTERNATE_QUALITIES, DIE_SIZES, SPECIALIST_DICE } from "../rules/attack.js";
+import { ALTERNATE_FLAGS, DIE_SIZES, SPECIALIST_DICE } from "../rules/attack.js";
 import { bearsRemedies, overRemedyLimit } from "../rules/remedies.js";
 import { ABILITY_CADENCES, RESTOCK_CADENCES } from "../rules/restock.js";
 import { VIRTUES } from "../rules/virtues.js";
@@ -14,6 +15,17 @@ const fields = foundry.data.fields;
 
 /** A count left blank while nobody keeps one. */
 const optionalCount = () => new fields.NumberField({ required: true, nullable: true, integer: true, min: 0, initial: null });
+
+/**
+ * Another way to fight with something, as a bolt-guisarme shot "d10 slow
+ * ranged", fang blades wielded as a pair, or a shield thrown. Blank damage
+ * means it has none.
+ */
+const alternateField = () => new fields.SchemaField({
+	label: textField(),
+	damage: textField(),
+	...Object.fromEntries(ALTERNATE_FLAGS.map((key) => [key, booleanField()]))
+});
 
 /** Fields every item type shares. */
 class DescribedModel extends foundry.abstract.TypeDataModel {
@@ -38,6 +50,14 @@ class PossessionModel extends DescribedModel {
 			restock: new fields.StringField({ required: true, blank: true, initial: "", choices: RESTOCK_CADENCES }),
 			// Broken by a Strong Gambit (p10), or smashed: no use until mended.
 			broken: booleanField(),
+			// A Knight's seal on somebody else's arms, good for one Smite or Deny (p70).
+			sealed: booleanField(),
+			// What it does when used, from its row: see rules/possession-effects.js. Blank for nothing.
+			effect: new fields.StringField({ required: true, blank: true, initial: "", choices: POSSESSION_EFFECTS }),
+			// The dice it rolls, as a d6 whoever grabs its wearer takes.
+			effectDie: textField(),
+			// The Virtue it rolls a Save in or takes; blank for Damage.
+			effectVirtue: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...VIRTUES] }),
 			// A Virtue its bearer loses should something befall it, as a banner falling (p62). Blank for none.
 			loss: new fields.SchemaField({
 				dice: textField(),
@@ -74,11 +94,7 @@ export class WeaponModel extends PossessionModel {
 			}),
 			// Another way to fight with it, such as a bolt-guisarme's "d10 slow ranged", or
 			// fang blades wielded as a pair. Blank damage means it has none.
-			alternate: new fields.SchemaField({
-				label: textField(),
-				damage: textField(),
-				...Object.fromEntries(ALTERNATE_QUALITIES.map((key) => [key, booleanField()]))
-			}),
+			alternate: alternateField(),
 			// Shared by attacks printed with "or" between them, as "Stamp (2d10) or swipe (d10 blast)",
 			// so an Attack uses only one of them. Blank for anything that joins the others.
 			either: textField(),
@@ -124,6 +140,8 @@ export class ArmourModel extends PossessionModel {
 			damage: textField(),
 			// A buckler is a shield, but doesn't make a shieldwall (p10).
 			buckler: booleanField(),
+			// Another way to fight with it, as a shield that can be thrown. Blank damage means none.
+			alternate: alternateField(),
 			// A wooden shield can be broken by a Strong Gambit (p10).
 			wooden: booleanField(),
 			// When its Armour counts; see rules/armour.js. `holds` is whether an

@@ -2,7 +2,7 @@ import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { knightWithLists } from "../book-art/myth-tables.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
-import { BOOK_EFFECT_PAGES, KIT_WEAPON_KEYS, LINKED_KIT_FIELDS, LINKED_KIT_PAGES, kitCatchUp, kitForPage, kitWeapons } from "../rules/ability-kits.js";
+import { BOOK_EFFECT_PAGES, KIT_WEAPON_KEYS, LINKED_KIT_FIELDS, LINKED_KIT_PAGES, POWER_KIT_PAGES, kitCatchUp, kitForPage, kitWeapons } from "../rules/ability-kits.js";
 import { canTurnDie } from "../rules/attack.js";
 import { SIGIL_MAX, abilitiesWith, etchUpdate, fadedUpdate, sigilChoices } from "../rules/ability-uses.js";
 import { knightEntryByType } from "../rules/knight-tables.js";
@@ -128,6 +128,44 @@ export async function spendUse(item, options = {}) {
 }
 
 /**
+ * @param {Item} item
+ * @returns {string} Its name without what's said after it.
+ */
+export const shortName = (item) => splitName(item.name).nameHead || item.name;
+
+/**
+ * Roll one Virtue Loss, write it, and say so on a card.
+ * @param {Actor} actor
+ * @param {{name: string, virtue: string, dice: string}} loss
+ * @param {string} cause What the Ledger says caused it.
+ * @param {{icon: string, text: string, data?: object}} card The note's icon, and its text's key, given amount, from and to.
+ * @returns {Promise<object|null>} What was taken, or null.
+ */
+export async function loseVirtue(actor, loss, cause, { icon, text, data = {} }) {
+	const { update, taken } = await rollVirtueLosses(actor, [loss]);
+	if (!taken.length) return null;
+	await actor.update(update, causedBy(cause));
+	const [{ roll, from, to }] = taken;
+	await postCard(actor, "note", { icon, text: t(text, { ...data, amount: roll.total, from, to }) }, { rolls: [roll] });
+	return taken[0];
+}
+
+/**
+ * Roll Damage, say so on a card, and deal it.
+ * @param {Actor} actor Who takes it.
+ * @param {string} dice
+ * @param {string} cause What the Damage card says dealt it.
+ * @param {{icon: string, text: string, data?: object}} card The note's icon, and its text's key, given the damage.
+ */
+export async function rollDamageOn(actor, dice, cause, { icon, text, data = {} }) {
+	const roll = await new Roll(dice).evaluate();
+	await postCard(actor, "note", { icon, text: t(text, { ...data, name: actor.name, damage: roll.total }) }, { rolls: [roll] });
+	// Fetched here, since Damage reaches the Abilities and possessions through what it imports.
+	const { takeDamage } = await import("./damage.js");
+	await takeDamage(actor, { damage: roll.total, ranged: false, cause });
+}
+
+/**
  * Ask which die showing the rune's number is turned, and to which other of
  * its faces (p100).
  * @param {object} options
@@ -187,7 +225,7 @@ export async function turnSaveDie(actor, item, face) {
 export async function sufferLoss(actor, item) {
 	const { dice, virtue, when } = item.system.loss ?? {};
 	if (!dice || !virtue || !actor.system.virtues?.[virtue]) return null;
-	const name = splitName(item.name).nameHead || item.name;
+	const name = shortName(item);
 	const abbr = t(`virtues.${virtue}.abbr`);
 	const sure = await confirmDialog({
 		title: name,
@@ -196,12 +234,7 @@ export async function sufferLoss(actor, item) {
 		yes: { label: t("loss.take") }
 	});
 	if (!sure) return null;
-	const { update, taken } = await rollVirtueLosses(actor, [{ name, virtue, dice }]);
-	if (!taken.length) return null;
-	await actor.update(update, causedBy("hardship"));
-	const [{ roll, from, to }] = taken;
-	await postCard(actor, "note", { icon: "fa-solid fa-heart-crack", text: t("loss.taken", { name: actor.name, item: name, amount: roll.total, virtue: abbr, from, to }) }, { rolls: [roll] });
-	return taken[0];
+	return loseVirtue(actor, { name, virtue, dice }, "hardship", { icon: "fa-solid fa-heart-crack", text: "loss.taken", data: { name: actor.name, item: name, virtue: abbr } });
 }
 
 /**
@@ -237,7 +270,7 @@ export async function rollChance(actor, item) {
 	if (!Number.isInteger(hits) || !Number.isInteger(of) || of < 2) return null;
 	const roll = await new Roll(`1d${of}`).evaluate();
 	const held = roll.total <= hits;
-	const name = splitName(item.name).nameHead || item.name;
+	const name = shortName(item);
 	await postCard(actor, "note", {
 		icon: held ? "fa-solid fa-circle-check" : "fa-solid fa-circle-xmark",
 		text: t(held ? "chance.held" : "chance.missed", { name, in: hits, of, total: roll.total })
@@ -298,6 +331,12 @@ export const LINKED_KITS_STEP = "abilityKitsLinked";
 
 /** A world setup step: fillAbilityKits for LINKED_KIT_PAGES, their new fields only and no weapons. */
 export const fillLinkedKits = () => fillAbilityKits({ pages: LINKED_KIT_PAGES, fields: LINKED_KIT_FIELDS, weapons: false });
+
+/** The step doing the same for the Knights whose kits say what their Ability does once used, POWER_KIT_PAGES. */
+export const POWER_KITS_STEP = "abilityKitsPowers";
+
+/** A world setup step: fillAbilityKits for POWER_KIT_PAGES. */
+export const fillPowerKits = () => fillAbilityKits({ pages: POWER_KIT_PAGES });
 
 /** The world setup step giving Knights made from an older import the list of choices their Ability ends on. */
 export const ABILITY_LISTS_STEP = "abilityLists";

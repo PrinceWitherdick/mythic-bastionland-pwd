@@ -421,10 +421,12 @@ describe("the backlash and rally cards (players' audit)", () => {
 	/** The cards' wiring, and what drawing one shows this user. */
 	const drawn = async (selector, author) => {
 		const { registerAbilityBlows } = await import("../../module/actions/damage.js");
+		const { registerKnightPowers } = await import("../../module/actions/knight-powers.js");
 		const hooks = [];
 		globalThis.Hooks = { on: (name, fn) => hooks.push(fn) };
 		globalThis.CONFIG = { queries: {} };
 		registerAbilityBlows();
+		registerKnightPowers();
 		const button = { dataset: {}, removed: false, remove() { this.removed = true; }, closest: () => null };
 		const html = { querySelector: (wanted) => (wanted === selector ? button : null), querySelectorAll: (wanted) => (wanted === selector ? [button] : []), addEventListener: () => {} };
 		for (const hook of hooks) hook({ id: "m1", isOwner: true, author, flags: {} }, html);
@@ -480,10 +482,48 @@ describe("the Timeline", () => {
 		victim.system.fate = "";
 		await takeDamage(victim, { damage: 20, by: "Actor.wolf" });
 		expect(victim.update.mock.calls[0][0]["system.fate"]).toBe("bastionland.fallen.fateSlainBy");
+		// The words are kept beside it, for a return from death to know them.
+		expect(victim.update.mock.calls[0][0][`flags.${SYSTEM_ID}.deathFate`]).toBe("bastionland.fallen.fateSlainBy");
 		const written = kay();
 		written.system.fate = "Lost at sea";
 		await takeDamage(written, { damage: 20 });
 		expect(written.update.mock.calls[0][0]).not.toHaveProperty("system.fate");
+		expect(written.update.mock.calls[0][0]).not.toHaveProperty(`flags.${SYSTEM_ID}.deathFate`);
+	});
+
+	describe("a return from death (p158)", () => {
+		const fallen = (fate, flags = {}) => {
+			const knight = kay();
+			Object.assign(knight.system, { slain: true, fate });
+			knight.isOwner = true;
+			knight.items = { contents: [] };
+			knight.getFlag = (scope, key) => (scope === SYSTEM_ID ? flags[key] : undefined);
+			return knight;
+		};
+		const rise = async (knight) => {
+			const { riseFromDeath } = await import("../../module/actions/knight-powers.js");
+			await riseFromDeath(knight);
+			return knight.update.mock.calls[0][0];
+		};
+
+		it("takes back the fate its death wrote, and forgets the words kept", async () => {
+			const update = await rise(fallen("Slain by the Wolf", { deathFate: "Slain by the Wolf" }));
+			expect(update["system.fate"]).toBe("");
+			expect(update[`flags.${SYSTEM_ID}.-=deathFate`]).toBeNull();
+		});
+
+		it("keeps a fate written over the death's by hand, even one worded like it", async () => {
+			const update = await rise(fallen("bastionland.fallen.fateSlain", { deathFate: "Slain by the Wolf" }));
+			expect(update).not.toHaveProperty("system.fate");
+			expect(update[`flags.${SYSTEM_ID}.-=deathFate`]).toBeNull();
+		});
+
+		it("goes by the words alone for a Knight slain before they were kept", async () => {
+			expect((await rise(fallen("bastionland.fallen.fateSlain")))["system.fate"]).toBe("");
+			const update = await rise(fallen("Wed a giant"));
+			expect(update).not.toHaveProperty("system.fate");
+			expect(Object.keys(update).some((key) => key.includes("deathFate"))).toBe(false);
+		});
 	});
 
 	it("writes a ward in place of the Mortal Wound it spared", async () => {

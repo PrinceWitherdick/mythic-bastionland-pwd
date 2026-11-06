@@ -43,9 +43,9 @@ export const STRONG_GAMBITS = Object.freeze(["noSave", "greater"]);
 /**
  * A specialist weapon's extra die, gained in one situation. The book's rule
  * gives +d8 or +d10 (Specialist Weapons, p12), but some Knights' own weapons
- * carry +d6, such as an axe "+d6 when mounted".
+ * carry +d6, such as an axe "+d6 when mounted", or a hidden blade's +2d10.
  */
-export const SPECIALIST_DICE = Object.freeze(["d6", "d8", "d10"]);
+export const SPECIALIST_DICE = Object.freeze(["d6", "d8", "d10", "2d10"]);
 
 /**
  * @param {{specialist?: {die: string}}} weapon An item's system data.
@@ -156,6 +156,9 @@ export function handCount(hands) {
 /** Qualities a weapon's other way to fight can have, as its main one can. */
 export const ALTERNATE_QUALITIES = Object.freeze(["hefty", "long", "slow", "ranged", "blast"]);
 
+/** Every tick box of a weapon's other way to fight: its qualities, and wielded as a pair, which fills both hands. */
+export const ALTERNATE_FLAGS = Object.freeze([...ALTERNATE_QUALITIES, "pair"]);
+
 /**
  * Why an Attack can't be made as chosen: Exhausted after moving (p9), charging
  * a spearwall (p10), more than two hands can hold (p12), more than an arm
@@ -173,6 +176,7 @@ export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays
  * @property {boolean} [ranged]
  * @property {boolean} [heftyMounted] Counts as Hefty rather than Long when mounted, as a lance does (p12).
  * @property {boolean} [noHand]       Fills no hand, as a bite or a shockwave doesn't.
+ * @property {boolean} [pair]         Wielded as a pair, so it fills both hands.
  * @property {boolean} [shield]       A shield, which a foe's Trap Gambit can hold.
  * @property {string} [of]            The weapon it is one way of fighting with, for a weapon fought two ways,
  *                                    or the attacks printed with "or" between them that it is one of.
@@ -238,8 +242,9 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	});
 
 	const isLong = (item) => heldAs(item, mounted).long;
-	// A bite or a shockwave fills no hand, so only the rest are weighed against two.
+	// A bite or a shockwave fills no hand, so only the rest are weighed against two. A pair fills both.
 	const held = items.filter((item) => !item.noHand);
+	const handsFilled = held.reduce((count, item) => count + (item.pair ? HANDS : 1), 0);
 	let refusal = null;
 	if (exhausted && moved) refusal = "exhausted";
 	// Charging a spearwall leaves no Attack that turn.
@@ -247,11 +252,11 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	// A weapon fought two ways, such as a spear that can be thrown, is fought one way at a time.
 	else if (items.some((item, index) => item.of && items.findIndex((other) => other.of === item.of) !== index)) refusal = "twoWays";
 	else if (limit !== null && held.filter((item) => heldAs(item, mounted).hefty).length > 1) refusal = "hefty";
-	else if (limit !== null && held.length > 1 && held.some(isLong)) refusal = "long";
+	else if (limit !== null && handsFilled > 1 && held.some(isLong)) refusal = "long";
 	// An arm lost to a Mutilation leaves fewer hands, and a Long weapon needs both (p9, p12).
-	else if (limit !== null && limit < HANDS && (held.length > limit || held.some(isLong))) refusal = "armLost";
+	else if (limit !== null && limit < HANDS && (handsFilled > limit || held.some(isLong))) refusal = "armLost";
 	// Anything else still takes a hand each, and there are only two.
-	else if (limit !== null && held.length > HANDS) refusal = "hands";
+	else if (limit !== null && handsFilled > HANDS) refusal = "hands";
 	// Weapons chosen and all of them sitting out leave nothing to Attack with,
 	// which is not the same as fighting unarmed.
 	else if (items.length && !usable.length) refusal = "allSetAside";

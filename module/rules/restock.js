@@ -40,6 +40,12 @@ export const isUsedUp = (system) => isCounted(system) && system.quantity.value <
 export const isAtHand = (system) => !system?.broken && !isUsedUp(system);
 
 /**
+ * @param {{equipped?: boolean, broken?: boolean}|null|undefined} system An item's system data.
+ * @returns {boolean} Whether a possession is worn or wielded, and not broken.
+ */
+export const isWorn = (system) => system?.equipped !== false && !system?.broken;
+
+/**
  * A count moved up or down by some, never below none nor, when a full stock
  * is known, above it.
  * @param {Carried} quantity

@@ -683,7 +683,10 @@
         "blank": "None of them",
         "blankDetail": "The result stays on the table, and no possession changes.",
         "applied": "{item} is now as the table says.",
-        "none": "Nothing of {name}’s could take what {column} gives, so it stays on the table."
+        "none": "Nothing of {name}’s could take what {column} gives, so it stays on the table.",
+        "notYours": "{name} isn’t yours to change, so the table’s result stays on the table. The Referee can roll it again.",
+        "added": "{item} is added, as the table says.",
+        "named": "Their companion is now called {name}."
       },
       "open": "Roll on {name}",
       "view": "See {name}",
@@ -891,7 +894,19 @@
         "mirror": "Gives back Wounds and Scars",
         "mirrorHint": "When this Knight loses VIG to Damage, whoever dealt it loses as much, as Virtue Loss. When they’re Scarred, the dealer gets the same Scar.",
         "severs": "Takes limbs and heads",
-        "seversHint": "A Strong Gambit’s Greater effect, made with a bladed weapon, can take a limb, or the head of a foe at 0 GD."
+        "seversHint": "A Strong Gambit’s Greater effect, made with a bladed weapon, can take a limb, or the head of a foe at 0 GD.",
+        "mortalRally": "Rallies allies when Mortally Wounded",
+        "mortalRallyHint": "When this Knight is Mortally Wounded by somebody known, a card offers the Referee a button: each ally on their side of the Combat regains d6 GD, and keeps a d12 against that foe until the Combat ends.",
+        "seals": "Seals somebody else’s arms",
+        "sealsHint": "Its row has a seal: with one Token targeted that isn’t a Knight, pick one of their weapons, shields or armour. While they wear or wield it they can Smite or Deny once, which spends the seal.",
+        "breaksThrough": "Breaks through walls, at a cost",
+        "breaksThroughHint": "Its row has a runner: breaking through a wall or something solid deals this Knight d12 Damage.",
+        "drawsFire": "Makes foes pay for striking others",
+        "drawsFireHint": "A stance taken up from its row, ending at their next turn. While it holds, a foe in their Combat who Attacks somebody else gets a card offering the Referee a button that takes d10 SPI from them.",
+        "mendsByDay": "Mends in a day-long cocoon",
+        "mendsByDayHint": "Its row has a cocoon: after a full day in it, VIG returns to its most, the Mortal Wound and Wound go, and afflictions that cost VIG or deal Damage are cured.",
+        "rises": "Returns from death",
+        "risesHint": "While this Knight is Slain, its row and the card saying they fell bring them back: no longer Slain, every score just as it was."
       },
       "stance": {
         "label": "Stance",
@@ -3363,6 +3378,7 @@
       "lastingDie": "{label} d{faces}",
       "lastingDieMelee": "{label} d{faces} (melee)",
       "lastingDieWeapon": "{label} d{faces} ({weapon})",
+      "lastingDieAgainst": "{label} d{faces} (against {name})",
       "crowdMet": "Ticked: at least {count} stand on each side of this Combat.",
       "crowdShort": "Fewer than {count} stand on one side of this Combat. Tick it if more are fighting than the Combat Tracker shows.",
       "crowdUnknown": "Outside a Combat the sides can’t be counted. Tick it when at least {count} fight on each side.",
@@ -3792,6 +3808,8 @@
       "heftyMountedHint": "Counts as Hefty rather than Long when the wielder is mounted, as a lance does.",
       "ranged": "Ranged",
       "rangedHint": "Useless to someone who started their turn in melee.",
+      "pair": "A pair",
+      "pairHint": "Wielded as a pair, it fills both hands.",
       "blast": "Blast",
       "blastHint": "Attacks everybody in the area, rolled separately for each.",
       "ignoresArmour": "Ignores Armour",
@@ -3936,6 +3954,116 @@
       "blown": "{name} blows the horn ({ability}). Until the fight ends, VIG lost to Damage is doubled for everybody in it.",
       "notInCombat": "{name} isn’t in a Combat.",
       "already": "A horn has already been blown in this fight."
+    },
+    "mortalRally": {
+      "offer": "{name} is Mortally Wounded by {foe}. By {ability}, the allies fighting beside them may rally against {foe}.",
+      "button": "Rally the Allies",
+      "nobody": "Nobody fights beside {name} in a Combat to rally.",
+      "title": "Allies Rally",
+      "tagline": "Beside {name}, against {foe}",
+      "guard": "Regains {amount} GD ({from} → {to}).",
+      "die": "Keeps +d12 against {foe} until the Combat ends."
+    },
+    "drawsFire": {
+      "offer": "{attacker} struck at somebody other than {name} while {ability} holds. Once that Attack is resolved, {attacker} loses d10 SPI.",
+      "button": "Take d10 SPI",
+      "paid": "{name} loses {amount} SPI for striking elsewhere ({from} → {to})."
+    },
+    "rises": {
+      "use": "Return from death",
+      "notDead": "{name} isn’t dead.",
+      "notYours": "Only {name}’s player, or the Referee, can bring them back.",
+      "done": "{name} returns from death by {ability}, just as they were: VIG {vig}, GD {guard}."
+    },
+    "mendsByDay": {
+      "use": "Emerge from the cocoon",
+      "confirm": "Has {name} spent a full day in the cocoon? Their VIG returns to its most, their Mortal Wound and Wound go, and afflictions that cost VIG or deal Damage are cured. Scars stay. Move the day on from the calendar yourself.",
+      "emerge": "Emerge",
+      "done": "{name} emerges from {ability}, the body mended.",
+      "slain": "{name} is dead, which this doesn’t mend."
+    },
+    "breaksThrough": {
+      "use": "Break through",
+      "confirm": "{name} breaks through a wall or something solid, and takes d12 Damage doing it.",
+      "go": "Break Through",
+      "rolled": "{name} breaks through, taking {damage} Damage.",
+      "cause": "Breaking through ({ability})"
+    },
+    "possessionEffects": {
+      "label": "When used",
+      "hint": "What it does from its row: the dice it rolls, and the Virtue it Saves in or takes (none for Damage).",
+      "die": "Dice",
+      "virtue": "Virtue",
+      "kinds": {
+        "none": "Nothing",
+        "easesMortal": "Eases a Mortal Wound to a Wound",
+        "absorbsAffliction": "Takes an affliction into itself",
+        "restoresOne": "Restores one Virtue",
+        "restoresAll": "Restores every Virtue",
+        "saveOnUse": "Calls for a Save when used",
+        "harmsOther": "Costs somebody else",
+        "firstAttackImpaired": "Impairs a foe’s first Attack"
+      },
+      "easesMortal": {
+        "use": "Ease the Mortal Wound",
+        "done": "{name} uses {item}: their Mortal Wound is only a Wound now."
+      },
+      "absorbsAffliction": {
+        "use": "Draw out an affliction",
+        "which": "Which of {name}’s afflictions does {item} take into itself?",
+        "legend": "Their afflictions",
+        "ok": "Draw It Out",
+        "done": "{item} takes {affliction} out of {name}, and is spent."
+      },
+      "restoresOne": {
+        "use": "Restore a Virtue",
+        "which": "Which of {name}’s Virtues comes back to its most?",
+        "legend": "Their Virtues",
+        "now": "{value} of {max}",
+        "ok": "Restore It"
+      },
+      "restoresAll": {
+        "use": "Restore every Virtue"
+      },
+      "restored": "{name} uses {item}: {virtues} back to its most.",
+      "saveOnUse": {
+        "use": "Use one: {virtue} Save",
+        "passed": "{name} uses {item} and passes the {label}, {total} against {target}.",
+        "failed": "{name} uses {item} and fails the {label}, {total} against {target}."
+      },
+      "harmsOther": {
+        "useVirtue": "Make them pay {dice} {virtue}",
+        "useDamage": "Deal {dice} Damage to them",
+        "target": "Target the one Token who grabbed or struck, then press {item}’s button again.",
+        "confirmVirtue": "{name} loses {dice} {virtue} for it ({item}). The Referee applies it.",
+        "confirmDamage": "{name} takes {dice} Damage for it ({item}). The Referee applies it.",
+        "ok": "Ask the Referee",
+        "offerVirtue": "{bearer}’s {item}: {name} loses {dice} {virtue}.",
+        "offerDamage": "{bearer}’s {item}: {name} takes {dice} Damage.",
+        "button": "Roll It",
+        "paid": "{name} loses {amount} {virtue} ({from} → {to}).",
+        "rolled": "{name} takes {damage} Damage from {item}."
+      },
+      "firstAttackImpaired": {
+        "hint": "{name} wears {item}: a foe who knows what gold is worth has their first ever Attack at them Impaired."
+      }
+    },
+    "companions": {
+      "label": "Followers",
+      "hint": "Who follows them besides their steed and Squire, as a beast made from their Property. Drop an NPC here to add one.",
+      "release": "Let them go: no longer this Knight’s",
+      "released": "{name} no longer follows {knight}."
+    },
+    "seal": {
+      "use": "Seal somebody’s arms",
+      "target": "Target one Token first, somebody other than a Knight, whose arms {name} seals.",
+      "nothing": "{name} has no weapon, shield or armour to seal.",
+      "which": "Which of {name}’s arms takes the seal? While they wear or wield it, they can Smite or Deny once, as a Knight does.",
+      "legend": "Their arms",
+      "ok": "Seal It",
+      "needsGM": "A Referee needs to be logged in to seal {name}’s arms.",
+      "done": "{name} seals {bearer}’s {item}: they can Smite or Deny once, as a Knight does.",
+      "spent": "{name} uses {feat} by the seal on their {item}, and the seal is gone."
     },
     "stance": {
       "take": "Take up this stance",
@@ -5209,6 +5337,7 @@
       "tagline": "{name} is Slain.",
       "text": "Death comes for bold Knights too, often suddenly and without honour. Their player makes another Knight, who joins the Company soon, or takes up a successor, Squire or follower.",
       "paths": {
+        "rises": "Return from Death",
         "newKnight": "Make a New Knight",
         "successor": "Take up Their Successor",
         "squire": "Take up Their Squire",

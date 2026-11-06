@@ -53,9 +53,10 @@ describe("propertyItems", () => {
 		}]);
 	});
 
-	it("leaves a line with nothing typed in it whole, commas and all", () => {
+	it("cuts a line with nothing typed in it only where an aside closes", () => {
 		const { items } = propertyItems(["Pouch of salt (keeps meat a Season), and a bone die"]);
-		expect(items).toEqual([{ type: "gear", name: "Pouch of salt (keeps meat a Season), and a bone die" }]);
+		expect(items).toEqual([{ type: "gear", name: "Pouch of salt (keeps meat a Season)" }, { type: "gear", name: "A bone die" }]);
+		expect(propertyItems(["Pouch of salt, which keeps meat a Season"]).items).toEqual([{ type: "gear", name: "Pouch of salt, which keeps meat a Season" }]);
 	});
 
 	it("wears only the first piece of each armour type", () => {

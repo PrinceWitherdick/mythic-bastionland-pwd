@@ -13,6 +13,7 @@ import { isKnight, isNpcKnight } from "../rules/knight-types.js";
 import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { makeFreshKnight } from "./new-knight.js";
+import { canRise, riseFromDeath } from "./knight-powers.js";
 import { COMPANION_FLAG, linkedActor } from "./belonging.js";
 import { knightSquire } from "./squires.js";
 import { inCompany, playersOf, worldKnights } from "./knights.js";
@@ -118,7 +119,7 @@ export async function announceFallenKnight(knight, outcome) {
 	const { squire, successor, followers } = rode;
 	// A successor who is their Squire is taken up as their Squire, and named so on that button.
 	const heir = successor && successor !== squire ? successor : null;
-	const paths = fallenPaths({ squire: Boolean(squire), followers: followers.length, successor: Boolean(heir) });
+	const paths = fallenPaths({ squire: Boolean(squire), followers: followers.length, successor: Boolean(heir), rises: canRise(knight) });
 	await timelineFallen(knight);
 
 	// The whole table sees a Knight fall, and their player needs its buttons, however the poster rolls.
@@ -131,6 +132,7 @@ export async function announceFallenKnight(knight, outcome) {
 			key: path,
 			label: fallenPathLabel(path, rode),
 			icon: {
+				rises: "fa-solid fa-hand-sparkles",
 				newKnight: "fa-solid fa-chess-knight",
 				successor: "fa-solid fa-crown",
 				squire: "fa-solid fa-khanda",
@@ -165,6 +167,7 @@ export async function carryOnFrom(path, knight) {
 		ui.notifications.warn(t("fallen.notYours", { name: knight.name }));
 		return null;
 	}
+	if (path === "rises") return riseFromDeath(knight);
 	if (path === "newKnight") return makeAnotherKnight(knight);
 	const { squire, successor, followers } = whoRodeWith(knight);
 	if (path === "successor") return successor ? takeUpSuccessor(knight, successor) : null;

@@ -258,6 +258,21 @@ Referee Rolls, exploration, Spark Tables, Seers and Landmarks in play (pp14–25
 - [ ] **T-207** Dire weather holds the Company outside a Holding it was riding into: the card offers no Local Mood. Arriving in fine weather still does. (p18)
 - [ ] **T-208** Run a Wilderness Roll by hand for a hex the Company isn't in and meet a Curse: the Company isn't thrown off course next Phase. (p14)
 
+### Knight pages audit 2026-11-04
+- [ ] **T-209** Whip Knight (p68): roll the herbs table so they become a d8 blast weapon, then roll again for A1, then for "restore one Virtue". Each time the herbs end up as that result, never lost. Clearing the roll leaves plain gear.
+- [ ] **T-210** Saddle (p44), Talon (p48), Moat (p82), Thunder (p162) Knights: each table result lands on the steed or companion NPC (trample, talons, Guard, Armour 1, a new bite), not on the Knight's own line, and rolling again puts it back. A world loaded once carries old results over by itself (step `tableResultsRouted`).
+- [ ] **T-211** Snare Knight (p30): rolling the table names the companion NPC after its type; rolling again renames it; a name you gave it by hand stays.
+- [ ] **T-212** Meteor (p106) and Free (p146) Knights: "can be thrown" adds a thrown way to fight in the Attack dialog, and the trident keeps its d10 long. The Hexshield's "bladed" offers a d6 melee way, and its "no use against" result shows as a tick on the Damage dialog. Boulder (p84): a helm or spiked gloves result is added beside the plate.
+- [ ] **T-213** Javelins, darts and throwing axes count as ranged (set aside when engaged); Rider's axes (p44) offer a thrown way too. Fang blades as a pair (p150) won't go with a shield.
+- [ ] **T-214** Existing Knights after one load: the Key, Dusk, Forge, Ghoul, Dust and Mask Knights' merged lines are split into separate possessions (step `possessionSplits`); the Mock Knight's armour is "Plate suit".
+- [ ] **T-215** Gilded Knight (p42) Mortally Wounded by a foe in a Combat: a card offers the Referee "Rally the Allies"; each ally regains d6 GD and the Attack dialog offers a d12 "against" that foe only when targeting them.
+- [ ] **T-216** Salt Knight (p128): take up the stance; a foe on the other side attacks somebody else; a card offers the Referee "Take d10 SPI". The stance ends at the Salt Knight's next turn.
+- [ ] **T-217** Ghoul Knight (p158) Slain: the A Knight Falls card offers "Return from Death" first, which clears Slain and nothing else; the Ability's row offers it too.
+- [ ] **T-218** Hive (p156) "Emerge from the cocoon" and Boulder (p84) "Break through" row buttons: VIG to full and Wounds cleared; d12 Damage through the Damage dialog.
+- [ ] **T-219** Seal Knight (p70): target a guard, seal their club through the radio list (a player's goes via the Referee). The guard's Attack dialog then offers Smite, and Smiting spends the seal with a card. Deny likewise.
+- [ ] **T-220** Possession effects from their row: Youthful energy (p40) eases a Mortal Wound; Cold stone (p94) draws out an affliction; Whip herbs restore one or all Virtues; Dust fish (p164) roll their Save; barbed mail (p82) and the Dove's armour (p74) ask the Referee to roll on a targeted foe. The Shield Knight's salve (p66) is a VIG Remedy.
+- [ ] **T-221** The Gilded Knight's helm (p42): attacking them shows a line in the Attack dialog about the first ever Attack being Impaired.
+- [ ] **T-222** A Knight's followers (the Snare companion, Talon bird, Thunder bug) show under Followers on the Property page; the name opens them, × lets them go. Seer p92 from the compendium (after the automatic re-import) has no "limbs" weapon.
 
 ### Time Undo and re-import review 2026-11-04
 - [ ] **T-230** Duels left open: start a duel, then Slay the opponent (or mark them Fled): the duel card closes on its own ("… was Slain, so the duel is over without a victor"), no Glory moves even if staked, and the survivor's next Attack isn't ticked "Part of the Duel". Delete an opponent's Actor (or an unlinked Token) mid-duel: the card closes the same way ("… is gone"). On an older card left open with a duelist deleted, "X wins" for the survivor ends it, moving only their Glory. A sparring bout isn't closed this way.

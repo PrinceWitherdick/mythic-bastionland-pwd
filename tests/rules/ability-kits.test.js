@@ -150,7 +150,7 @@ describe("what an Ability offers an Attack", () => {
 	});
 
 	it("finds the Abilities that can do something besides", () => {
-		expect(ABILITY_POWERS).toEqual(["rerollPool", "deathWard", "coinFlip", "sigil", "oath", "wildHorn", "mirror", "severs"]);
+		expect(ABILITY_POWERS).toEqual(["rerollPool", "deathWard", "coinFlip", "sigil", "oath", "wildHorn", "mirror", "severs", "mortalRally", "seals", "breaksThrough", "drawsFire", "mendsByDay", "rises"]);
 		const items = [ability("ward", { deathWard: true }), ability("plain", {}), { type: "weapon", system: { deathWard: true } }];
 		expect(abilitiesWith(items, "deathWard").map((item) => item.id)).toEqual(["ward"]);
 		expect(abilitiesWith(null, "deathWard")).toEqual([]);

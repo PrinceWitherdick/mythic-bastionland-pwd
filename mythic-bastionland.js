@@ -30,7 +30,8 @@ import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { addNewMythButton, newOwnMyth } from "./module/actions/own-myths.js";
 import { registerCompanionQueries, watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
-import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
+import { COMPANION_LINES_STEP, COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, POSSESSION_EFFECTS_STEP, POSSESSION_SPLITS_STEP, THROWN_AND_PAIRS_STEP, catchUpThrownAndPairs, dropCompanionLines, dropOwnerFromCompanionNames, fillPossessionDetails, fillPossessionEffects, retypeKnightProperty, splitKnightGear } from "./module/actions/property.js";
+import { TABLE_RESULTS_STEP, routeTableResults } from "./module/actions/table-stats.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
 import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights, registerNpcKnightCreateChoice } from "./module/actions/npc-knights.js";
 import { KNIGHT_TYPES, NPC_KNIGHT_TYPE } from "./module/rules/knight-types.js";
@@ -42,6 +43,8 @@ import { registerSeatingLater } from "./module/actions/starts.js";
 import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
 import { registerRulerDeaths } from "./module/actions/dominion.js";
 import { registerAbilityBlows, registerUnhorsed } from "./module/actions/damage.js";
+import { registerKnightPowers } from "./module/actions/knight-powers.js";
+import { registerPossessionEffects } from "./module/actions/possession-effects.js";
 import { registerLastingQueries } from "./module/actions/lasting-dice.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
@@ -150,7 +153,7 @@ import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-s
 import { registerRemedyQuery, restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
-import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
+import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, POWER_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, fillPowerKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
 
 const ITEM_MODELS = {
 	weapon: WeaponModel,
@@ -513,6 +516,9 @@ Hooks.once("init", () => {
 	// A steed brought down throws its rider, for d6 (p10).
 	registerUnhorsed();
 	registerAbilityBlows();
+	// Knights' Abilities that call for a card or a choice, and Possessions used from the sheet.
+	registerKnightPowers();
+	registerPossessionEffects();
 	// A weapon tempered by a Wound its owner can't record for the user applying it (p98).
 	registerLastingQueries();
 	registerCollisions();
@@ -669,6 +675,16 @@ const WORLD_SETUP = Object.freeze([
 	{ key: BOOK_EFFECT_KITS_STEP, run: fillBookEffectKits, repeats: ABILITY_KITS_STEP },
 	// Again, for the Abilities that count the sides, temper a weapon, or are spent by the weapon they give.
 	{ key: LINKED_KITS_STEP, run: fillLinkedKits, repeats: ABILITY_KITS_STEP },
+	// The Knight audit of 2026-11-04: lines read as two possessions cut in two, thrown weapons ranged and
+	// pairs filling both hands, what possessions do when used, followers off the Property list, six more
+	// Abilities' kits, and table results carried again where they now land somewhere else. In that order,
+	// so the results land on possessions already cut and read.
+	{ key: POSSESSION_SPLITS_STEP, run: splitKnightGear },
+	{ key: THROWN_AND_PAIRS_STEP, run: catchUpThrownAndPairs, repeats: POSSESSION_DETAILS_STEP },
+	{ key: POSSESSION_EFFECTS_STEP, run: fillPossessionEffects, repeats: POSSESSION_DETAILS_STEP },
+	{ key: COMPANION_LINES_STEP, run: dropCompanionLines },
+	{ key: POWER_KITS_STEP, run: fillPowerKits, repeats: ABILITY_KITS_STEP },
+	{ key: TABLE_RESULTS_STEP, run: routeTableResults },
 	// Worlds that imported the book before a weapon's Damage could burn on each round (p173).
 	{ key: LINGERING_CAST_STEP, run: markLingeringAttacks },
 	// Again, for the Cast the book fields only as Warbands though their names don't say so.

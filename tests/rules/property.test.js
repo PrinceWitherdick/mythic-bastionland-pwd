@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pointsBelow, tableItemId } from "../../module/rules/knight-tables.js";
-import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, possessionDetails, propertyGear, propertyItems, retypedProperty } from "../../module/rules/property.js";
+import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, possessionDetails, propertyGear, propertyItems, retypedProperty, splitMergedGear } from "../../module/rules/property.js";
 
 // Lines here are invented so no book text lives in the repository.
 
@@ -217,14 +217,14 @@ describe("companions", () => {
 describe("knightCompanions", () => {
 	const gear = (id, name, description = "") => ({ id, type: "gear", name, system: { description } });
 
-	it("finds the steed they ride, and the other companions", () => {
+	it("finds the steed they ride, and the other companions, keeping only lines that point at the table", () => {
 		const found = knightCompanions([
 			gear("a", "Rope"),
 			gear("b", "Grey mare (VIG 10, CLA 8, SPI 5, 3GD, d6 trample)"),
 			gear("c", "Tame owl (VIG 5, CLA 10, SPI 5, 4GD, d4 talons, see below)"),
 			gear("d", "Spare pony (VIG 7, CLA 7, SPI 5, 2GD)")
 		]);
-		expect(found.map(({ itemId, steed, keepLine }) => [itemId, steed, keepLine])).toEqual([["b", true, false], ["c", false, true], ["d", false, true]]);
+		expect(found.map(({ itemId, steed, keepLine }) => [itemId, steed, keepLine])).toEqual([["b", true, false], ["c", false, true], ["d", false, false]]);
 	});
 
 	it("keeps a steed's line that points at the page's table", () => {
@@ -282,5 +282,75 @@ describe("nameWithoutOwner", () => {
 
 	it("keeps a name with nothing left under the Knight's", () => {
 		expect(nameWithoutOwner(" (Sir Bardolf)", "Sir Bardolf")).toBe(" (Sir Bardolf)");
+	});
+});
+
+describe("propertyItems, thrown and paired weapons", () => {
+	it("makes thrown weapons strike at a distance, keeping the die printed", () => {
+		const { items } = propertyItems(["3 darts (d6), 2 javelins (d6), throwing knives (d4)"]);
+		expect(items.map((item) => [item.name, item.system.ranged, item.system.hefty])).toEqual([["Darts", true, false], ["Javelins", true, false], ["Throwing knives", true, false]]);
+	});
+
+	it("gives a weapon that can be thrown its thrown way to fight, at the same die", () => {
+		const [axe] = propertyItems(["Hand axes (d6, can be thrown)"]).items;
+		expect(axe.system.ranged).toBe(false);
+		expect(axe.system.alternate).toEqual({ label: "thrown", damage: "d6", ranged: true });
+	});
+
+	it("has a pair fill both hands", () => {
+		const [knives] = propertyItems(["Twin knives (d4, or d6 each when wielded as a pair)"]).items;
+		expect(knives.system.alternate).toEqual({ label: "as a pair", damage: "2d6", pair: true });
+	});
+});
+
+describe("propertyItems, lines that name two things", () => {
+	it("cuts a line with nothing typed in it after an aside, at a comma or an and", () => {
+		const gear = propertyGear(["Tin whistle (calls dogs), bag of buttons (see below)", "Lamp (never goes out) and spare wick"]);
+		expect(gear.map((item) => item.name)).toEqual(["Tin whistle (calls dogs)", "Bag of buttons (see below)", "Lamp (never goes out)", "Spare wick"]);
+	});
+
+	it("keeps a count and restock on the piece that says it", () => {
+		const gear = propertyGear(["Fishing line (always bites), dried eels (see below, restock each new Season)"]);
+		expect(gear[0].system).toBeUndefined();
+		expect(gear[1].system).toEqual({ quantity: { value: 1, max: 1 }, restock: "season" });
+	});
+
+	it("leaves commas inside one possession's words alone", () => {
+		expect(propertyGear(["Jar of honey, which never spoils (see below)"]).map((item) => item.name)).toEqual(["Jar of honey, which never spoils (see below)"]);
+	});
+
+	it("names armour worn under something else as the armour", () => {
+		const [, coat] = propertyItems(["Odd hide (see below), hidden beneath a long coat (A1), hat"]).items;
+		expect(coat).toMatchObject({ type: "armour", name: "Long coat", system: { armour: 1, description: "<p>Hidden beneath</p>" } });
+	});
+});
+
+describe("splitMergedGear", () => {
+	it("cuts gear read as one piece into its possessions, keeping its place and what's been used", () => {
+		const items = [
+			{ id: "a", type: "gear", name: "Fishing line (always bites), dried eels (see below, restock each new Season)", sort: 10, system: { quantity: { value: 0, max: 1 }, restock: "season" } },
+			{ id: "b", type: "gear", name: "Lamp", sort: 20, system: {} },
+			{ id: "c", type: "gear", name: "Map (old), compass (see below)", sort: 30, system: { description: "<p>Mine</p>" } }
+		];
+		const { remove, create } = splitMergedGear(items);
+		expect(remove).toEqual(["a"]);
+		expect(create.map((item) => [item.name, item.sort])).toEqual([["Fishing line (always bites)", 10], ["Dried eels (see below, restock each new Season)", 11]]);
+		expect(create[1].system.quantity).toEqual({ value: 0, max: 1 });
+	});
+});
+
+describe("possessionDetails, thrown and paired weapons", () => {
+	it("makes a Knight's javelins ranged and their pair fill both hands", () => {
+		const items = [
+			{ id: "j", type: "weapon", name: "Javelins", system: { ranged: false, quantity: { value: 2, max: 2 } } },
+			{ id: "k", type: "weapon", name: "Twin knives", system: { alternate: { label: "as a pair", damage: "2d6", pair: false } } },
+			{ id: "h", type: "weapon", name: "Hand axes", system: { alternate: { label: "", damage: "" } } }
+		];
+		const lines = ["2 javelins (d6), twin knives (d4, or d6 each when wielded as a pair)", "Hand axes (d6, can be thrown)"];
+		expect(possessionDetails(items, lines, { only: ["ranged", "alternate"] })).toEqual([
+			{ _id: "j", "system.ranged": true },
+			{ _id: "k", "system.alternate.pair": true },
+			{ _id: "h", "system.alternate": { label: "thrown", damage: "d6", ranged: true } }
+		]);
 	});
 });

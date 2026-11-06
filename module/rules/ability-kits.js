@@ -71,10 +71,22 @@ export const ABILITY_KITS = Object.freeze({
 	// Branches taken up as javelins or greatspears.
 	152: {
 		weapons: [
-			{ key: "branchJavelin", system: { damage: "d6", hefty: true, wooden: true, equipped: false } },
+			{ key: "branchJavelin", system: { damage: "d6", ranged: true, wooden: true, equipped: false } },
 			{ key: "branchSpear", system: { damage: "d10", long: true, wooden: true, equipped: false } }
 		]
 	},
+	// Mortally Wounded, the allies fighting beside them rally against whoever did it.
+	42: { ability: { mortalRally: true } },
+	// A seal on somebody else's arms, good for one Smite or Deny.
+	70: { ability: { seals: true } },
+	// Unstoppable in motion, at the cost of a d12 breaking through.
+	84: { ability: { breaksThrough: true } },
+	// Until their next turn, foes who strike at others pay in SPI.
+	128: { ability: { drawsFire: true, lapses: "turn" } },
+	// A day in a cocoon mends the body.
+	156: { ability: { mendsByDay: true } },
+	// Back from death, as they were left.
+	158: { ability: { rises: true } },
 	// A bite whose Wound does one of three things, picked before it: VIG taken back, sleep, or a memory shown.
 	166: { ability: { grants: { drain: true, sleep: true, memory: true } }, weapons: [{ key: "bite", system: { damage: "d6", noHand: true } }] }
 });
@@ -98,6 +110,9 @@ export const LINKED_KIT_FIELDS = Object.freeze(["tempers", "crowd", "weapon"]);
 
 /** The flag on a weapon an Ability gave: its key in the kit. */
 export const KIT_FLAG = "abilityKit";
+
+/** The pages given kits for what their Ability does once used, which a later step catches existing Knights up on. */
+export const POWER_KIT_PAGES = Object.freeze([42, 70, 84, 128, 156, 158]);
 
 /** Every weapon key the kits use, each named under `bastionland.abilityKits.` */
 export const KIT_WEAPON_KEYS = Object.freeze([...new Set(Object.values(ABILITY_KITS).flatMap((kit) => (kit.weapons ?? []).map(({ key }) => key)))]);

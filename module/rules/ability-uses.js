@@ -107,9 +107,13 @@ export const CHOSEN_GRANTS = Object.freeze(["spirit", ...WOUND_EFFECTS, "shatter
  * Mortal Wound (p66), flip a coin for a life (p120), etch a rune for a
  * number at sunset (p100), swear a quest that holds GD back (p94), blow a horn
  * that doubles the VIG lost to Damage (p72), give back a Wound or Scar to
- * whoever dealt it (p116), and take a limb or a head with a Strong Gambit (p114).
+ * whoever dealt it (p116), take a limb or a head with a Strong Gambit (p114),
+ * rally allies when Mortally Wounded (p42), seal somebody else's arms for a
+ * Feat (p70), break through a wall at a cost (p84), make foes who strike
+ * elsewhere pay (p128), mend in a day-long cocoon (p156), and return from
+ * death (p158). See rules/knight-powers.js.
  */
-export const ABILITY_POWERS = Object.freeze(["rerollPool", "deathWard", "coinFlip", "sigil", "oath", "wildHorn", "mirror", "severs"]);
+export const ABILITY_POWERS = Object.freeze(["rerollPool", "deathWard", "coinFlip", "sigil", "oath", "wildHorn", "mirror", "severs", "mortalRally", "seals", "breaksThrough", "drawsFire", "mendsByDay", "rises"]);
 
 /**
  * The only kind of Attack an Ability can be used in, as its words say: any, a
