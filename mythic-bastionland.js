@@ -41,6 +41,8 @@ import { registerTurnOrder } from "./module/actions/turn-order.js";
 import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
 import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
+import { registerTimeCapture, watchWrites } from "./module/actions/time-capture.js";
+import { registerTimeUndo, undoAdvance, undoOffer } from "./module/actions/time-undo.js";
 import { registerRulerDeaths } from "./module/actions/dominion.js";
 import { registerAbilityBlows, registerUnhorsed } from "./module/actions/damage.js";
 import { registerKnightPowers } from "./module/actions/knight-powers.js";
@@ -313,6 +315,8 @@ Hooks.once("init", () => {
 
 	// The world's calendar of Ages, Seasons and Phases.
 	registerCalendarSetting();
+	// What each time advance writes, noted so the Referee can take it back.
+	registerTimeCapture();
 
 	// The Referee's own Company pictures, offered in the gallery once used.
 	registerCompanyPictureSetting();
@@ -476,7 +480,10 @@ Hooks.once("init", () => {
 			nextEvent: () => {
 				const { next } = seasonEventsNow();
 				return next ? eventLabel(next.key) : null;
-			}
+			},
+			// The last advance taken back, should it have been pressed by mistake.
+			undo: () => undoAdvance(),
+			undoable: undoOffer
 		}
 	});
 
@@ -511,6 +518,8 @@ Hooks.once("init", () => {
 	registerSeatingLater();
 	// The Season card's buttons that roll a new Myth for each resolved one (p27).
 	registerReplaceMyth();
+	// A time advance's cards carry the Referee's Undo.
+	registerTimeUndo();
 	// A ruling Knight's death passes their Domain on (p21).
 	registerRulerDeaths();
 	// A steed brought down throws its rider, for d6 (p10).
@@ -718,6 +727,8 @@ const WORLD_SETUP = Object.freeze([
 ]);
 
 Hooks.once("ready", async () => {
+	// Time advances are noted from here, after every other module's init hooks, so each write is seen as they leave it.
+	watchWrites();
 	// The Phase at the top of the screen, for everyone at the table.
 	showPhaseBanner();
 	// Each kind of Timeline entry in the colour the Referee chose for it.

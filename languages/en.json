@@ -595,7 +595,8 @@
         "season": "the Season's turn",
         "aging": "growing older",
         "book": "the rulebook",
-        "ability": "an Ability"
+        "ability": "an Ability",
+        "undo": "time turned back"
       },
       "gone": "someone since deleted",
       "unknownDay": "Unknown date",
@@ -1434,6 +1435,48 @@
         "line": "Left Mortally Wounded and untended, they die.",
         "hint": "An hour without care kills the Mortally Wounded; a few moments of it patches them up (p8)."
       }
+    },
+    "timeUndo": {
+      "kinds": {
+        "phase": "Next Phase",
+        "weeks": "Weeks Pass",
+        "season": "Months Pass",
+        "age": "A Year Passes",
+        "distant": "the Journey to a Distant Realm"
+      },
+      "banner": "Undo {kind}",
+      "bannerHint": "Turn time back to {date}, taking back everything {kind} did.",
+      "button": "Undo",
+      "buttonHint": "Turn time back to before this, taking back everything it did.",
+      "confirm": {
+        "title": "Turn Time Back",
+        "intro": "Turn time back to {date}? Everything {kind} did is taken back:",
+        "names": "Put back as they were: {names}.",
+        "cards": "The {count} cards it posted are deleted.",
+        "cardsOne": "The card it posted is deleted.",
+        "made": "The {count} other things it made are deleted.",
+        "madeOne": "The one other thing it made is deleted.",
+        "settings": "{count} of the world’s settings, such as the weather, go back as they were.",
+        "settingsOne": "One of the world’s settings goes back as it was.",
+        "onlyTime": "It changed nothing else, so only the calendar goes back.",
+        "kept": "Changed since, so kept as they are now: {names}.",
+        "pressed": "Buttons were pressed since on {cards}. What they did stays.",
+        "aCard": "a card",
+        "aSetting": "a setting",
+        "yes": "Turn Time Back",
+        "no": "Keep It"
+      },
+      "card": {
+        "title": "Time Turned Back",
+        "hint": "The Referee took back {kind}, and everything it rolled and changed.",
+        "onlyTime": "The Referee took back {kind}."
+      },
+      "notNewest": "Undo the later time advance first.",
+      "gone": "That time advance can no longer be undone.",
+      "moved": "Time has moved since then, so that advance can no longer be undone.",
+      "busy": "Time is still moving. Try again once it has.",
+      "partly": "Some of it couldn’t be put back, so time stays where it is. Undo again to finish; the console says what went wrong.",
+      "unanswered": "The active Referee’s client didn’t answer, so time wasn’t turned back."
     },
     "time": {
       "title": "Time",

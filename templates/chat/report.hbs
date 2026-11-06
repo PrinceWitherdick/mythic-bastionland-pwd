@@ -47,6 +47,12 @@ then the die and what it gave under the rule. --}}
 		{{/each}}
 	</div>
 	{{/if}}
+	{{!-- A time advance's card takes it back for the Referee, until a later advance or its falling off the list. --}}
+	{{#if undo}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-undo-time data-tooltip="{{localize 'bastionland.timeUndo.buttonHint'}}"><i class="fa-solid fa-clock-rotate-left" inert></i> {{localize "bastionland.timeUndo.button"}}</button>
+	</div>
+	{{/if}}
 	{{#if hint}}
 	<p class="bastionland-card__hint{{#if hintAside}} bastionland-card__hint--aside{{/if}}">{{hint}}</p>
 	{{/if}}

@@ -65,6 +65,33 @@ const parchment = ({ classes = [], window: frame = {}, ...options }) => ({
 	classes: ["bastionland-dialog", ...classes]
 });
 
+/** @type {(() => Promise<() => Promise<void>>)|null} Waited on before a dialog asks, and told once it's answered. */
+let askingGate = null;
+
+/**
+ * Have every dialog here wait on something before it asks, and tell it once
+ * answered, as a time advance does to leave out what the Referee does meanwhile.
+ * @param {(() => Promise<() => Promise<void>>)|null} gate
+ */
+export function setAskingGate(gate) {
+	askingGate = gate;
+}
+
+/**
+ * @template T
+ * @param {() => Promise<T>} open
+ * @returns {Promise<T>}
+ */
+async function asking(open) {
+	if (!askingGate) return open();
+	const answered = await askingGate();
+	try {
+		return await open();
+	} finally {
+		await answered?.();
+	}
+}
+
 /**
  * Ask a yes-or-no question.
  * @param {object} options
@@ -77,12 +104,12 @@ const parchment = ({ classes = [], window: frame = {}, ...options }) => ({
  * @returns {Promise<boolean>} Whether the user said yes.
  */
 export async function confirmDialog({ title, icon, message, yes, no }) {
-	const confirmed = await foundry.applications.api.DialogV2.confirm(parchment({
+	const confirmed = await asking(() => foundry.applications.api.DialogV2.confirm(parchment({
 		window: { title, icon },
 		content: messageHtml(message),
 		...(yes ? { yes: { icon: "fa-solid fa-check", ...yes } } : {}),
 		...(no ? { no: { icon: "fa-solid fa-xmark", ...no } } : {})
-	}));
+	})));
 	return confirmed === true;
 }
 
@@ -95,7 +122,7 @@ export async function confirmDialog({ title, icon, message, yes, no }) {
  * @returns {Promise<unknown>} What the button pressed gave, or null if closed.
  */
 export function waitDialog(options) {
-	return foundry.applications.api.DialogV2.wait(parchment({ position: { width: 400 }, ...options }));
+	return asking(() => foundry.applications.api.DialogV2.wait(parchment({ position: { width: 400 }, ...options })));
 }
 
 /**
@@ -108,7 +135,7 @@ export function waitDialog(options) {
  * @returns {Promise<unknown>} What the button gave, or null if closed.
  */
 export function promptDialog({ title, icon, content, ok }) {
-	return foundry.applications.api.DialogV2.prompt(parchment({ window: { title, icon }, content, ok }));
+	return asking(() => foundry.applications.api.DialogV2.prompt(parchment({ window: { title, icon }, content, ok })));
 }
 
 /**
@@ -241,7 +268,7 @@ export function linkEverything(element) {
 export async function inputDialog({ title, icon, template, context, ok, drawings = false, classes = [], render, ...rest }) {
 	const html = await foundry.applications.handlebars.renderTemplate(templatePath(`dialogs/${template}.hbs`), context);
 	const content = drawings ? uncleanedContent(html) : html;
-	return foundry.applications.api.DialogV2.input(parchment({
+	return asking(() => foundry.applications.api.DialogV2.input(parchment({
 		window: { title, icon },
 		classes,
 		content,
@@ -251,7 +278,7 @@ export async function inputDialog({ title, icon, template, context, ok, drawings
 			return render?.(event, dialog);
 		},
 		...rest
-	}));
+	})));
 }
 
 /**

@@ -108,9 +108,36 @@ On top of everything a Season's turn does:
 
 **Click Journey to a Distant Realm** on the Time page. If the world has other Realm Scenes, pick one, or **Somewhere Else**. The Season turns as it does for Months Pass, but nobody picks a pursuit, since the Company is on the road. The card says the Company arrived. If you picked one of your Realm Scenes, it becomes the active Scene.
 
+## Undoing a time advance
+
+Pressed Next Phase, Weeks Pass, Months Pass, A Year Passes or Journey to a Distant Realm by mistake? Take it back with **Undo**. You'll find it in two places:
+
+- at the top of the menu under the bar at the top of the screen, named for what it takes back, such as **Undo Next Phase**;
+- on the card the advance posted (the Phase card, the Season's card or the event's card).
+
+Only the Referee sees it.
+
+A window first says what goes back, then **Turn Time Back** takes back everything the advance did:
+
+- the calendar, Day and year included;
+- Virtues lost or restored, Guard, Glory and aging;
+- deaths, Scars settled, and items restocked or sigils faded;
+- Domains fallen into misrule;
+- Omens and Landmarks the Wilderness Roll found;
+- the weather and who went Deprived;
+- the Season's record, and its rows on the Timeline.
+
+The cards it posted are deleted, and one short card tells the table time was turned back.
+
+- **Changes made since are kept.** If a Knight spent Guard after Next Phase, that Guard stays spent, and the window lists what it's keeping.
+- **What a card's buttons did stays.** If you pressed a button on one of its cards, such as rolling a new Myth or choosing a new Knight, the window names that card, and what the button did isn't undone.
+- **Newest first, up to five.** Each Undo takes back the most recent advance, so pressing it twice goes back two. The last five are kept, even across a reload.
+- **Only while time stands where the advance left it.** Once you set the calendar by hand or move time on again, the older advance can't be undone until the newer one is.
+- **Doing it again rolls afresh.** Press Next Phase again after an Undo and its rolls are made anew.
+
 ## Setting the calendar by hand
 
-The Toolkit's banner holds the calendar at its right end: the **Season** over the **Age**, then the **Phase** with the weather under it. Use these to fix a mistake or start a game partway through, not to play out time.
+The Toolkit's banner holds the calendar at its right end: the **Season** over the **Age**, then the **Phase** with the weather under it. Use these to fix a mistake or start a game partway through, not to play out time. To take back an advance pressed by mistake, use **Undo** instead (see above): setting the calendar by hand only moves the date.
 
 - **Pick a Season or Phase from its drop-down** to set it by hand. A new Phase still posts its Phase card, but no Phase's end window opens, nothing is rolled and nobody loses anything. A Season set by hand turns nothing and records nothing in Past Seasons.
 - **Click the Age number** to open **The Age**. **A Year Passes** turns the Age properly; **Set the Age** (the default) only changes the number.
@@ -127,7 +154,8 @@ A ruler coming home after a long time away also owes one. The system counts an a
 The **Glory** section on the Time page has a button for each way of winning Glory other than a new Age: **Myth Resolved**, **Tournament Won** and **Battle Won**. Hover one for when it applies.
 
 - **Click a Glory button**, tick every Knight who earns it, and **click Award Glory**. Each gains 1 Glory, and a card names them with their new Glory and any new rank. The award also goes on the Timeline.
-- A new Age gives each Knight who takes part 1 Glory by itself.
+- **Tournament Won** has one winner: pick one Knight from the list, which starts with none picked. **Battle Won** ticks the Company's Knights riding with it. Both list your NPC Knights after the Company's, unpicked, and leave out Squires and the Slain.
+- A new Age gives every living Knight 1 Glory by itself, ticked or not, your NPC Knights too. Squires gain none.
 - End the Session's window has the same three buttons.
 
 ## Past Seasons

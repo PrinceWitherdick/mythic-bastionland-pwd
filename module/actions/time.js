@@ -62,6 +62,7 @@ import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
 import { escapeHTML } from "../rules/text.js";
 import { companyKnights, inCompany, playerCharacter } from "./knights.js";
 import { announceFallenKnight, companionsOf, worldCompanions } from "./fallen.js";
+import { captureAdvance } from "./time-capture.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -450,6 +451,19 @@ async function endPhase(known) {
 	const ending = getCalendar();
 	const answers = await askPhaseEnd(ending, known);
 	if (!answers) return null;
+	// From here on, all it writes is noted, so the Referee can take it back.
+	return captureAdvance("phase", () => phaseEnds(ending, answers, known));
+}
+
+/**
+ * A Phase's end once its window is answered: its Wilderness Roll, the calendar
+ * moved on, what the Night cost, and the new Phase's card and weather.
+ * @param {import("../rules/time.js").Calendar} ending
+ * @param {object} answers From askPhaseEnd.
+ * @param {object} known
+ * @returns {Promise<import("../rules/time.js").Calendar>}
+ */
+async function phaseEnds(ending, answers, known) {
 	// Rolled while the Phase it ends is still the Phase, so a Curse it finds blinds the one after.
 	const met = answers.wilderness
 		? await wildernessRoll({ scene: answers.scene, phase: ending.phase, mode: answers.mode === "camp" ? "camp" : "travel", atBarrier: Boolean(known.atBarrier) })
@@ -531,7 +545,9 @@ export function announcePhase(calendar, { sections = [], rolls = [] } = {}) {
 		tagline: calendarLabel(calendar),
 		// Night brings round a table rolled each night, and Morning a new Day's.
 		due: [...tasksDueNotices(calendar), ...tableRenewalNotices(calendar.phase === "night" ? ["night"] : calendar.phase === "morning" ? ["day"] : [])],
-		hint: t(`time.phaseHints.${calendar.phase}`)
+		hint: t(`time.phaseHints.${calendar.phase}`),
+		// The Referee's Undo, shown while the advance that posted it can be taken back; set by hand, there's none.
+		undo: true
 	}, { rolls });
 }
 
@@ -557,7 +573,16 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	const after = next(before);
 	const company = await chooseCompany({ title: t(label), icon, intro: intro(before, after), ok: t(label), pursuits, knightsOnly: true, aging: newAge });
 	if (!company) return null;
+	// From here on, all it writes is noted, so the Referee can take it back.
+	return captureAdvance(kind, () => timeTurns({ newAge, before, after, company, kind, turned, note, weather }));
+}
 
+/**
+ * The Season or the Age turning, once the Company is chosen.
+ * @param {object} turn
+ * @returns {Promise<import("../rules/time.js").Calendar>}
+ */
+async function timeTurns({ newAge, before, after, company, kind, turned, note, weather }) {
 	await setCalendar(after);
 	// A ruler away from their Holding as the Season turns returns from a long absence (p20).
 	await markLongAbsences();
@@ -774,7 +799,8 @@ export async function announceSeason(calendar, { title, entries, note = null }, 
 			...tableRenewalNotices(["season", "day"])
 		],
 		replaceMyths: myths.map((myth) => ({ ...myth, label: t("time.due.replaceMyth", { myth: myth.name }) })),
-		hint: [note, t("time.unresolvedHint")].filter(Boolean).join(" ")
+		hint: [note, t("time.unresolvedHint")].filter(Boolean).join(" "),
+		undo: true
 	}, options);
 }
 
@@ -834,16 +860,19 @@ export async function weeksPass() {
 	}
 	if (next.collection) return turnSeason();
 
-	const after = nextDay(calendar);
-	// The event's card is the only one the weeks post, so it says what falls due on the Morning they end on:
-	// a Council task set for a Week (p20), and a Knight's table rolled again each Night or Day.
-	const due = [...tasksDueNotices(after), ...tableRenewalNotices(["night", "day"])];
-	if (!(await markSeasonEvent(next.key, { weeks: true, due }))) return null;
-	await setCalendar(after);
-	// Weeks away from their Holding make a ruler's return a long absence (p20).
-	await markLongAbsences();
-	await timeSkipped(after);
-	return after;
+	// All it writes is noted, so the Referee can take it back.
+	return captureAdvance("weeks", async () => {
+		const after = nextDay(calendar);
+		// The event's card is the only one the weeks post, so it says what falls due on the Morning they end on:
+		// a Council task set for a Week (p20), and a Knight's table rolled again each Night or Day.
+		const due = [...tasksDueNotices(after), ...tableRenewalNotices(["night", "day"])];
+		if (!(await markSeasonEvent(next.key, { weeks: true, due }))) return null;
+		await setCalendar(after);
+		// Weeks away from their Holding make a ruler's return a long absence (p20).
+		await markLongAbsences();
+		await timeSkipped(after);
+		return after;
+	});
 }
 
 /**
@@ -870,6 +899,16 @@ export async function journeyToDistantRealm() {
 		destination = choice === elsewhere ? null : choice;
 	}
 
+	// The Season's turn and the arrival after it are noted as one advance, so one Undo takes back both.
+	return captureAdvance("distant", () => journeyTo(destination));
+}
+
+/**
+ * The journey once its destination is chosen, if there was one to choose.
+ * @param {Scene|null} destination
+ * @returns {Promise<import("../rules/time.js").Calendar|null>}
+ */
+async function journeyTo(destination) {
 	const season = (calendar) => t(`time.seasons.${calendar.season}`);
 	// The Company dialog escapes its intro itself.
 	const where = destination?.name ?? t("time.distant.aDistantRealm");

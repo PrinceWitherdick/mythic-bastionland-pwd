@@ -1922,7 +1922,8 @@
 	cursor: pointer;
 }
 
-/* Next Phase and End the Session each run the width of the three between them. */
+/* The Undo, Next Phase and End the Session each run the width of the three between them. */
+.bastionland-time-banner__moves > [data-move="undo"],
 .bastionland-time-banner__moves > [data-move="phase"],
 .bastionland-time-banner__moves > [data-move="end"] {
 	grid-column: 1 / -1;
