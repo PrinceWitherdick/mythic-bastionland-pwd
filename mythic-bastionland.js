@@ -64,7 +64,7 @@ import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorl
 import { addSoloTag } from "./module/apps/solo-tag.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
-import { CAST_DETAILS_STEP, LINGERING_CAST_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markLingeringAttacks, markOrAttacks, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
+import { CAST_DETAILS_STEP, CAST_LEADERS_AND_BOWS_STEP, LINGERING_CAST_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markLingeringAttacks, markOrAttacks, mendCastLeadersAndBows, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
@@ -678,6 +678,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: "warbandCast", run: fillCastDetails, repeats: CAST_DETAILS_STEP },
 	// Again, for the Cast whose stat block has them fight on through a Mortal Wound.
 	{ key: "fightsOnCast", run: fillCastDetails, repeats: "warbandCast" },
+	// Worlds whose Cast had bows that weren't ranged, and the Militia's leader's longbow as the Warband's own (p11).
+	{ key: CAST_LEADERS_AND_BOWS_STEP, run: mendCastLeadersAndBows },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.

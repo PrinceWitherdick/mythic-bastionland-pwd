@@ -4,6 +4,8 @@ import {
 	featsNamed,
 	formatStatLine,
 	isStructureBlock,
+	leaderLines,
+	leaderOf,
 	npcFromStatBlock,
 	parseArmour,
 	parseAttacks,
@@ -82,6 +84,11 @@ describe("parseArmour", () => {
 });
 
 describe("parseAttacks", () => {
+	it("leaves dice that count something to the words, but reads a weapon somebody has", () => {
+		expect(parseAttacks("Has a shifting number of eyes (d6), all blinking.")).toEqual({ attacks: [], rest: "Has a shifting number of eyes (d6), all blinking." });
+		expect(parseAttacks("Brave, has a keen sword (2d8 hefty), will flee.").attacks).toEqual([{ name: "has a keen sword", damage: "2d8", qualities: ["hefty"], note: "" }]);
+	});
+
 	it("reads each attack's dice, qualities and notes", () => {
 		expect(parseAttacks("Hookstaff (d10 long, +d6 vs riders) or kick (d4)")).toEqual({
 			attacks: [
@@ -289,5 +296,60 @@ describe("Cast weapons", () => {
 		const [javelins] = attacks("2 javelins (d6 ranged)");
 		expect(javelins.system).toMatchObject({ quantity: { value: 2, max: 2 } });
 		expect(javelins.system).not.toHaveProperty("usedUp");
+	});
+});
+
+describe("ranged Cast weapons", () => {
+	const weapons = (line) => npcFromStatBlock({ name: "Tester", stats: { vig: 10, cla: 10, spi: 10, guard: 3 }, lines: [line] }).items;
+
+	it("makes a bow, a crossbow or a sling ranged, though the book doesn't print it so", () => {
+		const [bow, crossbow, sling, knife] = weapons("Yew bow (d6 long), crossbow (2d8), sling (d4), knife (d6)");
+		expect(bow.system).toMatchObject({ ranged: true, long: true });
+		expect(crossbow.system.ranged).toBe(true);
+		expect(sling.system.ranged).toBe(true);
+		expect(knife.system.ranged).toBe(false);
+	});
+
+	it("leaves javelins as they're printed", () => {
+		expect(weapons("Javelins (d6)")[0].system.ranged).toBe(false);
+		expect(weapons("2 javelins (d6 ranged)")[0].system.ranged).toBe(true);
+	});
+});
+
+describe("leaders' lines", () => {
+	const militia = {
+		name: "Lantern Militia, led by Odrin",
+		stats: { vig: 10, cla: 10, spi: 7, guard: 3 },
+		lines: ["A1 (padded coats)", "Spear (d8 long), shortbow (d6)", "Ordin has a crossbow (2d8) and a grudge against the reeve."]
+	};
+
+	it("reads who leads a group from its name", () => {
+		expect(leaderOf("Lantern Militia, led by Odrin")).toBe("Odrin");
+		expect(leaderOf("Wade, the Grey Heron")).toBeNull();
+		expect(leaderOf("Lone Hermit")).toBeNull();
+	});
+
+	it("finds the lines saying what the leader has, even with the name's letters swapped", () => {
+		expect(leaderLines(militia)).toEqual(["Ordin has a crossbow (2d8) and a grudge against the reeve."]);
+		expect(leaderLines({ ...militia, name: "Lantern Militia" })).toEqual([]);
+		// Somebody else who has something is the group's business.
+		expect(leaderLines({ ...militia, lines: ["Brina has a lute (d4)"] })).toEqual([]);
+	});
+
+	it("keeps the leader's weapon as a note, not the group's weapon (p11)", () => {
+		const npc = npcFromStatBlock(militia);
+		expect(npc.items.map((item) => item.name)).toEqual(["Spear", "Shortbow"]);
+		expect(npc.system.notes).toBe("<p>Ordin has a crossbow (2d8) and a grudge against the reeve.</p>");
+	});
+
+	it("keeps the leader's Armour as a note too, leaving the group's own", () => {
+		const npc = npcFromStatBlock({ ...militia, lines: ["Felling axes (d8 long)", "Odrin has A2 (helm, mail), a loud voice", "A1 (padded coats)"] });
+		expect(npc.system.armour).toBe(1);
+		expect(npc.system.notes).toBe("<p>Odrin has A2 (helm, mail), a loud voice</p>");
+	});
+
+	it("leaves a group with no leader named reading every line as before", () => {
+		const npc = npcFromStatBlock({ ...militia, name: "Lantern Militia" });
+		expect(npc.items.map((item) => item.name)).toEqual(["Spear", "Shortbow", "Ordin has a crossbow"]);
 	});
 });

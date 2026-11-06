@@ -26,9 +26,10 @@ export const INDEX_FILE = "index.json";
  * foot of each Myth's page. 13 added the book's words for the rules text the
  * system shows (module/rules/book-text.js). 14 added the verse under each Knight's name.
  * 15 read the list of choices an Ability or Passion ends on. 16 kept a Seer's trait whole where it runs
- * on to a second sentence.
+ * on to a second sentence. 17 stopped reading dice that count something in a Seer's trait as an attack,
+ * so the Seers compendium is made again without it.
  */
-export const INDEX_VERSION = 16;
+export const INDEX_VERSION = 17;
 
 /** The first index version with the prompts along the foot of each Knight's page, kept on their Seer. */
 export const SEER_PROMPTS_VERSION = 7;

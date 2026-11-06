@@ -1,6 +1,6 @@
 import { updateActors } from "../actions/actor-updates.js";
 import { t } from "../chat/cards.js";
-import { castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, mythCastFolders } from "../rules/cast-npcs.js";
+import { castDetailUpdates, castEntryFor, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, leaderLineUpdates, mythCastFolders, rangedUpdates } from "../rules/cast-npcs.js";
 import { lingeringUpdates } from "../rules/afflictions.js";
 import { CAST_FLAG } from "../rules/myth-cast.js";
 import { seerFolders } from "../rules/seer-npcs.js";
@@ -167,6 +167,33 @@ export function markLingeringAttacks() {
 	return patchWorldCast(async (actor, data) => {
 		const updates = lingeringUpdates([...actor.items], data.items);
 		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
+	});
+}
+
+/** The world setup step giving the Cast's bows their reach, and their leaders' lines back to the leaders. */
+export const CAST_LEADERS_AND_BOWS_STEP = "castLeadersAndBows";
+
+/**
+ * A world setup step for a world that imported the book before a bow or a
+ * sling on a Cast stat block was ranged, and before a line saying what a
+ * group's leader has was the leader's (p11): the Misguided Militia had their
+ * leader's longbow as a weapon of the Warband's. The NPCs compendium is filled
+ * again, and each of a Cast already in the world has its bows marked ranged,
+ * any weapon read off its leader's line taken away, and the line kept whole in
+ * its notes, keeping everything else as it is.
+ * @returns {Promise<boolean>} Always done: a world without the book's text has nothing to mend.
+ */
+export function mendCastLeadersAndBows() {
+	const attackName = t("attack.title");
+	return patchWorldCast(async (actor, data, index) => {
+		const items = [...actor.items];
+		const ranged = rangedUpdates(items, data.items);
+		const leader = leaderLineUpdates({ type: actor.type, system: actor.system, items }, castEntryFor(index, actor.getFlag(SYSTEM_ID, CAST_FLAG)), data, { attackName });
+		const remove = new Set(leader?.remove ?? []);
+		const updates = ranged.filter((update) => !remove.has(update._id));
+		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
+		if (remove.size) await actor.deleteEmbeddedDocuments("Item", [...remove]);
+		if (leader?.update) await actor.update(leader.update);
 	});
 }
 

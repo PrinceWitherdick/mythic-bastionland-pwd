@@ -142,6 +142,13 @@ const QUALITIES = Object.freeze({
 });
 
 /**
+ * The book doesn't mark weapons as ranged, but these can only strike at a
+ * distance. Kept here, where a stat block's weapons are read, and handed on by
+ * arms-and-goods.js, which reads the book's own lists of arms through this file.
+ */
+export const RANGED_NAME = /bow\b|sling|thrower|launcher|catapult|trebuchet/i;
+
+/**
  * @param {string} text Such as a weapon's note.
  * @returns {boolean} Whether it says the weapon counts as Hefty when mounted, as a lance does.
  */
@@ -208,6 +215,12 @@ function nameStartIn(before) {
 const OR_BETWEEN = /^[\s,;]*or\s*$/i;
 
 /**
+ * Dice that count something rather than an attack, as in "Has a shifting
+ * number of eyes (d6)".
+ */
+const SAID_OF = /\bnumber\s+of\s+\p{L}+$/iu;
+
+/**
  * Find the attacks on a line: a name followed by a parenthesis that starts
  * with dice, such as "Stamp (2d10) or swipe (d10 blast)".
  * @param {string} line
@@ -224,6 +237,10 @@ export function parseAttacks(line) {
 		const details = readAttackDetails(group.inner);
 		if (details) {
 			const nameStart = previousClose + nameStartIn(text.slice(previousClose, group.open));
+			if (SAID_OF.test(text.slice(nameStart, group.open).trim())) {
+				previousClose = group.close + 1;
+				continue;
+			}
 			const between = text.slice(cursor, nameStart);
 			leftovers.push(between);
 			attacks.push({
@@ -275,6 +292,43 @@ function castScale(name, lines) {
 	return SWARM.test(lines.join(" ")) ? "swarm" : NPC_SCALES[0];
 }
 
+/** "led by Odrin", the epithet of a Cast entry with a leader of its own. */
+const LED_BY = /^led\s+by\s+(\p{L}[\p{L}'’-]*)/iu;
+
+/** A line about one person rather than the whole group, as "Odrin has a crossbow (2d8)". */
+const HAS_LINE = /^(\p{L}[\p{L}'’-]*)\s+has\b/u;
+
+/** @returns {string} A name's letters in order, so a name printed with two letters swapped still reads as the same. */
+const lettersOf = (name) => [...name.toLowerCase()].sort().join("");
+
+/**
+ * @param {string|null} name As printed, such as "Lantern Militia, led by Odrin".
+ * @returns {string|null} Who leads them, where the name says.
+ */
+export function leaderOf(name) {
+	return LED_BY.exec(splitCastName(name).epithet)?.[1] ?? null;
+}
+
+/**
+ * The lines of a stat block that say what its leader has, as "Ordin has a
+ * crossbow (2d8)" under "Lantern Militia, led by Odrin": a name may be printed
+ * with its letters swapped, as the Misguided Militia's leader's is. Those are
+ * the leader's, not the group's: a leader adds their dice only when leading
+ * from the front (p11), so they're kept as notes rather than read as the
+ * group's weapons or Armour.
+ * @param {{name?: string|null, lines?: string[]}} block
+ * @returns {string[]}
+ */
+export function leaderLines({ name = null, lines = [] }) {
+	const leader = leaderOf(name);
+	if (!leader) return [];
+	const key = lettersOf(leader);
+	return lines.filter((line) => {
+		const who = HAS_LINE.exec(String(line ?? "").trim())?.[1];
+		return Boolean(who) && lettersOf(who) === key;
+	});
+}
+
 /**
  * Actor data for an NPC from a stat block. Scores the stat block doesn't give
  * are left out, so a new NPC keeps its defaults and an existing one its own.
@@ -306,8 +360,13 @@ export function npcFromStatBlock({ name, stats = null, lines = [] }, { attackNam
 
 	const items = [];
 	const notes = [];
+	const leaders = new Set(leaderLines({ name, lines }));
 	let armourRead = false;
 	for (const line of lines) {
+		if (leaders.has(line)) {
+			notes.push(line.trim());
+			continue;
+		}
 		if (STRUCTURE.test(line)) system.structure = true;
 
 		let text = line;
@@ -436,6 +495,8 @@ function alternateFrom(part) {
 function weaponData(attack, fallbackName) {
 	const system = { damage: attack.damage, equipped: true };
 	for (const key of Object.keys(QUALITIES)) system[key] = attack.qualities.includes(key);
+	// A bow or a sling strikes at a distance though the book doesn't print it ranged, as on a Knight's Property.
+	if (RANGED_NAME.test(attack.name)) system.ranged = true;
 
 	const parts = splitOutside(attack.note, /^,/);
 	const alternateAt = parts.findIndex((part) => alternateFrom(part));
