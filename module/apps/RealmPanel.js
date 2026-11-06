@@ -196,8 +196,19 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** The terrain the terrain brush paints, 1-12. */
 	static terrain = 5;
 
-	/** The Landmark the Landmark brush places. */
+	/** The Landmark the Landmark brush places. Read it through landmarkInHand(), which keeps it to those offered. */
 	static landmark = BOOK_LANDMARK_TYPES[0];
+
+	/**
+	 * The Landmark the brush lays now: a blog Landmark in hand when the setting
+	 * went off goes back to the first of the book's, so it can't be laid
+	 * before the palette is drawn again.
+	 * @returns {string} One of the Landmark types offered.
+	 */
+	static landmarkInHand() {
+		if (!offeredLandmarks().includes(RealmPanel.landmark)) RealmPanel.landmark = BOOK_LANDMARK_TYPES[0];
+		return RealmPanel.landmark;
+	}
 
 	/** The Holding the Holding brush places. */
 	static holding = HOLDING_STYLES[0];
@@ -230,7 +241,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		Object.assign(context, { undoDisabled: !canUndo, redoDisabled: !canRedo });
 
 		// A blog Landmark in hand when the setting went off goes back to the first of the book's.
-		if (!offeredLandmarks().includes(RealmPanel.landmark)) RealmPanel.landmark = BOOK_LANDMARK_TYPES[0];
+		RealmPanel.landmarkInHand();
 		const brush = RealmPanel.brush;
 		const swatches = realmSwatches(scene, realm, brush);
 		const painted = realm.terrain.filter(Boolean).length;

@@ -5,7 +5,6 @@ import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, regis
 import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
 import { registerNightTravel } from "./module/actions/night-travel.js";
-import { registerSightings } from "./module/actions/sighted.js";
 import { registerSolo } from "./module/actions/solo.js";
 import { registerBlogLandmarks } from "./module/actions/blog-landmarks.js";
 import { registerDuplicateKnightGuard, registerDuplicateKnights } from "./module/actions/knights.js";
@@ -517,8 +516,6 @@ Hooks.once("init", () => {
 	// A weapon tempered by a Wound its owner can't record for the user applying it (p98).
 	registerLastingQueries();
 	registerCollisions();
-	// What the Company saw from afar is found once it gets there.
-	registerSightings();
 	registerSolo();
 	// No two characters are the same Knight from the book, unless the Referee says they may be.
 	registerDuplicateKnights();

@@ -28,6 +28,7 @@ import { keptFromMe, mythKeptFromMe } from "./solo.js";
 import { rollBetween } from "./tie-roll.js";
 import { companyKnights, inCompany } from "./knights.js";
 import { landmarkLabelKey } from "../rules/landmarks.js";
+import { getCalendar } from "./calendar.js";
 
 /**
  * Exploration (p19): asking the people of a Realm what they know, spending a
@@ -69,7 +70,9 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 	// A teller who might name any of several Myths names one of them at random, and
 	// a roamer with several Landmarks as near as each other knows one of those.
 	const rolls = [];
-	let folklore = folkloreFrom(realm, g, { source: data.source, home: where });
+	// A Willow is told of only in its own Season.
+	const { season } = getCalendar();
+	let folklore = folkloreFrom(realm, g, { source: data.source, home: where, season });
 	const picks = {};
 	for (const [choices, pick] of [[folklore?.mythChoices ?? 0, "pick"], [folklore?.landmarkChoices ?? 0, "landmarkPick"]]) {
 		if (choices <= 1) continue;
@@ -78,7 +81,7 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 		picks[pick] = between.pick;
 	}
 	// Only a die that fell on another one is worth reading the Realm again for.
-	if (picks.pick || picks.landmarkPick) folklore = folkloreFrom(realm, g, { source: data.source, home: where, ...picks });
+	if (picks.pick || picks.landmarkPick) folklore = folkloreFrom(realm, g, { source: data.source, home: where, season, ...picks });
 
 	const index = await loadArtIndex();
 	const mark = folkloreToMark(folklore);
@@ -231,12 +234,14 @@ export function takeExplorationAct(act, { scene, hex } = {}) {
  */
 async function postSurvey({ scene, realm, g, where, vantage }) {
 	const fogged = vantage && fogHidesTheWay();
-	const survey = surveyFrom(realm, g, where, { vantage: vantage && !fogged });
+	// Both take in the whole Hex the Company stands in, a sweep at ground level and a vantage point
+	// from above (p19), so either finds the Landmark it holds, if it's found by looking.
+	const survey = surveyFrom(realm, g, where, { vantage: vantage && !fogged, season: getCalendar().season });
 	const { here } = survey;
-	const landmark = here.landmark;
+	const { landmark } = here;
 	const barriers = barriersSeen(survey);
-	// A vantage point shows the Barriers hemming the Hex in, and a sweep the
-	// Landmark the Hex holds. Neither hands over what hides in the hexes around.
+	// A vantage point also shows the Barriers hemming the Hex in. Neither hands over
+	// what hides in the hexes around: a vantage point only sees something standing there (p197).
 	// Played alone, a Myth in the Company's own hex is found as it's searched.
 	const myth = here.myth ? featureAt(realm, here.hex).myth : null;
 	const ids = [

@@ -10,6 +10,8 @@ import {
 	landmarkMet,
 	landmarkOffers,
 	landmarkPrompt,
+	landmarkSeen,
+	landmarkToldOf,
 	offCourseShown,
 	offCourseState,
 	samePhase,
@@ -188,6 +190,22 @@ describe("the Referee's own Landmark and the blog's", () => {
 		expect(landmarkMet({ type: "willow", variant: "winter" }, { d6: 4, season: "spring" })).toBe(false);
 		expect(landmarkMet({ type: "willow", variant: "winter" }, { d6: 4 })).toBe(false);
 		for (const type of [...BOOK_LANDMARK_TYPES, "other", "bridge", "chapel", "fountain"]) expect(landmarkMet({ type }, { d6: 4 })).toBe(true);
+	});
+
+	it("are found by looking, a sweep or a sight from afar, as the post has them found: never a Pond, a Grotto, or a Willow out of its Season", () => {
+		expect(landmarkSeen({ type: "pond" })).toBe(false);
+		expect(landmarkSeen({ type: "grotto", variant: "past" }, "spring")).toBe(false);
+		expect(landmarkSeen({ type: "willow", variant: "winter" }, "winter")).toBe(true);
+		expect(landmarkSeen({ type: "willow", variant: "winter" }, "spring")).toBe(false);
+		expect(landmarkSeen({ type: "willow", variant: "winter" })).toBe(false);
+		for (const type of [...BOOK_LANDMARK_TYPES, "other", "bridge", "chapel", "fountain"]) expect(landmarkSeen({ type }, "spring"), type).toBe(true);
+	});
+
+	it("are told of by the Realm's people, a Grotto and a Pond too, but not the Referee's own marker nor a Willow out of its Season (p19)", () => {
+		expect(landmarkToldOf({ type: "other" }, "spring")).toBe(false);
+		expect(landmarkToldOf({ type: "willow", variant: "summer" }, "spring")).toBe(false);
+		expect(landmarkToldOf({ type: "willow", variant: "spring" }, "spring")).toBe(true);
+		for (const type of [...BOOK_LANDMARK_TYPES, "bridge", "pond", "chapel", "grotto", "fountain"]) expect(landmarkToldOf({ type }, "spring"), type).toBe(true);
 	});
 
 	it("call one of a few by its sort, and anything else by its kind", () => {

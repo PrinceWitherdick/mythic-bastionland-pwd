@@ -43,7 +43,7 @@ const FEATURE_BRUSHES = {
 	landmark: {
 		at: (here) => here.landmark,
 		pick: (here) => here.landmark?.type ?? "landmark",
-		build: () => ({ kind: "landmark", type: RealmPanel.landmark })
+		build: () => ({ kind: "landmark", type: RealmPanel.landmarkInHand() })
 	}
 };
 

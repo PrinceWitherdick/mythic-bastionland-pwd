@@ -226,6 +226,28 @@ describe("registerSolo", () => {
 		expect(ui.placeables.render).toHaveBeenCalledTimes(2);
 	});
 
+	it("puts away the Realm's Myths window as a Realm drawn alone comes to keep its secrets", () => {
+		const flags = { drawing: true, soloSecrets: "hide" };
+		const scene = { id: "drawnAlone", getFlag: (scope, key) => (scope === SYSTEM_ID ? flags[key] : undefined) };
+		const chooser = { rendered: true, sceneId: "drawnAlone", close: vi.fn(async () => {}) };
+		globalThis.foundry = { applications: { instances: new Map([["bastionland-myth-chooser", chooser]]) } };
+		globalThis.canvas = { scene: null };
+		const update = (changes) => {
+			Object.assign(flags, changes);
+			hooks.get("updateScene")(scene, { flags: { [SYSTEM_ID]: changes } });
+		};
+		// Still placing them by hand: the window stays.
+		update({ drawing: true });
+		expect(chooser.close).not.toHaveBeenCalled();
+		// Another Realm's secrets kept: not this window's.
+		chooser.sceneId = "elsewhere";
+		update({ soloSecrets: null });
+		expect(chooser.close).not.toHaveBeenCalled();
+		chooser.sceneId = "drawnAlone";
+		update({ drawing: false });
+		expect(chooser.close).toHaveBeenCalledOnce();
+	});
+
 	it("reads the setting once the world is ready, and again as it changes", () => {
 		globalThis.foundry = { applications: { instances: new Map() } };
 		globalThis.canvas = {};

@@ -86,6 +86,43 @@ describe("nearestMyths and nearestLandmarks", () => {
 	});
 });
 
+describe("the Landmarks the Realm's people tell of", () => {
+	/** A Realm whose Landmarks carry the kinds and sorts given. */
+	const withLandmarks = (landmarks) => ({
+		...realmWith(),
+		landmarks: landmarks.map(({ type, hex: where, variant }, index) => ({ id: `landmark-${index}`, hex: where, type, ...(variant ? { variant } : {}), name: "", seer: null, revealed: false }))
+	});
+
+	it("never takes the Referee's own marker, nor a Willow out of its Season, for the nearest Landmark (p19)", () => {
+		const realm = withLandmarks([
+			{ type: "other", hex: hex(5, 6) },
+			{ type: "willow", hex: hex(6, 5), variant: "winter" },
+			{ type: "ruin", hex: hex(9, 9) }
+		]);
+		expect(nearestLandmarks(realm, g, hex(5, 5), { season: "spring" }).map((landmark) => landmark.type)).toEqual(["ruin"]);
+		expect(nearestLandmarks(realm, g, hex(5, 5), { season: "winter" }).map((landmark) => landmark.type)).toEqual(["willow"]);
+		const roamer = folkloreFrom(realm, g, { source: "roamer", home: hex(5, 5), season: "spring" });
+		expect(roamer.landmarks.map((landmark) => landmark.type)).toEqual(["ruin"]);
+		expect(roamer.landmarkChoices).toBe(1);
+	});
+
+	it("leaves them out of what a Vassal knows of their home, but tells of a Grotto, which only a local's directions find", () => {
+		const realm = withLandmarks([
+			{ type: "other", hex: hex(6, 6) },
+			{ type: "willow", hex: hex(6, 7), variant: "autumn" },
+			{ type: "grotto", hex: hex(6, 5), variant: "past" }
+		]);
+		const vassal = folkloreFrom(realm, g, { source: "vassal", home: hex(6, 6), season: "spring" });
+		expect(vassal.landmarks.map((landmark) => landmark.type)).toEqual(["grotto"]);
+	});
+
+	it("has a Seer know every Landmark of the land, out of Season or not, though not the Referee's own markers", () => {
+		const realm = withLandmarks([{ type: "other", hex: hex(6, 6) }, { type: "willow", hex: hex(2, 2), variant: "autumn" }, { type: "dwelling", hex: hex(9, 9) }]);
+		const seer = folkloreFrom(realm, g, { source: "seer", home: hex(6, 6), season: "spring" });
+		expect(seer.landmarks.map((landmark) => landmark.type)).toEqual(["willow", "dwelling"]);
+	});
+});
+
 describe("landmarksAbout", () => {
 	it("takes in the hex and the ones around it, and nothing further", () => {
 		const realm = realmWith({

@@ -10,6 +10,7 @@
 import { hexLabel } from "../actions/hex-names.js";
 import { newOwnMyth, openOwnMyth, ownMythEntries, readOwnMyth } from "../actions/own-myths.js";
 import { editRealmByHand, getRealm } from "../actions/realm.js";
+import { secretsKeptOn } from "../actions/solo.js";
 import { mythEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { isDie } from "../rules/book-art.js";
@@ -419,10 +420,16 @@ let chooser = null;
  * @param {object} options
  * @param {Scene} options.scene The Realm Scene.
  * @param {number|null} [options.number] The Myth to open on, such as the one in the hex the window was opened from.
- * @returns {MythChooser|null} Null for anyone but a GM.
+ * @returns {MythChooser|null} Null for anyone but a GM, or for a Referee playing alone from whom the Realm's
+ *   secrets are kept.
  */
 export function openMythChooser({ scene, number = null }) {
 	if (!game.user.isGM || !scene) return null;
+	// Played alone, which Myths the Realm holds and where is for the Company to find.
+	if (secretsKeptOn(scene)) {
+		ui.notifications.info(t("solo.mythsKept"));
+		return null;
+	}
 	chooser ??= new MythChooser();
 	if (chooser.sceneId !== scene.id) {
 		chooser.sceneId = scene.id;
@@ -451,8 +458,9 @@ export function refreshMythChooser(sceneId = null) {
 
 /**
  * Put the window away, once the Realm it was opened for is settled.
+ * @param {string|null} [sceneId] Only while it shows this Realm; null for whichever it shows.
  * @returns {Promise<void>}
  */
-export async function closeMythChooser() {
-	if (chooser?.rendered) await chooser.close();
+export async function closeMythChooser(sceneId = null) {
+	if (chooser?.rendered && (sceneId === null || chooser.sceneId === sceneId)) await chooser.close();
 }

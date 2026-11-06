@@ -917,4 +917,11 @@ describe("the blog's Landmarks on their Tiles", () => {
 			expect(landmark).not.toHaveProperty("gloried");
 		}
 	});
+
+	it("keeps a Bridge's Glory given on its Tile while it's another kind, so making it a Bridge again gives none", () => {
+		const once = { ...emptyRealm(g, "blog"), landmarks: [landmark(1, { type: "chapel", gloried: true })] };
+		once.terrain.fill(1);
+		const drawn = realmDocuments(once, g, realmTextures()).tiles.map(({ data }, index) => ({ _id: `tile${index}`, ...data }));
+		expect(back(drawn)[0]).toMatchObject({ type: "chapel", gloried: true });
+	});
 });

@@ -1256,6 +1256,7 @@ const finishing = new Set();
  * book's rules around what they drew, hidden from them; or those they placed
  * themselves, hidden or left in view. Not for Undo to take back. A Company
  * already set down finds the Myth in its hex, as it would have walking in.
+ * Clearing the flag keeps the secrets, which puts away the Realm's Myths window (solo.js).
  * @param {Scene} scene
  * @param {string} way One of SOLO_SECRET_WAYS.
  * @returns {Promise<void>}

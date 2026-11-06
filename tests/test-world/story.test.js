@@ -46,6 +46,8 @@ vi.mock("../../module/actions/realm.js", async () => {
 			return true;
 		}),
 		getRealm: () => ({ realm: world.realm }),
+		// Asked as a new Myth's card names its hex.
+		isRealmScene: (scene) => Boolean(scene) && scene === world.scene,
 		sceneGeometry: () => world.g
 	};
 });
@@ -153,7 +155,18 @@ vi.mock("../../module/actions/journey.js", () => ({
 	recordHexVisits: vi.fn(async (_scene, hexes) => { world.visits.push(...hexes.map((hex) => ({ hex, when: { ...world.calendar } }))); })
 }));
 
-vi.mock("../../module/actions/myth-notes.js", () => ({ editMythNote: vi.fn() }));
+vi.mock("../../module/actions/myth-notes.js", async () => {
+	const { mythRoll } = await import("../../module/rules/myth-notes.js");
+	return {
+		// Kept as the Realm keeps them, so a Myth marked resolved reads as resolved while its Glory is given.
+		editMythNote: vi.fn(async (_scene, myth, changes) => {
+			const key = String(myth.number);
+			const kept = world.mythNotes[key]?.roll === mythRoll(myth) ? world.mythNotes[key] : {};
+			world.mythNotes[key] = { ...kept, roll: mythRoll(myth), ...changes };
+		}),
+		getMythNotes: () => ({ version: 1, myths: world.mythNotes })
+	};
+});
 
 vi.mock("../../module/actions/npc.js", () => ({ actorData: (block) => ({ type: "npc", name: block.name, system: { notes: "" }, items: [] }) }));
 
@@ -218,6 +231,8 @@ vi.mock("../../module/book-art/art-index.js", async () => {
 		findByRoll,
 		loadArtIndex: async () => world.index,
 		mythEntry: (index, myth) => (myth?.own ? ownLookup(myth) : lookup(index?.myths, myth)),
+		// The new Myth a resolved one leaves is rolled as the Season card's button rolls it, through myth-resolve.js.
+		mythLookup: (index, myth) => (myth?.own ? ownLookup(myth) : lookup(index?.myths, myth)),
 		seerEntry: (index, seer) => lookup(index?.seers, seer),
 		withPage: (name, page) => (page ? t("realm.panel.reference", { name, page }) : name),
 		pageNote: (page) => (page ? t("realm.key.page", { page }) : null)
@@ -358,6 +373,7 @@ beforeEach(() => {
 		calendar: { ...BEFORE },
 		visits: [],
 		notes: {},
+		mythNotes: {},
 		told: [],
 		shared: { version: 1, hexes: {} },
 		sighted: {},

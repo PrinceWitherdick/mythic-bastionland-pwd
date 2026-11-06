@@ -114,7 +114,9 @@ export const landmarkVariantOf = ({ type, variant }) => (isLandmarkVariant(type,
 /**
  * What only some Landmarks carry, written and read only where it means
  * something: which Grotto, Fountain or Willow it is, the pair a Pond shares,
- * and whether a Bridge's Knight is beaten and its Glory given.
+ * and whether a Bridge's Knight is beaten. Whether its Glory was given is kept
+ * whatever the Landmark becomes, so a Bridge made something else and a Bridge
+ * again doesn't give it twice.
  * @param {{type: string, variant?: unknown, pair?: unknown, won?: unknown, gloried?: unknown}} landmark A Landmark, or its Tile's flag.
  * @returns {{variant?: string, pair?: number, won?: true, gloried?: true}}
  */
@@ -122,7 +124,7 @@ export const landmarkExtras = ({ type, variant, pair, won, gloried }) => ({
 	...landmarkVariantOf({ type, variant }),
 	...(type === PAIRED_LANDMARK && isPairNumber(pair) ? { pair } : {}),
 	...(type === GUARDED_LANDMARK && won === true ? { won: true } : {}),
-	...(type === GUARDED_LANDMARK && gloried === true ? { gloried: true } : {})
+	...(gloried === true ? { gloried: true } : {})
 });
 
 export const HOLDING_COUNT = 4;
@@ -199,7 +201,8 @@ export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
  * @property {{id: string|null, hex: Hex, type: string, name: string, seer: {d6: number, d12: number}|null,
  *   revealed: boolean, echo?: object, variant?: string, pair?: number, won?: true, gloried?: true}[]} landmarks  `seer` is the roll for a
  *   Sanctum's Seer on the Knights table (p26). `variant` is which of LANDMARK_VARIANTS a Grotto, Fountain or Willow is;
- *   `pair` the number a Pond shares with the Pond it leads to; `won` marks a Bridge whose Knight has been beaten, and `gloried` one whose Glory was given.
+ *   `pair` the number a Pond shares with the Pond it leads to; `won` marks a Bridge whose Knight has been beaten, and `gloried` one whose Glory was given, kept
+ *   through a change of kind.
  * @property {{id: string|null, edge: string, revealed: boolean}[]} barriers
  * @property {import("./realm-setup.js").RealmSetup} [setup] How it was set up, where that wasn't the book's way.
  * @property {import("./realm-map.js").RealmPicture} [picture] The pictures a Realm traced from a map drawn on paper

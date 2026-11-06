@@ -34,6 +34,7 @@ import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { getMythNotes } from "./myth-notes.js";
 import { getRealm, isRealmScene } from "./realm.js";
+import { mythKeptFromMe } from "./solo.js";
 import { VIRTUES, downBy, fullVirtues, needsRest, slainUpdate } from "../rules/virtues.js";
 import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
@@ -665,15 +666,21 @@ async function growOlder(actors, company) {
 
 /**
  * Every Realm's resolved Myths, each owed a new Myth in its place now the
- * Season has turned (p27).
+ * Season has turned (p27). Played alone, one the Company never met has no
+ * name to give, as on the Toolkit: read off the whole Realm, since a Myth not
+ * yet met keeps no roll to match its note by.
  * @returns {Promise<{scene: string, number: number, name: string}[]>}
  */
 async function mythsToReplace() {
 	const waiting = game.scenes.filter((scene) => isRealmScene(scene))
-		.flatMap((scene) => resolvedMyths(getRealm(scene).realm, getMythNotes(scene)).map((myth) => ({ scene: scene.id, myth })));
+		.flatMap((scene) => resolvedMyths(getRealm(scene).realm, getMythNotes(scene)).map((myth) => ({ scene, myth })));
 	if (!waiting.length) return [];
 	const index = await loadArtIndex();
-	return waiting.map(({ scene, myth }) => ({ scene, number: myth.number, name: mythEntry(index, myth).name }));
+	return waiting.map(({ scene, myth }) => ({
+		scene: scene.id,
+		number: myth.number,
+		name: mythKeptFromMe(myth, scene) ? t("solo.unknownMyth") : mythEntry(index, myth).name
+	}));
 }
 
 /**

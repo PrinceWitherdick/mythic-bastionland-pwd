@@ -547,7 +547,16 @@ describe("the blog's Landmarks, edited", () => {
 		realm = editFeature(realm, g, hex(3, 5), { won: false });
 		realm = editFeature(realm, g, hex(3, 5), { won: true });
 		expect(featureAt(realm, hex(3, 5)).landmark).toMatchObject({ won: true, gloried: true });
-		expect(featureAt(editFeature(realm, g, hex(3, 5), { type: "pond" }), hex(3, 5)).landmark).not.toHaveProperty("gloried");
+	});
+
+	it("keeps a Bridge's Glory given through its kind changed away and back, so it's never given twice", () => {
+		let realm = editFeature(lay(sampleRealm(), hex(3, 5), { type: "bridge", won: true }), g, hex(3, 5), { gloried: true });
+		realm = editFeature(realm, g, hex(3, 5), { type: "pond" });
+		// The passage won is the Bridge's alone, and goes with it.
+		expect(featureAt(realm, hex(3, 5)).landmark).not.toHaveProperty("won");
+		realm = editFeature(realm, g, hex(3, 5), { type: "bridge" });
+		expect(featureAt(realm, hex(3, 5)).landmark).toMatchObject({ type: "bridge", gloried: true });
+		expect(featureAt(realm, hex(3, 5)).landmark).not.toHaveProperty("won");
 	});
 
 	it("gives a book Landmark none of them", () => {

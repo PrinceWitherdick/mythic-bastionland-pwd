@@ -407,7 +407,8 @@ function placeLandmarks(random, g, realm, perType) {
 /**
  * The blog's Landmarks, in Wilderness hexes nothing else stands in, spread
  * out as the book's are. Bridges stand on the river where there's room, and
- * the two Ponds of a pair far apart.
+ * the two Ponds of a pair far apart. Where hexes run short, a Pond is laid
+ * only with room for its partner, so none is left alone.
  * @param {number} share Of each kind's count, from `blogShare`; Ponds still come in pairs.
  * @returns {import("./realm.js").Realm["landmarks"]}
  */
@@ -429,6 +430,8 @@ function placeBlogLandmarks(random, g, realm, share) {
 		for (let index = 0; index < placing; index += 1) {
 			const free = open();
 			if (!free.length) return placed;
+			// Ponds come in pairs, so one isn't laid without room for the other: the last hex is left to the rest.
+			if (type === PAIRED_LANDMARK && index % 2 === 0 && free.length < 2) break;
 			if (type === GUARDED_LANDMARK) {
 				const river = realm.rivers.flat().filter((hex) => !taken.has(hexKey(hex)));
 				lay(type, river.length ? river : free, everyLandmark());

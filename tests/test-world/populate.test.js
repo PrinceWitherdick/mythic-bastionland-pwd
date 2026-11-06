@@ -76,3 +76,16 @@ describe("the test world", () => {
 		expect(populate.hasTestWorld()).toBe(true);
 	});
 });
+
+describe("a resolved Myth's replacement in the test world", () => {
+	it("is rolled as the Season card's button rolls it, so played alone the new Myth goes unnamed till its first Omen", async () => {
+		const { readFileSync } = await import("node:fs");
+		const source = readFileSync(new URL("../../module/test-world/populate.js", import.meta.url), "utf8");
+		const newMyth = source.slice(source.indexOf("async newMyth(number) {"));
+		const body = newMyth.slice(0, newMyth.indexOf("\n\t}\n"));
+		expect(body).toContain("await replaceMyth(this.scene, myth, this.index);");
+		// Not a copy of its card that names the Myth whoever is looking.
+		expect(body).not.toContain("postCard(");
+		expect(body).not.toContain("rollFreeMyth(");
+	});
+});

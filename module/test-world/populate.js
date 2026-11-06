@@ -23,7 +23,7 @@ import { addCourtMember, removeFromCourt } from "../actions/court.js";
 import { dramaInCourt, linkKnightDomain, resolveCrisis, settleDomains, worldDomains } from "../actions/dominion.js";
 import { adjustGlory } from "../actions/glory.js";
 import { beginDesign } from "../actions/grand-designs.js";
-import { openGmToolkit, rollFreeMyth, theGmToolkit } from "../actions/gm-toolkit.js";
+import { openGmToolkit, theGmToolkit } from "../actions/gm-toolkit.js";
 import { keepTableRoll, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { keepPartyNote, recordBarriersMet } from "../actions/hex-shared.js";
 import { recordHexVisits } from "../actions/journey.js";
@@ -31,7 +31,7 @@ import { fillKnightFromBook, rollKnightTable } from "../actions/knight-tables.js
 import { echoRuin } from "../actions/landmarks.js";
 import { castKey } from "../actions/myth-cast.js";
 import { editMythNote } from "../actions/myth-notes.js";
-import { resolveMyth } from "../actions/myth-resolve.js";
+import { replaceMyth, resolveMyth } from "../actions/myth-resolve.js";
 import { actorData } from "../actions/npc.js";
 import { resolveScar } from "../actions/scars.js";
 import { createRealmScene, editRealm, editRealmByHand, getRealm, sceneGeometry } from "../actions/realm.js";
@@ -1024,24 +1024,14 @@ class TestGame {
 
 	/**
 	 * A resolved Myth replaced by a new one in the next Season (p27), rolled as
-	 * the GM Toolkit's Roll the New Myth rolls it.
+	 * the Season card's button rolls it: played alone, the new Myth is met by its
+	 * first Omen, so its card names nothing.
 	 * @param {number} number
 	 */
 	async newMyth(number) {
 		const myth = this.myth(number);
 		if (!myth) return;
-		const { d6, d12, rolls } = await rollFreeMyth(this.realm);
-		const rolled = { number, d6, d12 };
-		await editRealm(this.scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
-		const { name, page, entry } = mythEntry(this.index, rolled);
-		await postCard(null, "omen", {
-			title: `${number}. ${name}`,
-			tagline: pageNote(page),
-			img: entry?.path ?? null,
-			omen: t("gmToolkit.myths.newMythRolled", { hex: t("realm.hex", myth.hex) }),
-			text: null,
-			hint: t("gmToolkit.myths.newMythHint")
-		}, { rolls, mode: "gm" });
+		await replaceMyth(this.scene, myth, this.index);
 	}
 
 	/**

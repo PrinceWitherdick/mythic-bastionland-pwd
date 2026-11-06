@@ -45,6 +45,7 @@ vi.mock("../../module/actions/journey.js", () => ({
 vi.mock("../../module/actions/hex-lore.js", () => ({ rollFirstArrival: vi.fn(async () => []) }));
 vi.mock("../../module/actions/homecoming.js", () => ({ welcomeHome: vi.fn(async () => []) }));
 vi.mock("../../module/actions/sighted.js", () => ({ revealSighted: vi.fn(async () => []) }));
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineArrivals: vi.fn(async () => {}) }));
 vi.mock("../../module/actions/night-travel.js", () => ({ settleBlindTravel: vi.fn(async () => landing) }));
 vi.mock("../../module/actions/myth-notes.js", async () => {
 	const { withoutResolved } = await import("../../module/rules/myth-notes.js");
@@ -74,6 +75,7 @@ const { settleBlindTravel } = await import("../../module/actions/night-travel.js
 const { rollFirstArrival } = await import("../../module/actions/hex-lore.js");
 const { welcomeHome } = await import("../../module/actions/homecoming.js");
 const { revealSighted } = await import("../../module/actions/sighted.js");
+const { timelineArrivals } = await import("../../module/actions/timeline-events.js");
 
 /**
  * A Realm's Scene, keeping its flags as a Scene does. Made again from what it
@@ -372,6 +374,41 @@ describe("a move followed", () => {
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5), chosen: false });
 		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
 		expect(revealMythsReached).toHaveBeenLastCalledWith(scene, [hex(8, 6)]);
+	});
+
+	it("finds what was seen from afar only once a blind roll has settled where the Company went (p18, p197)", async () => {
+		vi.mocked(revealSighted).mockClear();
+		// Circled back to where it set off: the hex it made for, seen from afar, keeps its secret.
+		landing = hex(8, 5);
+		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+		await vi.waitFor(() => expect(revealSighted).toHaveBeenCalled());
+		expect(revealSighted).toHaveBeenCalledOnce();
+		expect(revealSighted).toHaveBeenLastCalledWith(scene, [hex(8, 5)]);
+
+		// Drifted elsewhere, it finds what's where it drifted to, never in the hex it made for.
+		vi.mocked(revealSighted).mockClear();
+		landing = hex(2, 2);
+		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+		await vi.waitFor(() => expect(revealSighted).toHaveBeenCalled());
+		expect(revealSighted).toHaveBeenLastCalledWith(scene, [hex(8, 5), hex(2, 2)]);
+		expect(vi.mocked(revealSighted).mock.calls.flat(2)).not.toContainEqual(hex(8, 6));
+	});
+
+	it("puts a Myth's hex found on arriving on the Timeline, as the Company's journey couldn't yet", async () => {
+		vi.mocked(timelineArrivals).mockClear();
+		vi.mocked(revealMythsReached).mockImplementationOnce(async () => [realm.myths[0]]);
+		vi.mocked(revealSighted).mockImplementationOnce(async () => [hex(8, 6)]);
+		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+		await vi.waitFor(() => expect(timelineArrivals).toHaveBeenCalled());
+		// The Myth's hex and the hex seen from afar are one hex, so one row.
+		expect(timelineArrivals).toHaveBeenCalledWith(scene, [hex(8, 6)]);
+
+		// Nothing found, nothing more to write.
+		vi.mocked(timelineArrivals).mockClear();
+		vi.mocked(postCard).mockClear();
+		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		expect(timelineArrivals).not.toHaveBeenCalled();
 	});
 
 	it("finds the hexes dire weather held the Company back from once the Referee lets it go on", async () => {

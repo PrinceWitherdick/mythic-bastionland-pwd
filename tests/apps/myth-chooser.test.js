@@ -69,6 +69,17 @@ describe("the window for a Realm's Myths", () => {
 		expect(app).not.toContain("new Roll(");
 	});
 
+	it("stays shut for a Referee playing alone once the Realm's secrets are kept, and is put away as a Realm drawn alone settles them", () => {
+		const open = app.slice(app.indexOf("export function openMythChooser("));
+		expect(open.indexOf("if (secretsKeptOn(scene)) {")).toBeGreaterThan(-1);
+		expect(open.indexOf("if (secretsKeptOn(scene)) {")).toBeLessThan(open.indexOf("chooser ??= new MythChooser();"));
+		expect(open).toContain('ui.notifications.info(t("solo.mythsKept"));');
+		// One already open is put away as the secrets come to be kept (solo.js), not as it's drawn again.
+		const prepare = app.slice(app.indexOf("async _prepareContext(options) {"));
+		expect(prepare.slice(0, 400)).not.toContain("this.close()");
+		expect(app).toContain("if (chooser?.rendered && (sceneId === null || chooser.sceneId === sceneId)) await chooser.close();");
+	});
+
 	it("is the GM's, and draws itself again as the Realm changes under it", () => {
 		expect(app).toContain("if (!game.user.isGM || !scene) return null;");
 		expect(hooks).toContain("refreshMythChooser(sceneId);");

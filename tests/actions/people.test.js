@@ -64,12 +64,18 @@ vi.mock("../../module/actions/solo.js", async () => {
 	const { mythKnown } = await import("../../module/rules/solo.js");
 	return { keptFromMe: () => solo, mythKeptFromMe: (myth) => Boolean(myth) && solo && !mythKnown(myth) };
 });
-// Putting a place into words is told-where.js's; here only that it's asked from the Holding to the Myth.
-vi.mock("../../module/actions/told-where.js", () => ({ toldWhere: (_g, from, to) => `from ${from.col},${from.row} to ${to.col},${to.row}` }));
+// Putting a place into words is told-where.js's; here only whether its way or its very place is told, and how far.
+vi.mock("../../module/actions/told-where.js", () => ({
+	wayItLies: (_g, known) => `way ${known.distance}`,
+	whereItLies: (_g, known) => `at ${known.distance}`
+}));
+// Marking the map is exploration.js's; here only what's found.
+vi.mock("../../module/actions/exploration.js", () => ({ markOnPlayersMap: vi.fn(async (_scene, ids) => ids.length) }));
 
 const { keepHexPerson, peopleTables, postPerson, rollPersonTables, rollUpHolding, saveHexPerson } = await import("../../module/actions/people.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
 const { keepHexSparkRecords } = await import("../../module/actions/hex-lore.js");
+const { markOnPlayersMap } = await import("../../module/actions/exploration.js");
 
 /** Just enough of Foundry's Roll: each die takes the next number thrown. */
 class FakeRoll {
@@ -101,6 +107,7 @@ beforeEach(() => {
 	vi.mocked(postCard).mockClear();
 	vi.mocked(warn).mockClear();
 	vi.mocked(keepHexSparkRecords).mockClear();
+	vi.mocked(markOnPlayersMap).mockClear();
 	globalThis.Roll = FakeRoll;
 	globalThis.foundry = { utils: { randomID: () => `id${Math.random()}` } };
 	globalThis.game = { user: { isGM: true } };
@@ -241,18 +248,18 @@ describe("rolling up a Holding", () => {
 		]);
 		expect(sparks[0].prompt).toBe("C0-a1 C0-b2");
 		expect(sparks[3].prompt).toBe("C8-a7 C8-b8");
-		expect(sparks[4].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 5"}');
-		expect(sparks[5].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 2"}');
-		expect(sparks[6].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 5"}');
+		expect(sparks[4].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 5","where":"way 2"}');
+		expect(sparks[5].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 2","where":"way 2"}');
+		expect(sparks[6].entries.at(-1)).toBe('people.heardOf {"name":"the Myth 5","where":"way 2"}');
 
 		const [, template, context, options] = vi.mocked(postCard).mock.calls[0];
 		expect(template).toBe("people");
 		expect(context.title).toBe("Oakwall");
 		expect(context.sparks).toHaveLength(4);
 		expect(context.people.map(({ heard }) => heard)).toEqual([
-			'people.heardOfPage {"name":"the Myth 5","page":37}',
-			'people.heardOfPage {"name":"the Myth 2","page":31}',
-			'people.heardOfPage {"name":"the Myth 5","page":37}'
+			'people.heardOfPage {"name":"the Myth 5","page":37,"where":"way 2"}',
+			'people.heardOfPage {"name":"the Myth 2","page":31,"where":"way 2"}',
+			'people.heardOfPage {"name":"the Myth 5","page":37,"where":"way 2"}'
 		]);
 		expect(context.note).toBeNull();
 		expect(options).toMatchObject({ mode: "gm" });
@@ -265,7 +272,7 @@ describe("rolling up a Holding", () => {
 		realm.myths[0].resolved = true;
 		thrown = holdingDice(1, []);
 		const made = await rollUpHolding({ scene, hex });
-		expect(made.people.map(({ heard }) => heard)).toEqual(['people.heardOf {"name":"the Myth 5"}', 'people.heardOf {"name":"the Myth 5"}']);
+		expect(made.people.map(({ heard }) => heard)).toEqual(['people.heardOf {"name":"the Myth 5","where":"way 2"}', 'people.heardOf {"name":"the Myth 5","where":"way 2"}']);
 		const [, , , options] = vi.mocked(postCard).mock.calls[0];
 		expect(options.rolls[1].dice.every(({ faces }) => faces === 12)).toBe(true);
 		expect(thrown).toEqual([]);
@@ -287,10 +294,57 @@ describe("rolling up a Holding", () => {
 			await rollUpHolding({ scene, hex });
 			const [, , context] = vi.mocked(postCard).mock.calls.at(-1);
 			expect(context.people.map(({ heard }) => heard)).toEqual([
-				'people.heardOfPage {"name":"the Myth 2","page":31}',
-				'people.heardOfUnmet {"number":5,"where":"from 4,5 to 1,1"}'
+				'people.heardOfPage {"name":"the Myth 2","page":31,"where":"way 6"}',
+				'people.heardOfUnmet {"number":5,"where":"way 6"}'
 			]);
-			expect(loreAt(lore, hex).sparks.at(-1).entries.at(-1)).toBe('people.heardOfUnmet {"number":5,"where":"from 4,5 to 1,1"}');
+			expect(loreAt(lore, hex).sparks.at(-1).entries.at(-1)).toBe('people.heardOfUnmet {"number":5,"where":"way 6"}');
+			expect(markOnPlayersMap).not.toHaveBeenCalled();
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("tells only which way the nearest Myth lies, never how far, and just where only when it borders the Holding (p19)", async () => {
+		realm.myths = [{ id: "m3", number: 3, hex: { col: 4, row: 4 } }, { id: "m6", number: 6, hex: { col: 1, row: 1 } }];
+		thrown = holdingDice(1, []);
+		const made = await rollUpHolding({ scene, hex });
+		expect(made.people.map(({ heard }) => heard)).toEqual([
+			'people.heardOf {"name":"the Myth 3","where":"at 1"}',
+			'people.heardOf {"name":"the Myth 3","where":"at 1"}'
+		]);
+		// With others at the table, marking it on the players' map is the Referee's to do.
+		expect(markOnPlayersMap).not.toHaveBeenCalled();
+	});
+
+	it("names a Myth not yet met that borders the Holding, played alone, and finds it, as Gathering Folklore does (p19)", async () => {
+		solo = true;
+		realm.myths = [{ id: "m3", number: 3, hex: { col: 4, row: 4 }, omen: 0, revealed: false }, { id: "m6", number: 6, hex: { col: 1, row: 1 }, omen: 0 }];
+		try {
+			thrown = holdingDice(1, []);
+			const made = await rollUpHolding({ scene, hex });
+			expect(made.people.map(({ heard }) => heard)).toEqual([
+				'people.heardOf {"name":"the Myth 3","where":"at 1"}',
+				'people.heardOf {"name":"the Myth 3","where":"at 1"}'
+			]);
+			expect(markOnPlayersMap).toHaveBeenCalledWith(scene, ["m3"]);
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("throws the dice between Myths as near as each other apart from the card's, played alone", async () => {
+		solo = true;
+		try {
+			// The two people's tie dice come after the card's whole throw.
+			thrown = holdingDice(1, []).concat([2, 1]);
+			const made = await rollUpHolding({ scene, hex });
+			const [, , , options] = vi.mocked(postCard).mock.calls.at(-1);
+			expect(options.rolls[1].dice.every(({ faces }) => faces === 12)).toBe(true);
+			expect(made.people.map(({ heard }) => heard)).toEqual([
+				'people.heardOfUnmet {"number":5,"where":"way 2"}',
+				'people.heardOfUnmet {"number":2,"where":"way 2"}'
+			]);
+			expect(thrown).toEqual([]);
 		} finally {
 			solo = false;
 		}

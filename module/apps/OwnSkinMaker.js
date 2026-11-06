@@ -1,17 +1,18 @@
+import { blogLandmarksOn, offeredLandmarks } from "../actions/blog-landmarks.js";
 import { saveOwnSkin } from "../actions/own-skins.js";
 import { filePicker } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "../rules/realm.js";
+import { HOLDING_STYLES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "../rules/realm.js";
 import { realmTextures } from "../rules/realm-documents.js";
 import {
 	PICTURE_NAME,
 	REALM_CUSTOM_DIR,
-	REALM_PICTURES,
 	REALM_SKINS,
 	TERRAIN_FITS,
 	customPictureName,
 	matchCustomFiles,
-	normaliseRealmLook
+	normaliseRealmLook,
+	offeredRealmPictures
 } from "../rules/realm-skins.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { ArtPreviewMixin } from "./art-preview.js";
@@ -20,7 +21,8 @@ import { chooseLocalFiles } from "./ui.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * Every Realm picture a look draws, grouped as the Realm Appearance preview shows them.
+ * Every Realm picture a look draws, grouped as the Realm Appearance preview shows them:
+ * the blog's Landmarks only while the world offers them.
  * @param {import("../rules/realm-skins.js").RealmLook} look
  * @param {ReturnType<typeof realmTextures>} [textures] The look's, when the caller has them already.
  * @returns {object[]}
@@ -39,7 +41,7 @@ export function realmPictureGroups(look, textures = realmTextures(look)) {
 			pictures: [
 				...HOLDING_STYLES.map((style) => picture(PICTURE_NAME.holding(style), textures.holding[style].src, t(`realm.holdings.${style}`))),
 				picture(PICTURE_NAME.seat, textures.seat.src, t("realm.key.seat")),
-				...LANDMARK_TYPES.map((type) => picture(PICTURE_NAME.landmark(type), textures.landmark[type].src, t(`realm.landmarks.${type}`))),
+				...offeredLandmarks().map((type) => picture(PICTURE_NAME.landmark(type), textures.landmark[type].src, t(`realm.landmarks.${type}`))),
 				...Array.from({ length: MYTH_COUNT }, (_, index) => picture(PICTURE_NAME.myth(index + 1), textures.myth[index + 1].src, t("realm.readout.myth", { number: index + 1 })))
 			]
 		},
@@ -127,15 +129,18 @@ export class OwnSkinMaker extends ArtPreviewMixin(HandlebarsApplicationMixin(App
 		const files = Object.fromEntries(Object.entries(this.#pictures).map(([name, source]) => [name, this.#src(source)]));
 		const look = { skin: this.#base, palette: this.#palette, custom: { folder: "", terrainFit: this.#fit, files } };
 		const textures = realmTextures(look);
+		// The blog's Landmarks aren't asked for while the world doesn't offer them, nor counted.
+		const wanted = offeredRealmPictures(blogLandmarksOn());
+		const found = wanted.filter((name) => files[name]).length;
 		return Object.assign(context, {
 			name: this.#name,
 			bases: REALM_SKINS.map((key) => ({ key, label: t(`realm.look.skins.${key}.label`), selected: key === this.#base })),
 			fits: TERRAIN_FITS.map((value) => ({ value, label: t(`realm.look.fits.${value}`), selected: value === this.#fit })),
-			count: t("realm.look.own.found", { found: Object.keys(files).length, total: REALM_PICTURES.length }),
+			count: t("realm.look.own.found", { found, total: wanted.length }),
 			any: Object.keys(files).length > 0,
 			canUpload: game.user.can("FILES_UPLOAD"),
 			canBrowse: game.user.can("FILES_BROWSE"),
-			names: REALM_PICTURES.map((name) => ({ name, found: Boolean(files[name]) })),
+			names: wanted.map((name) => ({ name, found: Boolean(files[name]) })),
 			groups: realmPictureGroups(look, textures),
 			paper: textures.colours.paper,
 			saving: this.#saving
@@ -189,8 +194,9 @@ export class OwnSkinMaker extends ArtPreviewMixin(HandlebarsApplicationMixin(App
 			return;
 		}
 		const matched = matchCustomFiles(files);
-		const count = Object.keys(matched).length;
-		ui.notifications[count ? "info" : "warn"](t("realm.look.own.scanned", { count, total: REALM_PICTURES.length, folder }));
+		const wanted = offeredRealmPictures(blogLandmarksOn());
+		const count = wanted.filter((name) => matched[name]).length;
+		ui.notifications[count ? "info" : "warn"](t("realm.look.own.scanned", { count, total: wanted.length, folder }));
 		Object.assign(this.#pictures, matched);
 		this.render();
 	}
