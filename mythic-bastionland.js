@@ -129,7 +129,7 @@ import { registerSettingsTabHooks } from "./module/sheets/settings-tab.js";
 import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
-import { adoptKeptRulebook, bringInRulebook } from "./module/rulebook/bring-in.js";
+import { adoptKeptRulebook, bringInRulebook, rereadOldImport } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { ATTACK_MACRO_STEP, attackFromHotbar, ensureAttackHotbar, seedAttackMacro } from "./module/actions/attack-macro.js";
@@ -763,8 +763,10 @@ Hooks.once("ready", async () => {
 	const finding = game.users.activeGM?.isSelf ? findKeptRulebook().catch((error) => console.error(`${SYSTEM_ID} | Couldn't look for a kept rulebook`, error)) : Promise.resolve();
 	const setup = (isSetupDone(WELCOME_CARDS_STEP) ? Promise.resolve() : finding).then(() => runWorldSetup(WORLD_SETUP));
 	// Its import runs beside the load rather than holding it up, and a failure is logged rather than thrown.
+	// A world last imported by an older Import PDF reads its book again, for what the new one reads better.
 	Promise.all([finding, setup])
 		.then(() => adoptKeptRulebook(welcomesThisWorld))
+		.then((adopted) => adopted || rereadOldImport(welcomesThisWorld))
 		.catch((error) => console.error(`${SYSTEM_ID} | Couldn't take up the kept rulebook`, error));
 	await Promise.all([
 		restoreOpenSheets(),

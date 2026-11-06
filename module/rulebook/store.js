@@ -1,6 +1,6 @@
 import { ensureDirectories, uploadFile } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
-import { read } from "../client-settings.js";
+import { read, storedWorldSetting } from "../client-settings.js";
 import { ART_ROOT } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -50,6 +50,22 @@ const FOUND_SETTING = "rulebookFound";
  */
 const FORGOTTEN_SETTING = "rulebookForgotten";
 
+/**
+ * World setting: the version of Import PDF (INDEX_VERSION) that last read the
+ * book for this world, 0 for none since it was first kept. A world behind the
+ * system's reads its book again on load, as its compendiums are its own.
+ */
+const IMPORTED_SETTING = "rulebookImportVersion";
+
+/**
+ * World setting: the kept path a re-read found no book at, so the Referee is
+ * told once and it isn't looked for again until the world keeps a book anew.
+ */
+const MISSING_SETTING = "rulebookMissing";
+
+/** World setting: who is reading the book again for this world, and since when, as `{user, at}`, so two never do at once. */
+const REREADING_SETTING = "rulebookRereading";
+
 /** Called on every client when the world's copy changes. */
 export const RULEBOOK_HOOK = `${SYSTEM_ID}.rulebookChanged`;
 
@@ -74,6 +90,24 @@ export function registerRulebookSettings() {
 		config: false,
 		type: Boolean,
 		default: false
+	});
+	game.settings.register(SYSTEM_ID, IMPORTED_SETTING, {
+		scope: "world",
+		config: false,
+		type: Number,
+		default: 0
+	});
+	game.settings.register(SYSTEM_ID, MISSING_SETTING, {
+		scope: "world",
+		config: false,
+		type: String,
+		default: ""
+	});
+	game.settings.register(SYSTEM_ID, REREADING_SETTING, {
+		scope: "world",
+		config: false,
+		type: Object,
+		default: {}
 	});
 	game.settings.register(SYSTEM_ID, PLAYERS_SETTING, {
 		name: "bastionland.rulebook.settings.forPlayers.name",
@@ -115,6 +149,8 @@ export async function saveRulebookPath(path) {
 	const kept = String(path ?? "").trim();
 	await game.settings.set(SYSTEM_ID, PATH_SETTING, kept);
 	if (kept && wasRulebookForgotten()) await game.settings.set(SYSTEM_ID, FORGOTTEN_SETTING, false);
+	// A book kept anew, even at the same path, is looked for again.
+	if (missingRulebook()) await setMissingRulebook("");
 	if (foundRulebook() === "pending") await setFoundRulebook("");
 }
 
@@ -138,7 +174,7 @@ export async function forgetRulebook() {
 export function wasRulebookForgotten() {
 	if (read(FORGOTTEN_SETTING, false) === true) return true;
 	try {
-		return !hasRulebook() && !!game.settings.storage?.get("world")?.getSetting(`${SYSTEM_ID}.${PATH_SETTING}`);
+		return !hasRulebook() && !!storedWorldSetting(`${SYSTEM_ID}.${PATH_SETTING}`);
 	} catch {
 		return false;
 	}
@@ -220,6 +256,33 @@ export function foundRulebook() {
  */
 export const setFoundRulebook = (state) => game.settings.set(SYSTEM_ID, FOUND_SETTING, state);
 
+/** @returns {number} The version of Import PDF that last read the book for this world, 0 for none known. */
+export const importedVersion = () => Number(read(IMPORTED_SETTING, 0)) || 0;
+
+/**
+ * @param {number} version
+ * @returns {Promise<unknown>}
+ */
+export const setImportedVersion = (version) => game.settings.set(SYSTEM_ID, IMPORTED_SETTING, version);
+
+/** @returns {string} The kept path a re-read last found no book at, "" for none. */
+export const missingRulebook = () => String(read(MISSING_SETTING, "") ?? "");
+
+/**
+ * @param {string} path
+ * @returns {Promise<unknown>}
+ */
+export const setMissingRulebook = (path) => game.settings.set(SYSTEM_ID, MISSING_SETTING, path);
+
+/** @returns {{user?: string, at?: number}} Who is reading the book again, and since when; empty for nobody. */
+export const rereadingBy = () => read(REREADING_SETTING, {}) ?? {};
+
+/**
+ * @param {{user?: string, at?: number}} holder Empty for nobody.
+ * @returns {Promise<unknown>}
+ */
+export const setRereadingBy = (holder) => game.settings.set(SYSTEM_ID, REREADING_SETTING, holder);
+
 /** How long to wait on the server to say whether a kept copy is there, before going on as if not. */
 const KEPT_LOOK_TIMEOUT = 5000;
 
@@ -256,14 +319,23 @@ export async function findKeptRulebook() {
  * @returns {Promise<File|null>} Null if it can't be fetched.
  */
 export async function fetchRulebook() {
+	return (await fetchKeptRulebook()).file;
+}
+
+/**
+ * Fetch the world's copy back, telling a book that's gone from one that
+ * couldn't be fetched just now, as on a network hiccup.
+ * @returns {Promise<{file: File|null, missing: boolean}>} `missing` when the server has nothing at the path.
+ */
+export async function fetchKeptRulebook() {
 	const path = rulebookPath();
-	if (!path) return null;
+	if (!path) return { file: null, missing: false };
 	try {
 		const response = await fetch(foundry.utils.getRoute(path), { cache: "no-cache" });
-		if (!response.ok) return null;
-		return new File([await response.blob()], RULEBOOK_FILE, { type: "application/pdf" });
+		if (!response.ok) return { file: null, missing: response.status === 404 };
+		return { file: new File([await response.blob()], RULEBOOK_FILE, { type: "application/pdf" }), missing: false };
 	} catch (error) {
 		console.error(`${SYSTEM_ID} | Couldn't fetch the rulebook from ${path}`, error);
-		return null;
+		return { file: null, missing: false };
 	}
 }
