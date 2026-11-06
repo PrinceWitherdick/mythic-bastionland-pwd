@@ -10,7 +10,8 @@ import { findCompany } from "./wilderness.js";
 import { hexesReached } from "./held-back.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
-import { OWN_LANDMARK, TERRAIN, holdingName, terrainAt } from "../rules/realm.js";
+import { OWN_LANDMARK, REALM_FLAG, TERRAIN, holdingName, terrainAt } from "../rules/realm.js";
+import { realmFlag } from "../rules/realm-documents.js";
 import { inCompany, worldKnights } from "./knights.js";
 import { landmarkName } from "../rules/landmarks.js";
 
@@ -250,6 +251,37 @@ function keepOneDomain(actor, changes) {
 }
 
 /**
+ * A Holding crowned the Realm's Seat of Power on the map, or uncrowned, in Edit
+ * this hex or with the crown brush, has the Domains ruling it follow: each is a
+ * Seat of Power while its Holding is the Seat, and stops being one when the
+ * crown moves on (p14, p21). Heard on the active GM's client alone, who can
+ * write every Domain. A Tile update that leaves the Holding's crown unwritten,
+ * such as a move or a fade, changes nothing.
+ * @param {TileDocument} tile
+ * @param {object} [changes] As updateTile hands them; none for a Tile just made.
+ * @returns {Promise<Actor[]>} The Domains written.
+ */
+export async function seatFollowsCrown(tile, changes) {
+	if (!game.users?.activeGM?.isSelf) return [];
+	const flag = realmFlag(tile);
+	if (flag?.kind !== "holding" || !tile.parent?.id || !tile.id) return [];
+	if (changes && !foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_FLAG}.seat`)) return [];
+	const ref = holdingRef(tile.parent.id, tile.id);
+	const seat = Boolean(flag.seat);
+	const stale = worldDomains().filter((domain) => domain.system?.holding === ref && Boolean(domain.system.seat) !== seat);
+	if (stale.length) await Actor.implementation.updateDocuments(stale.map((domain) => ({ _id: domain.id, "system.seat": seat })));
+	return stale;
+}
+
+/**
+ * @param {TileDocument} tile
+ * @param {object} [changes]
+ */
+function followCrown(tile, changes) {
+	seatFollowsCrown(tile, changes).catch((error) => console.error(`${SYSTEM_ID} | Couldn't move a Seat of Power with its Holding`, error));
+}
+
+/**
  * The create option a Domain founded on a Holding is made with, so it takes the
  * Holding from any other; a Domain duplicated or imported carries its Holding
  * without it, and leaves the Domain it was copied from ruling.
@@ -258,7 +290,8 @@ export const FOUNDED_OPTION = `${SYSTEM_ID}Founded`;
 
 /**
  * Follow the Company home, and keep each Holding with one Domain, whether it's
- * given on a Domain's sheet or a Domain is founded on it. Called during init.
+ * given on a Domain's sheet or a Domain is founded on it, and each Domain's
+ * Seat of Power with the crown on the map. Called during init.
  */
 export function registerHomecoming() {
 	Hooks.on(COMPANY_MOVED_HOOK, noticeMove);
@@ -266,4 +299,7 @@ export function registerHomecoming() {
 	Hooks.on("updateActor", keepOneDomain);
 	// A Domain founded on a Holding is given it as it's made, which no update says.
 	Hooks.on("createActor", (actor, options) => options?.[FOUNDED_OPTION] && keepOneDomain(actor, { system: { holding: actor.system?.holding } }));
+	// The crown moved on the map, in Edit this hex or with the crown brush, moves the Seat of Power with it.
+	Hooks.on("createTile", (tile) => followCrown(tile));
+	Hooks.on("updateTile", (tile, changes) => followCrown(tile, changes));
 }

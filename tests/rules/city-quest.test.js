@@ -8,6 +8,8 @@ import {
 	cityQuestCastFromItems,
 	cityQuestOmensFromItems,
 	cityQuestOver,
+	cityQuestWorthiness,
+	cityQuestWorthy,
 	worthyOfCityQuest
 } from "../../module/rules/city-quest.js";
 
@@ -192,6 +194,36 @@ describe("worthyOfCityQuest", () => {
 		expect(worthyOfCityQuest([knight("tenant"), knight("radiant")])).toBe(true);
 		expect(worthyOfCityQuest([knight("dominant")])).toBe(false);
 		expect(worthyOfCityQuest([])).toBe(false);
+	});
+
+	it("passes over a Slain Knight-Radiant, but any living one will do", () => {
+		const slain = { type: "knight", system: { rank: "radiant", slain: true } };
+		expect(worthyOfCityQuest([slain])).toBe(false);
+		expect(worthyOfCityQuest([slain, knight("radiant")])).toBe(true);
+	});
+});
+
+describe("cityQuestWorthy, with the Referee's say (p172)", () => {
+	const radiant = { system: { rank: "radiant" } };
+	const tenant = { system: { rank: "tenant" } };
+	it("is left to the Knights when Automatic, or set to anything else", () => {
+		expect(cityQuestWorthy([radiant], "auto")).toBe(true);
+		expect(cityQuestWorthy([tenant], "auto")).toBe(false);
+		expect(cityQuestWorthy([tenant])).toBe(false);
+		expect(cityQuestWorthy([radiant], "nonsense")).toBe(true);
+	});
+
+	it("is worthy, or not, as the Referee has set it, whoever rides", () => {
+		expect(cityQuestWorthy([tenant], "worthy")).toBe(true);
+		expect(cityQuestWorthy([], "worthy")).toBe(true);
+		expect(cityQuestWorthy([radiant], "unworthy")).toBe(false);
+	});
+
+	it("reads anything unknown as Automatic", () => {
+		expect(cityQuestWorthiness("worthy")).toBe("worthy");
+		expect(cityQuestWorthiness("unworthy")).toBe("unworthy");
+		expect(cityQuestWorthiness(null)).toBe("auto");
+		expect(cityQuestWorthiness("yes")).toBe("auto");
 	});
 });
 

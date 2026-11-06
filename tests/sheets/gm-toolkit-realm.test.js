@@ -17,7 +17,7 @@ vi.mock("../../module/actions/omens.js", () => ({ markMythOmen: vi.fn() }));
 vi.mock("../../module/actions/myth-resolve.js", () => ({ replaceMyth: vi.fn(), resolveMyth: vi.fn(), unresolveMyth: vi.fn() }));
 vi.mock("../../module/actions/myth-notes.js", async (original) => ({ ...(await original()), getMythNotes: () => ({ myths: {} }) }));
 vi.mock("../../module/actions/myth-cast.js", async (original) => ({ ...(await original()), castActors: () => [] }));
-vi.mock("../../module/actions/city-quest.js", async (original) => ({ ...(await original()), cityOmensSeen: () => [] }));
+vi.mock("../../module/actions/city-quest.js", async (original) => ({ ...(await original()), cityOmensSeen: () => [], cityQuestSetWorthy: () => "auto" }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollMythTable: vi.fn(async () => ({ roll: {}, results: [{ index: 0, roll: 2 }], prompt: "" })) }));
 vi.mock("../../module/apps/roll-spin.js", () => ({ spinTable: vi.fn(async () => {}) }));
 vi.mock("../../module/apps/ui.js", async (original) => ({ ...(await original()), renderWhenIdle: vi.fn() }));

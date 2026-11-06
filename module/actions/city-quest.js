@@ -1,7 +1,7 @@
 import { confirmDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
-import { CITY_OMEN_COUNT, cityOmen, cityQuestOver } from "../rules/city-quest.js";
+import { CITY_OMEN_COUNT, cityOmen, cityQuestOver, cityQuestWorthiness } from "../rules/city-quest.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
@@ -11,6 +11,9 @@ import { SYSTEM_ID } from "../system-id.js";
  */
 
 const CITY_QUEST_SETTING = "cityQuest";
+
+/** Whether the Company is worthy of the City Quest as the Referee has set it, or "auto" to leave it to its Knights. */
+const CITY_QUEST_WORTHY_SETTING = "cityQuestWorthy";
 
 /** Called on every client whenever the Omens of the City seen change. */
 export const CITY_QUEST_HOOK = `${SYSTEM_ID}.cityQuestChanged`;
@@ -24,6 +27,31 @@ export function registerCityQuestSetting() {
 		default: { seen: [] },
 		onChange: () => Hooks.callAll(CITY_QUEST_HOOK)
 	});
+	// Set in the City Quest's part of the Referee Toolkit's Myths page.
+	game.settings.register(SYSTEM_ID, CITY_QUEST_WORTHY_SETTING, {
+		scope: "world",
+		config: false,
+		type: String,
+		default: "auto",
+		onChange: () => Hooks.callAll(CITY_QUEST_HOOK)
+	});
+}
+
+/** @returns {"auto"|"worthy"|"unworthy"} Whether the Referee has said the Company is worthy of the City Quest, or left it to its Knights. */
+export const cityQuestSetWorthy = () => cityQuestWorthiness(game.settings.get(SYSTEM_ID, CITY_QUEST_WORTHY_SETTING));
+
+/**
+ * Say whether the Company is worthy of the City Quest, so a Wilderness Roll of
+ * 1 brings an Omen of the City, or leave it to its Knights. GMs only.
+ * @param {string} worthiness One of CITY_QUEST_WORTHINESS.
+ * @returns {Promise<boolean>} Whether it was written.
+ */
+export async function setCityQuestWorthy(worthiness) {
+	if (!game.user.isGM) return false;
+	const set = cityQuestWorthiness(worthiness);
+	if (set === cityQuestSetWorthy()) return false;
+	await game.settings.set(SYSTEM_ID, CITY_QUEST_WORTHY_SETTING, set);
+	return true;
 }
 
 /** @returns {number[]} The Omens of the City encountered, in the order they came. */

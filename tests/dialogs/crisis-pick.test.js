@@ -30,3 +30,15 @@ describe("the Crisis picker", () => {
 		expect(html).toContain('class="bastionland-choice-list"');
 	});
 });
+
+describe("a pick list with none chosen to start", () => {
+	it("checks the first choice by default, but none, and asks for one, when unchosen", () => {
+		const page = handlebars.compile(read("templates/dialogs/pick-one.hbs"));
+		const first = page({ legend: "Which?", choices });
+		expect(first.match(/checked/g)).toHaveLength(1);
+		expect(first).not.toContain("required");
+		const none = page({ legend: "Which?", choices, unchosen: true });
+		expect(none).not.toContain("checked");
+		expect(none.match(/required/g)).toHaveLength(choices.length);
+	});
+});

@@ -43,6 +43,8 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			crisisRolled: textField(),
 			// The Season its Drama in Court was last rolled in, from seasonKey (p21).
 			dramaRolled: textField(),
+			// The ids of the Knights the Referee has ticked as having proven their worthiness of a post here (p6).
+			proven: new fields.ArrayField(new fields.StringField({ required: true, blank: false })),
 			notes: htmlField()
 		};
 	}

@@ -40,7 +40,7 @@ vi.mock("../../module/actions/succession.js", () => ({ chooseSuccessor: vi.fn(),
 vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(async () => null), companionsOf: () => [], worldCompanions: () => [] }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineAged: vi.fn(), timelineSeasonTurn: vi.fn(async () => null) }));
 vi.mock("../../module/actions/homecoming.js", () => ({ markLongAbsences: vi.fn(async () => null) }));
-vi.mock("../../module/actions/pursuits.js", () => ({ followPursuits: vi.fn(async () => null) }));
+vi.mock("../../module/actions/pursuits.js", () => ({ followPursuits: vi.fn(async () => null), makingsFor: () => [] }));
 vi.mock("../../module/actions/season-events.js", () => ({
 	collectionEntry: () => ({ name: "collection", lines: [] }),
 	markCollection: vi.fn(async () => null),
@@ -213,6 +213,36 @@ describe("the Age's turn", () => {
 		await turnAge();
 		expect(written(sir)).toMatchObject({ "system.glory": 3, "system.age": "mature" });
 		expect(calendar).toMatchObject({ age: 2, season: "spring", phase: "morning" });
+	});
+
+	it("gives every living Knight 1 Glory, ticked or not, the Referee's NPC Knights too, but no Squire or the Slain (p6, p17)", async () => {
+		const ticks = someone("Sir Ash", { glory: 2, gainsGlory: true });
+		const unticked = someone("Sir Away", { player: true, glory: 5, gainsGlory: true });
+		const npcKnight = someone("Sir Rival", { type: "npcKnight", glory: 8, gainsGlory: true });
+		const squire = someone("Young Tam", { glory: 0, gainsGlory: false, isSquire: true });
+		const slain = someone("Sir Fallen", { type: "npcKnight", glory: 4, gainsGlory: true, slain: true });
+		const npc = someone("Guide", { type: "npc" });
+		game.actors = [ticks, unticked, npcKnight, squire, slain, npc];
+		ticked = ["Sir Ash"];
+		await turnAge();
+		expect(written(ticks)["system.glory"]).toBe(3);
+		expect(written(unticked)["system.glory"]).toBe(6);
+		expect(written(npcKnight)["system.glory"]).toBe(9);
+		expect(written(squire)["system.glory"]).toBeUndefined();
+		expect(slain.update).not.toHaveBeenCalled();
+		expect(written(npc)["system.glory"]).toBeUndefined();
+		// A Rank reached that way goes on their thread as the Company's does.
+		const { recordRankReached } = await import("../../module/actions/glory.js");
+		const reached = vi.mocked(recordRankReached).mock.calls.map(([actor, change]) => [actor.name, change.to]);
+		expect(reached).toEqual(expect.arrayContaining([["Sir Ash", 3], ["Sir Away", 6], ["Sir Rival", 9]]));
+		expect(reached.map(([name]) => name)).not.toContain("Young Tam");
+	});
+
+	it("gives no Glory to anybody left unticked as only the Season turns", async () => {
+		const unticked = someone("Sir Away", { player: true, glory: 5, gainsGlory: true });
+		game.actors = [unticked];
+		await turnSeason();
+		expect(written(unticked)["system.glory"]).toBeUndefined();
 	});
 });
 

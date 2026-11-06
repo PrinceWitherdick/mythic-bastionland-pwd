@@ -1,9 +1,9 @@
 import { CALENDAR_HOOK, calendarLabel, chronicleLabel, getCalendar } from "../actions/calendar.js";
 import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
-import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
+import { CITY_QUEST_HOOK, cityOmensSeen, cityQuestSetWorthy, resetCityQuest, rollCityOmen, setCityQuestWorthy } from "../actions/city-quest.js";
 import { COMPANY_FLAG, NO_COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
-import { worldKnights } from "../actions/knights.js";
+import { inCompany, worldKnights } from "../actions/knights.js";
 import { awardGloryTo } from "../actions/glory.js";
 import { getHexLore, sparkWhen } from "../actions/hex-lore.js";
 import { hexLabel, hexName } from "../actions/hex-names.js";
@@ -15,7 +15,7 @@ import { hexStoreFlags, realmSceneChanges } from "../actions/scene-changes.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
-import { replaceMyth, resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
+import { awardMythGlory, replaceMyth, resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
 import { markMythOmen } from "../actions/omens.js";
 import { activateOmenScene, linkOmenScene, linkableScene, omenSceneChips, omenSceneIds, unlinkOmenScene, viewOmenScene } from "../actions/omen-scenes.js";
 import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
@@ -41,11 +41,11 @@ import { openRulebook } from "../rulebook/BookReader.js";
 import { openRulebookSetup } from "../rulebook/RulebookSetup.js";
 import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
 import { isTableRoll, MYTH_VERSE_VERSION } from "../rules/book-art.js";
-import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
+import { CITY_OMEN_COUNT, CITY_QUEST_END, CITY_QUEST_WORTHINESS, cityQuestOver, worthyOfCityQuest } from "../rules/city-quest.js";
 import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { rulingKnightOf } from "../rules/dominion.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
-import { mythNoteFor, mythRoll } from "../rules/myth-notes.js";
+import { mythGloryFor, mythNoteFor, mythRoll } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { isOwnMyth, mythWithOwn } from "../rules/own-myths.js";
 import { POINT_KINDS } from "../rules/sites.js";
@@ -131,6 +131,20 @@ function bringIntoView(card) {
 }
 
 /**
+ * Whether the Company is worthy of the City Quest (p172), as the Referee may set
+ * it on the Myths page: left to the Knights, with what that says now, or set by hand.
+ * @returns {{options: {value: string, label: string, selected: boolean}[], hint: string}}
+ */
+function cityWorthyContext() {
+	const set = cityQuestSetWorthy();
+	const now = worthyOfCityQuest(game.actors.filter(inCompany)) ? "worthy" : "unworthy";
+	return {
+		options: CITY_QUEST_WORTHINESS.map((value) => ({ value, label: t(`cityQuest.worthy.${value}`), selected: value === set })),
+		hint: t(set === "auto" ? `cityQuest.worthy.autoNow.${now}` : `cityQuest.worthy.setHint.${set}`)
+	};
+}
+
+/**
  * The GM Toolkit's sheet: a Realm's Myths and their Omens, the places of the
  * Realm and the hexes the Company has been to, with what the GM wrote and the
  * Spark Tables rolled for each, the campaign's Timeline, and the GM's own notes. Its pages
@@ -153,6 +167,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			unlinkOmenScene: GmToolkitSheet.#onUnlinkOmenScene,
 			mythResolved: GmToolkitSheet.#onMythResolved,
 			mythUnresolved: GmToolkitSheet.#onMythUnresolved,
+			awardMythGlory: GmToolkitSheet.#onAwardMythGlory,
 			rollCityOmen: () => rollCityOmen(),
 			resetCityQuest: () => resetCityQuest(),
 			showHex: GmToolkitSheet.#onShowHex,
@@ -425,6 +440,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			omens: seen.map((omen) => ({ number: omen, text: this.#index?.cityQuest?.omens?.[omen - 1] ?? t("cityQuest.omen", { omen, count: CITY_OMEN_COUNT }) })),
 			over: cityQuestOver(seen),
 			empty: !seen.length,
+			worthy: cityWorthyContext(),
 			missingText: !this.#index?.cityQuest?.omens,
 			cast: this.#castContext({
 				key: CITY_CAST,
@@ -519,6 +535,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			pips: omens,
 			complete: myth.omen >= OMEN_COUNT,
 			resolved: kept.resolved,
+			// Resolved with nobody given its Glory, as when its window was closed: it can still be awarded.
+			awardGlory: Boolean(game.user?.isGM && kept.resolved) && !mythGloryFor(data.notes, myth).length,
 			note: kept.note,
 			fold,
 			open: this.#folds.get(fold) ?? false,
@@ -962,6 +980,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const onCastChange = (actor, changes) => (["name", "img"].some((key) => key in changes) || CAST_FLAG in (changes.flags?.[SYSTEM_ID] ?? {})) && onCast(actor);
 		// Only a Crisis Roll or a new name changes the Time page's list of Domains.
 		const onDomainChange = (actor, changes) => ("name" in changes || changes.system?.crisisRolled !== undefined) && onDomain(actor);
+		// A Knight's Glory or death can change what the Myths page says of the Company's worth for the City Quest.
+		const onWorthyChange = (actor, changes) => inCompany(actor) && (changes.system?.glory !== undefined || changes.system?.slain !== undefined) && this.#redraw("myths");
 		this.#hooks = [
 			...["createTile", "updateTile", "deleteTile"].map((name) => [name, Hooks.on(name, onRealmDocument)]),
 			...["createScene", "deleteScene"].map((name) => [name, Hooks.on(name, onScenes)]),
@@ -979,6 +999,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			["updateActor", Hooks.on("updateActor", (actor, changes) => {
 				onDomainChange(actor, changes);
 				onCastChange(actor, changes);
+				onWorthyChange(actor, changes);
 			})],
 			["canvasReady", Hooks.on("canvasReady", onCanvas)],
 			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time"))],
@@ -1130,6 +1151,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 				if (!target.value || target.value === this.sceneId) return;
 				this.#choose(target.value);
 				return this.render({ parts: REALM_PARTS });
+			case "cityQuestWorthy": return setCityQuestWorthy(target.value);
 			case "mythNote": {
 				const myth = this.#mythFrom(target);
 				if (myth) await editMythNote(scene, myth, { note: target.value });
@@ -1315,6 +1337,17 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			name: mythLookup(this.#index, myth).name,
 			award: async () => (await awardGloryTo("myth"))?.knights ?? []
 		});
+	}
+
+	/**
+	 * Award the Glory of a Myth resolved with none given (p6, p27), kept with
+	 * the Myth so Unresolve can take it back.
+	 * @this {GmToolkitSheet}
+	 */
+	static async #onAwardMythGlory(_event, target) {
+		const myth = this.#mythFrom(target);
+		if (!myth) return;
+		await awardMythGlory(this.scene, myth, async () => (await awardGloryTo("myth"))?.knights ?? []);
 	}
 
 	/** @this {GmToolkitSheet} */

@@ -4,7 +4,7 @@ vi.mock("../../module/apps/ui.js", () => ({ confirmDialog: vi.fn() }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => ({ cityQuest: { omens: Array.from({ length: 24 }, (_, index) => `Omen text ${index + 1}`) } }) }));
 vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => {}), t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 
-const { cityOmensSeen, resetCityQuest, rollCityOmen } = await import("../../module/actions/city-quest.js");
+const { cityOmensSeen, cityQuestSetWorthy, resetCityQuest, rollCityOmen, setCityQuestWorthy } = await import("../../module/actions/city-quest.js");
 const { confirmDialog } = await import("../../module/apps/ui.js");
 const { postCard } = await import("../../module/chat/cards.js");
 
@@ -88,5 +88,25 @@ describe("starting the City Quest over", () => {
 		vi.mocked(confirmDialog).mockResolvedValueOnce(true);
 		expect(await resetCityQuest()).toBe(true);
 		expect(kept.seen).toEqual([]);
+	});
+});
+
+describe("the Referee's say on whether the Company is worthy (p172)", () => {
+	it("leaves it to the Knights until the Referee says otherwise, and keeps what they say", async () => {
+		kept = null;
+		expect(cityQuestSetWorthy()).toBe("auto");
+		expect(await setCityQuestWorthy("worthy")).toBe(true);
+		expect(game.settings.set).toHaveBeenCalledWith(expect.any(String), "cityQuestWorthy", "worthy");
+		expect(cityQuestSetWorthy()).toBe("worthy");
+		// The same again writes nothing; anything unknown is Automatic.
+		expect(await setCityQuestWorthy("worthy")).toBe(false);
+		expect(await setCityQuestWorthy("nonsense")).toBe(true);
+		expect(cityQuestSetWorthy()).toBe("auto");
+	});
+
+	it("is the Referee's alone to set", async () => {
+		game.user.isGM = false;
+		expect(await setCityQuestWorthy("unworthy")).toBe(false);
+		expect(game.settings.set).not.toHaveBeenCalled();
 	});
 });

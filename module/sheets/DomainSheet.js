@@ -14,7 +14,7 @@ import { chooseDomainArms, domainArmsView, knightChangesArms } from "../actions/
 import { beginDesign, strikeOffDesign } from "../actions/grand-designs.js";
 import { domainLands, holdingChoices, realmHoldings } from "../actions/homecoming.js";
 import { worldKnights } from "../actions/knights.js";
-import { editCourtMember, knightChoices, removeCourtMember, seatCircle, seatLabel, takeIntoCourt } from "../actions/court.js";
+import { editCourtMember, knightChoices, removeCourtMember, seatCircle, seatLabel, setWorthinessProven, takeIntoCourt } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
 import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf, unworthyPosts } from "../rules/court.js";
@@ -60,7 +60,8 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 			assignTask: DomainSheet.#onAssignTask,
 			settleTask: DomainSheet.#onSettleTask,
 			setTaskAside: DomainSheet.#onSetTaskAside,
-			chooseArms: DomainSheet.#onChooseArms
+			chooseArms: DomainSheet.#onChooseArms,
+			proveWorthy: DomainSheet.#onProveWorthy
 		}
 	};
 
@@ -125,12 +126,8 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 			})),
 			// The wilderness nearer its Holding than any other falls under its rule (p20).
 			lands: domainLands(actor, realms),
-			// Knights holding a post their Rank isn't worthy of yet face opposition (p6).
-			unworthy: unworthyPosts(actor, worldKnights()).map(({ name, post, rank }) => t("domain.unworthy.line", {
-				name,
-				post: t(`domain.unworthy.posts.${post}`),
-				rank: t(`rank.${rank}`)
-			})),
+			// Knights holding a post their Rank isn't worthy of yet face opposition (p6), until the Referee ticks it proven.
+			unworthy: DomainSheet.#unworthyContext(actor),
 			// A seat left empty invites trouble (p204), so the sheet says which.
 			emptySeats: DomainSheet.#emptySeatsNotice(system.council),
 			court: DomainSheet.#courtContext(system),
@@ -270,6 +267,23 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 		};
 	}
 
+	/**
+	 * Each Knight holding a post here their Rank isn't worthy of yet (p6): a line
+	 * saying so, and for the Referee a tick for when their worthiness is proven.
+	 * @param {Actor} domain
+	 * @returns {{id: string, line: string, proven: boolean, tick: string|null, hint: string}[]}
+	 */
+	static #unworthyContext(domain) {
+		return unworthyPosts(domain, worldKnights()).map(({ id, name, post, rank, proven }) => ({
+			id,
+			proven,
+			line: t(proven ? "domain.unworthy.provenLine" : "domain.unworthy.line", { name, post: t(`domain.unworthy.posts.${post}`), rank: t(`rank.${rank}`) }),
+			// Only the Referee says whether it's proven.
+			tick: game.user.isGM ? t("domain.unworthy.proven") : null,
+			hint: t("domain.unworthy.provenHint", { name })
+		}));
+	}
+
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
@@ -381,6 +395,15 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 	/** @this {DomainSheet} */
 	static #onChooseArms() {
 		return chooseDomainArms(this.actor);
+	}
+
+	/**
+	 * Tick a Knight's worthiness of their post proven, or untick it (p6).
+	 * @this {DomainSheet}
+	 */
+	static #onProveWorthy(_event, target) {
+		const id = target.dataset.knight;
+		return setWorthinessProven(this.actor, id, !(this.actor.system.proven ?? []).includes(id));
 	}
 
 	/** Watches the world's Knights while open, since the arms it shows are one of theirs: [hook, id] pairs. */

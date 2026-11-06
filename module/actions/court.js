@@ -10,10 +10,13 @@ import {
 	SERVES_A_SEAT,
 	circleKnights,
 	councilSeatPlan,
+	courtKnight,
+	courtMembers,
 	newCourtMember,
 	normalizeCourt,
 	normalizeCourtMember,
-	seatOf
+	seatOf,
+	withProven
 } from "../rules/court.js";
 import { COUNCIL_SEATS, canHoldPost, isSameName } from "../rules/dominion.js";
 import { seersSanctums } from "../rules/realm.js";
@@ -68,6 +71,34 @@ export const slainKnight = (id) => Boolean(id && game.actors.find((actor) => act
 const courtNames = (domain, except) => Object.entries(normalizeCourt(domain.system.court))
 	.filter(([id, member]) => id !== except && member.name)
 	.map(([, member]) => member.name);
+
+/**
+ * Tick a Knight's worthiness of their post in a Domain proven, or untick it
+ * (Worthiness, p6): proven, the opposition they faced is behind them. The
+ * Referee's to say.
+ * @param {Actor} domain
+ * @param {string} knightId
+ * @param {boolean} proven
+ * @returns {Promise<boolean>} Whether it was written.
+ */
+export async function setWorthinessProven(domain, knightId, proven) {
+	if (!game.user.isGM || domain?.type !== "domain" || !knightId) return false;
+	const before = domain.system.proven ?? [];
+	const after = withProven(before, knightId, proven);
+	if (after.length === before.length && after.every((id) => before.includes(id))) return false;
+	await domain.update({ "system.proven": after });
+	return true;
+}
+
+/**
+ * @param {Actor} domain
+ * @param {Actor} knight
+ * @returns {boolean} Whether the Knight already holds a place in the Domain's Court, found by id or by a name only they go by.
+ */
+export function sitsAtCourt(domain, knight) {
+	const knights = worldKnights();
+	return courtMembers(domain.system?.court).some((member) => courtKnight(member, knights)?.id === knight.id);
+}
 
 /**
  * Take somebody new into the Court.

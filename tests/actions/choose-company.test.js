@@ -39,9 +39,17 @@ describe("chooseCompany", () => {
 			"include-1": true, "pursuit-1": "service", "making-1": "favour"
 		};
 		const company = await chooseCompany({ title: "", icon: "", intro: "", ok: "", pursuits: ["service", "courtesy", "pilgrimage"] });
-		expect(asked.context.makings.map(({ value }) => value)).toEqual(["dwelling", "other", "court", "contact", "favour"]);
+		expect(asked.context.members[0].makings.map(({ value }) => value)).toEqual(["dwelling", "other", "court", "contact", "favour"]);
 		expect(asked.render).toBeTypeOf("function");
 		expect(company.map(({ actor, pursuit, making }) => [actor.name, pursuit, making])).toEqual([["Tal", "courtesy", "court"], ["Moss", "service", null]]);
+	});
+
+	it("never offers a Squire a place at Court, nor keeps one said for them (p7, p20)", async () => {
+		game.actors[0].system.isSquire = true;
+		answer = { "include-0": true, "pursuit-0": "courtesy", "making-0": "court", "include-1": true, "pursuit-1": "courtesy", "making-1": "court" };
+		const company = await chooseCompany({ title: "", icon: "", intro: "", ok: "", pursuits: ["courtesy"] });
+		expect(asked.context.members.map(({ makings }) => makings.map(({ value }) => value))).toEqual([["contact", "favour"], ["court", "contact", "favour"]]);
+		expect(company.map(({ making }) => making)).toEqual([null, "court"]);
 	});
 
 	it("as an Age turns, ticks to grow older only those with a stage of life ahead", async () => {
@@ -122,5 +130,17 @@ describe("chooseCompany, Squires and companions", () => {
 		answer = {};
 		await chooseCompany({ title: "", icon: "", intro: "", ok: "" });
 		expect(asked.context.members.map(({ name }) => name)).toEqual(["Tal", "Moss"]);
+	});
+});
+
+describe("chooseCompany for Glory", () => {
+	it("lists those given as later after the Company's Knights, unticked, and leaves out who can't gain Glory", async () => {
+		const tam = { ...knight("tam", "Tam"), system: { virtues: {}, gainsGlory: false, isSquire: true } };
+		const rival = { ...knight("rival", "Sir Rival"), type: "npcKnight", hasPlayerOwner: false, system: { virtues: {}, gainsGlory: true } };
+		for (const actor of game.actors) actor.system.gainsGlory = true;
+		game.actors.push(tam);
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", knightsOnly: true, later: [rival], gainsGlory: true });
+		expect(asked.context.members.map(({ name, included }) => [name, included])).toEqual([["Tal", true], ["Moss", true], ["Sir Rival", false]]);
 	});
 });

@@ -353,14 +353,16 @@
         },
         "tournament": {
           "label": "Tournament Won",
-          "intro": "Tick the winning Knight. They gain 1 Glory.",
+          "intro": "Choose the Knight who won the tournament. They gain 1 Glory.",
           "hint": "Only a tournament with a real crowd and real pageantry earns Glory."
         },
         "battle": {
           "label": "Battle Won",
-          "intro": "Tick every Knight on the victorious side. Each gains 1 Glory.",
+          "intro": "Tick every Knight on the victorious side, the Referee’s NPC Knights among them. Each gains 1 Glory.",
           "hint": "Only a battle big enough for the chronicles earns Glory."
         },
+        "knightDetail": "{rank}, {glory} Glory",
+        "npcKnightDetail": "{rank}, {glory} Glory · NPC Knight",
         "bridge": {
           "label": "Bridge Won",
           "intro": "Tick the Knight who beat the Bridge’s keeper. They gain 1 Glory.",
@@ -484,11 +486,11 @@
     },
     "rank": {
       "label": "Rank",
-      "errant": "Knight Errant",
-      "gallant": "Knight Gallant",
-      "tenant": "Knight Tenant",
-      "dominant": "Knight Dominant",
-      "radiant": "Knight Radiant"
+      "errant": "Knight-Errant",
+      "gallant": "Knight-Gallant",
+      "tenant": "Knight-Tenant",
+      "dominant": "Knight-Dominant",
+      "radiant": "Knight-Radiant"
     },
     "conditions": {
       "label": "Conditions",
@@ -1491,10 +1493,10 @@
       "moveOn": "Move Time On",
       "nextPhase": "Next Phase",
       "seasonIntro": "{season} gives way to {next}. Each Knight ticked has their Virtues restored and chooses a pursuit, and any Mutilation Scar settles.",
-      "ageIntro": "Age {age} begins in Spring. Each Knight ticked has their Virtues restored, gains 1 Glory and chooses a pursuit. Old Knights lose d12 VIG, and any Mutilation Scar settles.",
+      "ageIntro": "Age {age} begins in Spring. Each Knight ticked has their Virtues restored and chooses a pursuit. Every living Knight gains 1 Glory, ticked or not. Old Knights lose d12 VIG, and any Mutilation Scar settles.",
       "agePick": {
         "title": "The Age",
-        "turn": "Turning the Age begins Age {next} in Spring. Each Knight taking part has their Virtues restored, gains 1 Glory and chooses a pursuit, and Old Knights lose d12 VIG.",
+        "turn": "Turning the Age begins Age {next} in Spring. Each Knight taking part has their Virtues restored and chooses a pursuit, every living Knight gains 1 Glory, and Old Knights lose d12 VIG.",
         "set": "Set the Age",
         "setHint": "Setting the Age only puts the number right. Nothing that comes between Ages happens.",
         "change": "A Year Passes, or set the Age by hand"
@@ -1542,9 +1544,11 @@
           "contact": "A new contact",
           "favour": "A favour",
           "whichCourt": "Whose Court does {name} join?",
+          "joinCourt": "Join This Court",
           "courtNote": "Earned by Courtesy before {season}.",
           "joined": "Courtesy: a place at the Court of {court}, as a Courtier.",
           "noCourt": "Courtesy: a place at Court, though no Domain is kept yet to write it in.",
+          "alreadyAtCourt": "Courtesy: already at the Court of {court}, so no place is added.",
           "made": {
             "contact": "Courtesy: a new contact.",
             "favour": "Courtesy: a favour owed."
@@ -1718,6 +1722,9 @@
       },
       "unworthy": {
         "line": "{name} holds {post} before rising to {rank}, and is sure to face opposition until their worthiness is proven.",
+        "provenLine": "{name} holds {post} before rising to {rank}, and has proven their worthiness of it.",
+        "proven": "Worthiness proven",
+        "provenHint": "Tick once {name} has proven worthy of the post, and the opposition is behind them.",
         "posts": {
           "seat": "the Seat of Power",
           "holding": "a Holding",
@@ -2787,6 +2794,10 @@
         "resolved": "Resolved",
         "resolvedHint": "Once the table agrees a Myth is over, another takes its place next Season (p27).",
         "unresolve": "Not Resolved",
+        "awardGlory": "Award Myth Glory",
+        "awardGloryTooltip": "Nobody was given this Myth’s Glory when it was resolved. Tick each Knight who played a part in it.",
+        "alreadyResolved": "That Myth is resolved already, and its Glory was asked about then.",
+        "gloryGiven": "That Myth’s Glory has been given already.",
         "newMyth": "Roll the New Myth",
         "newMythTooltip": "Roll d6 and d12 on the Myths table for the Myth that replaces this one, in the same hex and under the same number.",
         "choose": "Choose the Myths",
@@ -2948,7 +2959,21 @@
       "reset": "Start Over",
       "resetTitle": "Start the City Quest Over?",
       "resetConfirm": "Every Omen of the City encountered is forgotten, as for a new Company.",
-      "wildernessHint": "This Company is worthy of the City Quest, so an Omen of the City comes in place of a random Myth’s. It follows below."
+      "wildernessHint": "This Company is worthy of the City Quest, so an Omen of the City comes in place of a random Myth’s. It follows below.",
+      "worthy": {
+        "label": "Worthy of the Quest",
+        "auto": "Automatic",
+        "worthy": "Worthy",
+        "unworthy": "Not worthy",
+        "autoNow": {
+          "worthy": "Worthy now: a living Knight-Radiant rides with the Company.",
+          "unworthy": "Not worthy yet: no living Knight-Radiant rides with the Company."
+        },
+        "setHint": {
+          "worthy": "Set by hand: a Wilderness Roll of 1 brings an Omen of the City, whoever rides with the Company.",
+          "unworthy": "Set by hand: a Wilderness Roll of 1 brings a Myth’s Omen, whoever rides with the Company."
+        }
+      }
     },
     "sites": {
       "newSite": "New Site",

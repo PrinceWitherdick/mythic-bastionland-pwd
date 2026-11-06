@@ -296,11 +296,29 @@ describe("centring the letters", () => {
 
 	it.each([
 		".bastionland-realm-appearance__arms",
-		".bastionland-gm-toolkit__fact--quiet"
+		".bastionland-gm-toolkit__fact--quiet",
+		// The Domain sheet's "Worthiness proven" tick, on the shared tick row (measured 2026-11-05).
+		".bastionland-domain__proven"
 	])("leaves %s centred by the shared rule it builds on", (name) => {
 		const own = rules.filter(({ selectors }) => selectors.some((selector) => endsWith(selector, name.slice(1))));
 		expect(own.length, `no ${name} rule`).toBeGreaterThan(0);
 		const moved = own.filter(({ body }) => /(^|;|\s)(display|line-height|padding|padding-(top|bottom|block)|vertical-align):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
+	/*
+	 * A choose-one list (pick-one.hbs), such as Courtesy's "Whose Court does … join?",
+	 * names each choice in bold with no line under it: measured offline with
+	 * probe-radio-rows.mjs on a three-Court list, the radio ≤0.8px off its capitals'
+	 * middle at 1×, 1.25× and 1.5× (2026-11-05). Its rows are the shared tick row.
+	 */
+	it("draws a choose-one list's rows on the shared tick row, the list itself moving no row", () => {
+		const list = readFileSync(join(root, "templates/dialogs/parts/pick-list.hbs"), "utf8");
+		expect(list).toContain('<label class="bastionland-check">');
+		expect(list).toContain('<span class="bastionland-check__label">');
+		expect(readFileSync(join(root, "templates/dialogs/pick-one.hbs"), "utf8")).toContain('{{> "bastionland.pick-list"');
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => selector.includes("bastionland-choice-list") && selector.includes("bastionland-check")));
+		const moved = own.filter(({ body }) => /(^|;|\s)(display|line-height|padding|padding-(top|bottom|block)|vertical-align|margin-block-start):/.test(body));
 		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
 	});
 

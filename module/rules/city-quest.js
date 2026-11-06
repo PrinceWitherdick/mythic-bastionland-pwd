@@ -131,10 +131,34 @@ export function cityOmen(d12, seen = []) {
 export const cityQuestOver = (seen) => seen.some((number) => isOmen(number) && number >= CITY_QUEST_END);
 
 /**
- * @param {{system?: {rank?: string}}[]} company The Knights who ride with the Company.
- * @returns {boolean} Whether any of them is a Knight-Radiant, ready for the City Quest.
+ * @param {{system?: {rank?: string, slain?: boolean}}[]} company The Knights who ride with the Company.
+ * @returns {boolean} Whether any of them is a living Knight-Radiant, ready for the City Quest. A Slain one is no longer.
  */
-export const worthyOfCityQuest = (company) => company.some((knight) => knight.system?.rank === "radiant");
+export const worthyOfCityQuest = (company) => company.some((knight) => !knight.system?.slain && knight.system?.rank === "radiant");
+
+/**
+ * Who says whether the Company is worthy of the City Quest: the Company's Knights,
+ * or the Referee, one way or the other.
+ */
+export const CITY_QUEST_WORTHINESS = Object.freeze(["auto", "worthy", "unworthy"]);
+
+/**
+ * @param {unknown} worthiness
+ * @returns {"auto"|"worthy"|"unworthy"} One of CITY_QUEST_WORTHINESS, "auto" for anything else.
+ */
+export const cityQuestWorthiness = (worthiness) => (CITY_QUEST_WORTHINESS.includes(worthiness) ? worthiness : "auto");
+
+/**
+ * Whether the Company is worthy of the City Quest: as the Referee has set it,
+ * or, left to the Knights, while a living Knight-Radiant rides with it.
+ * @param {{system?: {rank?: string, slain?: boolean}}[]} company
+ * @param {unknown} [worthiness] One of CITY_QUEST_WORTHINESS.
+ * @returns {boolean}
+ */
+export function cityQuestWorthy(company, worthiness = "auto") {
+	const set = cityQuestWorthiness(worthiness);
+	return set === "auto" ? worthyOfCityQuest(company) : set === "worthy";
+}
 
 /**
  * Whether a Wilderness Roll meets an Omen of the City in place of a random

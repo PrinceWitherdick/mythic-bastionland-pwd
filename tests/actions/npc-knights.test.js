@@ -98,6 +98,14 @@ describe("an NPC Knight", () => {
 		expect(markCompanions).toHaveBeenCalledWith(["steed actor"], knight);
 	});
 
+	it("has a Ruler's Glory, or more where the part they're made for asks it, never less (p6)", async () => {
+		await makeNpcKnight("3-07", index);
+		await makeNpcKnight("3-07", index, { glory: 9 });
+		await makeNpcKnight("3-07", index, { glory: 2 });
+		const glory = (call) => createActor.mock.calls[call][0].system.glory;
+		expect([glory(0), glory(1), glory(2)]).toEqual([6, 9, 6]);
+	});
+
 	it("is the Referee's to make", async () => {
 		game.user.isGM = false;
 		expect(await makeNpcKnight("3-07", index)).toBeNull();

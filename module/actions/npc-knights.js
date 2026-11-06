@@ -41,13 +41,17 @@ export const npcFolder = () => flaggedFolder("Actor", NPC_FOLDER_FLAG, true, { n
  * Seer and steed as the book gives them. GMs only.
  * @param {string} roll Their roll on the Knights table, such as "3-07".
  * @param {object|null} index The art index.
+ * @param {object} [options]
+ * @param {number} [options.glory] The Glory the part they're made for asks, where it's more than a
+ *   Ruler's: a Knight made to rule a Seat of Power is a Knight-Dominant, worthy of it (p6).
  * @returns {Promise<Actor|null>}
  */
-export async function makeNpcKnight(roll, index) {
+export async function makeNpcKnight(roll, index, { glory } = {}) {
 	if (!game.user.isGM) return null;
 	const knight = findByRoll(index?.knights, roll);
 	const seer = knight ? findByRoll(index?.seers, roll) : null;
-	const start = startFor(NPC_KNIGHT_START);
+	const ruler = startFor(NPC_KNIGHT_START);
+	const start = Number.isInteger(glory) && glory > ruler.glory ? { ...ruler, glory } : ruler;
 	const { scores } = await rollStartScores(start);
 	const update = knightUpdate({ start, virtues: scores, guard: scores.guard, knight, seer });
 	const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));

@@ -44,7 +44,7 @@ vi.mock("../../module/actions/homecoming.js", async () => {
 vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }) }));
 vi.mock("../../module/actions/solo.js", () => ({ realmKnown: (known) => (soloKept ? { ...known, landmarks: [] } : known) }));
 
-const { addCourtMember, editCourtMember, realmSeerNames, removeCourtMember, removeFromCourt, seatCircle, seatCouncilRetainers, takeIntoCourt } = await import("../../module/actions/court.js");
+const { addCourtMember, editCourtMember, realmSeerNames, removeCourtMember, removeFromCourt, seatCircle, seatCouncilRetainers, setWorthinessProven, sitsAtCourt, takeIntoCourt } = await import("../../module/actions/court.js");
 const timeline = await import("../../module/actions/timeline-events.js");
 
 const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, knight: "", ...extra });
@@ -340,5 +340,30 @@ describe("the name die for a Seer of the Court (p20)", () => {
 		expect(await pressDie("courtier")).toBe("Wenna");
 		realm = { landmarks: [] };
 		expect(await pressDie("seer")).toBe("Wenna");
+	});
+});
+
+describe("a Knight's worthiness proven (p6)", () => {
+	it("is ticked in and out on the Domain, by the Referee alone", async () => {
+		const domain = fakeDomain({ proven: [] });
+		expect(await setWorthinessProven(domain, "k2", true)).toBe(true);
+		expect(updates).toEqual([{ "system.proven": ["k2"] }]);
+		domain.system.proven = ["k2"];
+		// Ticked already: nothing to write.
+		expect(await setWorthinessProven(domain, "k2", true)).toBe(false);
+		expect(await setWorthinessProven(domain, "k2", false)).toBe(true);
+		expect(updates.at(-1)).toEqual({ "system.proven": [] });
+		game.user.isGM = false;
+		expect(await setWorthinessProven(domain, "k1", true)).toBe(false);
+		expect(updates).toHaveLength(2);
+	});
+});
+
+describe("sitsAtCourt", () => {
+	it("finds a Knight at Court by id, or by a name only they go by", () => {
+		game.actors = actors(knight("k1", "Tal"), knight("k2", "Moss"));
+		expect(sitsAtCourt(fakeDomain({ court: { c1: member("courtier", "Sir Tal", { knight: "k1" }) } }), game.actors[0])).toBe(true);
+		expect(sitsAtCourt(fakeDomain({ court: { c1: member("courtier", "Moss") } }), game.actors[1])).toBe(true);
+		expect(sitsAtCourt(fakeDomain(), game.actors[1])).toBe(false);
 	});
 });

@@ -13,6 +13,7 @@
  */
 import { COUNCIL_SEATS, SEATS_TO_FILL, canHoldPost, isSameName, rulingKnightOf } from "./dominion.js";
 import { unworthyOf } from "./glory.js";
+import { isCompanyKnight } from "./knight-types.js";
 import { trimmedText } from "./text.js";
 
 /** Who serves outside the Council, in the order the book lists them. */
@@ -105,12 +106,15 @@ export function newCourtMember(role, at) {
 
 /**
  * Who this Season's drama falls to (p21): a Courtier, since the book says they
- * breed the problems, or anybody in the Court where none serve.
+ * breed the problems, or anybody in the Court where none serve. Never one of
+ * the Company's Knights, who are the players' to play, though a Courtier
+ * Start seats them as Courtiers (p6).
  * @param {unknown} court As stored.
+ * @param {{id: string, name: string, type?: string}[]} [knights] The world's Knights, to know the Company's among the Court.
  * @returns {(CourtMember & {id: string})[]} Empty for an empty Court, or one where nobody is named.
  */
-export function dramaCandidates(court) {
-	const named = courtMembers(court).filter((member) => member.name);
+export function dramaCandidates(court, knights = []) {
+	const named = courtMembers(court).filter((member) => member.name && !isCompanyKnight(courtKnight(member, knights)));
 	const courtiers = named.filter((member) => member.role === DRAMA_ROLE);
 	return courtiers.length ? courtiers : named;
 }
@@ -267,9 +271,12 @@ const COURT_POSTS = Object.freeze(["retainer", "courtier"]);
  * worthy of yet (Worthiness, p6): its ruler, those on its Council, and those in
  * its Court. Each Knight is named once, for the highest post they hold. A
  * Squire isn't knighted yet, so has no Rank to weigh, and the slain face no one.
- * @param {{uuid?: string, system: {ruler?: string, seat?: boolean, council?: object, court?: unknown}}} domain
+ * Each says whether the Referee has ticked their worthiness proven, which the
+ * Domain keeps (system.proven), so the opposition is behind them.
+ * @param {{uuid?: string, system: {ruler?: string, seat?: boolean, council?: object, court?: unknown, proven?: string[]}}} domain
  * @param {{id: string, name: string, system: {glory?: number, domain?: string, isSquire?: boolean, slain?: boolean}}[]} knights The world's Knights.
- * @returns {{name: string, post: string, rank: string}[]} `post` is one of POST_RANKS' keys, `rank` the Rank it asks for.
+ * @returns {{id: string, name: string, post: string, rank: string, proven: boolean}[]} `post` is one of POST_RANKS' keys,
+ *   `rank` the Rank it asks for.
  */
 export function unworthyPosts(domain, knights) {
 	const { system } = domain;
@@ -285,8 +292,26 @@ export function unworthyPosts(domain, knights) {
 		for (const held of seatHolders(system, seat, knighted)) hold(knighted.find((knight) => knight.id === held.id) ?? courtKnight(court[held.id] ?? held, knighted), "council");
 	}
 	for (const member of courtMembers(court)) if (COURT_POSTS.includes(member.role)) hold(courtKnight(member, knighted), "court");
+	const proven = new Set(provenKnights(system.proven));
 	return [...posts.values()].flatMap(({ knight, post }) => {
 		const rank = unworthyOf(knight.system?.glory, post);
-		return rank ? [{ name: knight.name, post, rank }] : [];
+		return rank ? [{ id: knight.id, name: knight.name, post, rank, proven: proven.has(knight.id) }] : [];
 	});
+}
+
+/**
+ * @param {unknown} proven As a Domain stores it.
+ * @returns {string[]} The ids of the Knights whose worthiness of their post there is proven (p6).
+ */
+export const provenKnights = (proven) => (Array.isArray(proven) ? [...new Set(proven.filter((id) => typeof id === "string" && id))] : []);
+
+/**
+ * @param {unknown} proven As a Domain stores it.
+ * @param {string} id A Knight's id.
+ * @param {boolean} isProven Whether their worthiness is proven now.
+ * @returns {string[]} The list with them in it, or out of it.
+ */
+export function withProven(proven, id, isProven) {
+	const without = provenKnights(proven).filter((each) => each !== id);
+	return isProven && id ? [...without, id] : without;
 }

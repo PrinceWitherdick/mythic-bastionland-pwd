@@ -64,9 +64,16 @@
 					</ul>
 					{{/if}}
 					{{/if}}
-					{{!-- Rank alone grants no post, and a Knight holding one above it faces opposition (p6). --}}
+					{{!-- Rank alone grants no post, and a Knight holding one above it faces opposition (p6),
+					      until the Referee ticks their worthiness proven. --}}
 					{{#each unworthy}}
-					<p class="bastionland-chooser__notice bastionland-domain__unworthy">{{this}}</p>
+					<p class="bastionland-chooser__notice bastionland-domain__unworthy{{#if proven}} is-proven{{/if}}">{{line}}</p>
+					{{#if tick}}
+					<label class="bastionland-check bastionland-domain__proven" data-tooltip="{{hint}}">
+						<input type="checkbox" data-action="proveWorthy" data-knight="{{id}}" {{checked proven}}>
+						<span class="bastionland-check__label">{{tick}}</span>
+					</label>
+					{{/if}}
 					{{/each}}
 				</section>
 

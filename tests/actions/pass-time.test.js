@@ -30,6 +30,7 @@ const virtue = { value: 1, max: 10 };
 const knight = () => ({
 	id: "k1",
 	name: "Sir a",
+	type: "knight",
 	items: [{ type: "scar", system: { roll: 10, resolved: false } }],
 	system: { virtues: { vig: virtue, cla: virtue, spi: virtue }, glory: 2, gainsGlory: true, age: "young", guard: { max: 6 } },
 	update: vi.fn(async () => {})
