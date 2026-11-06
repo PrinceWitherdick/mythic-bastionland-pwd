@@ -2661,7 +2661,10 @@
       },
       "setting": {
         "name": "Campaign Timeline",
-        "hint": "Keep a Timeline of the campaign: a tab on each Knight, Squire and Domain sheet, a page in the Referee Toolkit and a window for everyone. Turned off, none of them are shown, though what happens is still written down for when it’s turned on again."
+        "hint": "Where the campaign’s Timeline shows, for everyone. Everywhere: a tab on each Knight, Squire and Domain sheet, a page in the Referee Toolkit, and a window and journal anyone can open. Not on Player Sheets: Knight, Squire and Domain sheets lose their tab; the rest stays. Off: none of them. What happens is still written down, for when it’s shown again.",
+        "all": "Everywhere",
+        "noSheets": "Not on Player Sheets",
+        "off": "Off"
       },
       "turnedOff": "The Timeline is turned off for this world.",
       "kindChips": {

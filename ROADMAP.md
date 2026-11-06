@@ -258,6 +258,7 @@ Referee Rolls, exploration, Spark Tables, Seers and Landmarks in play (pp14–25
 - [ ] **T-207** Dire weather holds the Company outside a Holding it was riding into: the card offers no Local Mood. Arriving in fine weather still does. (p18)
 - [ ] **T-208** Run a Wilderness Roll by hand for a hex the Company isn't in and meet a Curse: the Company isn't thrown off course next Phase. (p14)
 
+
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
 

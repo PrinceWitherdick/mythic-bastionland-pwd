@@ -24,6 +24,24 @@ export const TIMELINE_JOURNAL_FLAG = "timelineJournal";
 /** Each kind of thread, in the order the full Timeline lays them out. */
 export const TRACK_KINDS = Object.freeze(["company", "knight", "domain", "realm"]);
 
+/**
+ * Where the Referee has the Timeline, as Stonetop's switch has it: everywhere;
+ * everywhere but the Knight, Squire and Domain sheets (the Referee Toolkit's
+ * page, the window, the macro and the journal stay); or off.
+ */
+export const TIMELINE_REACH = Object.freeze(["all", "noSheets", "off"]);
+
+/**
+ * @param {unknown} value A stored `showTimeline`. Before 2026-11-05 it was a
+ *   Boolean, which a String setting hands back as "true" or "false".
+ * @returns {string} One of TIMELINE_REACH: the old off reads as "off", anything else unknown as "all".
+ */
+export function timelineReachOf(value) {
+	const text = String(value);
+	if (TIMELINE_REACH.includes(text)) return text;
+	return text === "false" ? "off" : "all";
+}
+
 /** The Company's own thread. A Knight's or Domain's is its actor's id, a Realm's realmTrackId. */
 export const COMPANY_TRACK = "company";
 

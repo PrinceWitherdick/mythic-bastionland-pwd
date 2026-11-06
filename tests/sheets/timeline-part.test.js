@@ -92,6 +92,18 @@ describe("a sheet's Timeline part", () => {
 		expect(drawn(app, { parts: ["timeline"] })).toEqual([]);
 	});
 
+	it("goes where the Referee's setting sends it: player sheets lose it before the Toolkit's board does", () => {
+		const tabs = (app) => app._getTabsConfig("primary").tabs.map((tab) => tab.id);
+		const Board = TimelineTabMixin(FakeSheet, { board: true });
+		const cases = [["all", true, true], ["noSheets", false, true], ["off", false, false], [true, true, true], ["false", false, false]];
+		for (const [stored, onSheet, onBoard] of cases) {
+			globalThis.game = { settings: { get: () => stored } };
+			expect(tabs(sheet()).includes("timeline")).toBe(onSheet);
+			expect(tabs(new Board()).includes("timeline")).toBe(onBoard);
+		}
+		delete globalThis.game;
+	});
+
 	it("is put back into the slot of a sheet part drawn afresh, before that part's scroll is", () => {
 		const app = sheet();
 		const page = app.parts.timeline;

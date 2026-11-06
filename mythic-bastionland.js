@@ -105,7 +105,7 @@ import { registerTimelineStoreHooks, syncTrackPages } from "./module/actions/tim
 import { TIMELINE_PAGE_TYPE } from "./module/rules/timeline.js";
 import { openTimeline, reopenableTimeline } from "./module/apps/TimelineWindow.js";
 import { createTimelinePageSheet } from "./module/apps/TimelinePageSheet.js";
-import { applyKindColours, registerTimelineSettings } from "./module/apps/timeline-ui.js";
+import { applyKindColours, migrateTimelineReach, registerTimelineSettings } from "./module/apps/timeline-ui.js";
 import {
 	AbilityModel,
 	ArmourModel,
@@ -707,6 +707,8 @@ Hooks.once("ready", async () => {
 	showPhaseBanner();
 	// Each kind of Timeline entry in the colour the Referee chose for it.
 	applyKindColours();
+	// A world from when the Timeline was on or off has that as a choice of where it shows.
+	migrateTimelineReach().catch((error) => console.error(`${SYSTEM_ID} | Couldn't update the Timeline setting`, error));
 	// Nothing else waits on this.
 	squareKnightTokens();
 	// A world imported before the rules text was read has it found in the rulebook it keeps.
