@@ -101,13 +101,13 @@ const CHANGE_GUARDS = Object.freeze({
 	dismissMark: (change, attack, user) => (ownsMarkedFoe(change, attack, user) ? change : null),
 	greater: (change, attack, user) => {
 		if (!change.other) return ownsMarkedFoe(change, attack, user) ? change : null;
-		// Writing in some other Greater effect changes nobody's sheet, so the attackers may do it too.
+		// Marking some other Greater effect changes nobody's sheet, so the attackers may do it too.
 		// A card rolled with no targets lands on whichever foe of theirs its reader targets, as targetActors has it.
 		const foe = attack.targets.length
 			? attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.testUserPermission(user, "OWNER"))
 			: Boolean(change.actor && fromUuidSync(change.actor)?.testUserPermission?.(user, "OWNER"));
 		if (!foe && !ownsAnAttacker(attack, user)) return null;
-		return { type: "greater", index: change.index, text: change.text };
+		return { type: "greater", index: change.index, text: t("attack.greater.otherDone") };
 	},
 	join: (change, attack, user) => {
 		const joiner = ownedBy(change.actor, user);
@@ -909,9 +909,9 @@ async function onGreater(message, button) {
 	if (!gambit || gambit.strong !== "greater" || gambit.greater) return;
 
 	const options = greaterOptions(attack, gambit);
-	// Anything else it does, as an Ability may say (p114), is written in by the attacker or the foe.
-	const mayWrite = game.user.isGM || ownsAnAttacker(attack) || targetActors(attack).some((actor) => actor.isOwner);
-	if (!options.length && !mayWrite) return warn("attack.greater.nothing");
+	// Anything else it does, as an Ability may say (p114), is said at the table, and marked done by the attacker or the foe.
+	const mayMark = game.user.isGM || ownsAnAttacker(attack) || targetActors(attack).some((actor) => actor.isOwner);
+	if (!options.length && !mayMark) return warn("attack.greater.nothing");
 	const listed = options.map((option, at) => ({ id: String(at), name: `${option.actor.name}: ${t(`attack.greater.${option.effect}`, { item: option.name })}`, option }));
 	const data = await inputDialog({
 		title: t("attack.greater.title"),
@@ -923,11 +923,10 @@ async function onGreater(message, button) {
 	if (!data) return;
 	const picked = pickedFrom(listed, data.effect);
 	if (picked === PICK_BLANK) {
-		const effect = String(data.other ?? "").trim();
-		if (!effect) return warn("attack.greater.otherEmpty");
+		// What it does is said at the table; the card only marks the effect as done.
 		// On a card rolled with no targets, the GM is told which foe of theirs it lands on.
 		const foe = attack.targets.length ? null : targetActors(attack).find((actor) => actor.isOwner);
-		await saveChange(message, { type: "greater", index, text: t("attack.greater.otherDone", { effect }), other: true, ...(foe ? { actor: foe.uuid } : {}) });
+		await saveChange(message, { type: "greater", index, text: t("attack.greater.otherDone"), other: true, ...(foe ? { actor: foe.uuid } : {}) });
 		return;
 	}
 	if (!picked) return;
