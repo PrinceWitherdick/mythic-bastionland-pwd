@@ -3316,13 +3316,12 @@
       },
       "situations": {
         "title": "Anything left unresolved?",
-        "hint": "An important situation left unresolved before the turn changes on a d6 (p17).",
+        "hint": "An important situation left unresolved before the turn changes on a d6 (p17). Name each one out loud.",
         "add": "Add a situation",
-        "placeholder": "What was left hanging",
+        "numbered": "Situation {number}",
         "roll": "Roll",
         "rollHint": "Roll Unresolved Situations for this one.",
         "remove": "Take this situation off the list",
-        "unnamed": "A situation left unresolved",
         "share": "Show the players"
       },
       "crises": {

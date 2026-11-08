@@ -2502,7 +2502,8 @@
 	gap: 0.4rem;
 }
 
-.bastionland-session-end__row input[type="text"] {
+/* Named out loud, so a row only numbers its situation; the label takes the room and the buttons sit right. */
+.bastionland-session-end__situation {
 	flex: 1;
 	min-width: 0;
 }

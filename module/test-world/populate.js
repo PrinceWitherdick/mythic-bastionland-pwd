@@ -1990,9 +1990,10 @@ class TestGame {
 	async endSession() {
 		const { corvin } = this.knights;
 		const situations = [];
-		for (const name of ["The smoke to the north", `${COUNCIL.steward} and the missing grain`]) {
+		// Numbered as the window numbers them: the smoke to the north, and the steward's missing grain.
+		for (const number of [1, 2]) {
 			const rolled = await rollRefereeTable("unresolved");
-			if (rolled) situations.push({ name, d6: rolled.d6, result: rolled.result });
+			if (rolled) situations.push({ number, d6: rolled.d6, result: rolled.result });
 		}
 		await endTheSession({
 			step: "none",

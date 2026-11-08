@@ -322,6 +322,17 @@ describe("centring the letters", () => {
 		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
 	});
 
+	/*
+	 * Ending a Session numbers each situation ("Situation 1") beside its Roll and × buttons.
+	 * Measured offline with probe-situations.mjs: the label's capitals sit 0.63px above the
+	 * Roll button's at 1×, 1.25× and 1.5× (2026-11-07), centred by the row alone.
+	 */
+	it("centres an Ending a Session situation's number on its buttons by the row alone", () => {
+		expect(rule("chat.css", ".bastionland-session-end__row")["align-items"]).toBe("center");
+		const label = rule("chat.css", ".bastionland-session-end__situation");
+		expect(Object.keys(label).filter((name) => /^(display|line-height|padding|vertical-align|top|translate|transform|margin)/.test(name))).toEqual([]);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

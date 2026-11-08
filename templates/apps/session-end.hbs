@@ -33,9 +33,8 @@
 				{{#each situations}}
 				<li data-situation-id="{{id}}">
 					<div class="bastionland-session-end__row">
-						<input class="bastionland-box" type="text" name="situation" value="{{name}}"
-							placeholder="{{localize 'bastionland.sessionEnd.situations.placeholder'}}"
-							aria-label="{{localize 'bastionland.sessionEnd.situations.placeholder'}}">
+						{{!-- Each is named out loud at the table, so the window only numbers them. --}}
+						<span class="bastionland-session-end__situation">{{label}}</span>
 						<button type="button" class="bastionland-button" data-action="rollSituation" data-tooltip="{{localize 'bastionland.sessionEnd.situations.rollHint'}}">
 							<i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.sessionEnd.situations.roll"}}
 						</button>
