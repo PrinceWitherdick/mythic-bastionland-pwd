@@ -169,13 +169,13 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 		},
 		ok: { label: t("explore.search.ok"), icon: "fa-solid fa-magnifying-glass" },
 		// Tall enough that the whole form shows without the body scrolling.
-		position: { height: 620 }
+		position: { height: 564 }
 	});
 	if (!data || !SEARCH_AIMS.includes(data.aim)) return null;
 
 	if (data.aim === SEARCH_SAVE_AIM) {
 		// Nobody to roll means nothing was searched, so the Phase isn't spent either.
-		const save = await rollExplorationSave(knights.find((knight) => knight.id === data.who), data.virtue, data.what, typedD20(data.rolled));
+		const save = await rollExplorationSave(knights.find((knight) => knight.id === data.who), data.virtue, typedD20(data.rolled));
 		if (!save) return null;
 	} else await postSurvey({ scene, realm, g, where, vantage: data.aim === "vantage" });
 
@@ -288,18 +288,17 @@ const featureId = (landmarks, hex, type) =>
  * necessarily lose them the goal: it puts something in the way (p19).
  * @param {Actor|undefined} actor
  * @param {string} virtue
- * @param {string} what What they're searching for, as the Referee wrote it.
  * @param {number|null} [rolled] The d20 when the player rolled it at the table.
  * @returns {Promise<object|null>}
  */
-async function rollExplorationSave(actor, virtue, what, rolled = null) {
+async function rollExplorationSave(actor, virtue, rolled = null) {
 	if (!actor || !VIRTUES.includes(virtue)) {
 		ui.notifications.warn(t("explore.search.noOne"));
 		return null;
 	}
 	return rollLabelledSave(actor, virtue, {
 		label: t("explore.search.saveTitle"),
-		outcome: String(what ?? "").trim() || t("explore.search.searching"),
+		outcome: t("explore.search.searching"),
 		hint: ({ passed }) => t(passed ? "explore.search.found" : "explore.search.obstacle")
 	}, { rolled });
 }

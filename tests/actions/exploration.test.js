@@ -382,12 +382,12 @@ describe("searchTheHex", () => {
 	it("rolls the Save the Company chose for a search for something known to be there", async () => {
 		const knight = { id: "k1", name: "Sir Ose", type: "knight", system: { virtues: { cla: { value: 12 } } } };
 		game.actors = [knight];
-		answer = { aim: "known", who: "k1", virtue: "cla", what: "The buried door", phase: true };
+		answer = { aim: "known", who: "k1", virtue: "cla", phase: true };
 		await searchTheHex({ scene: { id: "scene" } });
 
 		expect(rollLabelledSave).toHaveBeenCalledWith(knight, "cla", expect.objectContaining({
 			label: lookup("bastionland.explore.search.saveTitle"),
-			outcome: "The buried door"
+			outcome: lookup("bastionland.explore.search.searching")
 		}), { rolled: null });
 		// What the Save found is read off the result, so the card can say either way.
 		const { hint } = rollLabelledSave.mock.calls.at(-1)[2];
@@ -399,7 +399,7 @@ describe("searchTheHex", () => {
 	it("rolls here when no d20 was entered, and keeps the face the player rolled at the table", async () => {
 		const knight = { id: "k1", name: "Sir Ose", type: "knight", system: { virtues: { cla: { value: 12 } } } };
 		game.actors = [knight];
-		answer = { aim: "known", who: "k1", virtue: "cla", what: "", rolled: null, phase: false };
+		answer = { aim: "known", who: "k1", virtue: "cla", rolled: null, phase: false };
 		await searchTheHex({ scene: { id: "scene" } });
 		expect(rollLabelledSave.mock.calls.at(-1)[3]).toEqual({ rolled: null });
 
@@ -409,7 +409,7 @@ describe("searchTheHex", () => {
 	});
 
 	it("says so when nobody was chosen to roll, and doesn't spend the Phase on a search never made", async () => {
-		answer = { aim: "known", who: "nobody", virtue: "cla", what: "", phase: true };
+		answer = { aim: "known", who: "nobody", virtue: "cla", phase: true };
 		expect(await searchTheHex({ scene: { id: "scene" } })).toBeNull();
 		expect(rollLabelledSave).not.toHaveBeenCalled();
 		expect(ui.notifications.warn).toHaveBeenCalledWith(lookup("bastionland.explore.search.noOne"));

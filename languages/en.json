@@ -5484,8 +5484,6 @@
           }
         },
         "ifItCalls": "If there’s a Save to make",
-        "what": "What they seek",
-        "whatPlaceholder": "What are they searching for?",
         "who": "Who rolls",
         "virtue": "Virtue",
         "virtueHint": "The Company picks who rolls, with their own Virtue. Choose the Virtue for whatever the risky part mostly is.",
