@@ -7,7 +7,7 @@
  * are places rather than demands, and a Sanctum's Seer is already rolled when
  * the Realm is made. Pure, so it can be tested without Foundry.
  */
-import { BOOK_LANDMARK_TYPES, HIDDEN_LANDMARK, LANDMARK_TYPES, PAIRED_LANDMARK, SEASONAL_LANDMARK, isLandmarkVariant } from "./realm.js";
+import { BOOK_LANDMARK_TYPES, HIDDEN_LANDMARK, LANDMARK_TYPES, OWN_LANDMARK, PAIRED_LANDMARK, SEASONAL_LANDMARK, isLandmarkVariant } from "./realm.js";
 import { isCalendar, nextPhase, samePhase } from "./time.js";
 
 /** What a Landmark offers the Company, each a button on the card that found it. */
@@ -89,6 +89,32 @@ export function landmarkMet(landmark, { d6 = null, season = null } = {}) {
 	if (landmark.type === HIDDEN_LANDMARK) return false;
 	if (landmark.type === SEASONAL_LANDMARK) return Boolean(season) && landmark.variant === season;
 	return true;
+}
+
+/**
+ * Whether a Landmark is found by looking for it rather than on a Wilderness
+ * Roll: a Phase's sweep of its Hex, or a sight of it from a vantage point
+ * (p19, p197). Every Landmark of the book is. Of the blog's, a Pond is found
+ * only on a Wilderness Roll of 6, a Grotto only by a local's directions, and
+ * a Willow stands only in its own Season.
+ * @param {{type: string, variant?: string}} landmark
+ * @param {string|null} [season] Now.
+ * @returns {boolean}
+ */
+export const landmarkSeen = (landmark, season = null) => landmarkMet(landmark, { season });
+
+/**
+ * Whether the people of a Realm tell of a Landmark when asked (p19). The
+ * Referee's own marker is theirs, not the land's, and a Willow out of its
+ * Season isn't standing to be told of. A Grotto is, since only a local's
+ * directions lead to it, and a Pond, which wandering seldom finds.
+ * @param {{type: string, variant?: string}} landmark
+ * @param {string|null} [season] Now.
+ * @returns {boolean}
+ */
+export function landmarkToldOf(landmark, season = null) {
+	if (landmark.type === OWN_LANDMARK) return false;
+	return landmark.type !== SEASONAL_LANDMARK || (Boolean(season) && landmark.variant === season);
 }
 
 /**

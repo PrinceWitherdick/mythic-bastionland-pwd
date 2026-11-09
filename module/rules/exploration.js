@@ -20,7 +20,8 @@
  *
  * Pure, so it can be tested without Foundry; the language file puts words to it.
  */
-import { featureAt, hexSummary, landmarkVariantOf, terrainAt, TERRAIN } from "./realm.js";
+import { featureAt, hexSummary, landmarkVariantOf, OWN_LANDMARK, terrainAt, TERRAIN } from "./realm.js";
+import { landmarkSeen, landmarkToldOf } from "./landmarks.js";
 import { barrierEdges, edgeDirection, edgeKey, hexDistance, hexLine, neighbours, sameHex } from "./realm-geometry.js";
 
 /** Who the Company can ask, in the order the book lists them. */
@@ -32,8 +33,14 @@ export const SEARCH_AIMS = Object.freeze(["sweep", "known", "vantage"]);
 /** The Virtue a searching Save is rolled in is the Company's to choose (p19). */
 export const SEARCH_SAVE_AIM = "known";
 
-/** A Vassal knows precisely where a Myth lies when it's this close to home. */
+/** A Vassal knows precisely where a Myth lies when it's this close to home (p19). */
 const ADJACENT = 1;
+
+/**
+ * @param {{distance: number}} place Where a Myth lies from a Vassal's home, as placeFrom gives it.
+ * @returns {boolean} Whether the Vassal knows just where it is, not only which way it lies (p19).
+ */
+export const vassalKnowsExactly = (place) => place.distance <= ADJACENT;
 
 /**
  * Which way a distant hex lies: the first step of the straight line to it,
@@ -62,15 +69,27 @@ export function nearestMyths(realm, g, hex) {
 }
 
 /**
+ * The Landmarks the people of a Realm tell of (p19): not the Referee's own
+ * markers, nor a Willow out of its Season.
+ * @param {import("./realm.js").Realm} realm
+ * @param {string|null} season Now.
+ * @returns {object[]}
+ */
+const toldOf = (realm, season) => realm.landmarks.filter((landmark) => landmarkToldOf(landmark, season));
+
+/**
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {{col: number, row: number}} hex
- * @returns {object[]} Every Landmark at the shortest distance, in the order they're held.
+ * @param {object} [options]
+ * @param {string|null} [options.season] Now, which a Willow stands in or doesn't.
+ * @returns {object[]} Every Landmark told of at the shortest distance, in the order they're held.
  */
-export function nearestLandmarks(realm, g, hex) {
-	if (!realm.landmarks.length) return [];
-	const closest = Math.min(...realm.landmarks.map((landmark) => hexDistance(g, landmark.hex, hex)));
-	return realm.landmarks.filter((landmark) => hexDistance(g, landmark.hex, hex) === closest);
+export function nearestLandmarks(realm, g, hex, { season = null } = {}) {
+	const landmarks = toldOf(realm, season);
+	if (!landmarks.length) return [];
+	const closest = Math.min(...landmarks.map((landmark) => hexDistance(g, landmark.hex, hex)));
+	return landmarks.filter((landmark) => hexDistance(g, landmark.hex, hex) === closest);
 }
 
 /**
@@ -79,11 +98,13 @@ export function nearestLandmarks(realm, g, hex) {
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {{col: number, row: number}} hex
+ * @param {object} [options]
+ * @param {string|null} [options.season] Now.
  * @returns {object[]}
  */
-export function landmarksAbout(realm, g, hex) {
+export function landmarksAbout(realm, g, hex, { season = null } = {}) {
 	const about = [hex, ...neighbours(g, hex).map((step) => step.hex)];
-	return realm.landmarks.filter((landmark) => about.some((candidate) => sameHex(candidate, landmark.hex)));
+	return toldOf(realm, season).filter((landmark) => about.some((candidate) => sameHex(candidate, landmark.hex)));
 }
 
 /**
@@ -150,9 +171,10 @@ function landmarkKnown(g, home, landmark) {
  * @param {{col: number, row: number}} options.home Where they're asked.
  * @param {number} [options.pick]  Which of the Myths they might have named this one is, from 0.
  * @param {number} [options.landmarkPick] Which of the equally near Landmarks a roamer knows, from 0.
+ * @param {string|null} [options.season] Now, which a Willow stands in or doesn't.
  * @returns {Folklore|null} Null for somebody the Realm doesn't hold.
  */
-export function folkloreFrom(realm, g, { source, home, pick = 0, landmarkPick = 0 }) {
+export function folkloreFrom(realm, g, { source, home, pick = 0, landmarkPick = 0, season = null }) {
 	if (!FOLK_SOURCES.includes(source)) return null;
 
 	if (source === "seer") {
@@ -163,7 +185,8 @@ export function folkloreFrom(realm, g, { source, home, pick = 0, landmarkPick = 
 			myths: [...realm.myths]
 				.sort((a, b) => hexDistance(g, a.hex, home) - hexDistance(g, b.hex, home) || a.number - b.number)
 				.map((myth) => mythKnown(g, home, myth, true)),
-			landmarks: realm.landmarks.map((landmark) => landmarkKnown(g, home, landmark)),
+			// Every Landmark of the land, a Willow out of its Season too, though not the Referee's own markers.
+			landmarks: realm.landmarks.filter((landmark) => landmark.type !== OWN_LANDMARK).map((landmark) => landmarkKnown(g, home, landmark)),
 			rumours: false,
 			secrets: true,
 			mythChoices: 0,
@@ -175,11 +198,11 @@ export function folkloreFrom(realm, g, { source, home, pick = 0, landmarkPick = 
 	const candidates = source === "vassal" ? nearestMyths(realm, g, home) : [...realm.myths].sort((a, b) => a.number - b.number);
 	const myth = pickFrom(candidates, pick);
 	// Where the Myth borders their home, they know exactly where it is.
-	const precise = Boolean(myth) && source === "vassal" && hexDistance(g, myth.hex, home) <= ADJACENT;
+	const precise = Boolean(myth) && source === "vassal" && vassalKnowsExactly(placeFrom(g, home, myth.hex));
 
 	// A roamer knows the one nearest Landmark; several as near are settled by a die, as Myths are.
-	const nearest = source === "vassal" ? [] : nearestLandmarks(realm, g, home);
-	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home) : [pickFrom(nearest, landmarkPick)].filter(Boolean);
+	const nearest = source === "vassal" ? [] : nearestLandmarks(realm, g, home, { season });
+	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home, { season }) : [pickFrom(nearest, landmarkPick)].filter(Boolean);
 	return {
 		source,
 		home,
@@ -226,18 +249,22 @@ export function folkloreToMark(folklore) {
  * A sweep of the hex the Company stands in, or the wider look a vantage point
  * gives (p19). A sweep takes in the whole Hex, so the Referee sees what it
  * holds; a vantage adds the land around and the Barriers hemming it in, but
- * not what hides in those Hexes.
+ * not what hides in those Hexes. Either finds the Hex's Landmark, but not one
+ * that isn't found by looking: of the blog's, a Pond, a Grotto, or a Willow
+ * out of its Season.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {{col: number, row: number}} hex
  * @param {object} [options]
  * @param {boolean} [options.vantage]
+ * @param {string|null} [options.season] Now.
  * @returns {Survey}
  */
-export function surveyFrom(realm, g, hex, { vantage = false } = {}) {
+export function surveyFrom(realm, g, hex, { vantage = false, season = null } = {}) {
 	const barriers = barrierEdges(realm);
+	const here = hexSummary(realm, g, hex, { showHidden: true });
 	return {
-		here: hexSummary(realm, g, hex, { showHidden: true }),
+		here: here.landmark && !landmarkSeen(here.landmark, season) ? { ...here, landmark: null } : here,
 		vantage,
 		around: vantage
 			? neighbours(g, hex).map(({ direction, hex: next }) => {

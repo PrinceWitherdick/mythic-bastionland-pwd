@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NPC_PACK, fillNpcPack, seedNpcPack } from "../../module/book-art/npc-pack.js";
+import { CAST_FLAG } from "../../module/rules/myth-cast.js";
+import { SYSTEM_ID } from "../../module/system-id.js";
+
+/** The art index the next setup step reads. */
+let artIndex = null;
+vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => artIndex }));
+
+const { NPC_PACK, fillNpcPack, mendCastLeadersAndBows, seedNpcPack } = await import("../../module/book-art/npc-pack.js");
 
 // Names here are invented so no book text lives in the repository.
 
@@ -83,5 +90,51 @@ describe("seedNpcPack", () => {
 		const world = installWorld({ hasNpcPack: true });
 		await expect(seedNpcPack()).resolves.toBe(true);
 		expect(world.folders).toEqual([]);
+	});
+});
+
+describe("mendCastLeadersAndBows", () => {
+	const militia = {
+		name: "Lantern Militia, led by Odrin",
+		stats: { vig: 10, cla: 10, spi: 7, guard: 3 },
+		lines: ["Spear (d8 long), shortbow (d6)", "Ordin has a crossbow (2d8) and a grudge against the reeve."]
+	};
+	const item = (id, name, damage, ranged = false) => ({ id, type: "weapon", name, system: { damage, ranged } });
+
+	/** A Militia brought into the world as the stat block was read before. */
+	function oldMilitia() {
+		const flag = { myth: "6-01", from: militia.name };
+		return {
+			type: "npc",
+			system: { notes: "<p>a grudge against the reeve.</p>" },
+			items: [item("s1", "Spear", "d8"), item("b1", "Shortbow", "d6"), item("c1", "Ordin has a crossbow", "2d8")],
+			getFlag: (scope, key) => (scope === SYSTEM_ID && key === CAST_FLAG ? flag : null),
+			updateEmbeddedDocuments: vi.fn(async () => []),
+			deleteEmbeddedDocuments: vi.fn(async () => []),
+			update: vi.fn(async () => {})
+		};
+	}
+
+	afterEach(() => {
+		artIndex = null;
+	});
+
+	it("marks the Cast's bows ranged, takes the leader's weapon away and keeps the leader's line in the notes", async () => {
+		installWorld();
+		artIndex = { seers: [], knights: [], myths: [{ roll: "6-01", name: "The Fog", cast: [militia] }] };
+		const actor = oldMilitia();
+		game.actors = [actor];
+		await expect(mendCastLeadersAndBows()).resolves.toBe(true);
+		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ _id: "b1", "system.ranged": true }]);
+		expect(actor.deleteEmbeddedDocuments).toHaveBeenCalledWith("Item", ["c1"]);
+		expect(actor.update).toHaveBeenCalledWith({ "system.notes": "<p>Ordin has a crossbow (2d8) and a grudge against the reeve.</p>" });
+	});
+
+	it("is done in a world without the book's text", async () => {
+		installWorld();
+		const actor = oldMilitia();
+		game.actors = [actor];
+		await expect(mendCastLeadersAndBows()).resolves.toBe(true);
+		expect(actor.update).not.toHaveBeenCalled();
 	});
 });

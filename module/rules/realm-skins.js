@@ -6,7 +6,7 @@
  */
 import { ART_ROOT } from "./book-art.js";
 import { mix } from "./colour.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "./realm.js";
+import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN, isBlogLandmark } from "./realm.js";
 import { SHORE_SHAPES } from "./realm-rivers.js";
 import { fileName } from "./text.js";
 import { SYSTEM_PATH } from "../system-id.js";
@@ -172,6 +172,18 @@ export const REALM_PICTURES = Object.freeze([
 	PICTURE_NAME.seat,
 	...RIVER_SHAPES.map(PICTURE_NAME.river)
 ]);
+
+/** The pictures of the blog's Landmarks, which a world shows only while it offers them. */
+const BLOG_PICTURES = new Set(LANDMARK_TYPES.filter(isBlogLandmark).map(PICTURE_NAME.landmark));
+
+/**
+ * The pictures a world's skin maker asks for: all of them, but the blog's
+ * Landmarks' while the world doesn't offer them. A skin is shared by every
+ * world on the server, so their files are still matched and kept either way.
+ * @param {boolean} blog Whether the blog's Landmarks are offered.
+ * @returns {string[]} Some of REALM_PICTURES, in its order.
+ */
+export const offeredRealmPictures = (blog) => REALM_PICTURES.filter((name) => blog || !BLOG_PICTURES.has(name));
 
 /* -------------------------------------------- */
 /*  Colour sets                                 */

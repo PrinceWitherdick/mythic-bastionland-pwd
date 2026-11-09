@@ -15,11 +15,11 @@ import {
 	wildernessSituation
 } from "../rules/wilderness.js";
 import { landmarkLabelKey, throwsOffCourse } from "../rules/landmarks.js";
-import { cityOmenReplaces, worthyOfCityQuest } from "../rules/city-quest.js";
+import { cityOmenReplaces, cityQuestWorthy } from "../rules/city-quest.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
 import { samePhase } from "../rules/time.js";
-import { cityOmensSeen, rollCityOmen } from "./city-quest.js";
+import { cityOmensSeen, cityQuestSetWorthy, rollCityOmen } from "./city-quest.js";
 import { findCompanyToken } from "./company.js";
 import { heldBackFrom } from "./journey.js";
 import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./landmarks.js";
@@ -223,7 +223,8 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		d6 = roll.total;
 
 		const result = situationResult(d6, mode, situation, season);
-		city = cityOmenReplaces(result, worthyOfCityQuest(game.actors.filter(inCompany)), cityOmensSeen());
+		// Worthy while a living Knight-Radiant rides with the Company, unless the Referee has said otherwise.
+		city = cityOmenReplaces(result, cityQuestWorthy(game.actors.filter(inCompany), cityQuestSetWorthy()), cityOmensSeen());
 		const choices = city ? 1 : mythChoices(situation, result);
 		const between = await rollBetween(choices);
 		if (between.shown) rolls.push(between.shown);

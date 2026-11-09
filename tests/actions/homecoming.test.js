@@ -30,8 +30,9 @@ vi.mock("../../module/actions/realm.js", () => ({
 // A point is the hex it names.
 vi.mock("../../module/rules/realm-geometry.js", async (importOriginal) => ({ ...(await importOriginal()), hexAt: (_g, point) => point }));
 
-const { FOUNDED_OPTION, holdingChoices, holdingOptions, markLongAbsences, oneDomainPerHolding, registerHomecoming, seatWithHolding, welcomeHome } = await import("../../module/actions/homecoming.js");
+const { FOUNDED_OPTION, holdingChoices, holdingOptions, markLongAbsences, oneDomainPerHolding, registerHomecoming, seatFollowsCrown, seatWithHolding, welcomeHome } = await import("../../module/actions/homecoming.js");
 const { crisisRoll } = await import("../../module/actions/dominion.js");
+const { SYSTEM_ID } = await import("../../module/system-id.js");
 
 const HOME = { col: 3, row: 2 };
 const realm = { id: "s1", name: "The Realm", realm: { holdings: [{ id: "t1", hex: HOME, name: "Hollowmere", style: "castle", seat: false }] }, tokens: [] };
@@ -250,6 +251,59 @@ describe("a Holding chosen on the Domain's sheet (p20–21)", () => {
 		hooks.createActor(copy, {});
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(Actor.implementation.updateDocuments).not.toHaveBeenCalled();
+		delete globalThis.Hooks;
+	});
+});
+
+describe("the crown moved on the map (p14, p21)", () => {
+	const path = (object, key) => key.split(".").reduce((node, part) => node?.[part], object);
+	/**
+	 * @param {string} id
+	 * @param {boolean} seat
+	 * @returns {object} A Holding's Tile on the Realm s1.
+	 */
+	const holdingTile = (id, seat) => ({ id, parent: { id: "s1" }, flags: { [SYSTEM_ID]: { realm: { kind: "holding", style: "castle", seat } } } });
+	const crowned = { flags: { [SYSTEM_ID]: { realm: { seat: true } } } };
+
+	beforeEach(() => {
+		globalThis.foundry = { utils: { hasProperty: (object, key) => path(object, key) !== undefined } };
+		globalThis.Actor = { implementation: { updateDocuments: vi.fn(async () => []) } };
+		game.users = { activeGM: { isSelf: true } };
+	});
+
+	it("makes the Domain ruling a newly crowned Holding a Seat of Power, and the one ruling the old Seat not", async () => {
+		const newSeat = { ...makeDomain({ holding: "Scene.s1.Tile.t2", seat: false }), id: "d1" };
+		const oldSeat = { ...makeDomain({ holding: "Scene.s1.Tile.t1", seat: true }), id: "d2" };
+		const elsewhere = { ...makeDomain({ holding: "Scene.s1.Tile.t3", seat: false }), id: "d3" };
+		game.actors.push(newSeat, oldSeat, elsewhere);
+		expect(await seatFollowsCrown(holdingTile("t2", true), crowned)).toEqual([newSeat]);
+		expect(Actor.implementation.updateDocuments).toHaveBeenLastCalledWith([{ _id: "d1", "system.seat": true }]);
+		expect(await seatFollowsCrown(holdingTile("t1", false), { flags: { [SYSTEM_ID]: { realm: { kind: "holding", seat: false } } } })).toEqual([oldSeat]);
+		expect(Actor.implementation.updateDocuments).toHaveBeenLastCalledWith([{ _id: "d2", "system.seat": false }]);
+	});
+
+	it("leaves the Domains be when the crown isn't written, already agrees, or on another browser", async () => {
+		const ruling = { ...makeDomain({ holding: "Scene.s1.Tile.t2", seat: false }), id: "d1" };
+		game.actors.push(ruling);
+		expect(await seatFollowsCrown(holdingTile("t2", true), { x: 100 })).toEqual([]);
+		expect(await seatFollowsCrown(holdingTile("t2", false), crowned)).toEqual([]);
+		expect(await seatFollowsCrown({ ...holdingTile("t2", true), flags: { [SYSTEM_ID]: { realm: { kind: "myth" } } } }, crowned)).toEqual([]);
+		game.users.activeGM.isSelf = false;
+		expect(await seatFollowsCrown(holdingTile("t2", true), crowned)).toEqual([]);
+		expect(Actor.implementation.updateDocuments).not.toHaveBeenCalled();
+	});
+
+	it("follows a crowned Holding's Tile as it's made, and as it's updated, through the Tile hooks", async () => {
+		const hooks = {};
+		globalThis.Hooks = { on: (name, fn) => (hooks[name] = fn) };
+		registerHomecoming();
+		const ruling = { ...makeDomain({ holding: "Scene.s1.Tile.t2", seat: false }), id: "d1" };
+		game.actors.push(ruling);
+		hooks.createTile(holdingTile("t2", true), {});
+		await vi.waitFor(() => expect(Actor.implementation.updateDocuments).toHaveBeenCalledWith([{ _id: "d1", "system.seat": true }]));
+		ruling.system.seat = true;
+		hooks.updateTile(holdingTile("t2", false), { flags: { [SYSTEM_ID]: { realm: { seat: false } } } }, {});
+		await vi.waitFor(() => expect(Actor.implementation.updateDocuments).toHaveBeenCalledWith([{ _id: "d1", "system.seat": false }]));
 		delete globalThis.Hooks;
 	});
 });

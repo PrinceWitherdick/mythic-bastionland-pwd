@@ -6,7 +6,7 @@ import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
 import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS, tokenBox, tokenDocBox } from "../rules/armour.js";
 import { DISMOUNT_FACES, damageAgainst, dismountLanded, harmTargetOf, lastingMarkBy } from "../rules/attack.js";
 import { temperedDie } from "../rules/lasting-dice.js";
-import { placesInCombat, temperWeapon } from "./lasting-dice.js";
+import { temperWeapon } from "./lasting-dice.js";
 import { hornBlownFor } from "./stances.js";
 import { lapseStances } from "./stance-lapse.js";
 import { WARDED_OUTCOMES, applyDoom, armourAgainst, downingOutcome, resolveDamage, spiritOutcome, wardedResult } from "../rules/damage.js";
@@ -19,6 +19,8 @@ import { isDoomed } from "../rules/scars.js";
 import { SCANNED_MESSAGES, marksOn } from "../chat/gambit-marks.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
+import { DEATH_FATE_FLAG, offerMortalRally, sidesOf } from "./knight-powers.js";
+import { alliesBeside } from "../rules/knight-powers.js";
 import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { seenName } from "./seen-name.js";
@@ -238,13 +240,16 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
 
 /**
  * A Knight's Ultimate fate, as Damage slays them, where nobody has written one yet.
+ * The words written are kept beside it, so a return from death takes back only
+ * a fate the death wrote, and not one written over it by hand since.
  * @param {Actor} actor
  * @param {object|null} [by] Who dealt the blow.
  * @returns {object} The update, or nothing to write.
  */
 function slainFate(actor, by) {
 	const dealer = seenName(by);
-	return unwrittenFate(actor, dealer ? t("fallen.fateSlainBy", { name: dealer }) : t("fallen.fateSlain"));
+	const update = unwrittenFate(actor, dealer ? t("fallen.fateSlainBy", { name: dealer }) : t("fallen.fateSlain"));
+	return "system.fate" in update ? { ...update, [`flags.${SYSTEM_ID}.${DEATH_FATE_FLAG}`]: update["system.fate"] } : update;
 }
 
 /** What marks the button on an unhorsed rider's card. */
@@ -464,6 +469,8 @@ export async function takeDamage(actor, preset = {}) {
 	if (said) card.outcome = said;
 	if (preset.cause) card.cause = preset.cause;
 	await Promise.all([postCard(actor, "damage", card), recorded]);
+	// Mortally Wounded by a known hand, a Knight's Ability may rally the allies beside them against it (p42).
+	if (virtues && !dead && !warden && result.outcome === "mortal" && !preset.nonLethal && !preset.sparring && preset.by) await offerMortalRally(actor, preset.by);
 	// What the blow looks like where it landed (module/actions/attack-fx.js): after the
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
@@ -923,15 +930,12 @@ async function offerAbilityBlow(key, attackerUuid, target) {
  */
 export function rallied(attacker) {
 	// A fight under way before one only set up, as on another Scene; the viewed one first.
-	const { combat, combatant } = placesInCombat(attacker)[0] ?? {};
-	const side = combatant?.token?.disposition;
-	let allies = [];
-	if (combat) allies = side === undefined || side === null ? [] : [...combat.combatants].filter((each) => each.actor && each.token?.disposition === side).map((each) => each.actor);
-	else if (isCompanyKnight(attacker)) allies = worldKnights((knight) => isCompanyKnight(knight));
+	const { combat, combatants, side } = sidesOf(attacker);
+	const allies = combat ? alliesBeside(combatants, attacker.uuid, side) : isCompanyKnight(attacker) ? worldKnights((knight) => isCompanyKnight(knight)) : [];
 	return [...new Set(allies)].filter((ally) => ally.uuid !== attacker.uuid && isKnight(ally) && !ally.system.slain && ally.system.virtues?.spi);
 }
 
-/** Wire the backlash and rally cards. Called during init. */
+/** Wire the backlash and rally cards, and those other Abilities post. Called during init. */
 export function registerAbilityBlows() {
 	registerCardButtons({
 		selector: BACKLASH_SELECTOR,

@@ -14,6 +14,8 @@ let calendar;
 let settings;
 let d6;
 let company;
+/** Whether the Referee has said the Company is worthy of the City Quest. */
+let worthiness;
 let companyAt;
 
 vi.mock("../../module/actions/realm.js", () => ({
@@ -27,7 +29,7 @@ vi.mock("../../module/actions/company.js", () => ({ findCompanyToken: () => (com
 vi.mock("../../module/actions/journey.js", () => ({ heldBackFrom: () => false }));
 vi.mock("../../module/actions/solo.js", () => ({ keptFromMe: () => false }));
 vi.mock("../../module/actions/knights.js", () => ({ inCompany: (actor) => company.includes(actor), sidesWithCompany: () => false }));
-vi.mock("../../module/actions/city-quest.js", () => ({ cityOmensSeen: () => [], rollCityOmen: vi.fn(async () => ({ omen: 4, ends: false })) }));
+vi.mock("../../module/actions/city-quest.js", () => ({ cityOmensSeen: () => [], cityQuestSetWorthy: () => worthiness, rollCityOmen: vi.fn(async () => ({ omen: 4, ends: false })) }));
 vi.mock("../../module/actions/landmarks.js", () => ({ landmarkOfferView: () => ({}), nameLandmarkFromPrompt: async () => null, strikeOffCourse: vi.fn() }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ omensMet: () => ({}), timelineLandmarkFound: async () => null }));
 vi.mock("../../module/actions/omen-scenes.js", () => ({ omenSceneChips: () => [], omenSceneIds: () => [] }));
@@ -53,6 +55,7 @@ beforeEach(() => {
 	settings = new Map();
 	d6 = 4;
 	company = [];
+	worthiness = "auto";
 	companyAt = null;
 	globalThis.game = {
 		user: { isGM: true },
@@ -123,6 +126,26 @@ describe("a Company with a Knight-Radiant, on the City Quest (p172)", () => {
 		const outcome = await wildernessRoll({ scene, hex: wildHex, phase: "morning", mode: "travel" });
 		expect(outcome).toMatchObject({ result: "randomOmen", omen: 2 });
 		expect(rollCityOmen).not.toHaveBeenCalled();
+	});
+
+	it("meets a Myth's Omen when the only Knight-Radiant is Slain", async () => {
+		company = [{ system: { rank: "radiant", slain: true } }];
+		d6 = 1;
+		const outcome = await wildernessRoll({ scene, hex: wildHex, phase: "morning", mode: "travel" });
+		expect(outcome).toMatchObject({ result: "randomOmen", omen: 2 });
+		expect(rollCityOmen).not.toHaveBeenCalled();
+	});
+
+	it("does as the Referee says, worthy or not, whoever rides", async () => {
+		d6 = 1;
+		worthiness = "worthy";
+		company = [{ system: { rank: "tenant" } }];
+		expect(await wildernessRoll({ scene, hex: wildHex, phase: "morning", mode: "travel" })).toEqual({ result: "randomOmen", d6: 1 });
+		expect(rollCityOmen).toHaveBeenCalledTimes(1);
+		worthiness = "unworthy";
+		company = [{ system: { rank: "radiant" } }];
+		expect(await wildernessRoll({ scene, hex: wildHex, phase: "morning", mode: "travel" })).toMatchObject({ result: "randomOmen", omen: 2 });
+		expect(rollCityOmen).toHaveBeenCalledTimes(1);
 	});
 });
 

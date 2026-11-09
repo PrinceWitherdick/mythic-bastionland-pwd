@@ -3,7 +3,7 @@ import { plural, postCard, t } from "../chat/cards.js";
 import { combatPlace, marksOn } from "../chat/gambit-marks.js";
 import { GAMBITS } from "../config.js";
 import {
-	ALTERNATE_QUALITIES,
+	ALTERNATE_FLAGS,
 	HARM_BARS,
 	ON_WOUND,
 	atIndividuals,
@@ -49,13 +49,14 @@ import { stripHTML } from "../rules/text.js";
 import { WOUND_EFFECTS, abilitiesWith, abilityOffers, abilityUpdatesAfterAttack, declarableBy, declaredGrants, etchedNumber, linkedAbilities, readyForAttack, sideCounts, unmetNeed, warbandFighting } from "../rules/ability-uses.js";
 import { KIT_FLAG } from "../rules/ability-kits.js";
 import { combatantOf, keepLastingDice, lastingDiceOf, lastingDieLabel } from "./lasting-dice.js";
-import { diceForBlow } from "../rules/lasting-dice.js";
+import { diceAimedAt, diceForBlow } from "../rules/lasting-dice.js";
 import { downBy, outOfFight } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chatIsPublic, playBlowFx } from "./attack-fx.js";
 import { alternateText } from "./items.js";
 import { recallAttack, rememberAttack, rememberedTicks, wieldedWith } from "./attack-memory.js";
-import { openDuelFor, saveDuelChange } from "./duel.js";
+import { knockedDownIn, openDuelFor, saveDuelChange } from "./duel.js";
+import { mountedNow } from "../rules/duel.js";
 import { canDenyAttack, featContext, payFeat, rollFeat } from "./feats.js";
 import { leaderCandidates } from "./leading.js";
 import { structureHarm } from "../rules/structures.js";
@@ -64,6 +65,8 @@ import { worldKnights } from "./knights.js";
 import { isKnight } from "../rules/knight-types.js";
 import { handsLeft } from "./scars.js";
 import { steedOf } from "./steeds.js";
+import { offerDrawnFire } from "./knight-powers.js";
+import { wornWarnings } from "./possession-effects.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample", "noHand", "lingers"]);
@@ -105,14 +108,16 @@ function attackSources(actor) {
 		const alternate = item.system.alternate;
 		if (!alternate?.damage?.trim()) return [source];
 		const how = alternate.label?.trim() || alternateText(item.system);
-		return [source, {
+		// Something fought only its other way, as a shield with no Attack die of its own that can be thrown.
+		const main = parseDice(item.system.damage).length ? [source] : [];
+		return [...main, {
 			id: `${item.id}-alt`,
 			name: t("attack.alternateName", { name: item.name, how }),
 			item,
 			system: {
 				...source.system,
 				damage: alternate.damage,
-				...Object.fromEntries(ALTERNATE_QUALITIES.map((key) => [key, alternate[key]])),
+				...Object.fromEntries(ALTERNATE_FLAGS.map((key) => [key, Boolean(alternate[key])])),
 				heftyMounted: false
 			}
 		}];
@@ -126,7 +131,7 @@ function attackSources(actor) {
  */
 function armedWith(actor) {
 	return actor.items
-		.filter((item) => item.system.equipped && parseDice(item.system.damage).length)
+		.filter((item) => item.system.equipped && (parseDice(item.system.damage).length || parseDice(item.system.alternate?.damage ?? "").length))
 		.map((item) => ({
 			id: item.id,
 			name: item.name,
@@ -283,15 +288,18 @@ function targetDownHint({ uuid, name }) {
  * whether it's a swarm, which one person's Attack only harms Impaired unless
  * it's a Blast (p61). A Token whose actor can't be found is taken to
  * be one person on foot. A Warband is told apart too, since a Warband's Attack
- * at individuals gets +d12 and Blast (p11).
+ * at individuals gets +d12 and Blast (p11). The other duelist in a joust rides,
+ * as both do (p10), before they've rolled and been marked so, unless thrown
+ * in an earlier exchange.
  * @param {{uuid: string}} target
+ * @param {{duel: object}|null} [duel] The duel it's a blow in, as openDuelFor finds it.
  * @returns {{mounted: boolean, structure: boolean, swarm: boolean, warband: boolean}}
  */
-function standingOf({ uuid }) {
+function standingOf({ uuid }, duel = null) {
 	const actor = fromUuidSync(uuid)?.actor;
 	if (!actor) return { mounted: false, structure: false, swarm: false, warband: false };
 	return {
-		mounted: Boolean(actor.system.conditions?.mounted),
+		mounted: mountedNow(actor, duel?.duel, uuid),
 		structure: actor.type === "structure" || Boolean(actor.system.structure),
 		swarm: actor.type === "npc" && actor.system.scale === "swarm",
 		warband: actor.type === "npc" && actor.system.scale === "warband"
@@ -308,7 +316,7 @@ function standingOf({ uuid }) {
  * @returns {{checked: boolean, tip: string|null}}
  */
 function individualsTick(targets, remembered) {
-	const standing = targets.map(standingOf);
+	const standing = targets.map((target) => standingOf(target));
 	const all = atIndividuals(standing);
 	if (all === null) return { checked: remembered, tip: null };
 	if (all) return { checked: true, tip: t("attack.individualsAll", { names: targets.map(({ name }) => name).join(", ") }) };
@@ -320,10 +328,11 @@ function individualsTick(targets, remembered) {
  * Why a charge's trample can't join an Attack at these targets, for the Attack
  * dialog to say beside its charge box.
  * @param {{uuid: string, name: string}[]} targets
+ * @param {object|null} [duel] The duel it may be a blow in, as openDuelFor finds it.
  * @returns {string|null} Null when it joins, or nobody is targeted yet.
  */
-function trampleBarred(targets) {
-	if (trampleJoins(targets.map(standingOf))) return null;
+function trampleBarred(targets, duel = null) {
+	if (trampleJoins(targets.map((target) => standingOf(target, duel)))) return null;
 	return t("attack.chargeBarred", { names: targets.map(({ name }) => name).join(", ") });
 }
 
@@ -584,6 +593,11 @@ async function planAttack(actor, joining = null) {
 		ui.notifications.warn(t(`attack.outOfTheFight.${out}`, { name: actor.name }));
 		return null;
 	}
+	// Knocked down sparring, they're out of the bout till it ends, though nobody is left dying (p188).
+	if (knockedDownIn(actor)) {
+		ui.notifications.warn(t("duel.knockedDown", { name: actor.name }));
+		return null;
+	}
 	const sources = attackSources(actor);
 	const mount = mountOf(actor);
 	const { conditions } = actor.system;
@@ -615,7 +629,7 @@ async function planAttack(actor, joining = null) {
 		return null;
 	}
 	// Nobody on foot among the targets leaves the steed nobody to trample.
-	const chargeBarred = mount ? trampleBarred(aimedAt) : null;
+	const chargeBarred = mount ? trampleBarred(aimedAt, duel) : null;
 	// A joint Attack is one Attack, so a weakness whose die is already on the card adds no second (p188).
 	const weaknesses = joining?.dice.some((die) => die.weakness) ? [] : weaknessesOf(aimedAt);
 	const ticks = rememberedTicks(remembered);
@@ -627,7 +641,9 @@ async function planAttack(actor, joining = null) {
 	const aim = { joining, duel, offers, trapped: shieldTrapped(marks) };
 	// Dice they keep for the rest of the fight.
 	const combatant = combatantOf(actor);
-	const lasting = lastingDiceOf(actor, combatant).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
+	// One kept against a single foe is offered only at them (p42).
+	const aimedActors = aimedAt.map(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid).filter(Boolean);
+	const lasting = diceAimedAt(lastingDiceOf(actor, combatant), aimedActors).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
 	// How many stand on each side of their Combat, for an Ability that needs a crowd (p38).
 	const sides = offers.some((offer) => offer.crowd) ? sidesAround(combatant) : null;
 
@@ -665,7 +681,9 @@ async function planAttack(actor, joining = null) {
 				...(actor.system.warband?.broken ? [t("attack.brokenWarband", { name: actor.name })] : []),
 				...marks.map((mark) => mark.hint),
 				...aimedAt.filter((target) => standingOf(target).swarm).map(({ name }) => t("attack.swarmHint", { name })),
-				...aimedAt.flatMap(targetDownHint)
+				...aimedAt.flatMap(targetDownHint),
+				// A helm that Impairs a foe's first ever Attack at its wearer (p42): said, for the Referee to judge.
+				...aimedAt.flatMap(({ uuid }) => wornWarnings(fromUuidSync(uuid)?.actor))
 			],
 			weaknesses: weaknesses.map(({ name, text, die }, index) => ({
 				index,
@@ -836,7 +854,7 @@ async function planAttack(actor, joining = null) {
 		const leaderUuid = leader?.uuid ?? "";
 		if (warband && actor.system.leader !== leaderUuid) update["system.leader"] = leaderUuid;
 		if (actor.isOwner && Object.keys(update).length) await actor.update(update);
-		if (smite) await payFeat(actor, smite.save);
+		if (smite) await payFeat(actor, smite.save, "smite");
 		await useUpThrown(chosen);
 		// A charge that shatters the lance it's made with (p92).
 		if (declared.shatters) await shatter(chosen);
@@ -1020,7 +1038,8 @@ const withCard = (made, card) => ({
  */
 async function rollAt(plan, group) {
 	const { weaponDice, dice, pool, mount, exploited } = plan;
-	const standing = group.map(standingOf);
+	// The other duelist in a joust rides, marked so or not yet (p10).
+	const standing = group.map((target) => standingOf(target, plan.inDuel));
 	const trampleOut = weaponDice.some((die) => die.trample) && !trampleJoins(standing);
 	const unarmed = trampleOut && !pool.impaired && weaponDice.every((die) => die.trample);
 	const swarmed = !pool.impaired && !unarmed && swarmImpairs({ blast: plan.blast, largeScale: plan.warband }, standing);
@@ -1116,6 +1135,8 @@ export async function attack(actor) {
 	// thrown weapon or Smite (p112).
 	await plan.settle();
 	if (inDuel) await saveDuelChange(inDuel.message, { type: "attack", actor: actor.uuid, message: messages[0].id });
+	// A Knight whose stance draws the fire makes a foe who struck somebody else pay (p128).
+	await offerDrawnFire(actor, groups.flat());
 	playBlows(plan);
 	return messages;
 }

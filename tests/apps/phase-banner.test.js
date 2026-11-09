@@ -37,7 +37,7 @@ function fakeElement(tag) {
 	return node;
 }
 
-function installWorld({ gm = true } = {}) {
+function installWorld({ gm = true, extra = {} } = {}) {
 	const top = fakeElement("div");
 	globalThis.document = {
 		createElement: (tag) => fakeElement(tag),
@@ -48,7 +48,7 @@ function installWorld({ gm = true } = {}) {
 	globalThis.foundry = { utils: { escapeHTML: (text) => text } };
 	globalThis.Hooks = { on: vi.fn() };
 	globalThis.game = { user: { isGM: gm }, settings: { register: vi.fn() }, tooltip: { deactivate: vi.fn() } };
-	const moves = { phase: vi.fn(), weeks: vi.fn(), months: vi.fn(), year: vi.fn(), end: vi.fn(), nextEvent: () => "Planting" };
+	const moves = { phase: vi.fn(), weeks: vi.fn(), months: vi.fn(), year: vi.fn(), end: vi.fn(), nextEvent: () => "Planting", ...extra };
 	registerPhaseBanner({ moves });
 	showPhaseBanner();
 	return { top, moves, banner: top.children[0] };
@@ -85,6 +85,25 @@ describe("the Referee's menu under the Phase banner", () => {
 		expect(moves.phase).toHaveBeenCalledOnce();
 		expect(moves.weeks).not.toHaveBeenCalled();
 		expect(banner.querySelector("[data-move]")).toBeNull();
+	});
+
+	it("leads with an Undo naming the advance it takes back, while there's one", () => {
+		const undo = vi.fn();
+		const { banner } = installWorld({ extra: { undo, undoable: () => ({ label: "Undo Next Phase", hint: "Back to the Morning" }) } });
+		banner.querySelector('[data-part="phase"]').listeners.click();
+		const buttons = banner.querySelectorAll("[data-move]");
+		expect(buttons.map((button) => button.dataset.move)).toEqual(["undo", "phase", "weeks", "months", "year", "end"]);
+		expect(buttons[0].innerHTML).toContain("Undo Next Phase");
+		expect(buttons[0].dataset.tooltip).toBe("Back to the Morning");
+		buttons[0].listeners.click();
+		expect(undo).toHaveBeenCalledOnce();
+		expect(banner.querySelector("[data-move]")).toBeNull();
+	});
+
+	it("leaves the Undo out with nothing to take back", () => {
+		const { banner } = installWorld({ extra: { undo: vi.fn(), undoable: () => null } });
+		banner.querySelector('[data-part="phase"]').listeners.click();
+		expect(banner.querySelector('[data-move="undo"]')).toBeNull();
 	});
 
 	it("gives players no menu to open", () => {

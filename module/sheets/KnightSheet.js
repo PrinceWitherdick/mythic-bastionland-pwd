@@ -9,7 +9,8 @@ import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js"
 import { changesKind, servedBySquire, setKnightKind } from "../actions/npc-knights.js";
 import { makeSeer } from "../actions/seers.js";
 import { claimSquire, companySizeNow, isChoosingKnight, knightSquire, releaseSquire, takeSquire } from "../actions/squires.js";
-import { linkedActor, servingSquire } from "../actions/belonging.js";
+import { COMPANION_FLAG, linkedActor, servingSquire } from "../actions/belonging.js";
+import { companionsOf } from "../actions/fallen.js";
 import { dropCompanion, renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
 import { rollLuck } from "../actions/referee-rolls.js";
@@ -73,6 +74,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			settleScar: KnightSheet.#onSettleScar,
 			patchUp: KnightSheet.#onPatchUp,
 			openSteed: KnightSheet.#onOpenSteed,
+			openCompanion: KnightSheet.#onOpenCompanion,
+			releaseCompanion: KnightSheet.#onReleaseCompanion,
 			clearSteed: KnightSheet.#onClearSteed,
 			takeSteed: KnightSheet.#onTakeSteed,
 			renameSteed: KnightSheet.#onRenameSteed,
@@ -257,6 +260,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 					.map((item) => `${item.name} ${item.system.damage}`)
 					.join(", ")
 			},
+			// Who follows them besides their steed and Squire, as a hawk made from their Property.
+			companions: this.#companionsContext(),
 			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
 			seerStats: seer && this.#seerScores(seer),
 			// The Referee may bring the Seer into the world as an NPC of their own, whose harm is theirs.
@@ -285,6 +290,9 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 
 	/** Whether the Travels page missed a change while another page was open. */
 	#travelsStale = false;
+
+	/** The followers shown at the last draw, so one let go, no longer carrying the flag, is still known. */
+	#shownCompanions = new Set();
 
 	/**
 	 * A Travels page that missed a change while hidden is drawn again as it's opened.
@@ -553,11 +561,20 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		await super._onFirstRender(context, options);
 		const linked = (actor) => LINKED_ACTORS.some(({ key }) => this.actor.system[key] === actor.uuid);
 		// Only what the page shows of them: a steed's GD falling in a fight, or a Squire's Ledger written, changes nothing here.
+		// A follower made theirs, let go, renamed, Slain or gone shows here too.
+		const follows = (actor) => actor.getFlag?.(SYSTEM_ID, COMPANION_FLAG) === this.actor.id;
+		// A follower made theirs now carries the flag; one let go no longer does, but was shown here.
+		const followFlagChanged = (changes) => Object.keys(changes.flags?.[SYSTEM_ID] ?? {}).some((key) => key.replace(/^-=/, "") === COMPANION_FLAG);
 		this._watchHooks(["updateActor"], (actor, changes) => {
-			if (shownOfLinked(changes) && linked(actor)) renderWhenIdle(this);
+			const shown = shownOfLinked(changes) || "slain" in (changes.system ?? {});
+			const followChanged = followFlagChanged(changes) && (follows(actor) || this.#shownCompanions.has(actor.uuid));
+			if ((shown && (linked(actor) || follows(actor))) || followChanged) renderWhenIdle(this);
 		});
 		this._watchHooks(["deleteActor"], (actor) => {
-			if (linked(actor)) renderWhenIdle(this);
+			if (linked(actor) || follows(actor)) renderWhenIdle(this);
+		});
+		this._watchHooks(["createActor"], (actor) => {
+			if (follows(actor)) renderWhenIdle(this);
 		});
 		// The Knight's table shows due once it comes round, or no longer due once the calendar is set back.
 		this._watchHooks([CALENDAR_HOOK], (after, before, turned) => {
@@ -570,6 +587,13 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			if (this.tabGroups.primary === "travels") renderWhenIdle(this);
 			else this.#travelsStale = true;
 		});
+	}
+
+	/** @returns {object[]} Who follows this Knight besides their steed, as the page shows them. */
+	#companionsContext() {
+		const companions = this.actor.system.isSquire ? [] : companionsOf(this.actor).filter((companion) => companion.uuid !== this.actor.system.steed);
+		this.#shownCompanions = new Set(companions.map((companion) => companion.uuid));
+		return companions.map((companion) => ({ uuid: companion.uuid, name: companion.name, img: companion.img, releasable: companion.isOwner }));
 	}
 
 	/** @returns {Actor|null} The steed this Knight rides, if it still exists. */
@@ -638,6 +662,23 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @this {KnightSheet} */
 	static #onTakeSteed() {
 		return takeSteed(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onOpenCompanion(_event, target) {
+		return fromUuidSync(target.dataset.uuid ?? "")?.sheet.render({ force: true });
+	}
+
+	/**
+	 * Let a follower go: no longer this Knight's, though they stay in the world.
+	 * @this {KnightSheet}
+	 */
+	static async #onReleaseCompanion(_event, target) {
+		const companion = fromUuidSync(target.dataset.uuid ?? "");
+		if (!companion?.isOwner) return null;
+		await companion.unsetFlag(SYSTEM_ID, COMPANION_FLAG);
+		ui.notifications.info(t("companions.released", { name: companion.name, knight: this.actor.name }));
+		return companion;
 	}
 
 	/** @this {KnightSheet} */

@@ -20,7 +20,7 @@ const world = [squire, steed, hireling, stranger];
 
 describe("FALLEN_PATHS", () => {
 	it("holds the three p8 gives, with p195's successor after a new Knight", () => {
-		expect(FALLEN_PATHS).toEqual(["newKnight", "successor", "squire", "follower"]);
+		expect(FALLEN_PATHS).toEqual(["rises", "newKnight", "successor", "squire", "follower"]);
 	});
 });
 
@@ -113,6 +113,8 @@ describe("fallenPaths", () => {
 
 	it("offers a named successor after a new Knight", () => {
 		expect(fallenPaths({ squire: true, followers: 1, successor: true })).toEqual(["newKnight", "successor", "squire", "follower"]);
+		// An Ability that brings them back from death comes first (p158).
+		expect(fallenPaths({ squire: false, followers: 0, rises: true })).toEqual(["rises", "newKnight"]);
 		expect(fallenPaths({ squire: false, followers: 0, successor: true, canCreate: false })).toEqual(["successor"]);
 	});
 });

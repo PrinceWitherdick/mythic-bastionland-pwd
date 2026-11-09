@@ -12,6 +12,8 @@ import { DIE_SIZES, dieMaker } from "./attack.js";
  * @property {boolean} [melee] Added only to melee Attacks, as a champion's vow is (p32).
  * @property {string} [item] The weapon it's given to, by id: it joins only blows made with that weapon (p98).
  * @property {string} [itemName] That weapon's name, as the dice are listed.
+ * @property {string} [against] The actor it counts against, by uuid: it joins only a blow at them (p42).
+ * @property {string} [againstName] Their name, as the dice are listed.
  */
 
 /**
@@ -26,9 +28,19 @@ export function lastingOf(flag) {
 			faces: Number(die.faces),
 			label: String(die.label ?? ""),
 			...(die.melee ? { melee: true } : {}),
-			...(typeof die.item === "string" && die.item ? { item: die.item, itemName: String(die.itemName ?? "") } : {})
+			...(typeof die.item === "string" && die.item ? { item: die.item, itemName: String(die.itemName ?? "") } : {}),
+			...(typeof die.against === "string" && die.against ? { against: die.against, againstName: String(die.againstName ?? "") } : {})
 		}));
 }
+
+/**
+ * The lasting dice an Attack is offered: one kept against somebody only when
+ * the Attack is at them alone (p42).
+ * @param {LastingDie[]} dice
+ * @param {string[]} targets The actor uuids of whoever the Attack is at.
+ * @returns {LastingDie[]}
+ */
+export const diceAimedAt = (dice, targets) => dice.filter((die) => !die.against || (targets.length > 0 && targets.every((uuid) => uuid === die.against)));
 
 /**
  * The lasting dice a blow can have: a ranged one leaves out those kept for

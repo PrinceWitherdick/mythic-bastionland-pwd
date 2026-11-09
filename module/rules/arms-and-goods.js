@@ -9,7 +9,7 @@ import { ARMOUR_KINDS } from "../config.js";
 import { looksWooden } from "./armour.js";
 import { ALTERNATE_QUALITIES } from "./attack.js";
 import { textLines } from "./book-art.js";
-import { countsAsHeftyMounted, npcFromStatBlock, parseArmour, parseStatLine } from "./stat-blocks.js";
+import { RANGED_NAME, countsAsHeftyMounted, npcFromStatBlock, parseArmour, parseStatLine } from "./stat-blocks.js";
 import { builtOfStone, carriesFrom, structureKind } from "./structures.js";
 import { capitalise, joinLines, logicalLines, paragraphs } from "./text.js";
 
@@ -90,8 +90,11 @@ const DICE = /^(\d*d\d+)\b\s*(.*)$/i;
 
 const WEAPON_QUALITIES = Object.freeze(["hefty", "long", "slow", "blast"]);
 
-/** The book doesn't mark weapons as ranged, but these can only strike at a distance. */
-export const RANGED_NAME = /bow\b|sling|thrower|launcher|catapult|trebuchet/i;
+/**
+ * Weapons a Knight's Property names as thrown: javelins, darts, throwing axes.
+ * They strike at a distance as their page prints them, with no quality added.
+ */
+export const THROWN_NAME = /javelin|\bdarts?\b|\bthrow(?:n|ing)\b/i;
 
 const TRAMPLE = /\btrample\b/i;
 

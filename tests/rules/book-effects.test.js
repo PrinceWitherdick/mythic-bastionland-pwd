@@ -64,7 +64,9 @@ describe("the Abilities the Knight pages give effects", () => {
 		const halo = knightItems(knightOn(112), kitNames, { radiance: "Light" }).find((item) => item.name === "Light");
 		expect(halo.system).toMatchObject({ damage: "d12", blast: true, noHand: true, equipped: false });
 		const leaf = knightItems(knightOn(152), kitNames, { branchJavelin: "Thrown", branchSpear: "Spear" });
-		expect(leaf.find((item) => item.name === "Thrown").system).toMatchObject({ damage: "d6", hefty: true, equipped: false });
+		const thrown = leaf.find((item) => item.name === "Thrown").system;
+		expect(thrown).toMatchObject({ damage: "d6", ranged: true, equipped: false });
+		expect(thrown.hefty).toBeFalsy();
 		expect(leaf.find((item) => item.name === "Spear").system).toMatchObject({ damage: "d10", long: true, equipped: false });
 	});
 

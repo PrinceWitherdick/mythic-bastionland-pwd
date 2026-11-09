@@ -10,7 +10,7 @@ import { spreads } from "./book-art.js";
 import { fingerprint } from "./book-text.js";
 import { CITY_QUEST_PAGES } from "./city-quest.js";
 import { CAST_FLAG, CITY_CAST } from "./myth-cast.js";
-import { actorFromStatBlock } from "./stat-blocks.js";
+import { actorFromStatBlock, leaderLines, npcFromStatBlock } from "./stat-blocks.js";
 import { escapeHTML, midSentence, paragraphs } from "./text.js";
 
 /**
@@ -204,4 +204,66 @@ export function castDetailUpdates(actor, printed, note = null) {
 	const notes = String(actor.system.notes ?? "");
 	if (note?.trim() && !notes.includes(escapeHTML(note))) update["system.notes"] = notes + paragraphs(note);
 	return Object.keys(update).length ? update : null;
+}
+
+/**
+ * The stat block a Cast member in the world was made from, as the art index
+ * holds it, found by the Cast and printed name its flag keeps.
+ * @param {object|null} index The art index.
+ * @param {{myth?: string, from?: string}|null|undefined} flag The actor's Cast flag.
+ * @returns {import("./book-art.js").CastEntry|null}
+ */
+export function castEntryFor(index, flag) {
+	if (!flag?.myth || !flag.from) return null;
+	const cast = flag.myth === CITY_CAST ? index?.cityQuest?.cast : (index?.myths ?? []).find((myth) => myth?.roll === flag.myth)?.cast;
+	return (cast ?? []).find((entry) => entry?.name === flag.from) ?? null;
+}
+
+/**
+ * Marks for a Cast member brought into the world before a bow or a sling was
+ * read as ranged: each of its weapons the stat block now gives as ranged that
+ * isn't marked yet.
+ * @param {{id: string, type: string, name: string, system: {ranged?: boolean}}[]} items The actor's.
+ * @param {{type: string, name: string, system: {ranged?: boolean}}[]} printed Its items as its stat block gives them.
+ * @returns {{_id: string, "system.ranged": true}[]} Item updates.
+ */
+export function rangedUpdates(items, printed) {
+	const ranged = new Set(printed.filter((weapon) => weapon.type === "weapon" && weapon.system.ranged).map((weapon) => weapon.name));
+	return items
+		.filter((item) => item.type === "weapon" && ranged.has(item.name) && !item.system.ranged)
+		.map((item) => ({ _id: item.id, "system.ranged": true }));
+}
+
+/**
+ * What a Cast member brought into the world before its leader's lines were the
+ * leader's still has wrong: the weapon such a line was read as, which the group
+ * never wields, and the line itself, kept whole in its notes in place of what
+ * was left of it. A weapon the Referee has changed the dice of stays.
+ * @param {{type: string, system: {notes?: string}, items: {id: string, type: string, name: string, system: {damage?: string}}[]}} actor
+ * @param {{name?: string|null, lines?: string[]}|null} entry Its stat block, as the art index holds it.
+ * @param {object} printed Its actor data, as its stat block gives it now.
+ * @param {{attackName?: string}} [options] As the stat block was read with.
+ * @returns {{remove: string[], update: object|null}|null} Item ids to delete and an actor update, or null when nothing is owed.
+ */
+export function leaderLineUpdates(actor, entry, printed, options = {}) {
+	if (actor.type !== "npc" || !entry) return null;
+	const lines = leaderLines(entry);
+	if (!lines.length) return null;
+	const kept = new Set((printed.items ?? []).map((item) => item.name));
+	let notes = String(actor.system.notes ?? "");
+	const remove = [];
+	for (const line of lines) {
+		// Read as it was before, a line alone with no leader named.
+		const before = npcFromStatBlock({ name: null, lines: [line] }, options);
+		for (const weapon of before.items) {
+			const item = actor.items.find((each) => each.type === "weapon" && each.name === weapon.name && each.system.damage === weapon.system.damage && !kept.has(each.name));
+			if (item && !remove.includes(item.id)) remove.push(item.id);
+		}
+		const whole = paragraphs(line.trim());
+		if (notes.includes(whole)) continue;
+		const left = before.system.notes;
+		notes = left && notes.includes(left) ? notes.replace(left, whole) : notes + whole;
+	}
+	const update = notes === String(actor.system.notes ?? "") ? null : { "system.notes": notes };
+	return remove.length || update ? { remove, update } : null;
 }

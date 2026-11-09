@@ -4,6 +4,7 @@ import { t } from "../chat/cards.js";
 import { spreads } from "../rules/book-art.js";
 import { knightTypeKey } from "../rules/creation.js";
 import { canHoldPost, domainRuledBy, holdingRef, holdingRulers, parseHoldingRef, rulingKnightOf } from "../rules/dominion.js";
+import { gloryWorthyOf } from "../rules/glory.js";
 import { featureAt, holdingName } from "../rules/realm.js";
 import { escapeHTML, searchable } from "../rules/text.js";
 import { knightDomain, linkKnightDomain, worldDomains } from "./dominion.js";
@@ -157,8 +158,8 @@ export async function grantHolding(scene, hex) {
 
 	const ref = holdingRef(scene.id, holding.id);
 	const seat = Boolean(holding.seat);
-	// A Knight met only in the book is made first, to be the Domain's ruler.
-	const knight = chosen.knight ?? (chosen.roll ? await makeNpcKnight(chosen.roll, index) : null);
+	// A Knight met only in the book is made first, to be the Domain's ruler: worthy of a Seat of Power where it's one (p6).
+	const knight = chosen.knight ?? (chosen.roll ? await makeNpcKnight(chosen.roll, index, { glory: gloryWorthyOf(seat ? "seat" : "holding") }) : null);
 	if (!knight) return null;
 	let domain = chosen.domain;
 	if (domain) {

@@ -22,7 +22,6 @@ import {
 	agingSteps,
 	olderAge,
 	legacyGlory,
-	pursuitMakings,
 	pursuitsFor,
 	nextAge,
 	nextDay,
@@ -34,6 +33,7 @@ import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { getMythNotes } from "./myth-notes.js";
 import { getRealm, isRealmScene } from "./realm.js";
+import { mythKeptFromMe } from "./solo.js";
 import { VIRTUES, downBy, fullVirtues, needsRest, slainUpdate } from "../rules/virtues.js";
 import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
@@ -51,7 +51,7 @@ import { chooseSuccessor, heirOf } from "./succession.js";
 import { burnMorningAfflictions, sufferMorningAfflictions } from "./afflictions.js";
 import { companySituation, wildernessRoll } from "./wilderness.js";
 import { askPhaseEnd, dieUntended, forgetDeprived, takeMorningLosses } from "./phase-end.js";
-import { followPursuits } from "./pursuits.js";
+import { followPursuits, makingsFor } from "./pursuits.js";
 import { markLongAbsences } from "./homecoming.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { direWeatherRisk, forgetWeatherRun, rollRefereeTable } from "./referee-rolls.js";
@@ -62,6 +62,7 @@ import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
 import { escapeHTML } from "../rules/text.js";
 import { companyKnights, inCompany, playerCharacter } from "./knights.js";
 import { announceFallenKnight, companionsOf, worldCompanions } from "./fallen.js";
+import { captureAdvance } from "./time-capture.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -82,6 +83,8 @@ import { announceFallenKnight, companionsOf, worldCompanions } from "./fallen.js
  * @param {string} options.ok
  * @param {Actor[]} [options.present]
  * @param {Actor[]} [options.others] Listed unticked, for the Referee to tick any that take part.
+ * @param {Actor[]} [options.later] Listed unticked after the Company's Knights, such as the Referee's NPC Knights.
+ * @param {boolean} [options.gainsGlory] Leave out anybody who can't gain Glory, as a Squire can't (p7).
  * @param {string[]} [options.pursuits]
  * @param {boolean} [options.knightsOnly] Leave out those given who aren't Knights.
  * @param {boolean} [options.aging] Ask who grows a stage older, as an Age turns.
@@ -91,11 +94,12 @@ import { announceFallenKnight, companionsOf, worldCompanions } from "./fallen.js
  * @returns {Promise<{actor: Actor, pursuit: string|null, making: string|null, older: boolean}[]|null>}
  *   Those ticked, or null if closed. `making` is one of the pursuit's PURSUIT_MAKINGS, or null where not said yet.
  */
-export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false, companions = false, wholeCompany = false }) {
+export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], later = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false, companions = false, wholeCompany = false, gainsGlory = false }) {
 	const candidates = [];
 	const seen = new Set();
 	const add = (actor, included, given = false) => {
 		if (!actor?.system?.virtues || actor.system.slain || seen.has(actor.uuid)) return;
+		if (gainsGlory && !actor.system.gainsGlory) return;
 		if (given ? knightsOnly && !isKnight(actor) : !isCompanyKnight(actor)) return;
 		// Another player's Knight is offered only while they ride with the Company, not every Knight in the world.
 		if (!game.user.isGM && !actor.isOwner && !(wholeCompany && (given || inCompany(actor)))) return;
@@ -107,6 +111,7 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 	for (const actor of selected) add(actor, true);
 	for (const actor of others) add(actor, false, true);
 	if (!onlyGiven) for (const actor of companyKnights()) add(actor, inCompany(actor));
+	for (const actor of later) add(actor, false, true);
 	if (companions) {
 		const world = worldCompanions({ players: false });
 		for (const { actor, included } of candidates.filter(({ actor }) => isKnight(actor))) {
@@ -114,33 +119,34 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 		}
 	}
 
-	// What each pursuit offered could make, one list for every row, shown under the pursuit picked.
-	const makings = pursuits.flatMap((pursuit) => pursuitMakings(pursuit).map((making) => ({
+	// What each pursuit offered could make for this member, shown under the pursuit picked.
+	const makingsOf = (actor) => pursuits.flatMap((pursuit) => makingsFor(pursuit, actor).map((making) => ({
 		value: making,
 		pursuit,
 		label: t(`time.pursuitMakes.${pursuit}.${making}`)
 	})));
+	const members = candidates.map(({ actor, included }, index) => {
+		const older = aging ? olderAge(actor.system.age) : null;
+		return {
+			index,
+			name: actor.name,
+			included,
+			pursuits: pursuitsFor(pursuits, actor.system).map((key) => ({ key, label: t(`time.pursuits.${key}.label`) })),
+			makings: makingsOf(actor),
+			older: older ? t("time.aging.grows", { age: t(`age.${older}`) }) : null
+		};
+	});
 	const data = await inputDialog({
 		title,
 		icon,
 		template: "company",
 		context: {
 			intro,
-			members: candidates.map(({ actor, included }, index) => {
-				const older = aging ? olderAge(actor.system.age) : null;
-				return {
-					index,
-					name: actor.name,
-					included,
-					pursuits: pursuitsFor(pursuits, actor.system).map((key) => ({ key, label: t(`time.pursuits.${key}.label`) })),
-					older: older ? t("time.aging.grows", { age: t(`age.${older}`) }) : null
-				};
-			}),
-			pursuits: pursuits.map((key) => ({ key, label: t(`time.pursuits.${key}.label`), hint: t(`time.pursuits.${key}.hint`) })),
-			makings
+			members,
+			pursuits: pursuits.map((key) => ({ key, label: t(`time.pursuits.${key}.label`), hint: t(`time.pursuits.${key}.hint`) }))
 		},
 		ok: { label: ok },
-		render: makings.length ? (_event, dialog) => watchMakings(dialog) : undefined
+		render: members.some(({ makings }) => makings.length) ? (_event, dialog) => watchMakings(dialog) : undefined
 	});
 	if (!data) return null;
 
@@ -149,7 +155,7 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 		.filter(({ included }) => included)
 		.map(({ actor, pursuit, making, older }) => {
 			const picked = pursuitsFor(pursuits, actor.system).includes(pursuit) ? pursuit : null;
-			return { actor, pursuit: picked, making: pursuitMakings(picked).includes(making) ? making : null, older: Boolean(aging && older) };
+			return { actor, pursuit: picked, making: makingsFor(picked, actor).includes(making) ? making : null, older: Boolean(aging && older) };
 		});
 }
 
@@ -286,12 +292,7 @@ export async function passTime(company, { newAge, before }) {
 		// Doom lasts the Season it was taken in.
 		if (isDoomed(actor.items.filter((item) => item.type === "scar").map((item) => item.system), before)) lines.push(t("time.doomLifts"));
 
-		if (newAge && Number.isInteger(system.glory) && system.gainsGlory) {
-			const change = changeGlory(system.glory, 1);
-			update["system.glory"] = change.to;
-			lines.push(...gloryLines(change));
-			ranks.push([actor, change]);
-		}
+		if (newAge && gainsAgeGlory(actor)) ranks.push([actor, takeAgeGlory(actor, update, lines)]);
 		if (newAge && system.age === "old") {
 			const roll = await new Roll(OLD_AGE_LOSS).evaluate();
 			rolls.push(roll);
@@ -358,31 +359,61 @@ function restoredBySeason(actor, company) {
  * Restore everybody the Season restores (p9) besides the Company. As an Age
  * turns, the Old among them are restored with their old age's toll instead, in
  * the one write (npcsOldAge). A Mutilation is got by as the Season turns for
- * whoever bears it, ticked or not (p9), so it's settled here too.
+ * whoever bears it, ticked or not (p9), so it's settled here too. And all
+ * Knights gain 1 Glory at a new Age (p6, p17), not only those ticked: every
+ * living Knight left unticked, of the Company or the Referee's, gains it here.
+ * Squires gain none (p7).
  * @param {Set<Actor>} company Those passTime has restored already.
  * @param {boolean} newAge
  * @param {string} ended The Season that ended, from seasonKey.
  * @returns {Promise<{rolls: Roll[], entries: {name: string, actorId: string, pursuit: null, lines: string[]}[]}>}
- *   An entry for each whose Scars were settled, for the Season's report.
+ *   An entry for each whose Scars were settled or who gained the Age's Glory, for the Season's report.
  */
 async function restoreOthers(company, newAge, ended) {
 	const aging = new Set(newAge ? oldOthers(company) : []);
 	const updates = [];
 	const rolls = [];
 	const entries = [];
+	const ranks = [];
 	for (const actor of game.actors) {
 		if (company.has(actor) || !actor.isOwner || actor.system?.slain) continue;
 		const update = restoredBySeason(actor, company) && !aging.has(actor) ? seasonRest(actor) : {};
+		const lines = [];
+		if (newAge && gainsAgeGlory(actor)) ranks.push([actor, takeAgeGlory(actor, update, lines)]);
 		const scars = await settleSeasonScars(actor, ended);
 		if (scars.lines.length) {
 			rolls.push(...scars.rolls);
-			entries.push({ name: actor.name, actorId: actor.id, pursuit: null, lines: scars.lines });
+			lines.push(...scars.lines);
 			raiseScarGuard(update, actor.system.guard, scars.guardMax);
 		}
+		if (lines.length) entries.push({ name: actor.name, actorId: actor.id, pursuit: null, lines });
 		if (Object.keys(update).length) updates.push([actor, update]);
 	}
 	await updateActors(updates, causedBy("season"));
+	// Written once the Glory is, as passTime does for the Company.
+	await Promise.all(ranks.map(([actor, change]) => recordRankReached(actor, change, { when: ended })));
 	return { rolls, entries };
+}
+
+/**
+ * @param {Actor} actor
+ * @returns {boolean} Whether a new Age gives them 1 Glory (p6, p17): any Knight, of the
+ *   Company or the Referee's, who gains Glory, so not a Squire. The Slain are passed over before.
+ */
+const gainsAgeGlory = (actor) => isKnight(actor) && Boolean(actor.system?.gainsGlory) && Number.isInteger(actor.system.glory);
+
+/**
+ * The new Age's 1 Glory, written into a Season's update and report lines.
+ * @param {Actor} actor
+ * @param {object} update Changed in place.
+ * @param {string[]} lines Changed in place.
+ * @returns {object} The Glory's change, for recordRankReached once it's written.
+ */
+function takeAgeGlory(actor, update, lines) {
+	const change = changeGlory(actor.system.glory, 1);
+	update["system.glory"] = change.to;
+	lines.push(...gloryLines(change));
+	return change;
 }
 
 /**
@@ -420,6 +451,19 @@ async function endPhase(known) {
 	const ending = getCalendar();
 	const answers = await askPhaseEnd(ending, known);
 	if (!answers) return null;
+	// From here on, all it writes is noted, so the Referee can take it back.
+	return captureAdvance("phase", () => phaseEnds(ending, answers, known));
+}
+
+/**
+ * A Phase's end once its window is answered: its Wilderness Roll, the calendar
+ * moved on, what the Night cost, and the new Phase's card and weather.
+ * @param {import("../rules/time.js").Calendar} ending
+ * @param {object} answers From askPhaseEnd.
+ * @param {object} known
+ * @returns {Promise<import("../rules/time.js").Calendar>}
+ */
+async function phaseEnds(ending, answers, known) {
 	// Rolled while the Phase it ends is still the Phase, so a Curse it finds blinds the one after.
 	const met = answers.wilderness
 		? await wildernessRoll({ scene: answers.scene, phase: ending.phase, mode: answers.mode === "camp" ? "camp" : "travel", atBarrier: Boolean(known.atBarrier) })
@@ -501,7 +545,9 @@ export function announcePhase(calendar, { sections = [], rolls = [] } = {}) {
 		tagline: calendarLabel(calendar),
 		// Night brings round a table rolled each night, and Morning a new Day's.
 		due: [...tasksDueNotices(calendar), ...tableRenewalNotices(calendar.phase === "night" ? ["night"] : calendar.phase === "morning" ? ["day"] : [])],
-		hint: t(`time.phaseHints.${calendar.phase}`)
+		hint: t(`time.phaseHints.${calendar.phase}`),
+		// The Referee's Undo, shown while the advance that posted it can be taken back; set by hand, there's none.
+		undo: true
 	}, { rolls });
 }
 
@@ -527,7 +573,16 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	const after = next(before);
 	const company = await chooseCompany({ title: t(label), icon, intro: intro(before, after), ok: t(label), pursuits, knightsOnly: true, aging: newAge });
 	if (!company) return null;
+	// From here on, all it writes is noted, so the Referee can take it back.
+	return captureAdvance(kind, () => timeTurns({ newAge, before, after, company, kind, turned, note, weather }));
+}
 
+/**
+ * The Season or the Age turning, once the Company is chosen.
+ * @param {object} turn
+ * @returns {Promise<import("../rules/time.js").Calendar>}
+ */
+async function timeTurns({ newAge, before, after, company, kind, turned, note, weather }) {
 	await setCalendar(after);
 	// A ruler away from their Holding as the Season turns returns from a long absence (p20).
 	await markLongAbsences();
@@ -665,15 +720,21 @@ async function growOlder(actors, company) {
 
 /**
  * Every Realm's resolved Myths, each owed a new Myth in its place now the
- * Season has turned (p27).
+ * Season has turned (p27). Played alone, one the Company never met has no
+ * name to give, as on the Toolkit: read off the whole Realm, since a Myth not
+ * yet met keeps no roll to match its note by.
  * @returns {Promise<{scene: string, number: number, name: string}[]>}
  */
 async function mythsToReplace() {
 	const waiting = game.scenes.filter((scene) => isRealmScene(scene))
-		.flatMap((scene) => resolvedMyths(getRealm(scene).realm, getMythNotes(scene)).map((myth) => ({ scene: scene.id, myth })));
+		.flatMap((scene) => resolvedMyths(getRealm(scene).realm, getMythNotes(scene)).map((myth) => ({ scene, myth })));
 	if (!waiting.length) return [];
 	const index = await loadArtIndex();
-	return waiting.map(({ scene, myth }) => ({ scene, number: myth.number, name: mythEntry(index, myth).name }));
+	return waiting.map(({ scene, myth }) => ({
+		scene: scene.id,
+		number: myth.number,
+		name: mythKeptFromMe(myth, scene) ? t("solo.unknownMyth") : mythEntry(index, myth).name
+	}));
 }
 
 /**
@@ -738,7 +799,8 @@ export async function announceSeason(calendar, { title, entries, note = null }, 
 			...tableRenewalNotices(["season", "day"])
 		],
 		replaceMyths: myths.map((myth) => ({ ...myth, label: t("time.due.replaceMyth", { myth: myth.name }) })),
-		hint: [note, t("time.unresolvedHint")].filter(Boolean).join(" ")
+		hint: [note, t("time.unresolvedHint")].filter(Boolean).join(" "),
+		undo: true
 	}, options);
 }
 
@@ -798,16 +860,19 @@ export async function weeksPass() {
 	}
 	if (next.collection) return turnSeason();
 
-	const after = nextDay(calendar);
-	// The event's card is the only one the weeks post, so it says what falls due on the Morning they end on:
-	// a Council task set for a Week (p20), and a Knight's table rolled again each Night or Day.
-	const due = [...tasksDueNotices(after), ...tableRenewalNotices(["night", "day"])];
-	if (!(await markSeasonEvent(next.key, { weeks: true, due }))) return null;
-	await setCalendar(after);
-	// Weeks away from their Holding make a ruler's return a long absence (p20).
-	await markLongAbsences();
-	await timeSkipped(after);
-	return after;
+	// All it writes is noted, so the Referee can take it back.
+	return captureAdvance("weeks", async () => {
+		const after = nextDay(calendar);
+		// The event's card is the only one the weeks post, so it says what falls due on the Morning they end on:
+		// a Council task set for a Week (p20), and a Knight's table rolled again each Night or Day.
+		const due = [...tasksDueNotices(after), ...tableRenewalNotices(["night", "day"])];
+		if (!(await markSeasonEvent(next.key, { weeks: true, due }))) return null;
+		await setCalendar(after);
+		// Weeks away from their Holding make a ruler's return a long absence (p20).
+		await markLongAbsences();
+		await timeSkipped(after);
+		return after;
+	});
 }
 
 /**
@@ -834,6 +899,16 @@ export async function journeyToDistantRealm() {
 		destination = choice === elsewhere ? null : choice;
 	}
 
+	// The Season's turn and the arrival after it are noted as one advance, so one Undo takes back both.
+	return captureAdvance("distant", () => journeyTo(destination));
+}
+
+/**
+ * The journey once its destination is chosen, if there was one to choose.
+ * @param {Scene|null} destination
+ * @returns {Promise<import("../rules/time.js").Calendar|null>}
+ */
+async function journeyTo(destination) {
 	const season = (calendar) => t(`time.seasons.${calendar.season}`);
 	// The Company dialog escapes its intro itself.
 	const where = destination?.name ?? t("time.distant.aDistantRealm");

@@ -1,7 +1,8 @@
 import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
+import { KIT_FLAG } from "../rules/ability-kits.js";
 import { knightEntryByType } from "../rules/knight-tables.js";
-import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, possessionDetails, retypedProperty } from "../rules/property.js";
+import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, possessionDetails, pointsBelow, retypedProperty, splitMergedGear } from "../rules/property.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
@@ -28,6 +29,27 @@ export const COMPANION_NAMES_STEP = "companionNames";
  * bucklers, those details from their book lines.
  */
 export const POSSESSION_DETAILS_STEP = "possessionDetails";
+
+/**
+ * The world setup step that cuts a piece of gear read as two possessions,
+ * such as a ring of keys and a bag of gains, into the two.
+ */
+export const POSSESSION_SPLITS_STEP = "possessionSplits";
+
+/**
+ * The world setup step that makes thrown weapons strike at a distance, gives a
+ * weapon that can be thrown its thrown way to fight, and has a pair fill both hands.
+ */
+export const THROWN_AND_PAIRS_STEP = "possessionThrownAndPairs";
+
+/** The world setup step that reads what possessions do when used, and the Remedies among them. */
+export const POSSESSION_EFFECTS_STEP = "possessionEffects";
+
+/**
+ * The world setup step that takes away the Property line a follower such as a
+ * hawk was made from, which the sheet now shows on its own.
+ */
+export const COMPANION_LINES_STEP = "companionLines";
 
 /** The flag on an NPC made from a Knight's gear, or taken on as their follower: kept in belonging.js, beside who may see it. */
 export { COMPANION_FLAG };
@@ -131,13 +153,22 @@ export async function clearCompanions(knight) {
 	return made.map((npc) => npc.uuid);
 }
 
+/** @returns {Actor[]} The world's Knights this user can write, which a world setup step changes. */
+const writableKnights = () => worldKnights((knight) => knight.canUserModify(game.user, "update"));
+
+/**
+ * @param {Actor} actor
+ * @returns {{id: string, type: string, name: string, sort: number, system: object}[]} Its items, as the Property rules read them.
+ */
+const plainItems = (actor) => actor.items.map((item) => ({ id: item.id, type: item.type, name: item.name, sort: item.sort, system: item.system }));
+
 /**
  * Read one older Knight's Property, and make the steed they don't ride yet.
  * @param {Actor} actor A Knight.
  * @returns {Promise<boolean>} Whether anything changed.
  */
 async function retypeKnight(actor) {
-	const items = actor.items.map((item) => ({ id: item.id, type: item.type, name: item.name, sort: item.sort, system: item.system }));
+	const items = plainItems(actor);
 	const retyped = retypedProperty(items);
 	let { remove, create } = retyped;
 	let steed = null;
@@ -219,12 +250,82 @@ export async function dropOwnerFromCompanionNames() {
 export async function fillPossessionDetails({ only = null } = {}) {
 	const index = await loadArtIndex().catch(() => null);
 	if (!index) return;
-	for (const actor of worldKnights((knight) => knight.canUserModify(game.user, "update"))) {
+	for (const actor of writableKnights()) {
 		const entry = knightEntryByType(index, actor.system.knightType);
 		if (!entry?.property?.length) continue;
 		const updates = possessionDetails(actor.items.contents, entry.property, { only });
 		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates).catch((error) => {
 			console.error(`${SYSTEM_ID} | Couldn't fill in ${actor.uuid}'s possessions`, error);
+		});
+	}
+}
+
+/**
+ * A world setup step. Knights read before a line naming two possessions was
+ * cut in two carry them as one piece of gear, sharing a count and restock.
+ * Each such piece, untouched since, becomes the two, where this user can
+ * write the Knight.
+ * @returns {Promise<void>}
+ */
+export async function splitKnightGear() {
+	for (const actor of writableKnights()) {
+		const items = plainItems(actor);
+		const { remove, create } = splitMergedGear(items);
+		if (!remove.length) continue;
+		try {
+			await actor.createEmbeddedDocuments("Item", create);
+			await actor.deleteEmbeddedDocuments("Item", remove);
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't cut ${actor.uuid}'s gear into its possessions`, error);
+		}
+	}
+}
+
+/**
+ * A world setup step. Knights read before thrown weapons were known to strike
+ * at a distance, or a pair to fill both hands, get it from their book lines.
+ * The branches an Ability lets them throw become javelins as their page
+ * prints them, unless somebody has changed them since.
+ * @returns {Promise<void>}
+ */
+export async function catchUpThrownAndPairs() {
+	await fillPossessionDetails({ only: ["ranged", "alternate"] });
+	for (const actor of writableKnights()) {
+		const updates = actor.items
+			.filter((item) => item.type === "weapon" && item.getFlag(SYSTEM_ID, KIT_FLAG) === "branchJavelin" && item.system.hefty && !item.system.ranged)
+			.map((item) => ({ _id: item.id, "system.hefty": false, "system.ranged": true }));
+		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates).catch((error) => {
+			console.error(`${SYSTEM_ID} | Couldn't make ${actor.uuid}'s thrown weapons ranged`, error);
+		});
+	}
+}
+
+/**
+ * A world setup step. Knights read before possessions were known to do
+ * something when used, or to be Remedies, get it from their book lines.
+ * @returns {Promise<void>}
+ */
+export const fillPossessionEffects = () => fillPossessionDetails({ only: ["effect", "remedy"] });
+
+/**
+ * A world setup step. A follower made from a Knight's Property, such as a
+ * hawk, kept its line on the Knight too, where the sheet now lists it among
+ * their followers. The line goes where its NPC is there, made for this Knight
+ * under that name, unless it points at the page's table.
+ * @returns {Promise<void>}
+ */
+export async function dropCompanionLines() {
+	for (const actor of writableKnights()) {
+		const made = new Set(game.actors
+			.filter((npc) => npc.getFlag(SYSTEM_ID, COMPANION_FLAG) === actor.id)
+			.map((npc) => nameWithoutOwner(npc.name, actor.name).toLowerCase()));
+		if (!made.size) continue;
+		const items = plainItems(actor);
+		const gone = knightCompanions(items)
+			.filter(({ itemId, companion, steed }) => !steed && !pointsBelow(items.find((item) => item.id === itemId)?.name) && made.has(companion.name.toLowerCase()))
+			.map(({ itemId }) => itemId);
+		if (gone.length) await actor.deleteEmbeddedDocuments("Item", gone).catch((error) => {
+			console.error(`${SYSTEM_ID} | Couldn't take away ${actor.uuid}'s follower lines`, error);
 		});
 	}
 }

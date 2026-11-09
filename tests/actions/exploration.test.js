@@ -64,8 +64,8 @@ let cards;
 function realmWith({ myths = [], landmarks = [], barriers = [], terrain = {} } = {}) {
 	const made = emptyRealm(g);
 	made.myths = myths.map(({ number, hex: where, revealed = false }) => ({ id: `myth-${number}`, hex: where, number, d6: 1, d12: 1, omen: 0, revealed }));
-	made.landmarks = landmarks.map(({ type, hex: where, name = "", revealed = false }, index) => ({
-		id: `landmark-${index}`, hex: where, type, name, seer: null, revealed
+	made.landmarks = landmarks.map(({ type, hex: where, name = "", revealed = false, variant = null }, index) => ({
+		id: `landmark-${index}`, hex: where, type, ...(variant ? { variant } : {}), name, seer: null, revealed
 	}));
 	made.barriers = barriers.map((edge, index) => ({ id: `barrier-${index}`, edge, revealed: false }));
 	for (const [key, value] of Object.entries(terrain)) {
@@ -138,6 +138,11 @@ afterEach(() => {
 
 /** @returns {object} The context of the last card posted. */
 const lastCard = () => cards.at(-1).context;
+
+/** The world's calendar standing in the Season given, as the settings keep it. */
+const inSeason = (season) => {
+	game.settings.get = (_scope, key) => (key === "calendar" ? { age: 1, year: 1, season, day: 1, phase: "morning" } : "public");
+};
 
 describe("gatherFolklore", () => {
 	beforeEach(() => {
@@ -228,6 +233,17 @@ describe("gatherFolklore", () => {
 		expect(ChatMessage.implementation.create.mock.lastCall[0].rolls).toEqual([expect.objectContaining({ formula: "1d2" })]);
 		// Only the Landmark they know of can be marked: they can't place the Myth.
 		expect(card.mark.ids).toBe("landmark-0");
+	});
+
+	it("never tells a roamer's nearest Landmark as a Willow out of its Season, nor the Referee's own marker", async () => {
+		realm = realmWith({ landmarks: [{ type: "willow", hex: hex(6, 7), variant: "winter" }, { type: "other", hex: hex(6, 5) }, { type: "ruin", hex: hex(11, 11) }] });
+		inSeason("spring");
+		answer = { source: "roamer" };
+		await gatherFolklore({ scene: { id: "scene" } });
+		expect(lastCard().landmarks.map((landmark) => landmark.type)).toEqual([lookup("bastionland.realm.landmarks.ruin")]);
+		inSeason("winter");
+		await gatherFolklore({ scene: { id: "scene" } });
+		expect(lastCard().landmarks.map((landmark) => landmark.type)).toEqual([lookup("bastionland.realm.landmarks.variants.willow.winter.label")]);
 	});
 
 	it("has a Seer name every Myth and Landmark, with their secrets", async () => {
@@ -330,6 +346,33 @@ describe("searchTheHex", () => {
 		expect(lastCard().mark).toBeNull();
 	});
 
+	it("finds the Landmark of the Hex from a vantage point too, which takes in the whole Hex (p19)", async () => {
+		answer = { aim: "vantage", phase: false };
+		await searchTheHex({ scene: { id: "scene" } });
+		const card = lastCard();
+		expect(card.landmark).toContain(lookup("bastionland.realm.landmarks.monument"));
+		expect(card.mark.ids.split(",")).toContain("landmark-0");
+	});
+
+	it("finds no Grotto or Pond by sweeping, nor a Willow out of its Season, which the blog's rules keep from wanderers", async () => {
+		for (const [landmark, season] of [[{ type: "grotto", variant: "past" }, "spring"], [{ type: "pond" }, "spring"], [{ type: "willow", variant: "winter" }, "spring"]]) {
+			realm = realmWith({ landmarks: [{ ...landmark, hex: hex(6, 6) }] });
+			inSeason(season);
+			for (const aim of ["sweep", "vantage"]) {
+				answer = { aim, phase: false };
+				await searchTheHex({ scene: { id: "scene" } });
+				expect(lastCard().landmark, `${landmark.type} by ${aim}`).toBeNull();
+				expect(lastCard().mark, `${landmark.type} by ${aim}`).toBeNull();
+			}
+		}
+		// In its own Season the Willow stands, and is found.
+		realm = realmWith({ landmarks: [{ type: "willow", variant: "winter", hex: hex(6, 6) }] });
+		inSeason("winter");
+		answer = { aim: "sweep", phase: false };
+		await searchTheHex({ scene: { id: "scene" } });
+		expect(lastCard().mark.ids).toBe("landmark-0");
+	});
+
 	it("leaves the day where it stands when the Phase is unticked", async () => {
 		answer = { aim: "sweep", phase: false };
 		await searchTheHex({ scene: { id: "scene" } });
@@ -339,12 +382,12 @@ describe("searchTheHex", () => {
 	it("rolls the Save the Company chose for a search for something known to be there", async () => {
 		const knight = { id: "k1", name: "Sir Ose", type: "knight", system: { virtues: { cla: { value: 12 } } } };
 		game.actors = [knight];
-		answer = { aim: "known", who: "k1", virtue: "cla", what: "The buried door", phase: true };
+		answer = { aim: "known", who: "k1", virtue: "cla", phase: true };
 		await searchTheHex({ scene: { id: "scene" } });
 
 		expect(rollLabelledSave).toHaveBeenCalledWith(knight, "cla", expect.objectContaining({
 			label: lookup("bastionland.explore.search.saveTitle"),
-			outcome: "The buried door"
+			outcome: lookup("bastionland.explore.search.searching")
 		}), { rolled: null });
 		// What the Save found is read off the result, so the card can say either way.
 		const { hint } = rollLabelledSave.mock.calls.at(-1)[2];
@@ -356,7 +399,7 @@ describe("searchTheHex", () => {
 	it("rolls here when no d20 was entered, and keeps the face the player rolled at the table", async () => {
 		const knight = { id: "k1", name: "Sir Ose", type: "knight", system: { virtues: { cla: { value: 12 } } } };
 		game.actors = [knight];
-		answer = { aim: "known", who: "k1", virtue: "cla", what: "", rolled: null, phase: false };
+		answer = { aim: "known", who: "k1", virtue: "cla", rolled: null, phase: false };
 		await searchTheHex({ scene: { id: "scene" } });
 		expect(rollLabelledSave.mock.calls.at(-1)[3]).toEqual({ rolled: null });
 
@@ -366,7 +409,7 @@ describe("searchTheHex", () => {
 	});
 
 	it("says so when nobody was chosen to roll, and doesn't spend the Phase on a search never made", async () => {
-		answer = { aim: "known", who: "nobody", virtue: "cla", what: "", phase: true };
+		answer = { aim: "known", who: "nobody", virtue: "cla", phase: true };
 		expect(await searchTheHex({ scene: { id: "scene" } })).toBeNull();
 		expect(rollLabelledSave).not.toHaveBeenCalled();
 		expect(ui.notifications.warn).toHaveBeenCalledWith(lookup("bastionland.explore.search.noOne"));
@@ -400,6 +443,20 @@ describe("lookFromVantage", () => {
 		const [[changes]] = scene.update.mock.calls;
 		expect(Object.values(changes)).toEqual([{ note: "a structure, smoke rising" }]);
 		expect(Object.keys(changes)[0]).toMatch(/\.sighted\.6,7$/);
+	});
+
+	it("makes out no Grotto in the hexes around, nor a Willow out of its Season, but a Fountain's spray", async () => {
+		realm = realmWith({ landmarks: [{ type: "grotto", variant: "future", hex: hex(6, 7) }, { type: "willow", variant: "summer", hex: hex(6, 5) }] });
+		inSeason("spring");
+		const scene = { id: "scene", flags: {}, update: vi.fn() };
+		await lookFromVantage({ scene });
+		expect(asked).toBeNull();
+
+		realm = realmWith({ landmarks: [{ type: "grotto", variant: "future", hex: hex(6, 7) }, { type: "fountain", variant: "red", hex: hex(6, 5) }] });
+		answer = null;
+		await lookFromVantage({ scene });
+		expect(asked.template).toBe("sighted");
+		expect(asked.context.hexes).toHaveLength(1);
 	});
 
 	it("sees nothing past the Hex in fog, and offers nothing to mark there", async () => {

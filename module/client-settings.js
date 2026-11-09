@@ -56,6 +56,14 @@ export function read(key, fallback) {
 }
 
 /**
+ * The Setting a world stores for a key, which `game.settings.get` can't tell
+ * apart from the default for a world that never stored one.
+ * @param {string} key Such as "mythic-bastionland-pwd.calendar".
+ * @returns {Setting|null}
+ */
+export const storedWorldSetting = (key) => game.settings?.storage?.get("world")?.getSetting?.(key) ?? null;
+
+/**
  * @param {unknown} value
  * @returns {number} A Text Size the stylesheet can use.
  */

@@ -110,9 +110,10 @@ describe("changeSetting", () => {
 	it("asks for a reload after writing one that only takes hold on a reload", async () => {
 		const reloadConfirm = vi.fn(async () => {});
 		globalThis.foundry = { applications: { settings: { SettingsConfig: { reloadConfirm } } } };
-		game.settings.settings.set(...setting("showTimeline", { name: "Timeline", type: Boolean, scope: "world", default: true, requiresReload: true }));
+		game.settings.settings.set(...setting("showTimeline", { name: "Timeline", type: String, choices: { all: "Everywhere", noSheets: "Not on Player Sheets", off: "Off" }, scope: "world", default: "all", requiresReload: true }));
 		game.user.isGM = true;
-		expect(await tab.changeSetting("showTimeline", false)).toBe(true);
+		expect(await tab.changeSetting("showTimeline", "noSheets")).toBe(true);
+		expect(values.showTimeline).toBe("noSheets");
 		expect(reloadConfirm).toHaveBeenCalledWith({ world: true });
 		expect(await tab.changeSetting("textSize", "1.1")).toBe(true);
 		expect(reloadConfirm).toHaveBeenCalledOnce();

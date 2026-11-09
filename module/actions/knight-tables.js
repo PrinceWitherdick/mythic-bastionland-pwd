@@ -12,6 +12,7 @@ import { causedBy } from "./ledger.js";
 import { applyTableStats } from "./table-stats.js";
 import { worldKnights } from "./knights.js";
 import { isKnight } from "../rules/knight-types.js";
+import { compareCalendars } from "../rules/time.js";
 
 
 /** The flag keeping the calendar when a Knight last rolled on their table, so a table that comes round again knows it's due. */
@@ -177,9 +178,10 @@ export function watchTableRenewals() {
 		for (const knight of game.actors) {
 			const parsed = isKnight(knight) && knightRenewal(knight);
 			if (!parsed) continue;
-			// A table rolled before its roll was dated counts as rolled just before the calendar moved.
+			// A table rolled before its roll was dated counts as rolled just before the calendar moved: the
+			// earlier of the two, so time turned back, as an Undo does, doesn't date it in a moment yet to come.
 			const undated = !knight.getFlag(SYSTEM_ID, ROLLED_AT) && knight.system.bookTable.rolls.some((roll) => roll > 0);
-			if (undated && game.user === game.users.activeGM) knight.setFlag(SYSTEM_ID, ROLLED_AT, before);
+			if (undated && game.user === game.users.activeGM) knight.setFlag(SYSTEM_ID, ROLLED_AT, compareCalendars(after, before) < 0 ? after : before);
 			if (game.user.isGM || !knight.isOwner || !turned.includes(parsed.cadence)) continue;
 			if (undated || knightTableRenewal(knight, after, parsed).due) ui.notifications.info(renewalNotice(knight, parsed));
 		}

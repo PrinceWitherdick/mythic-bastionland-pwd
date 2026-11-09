@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { spreads } from "../../module/rules/book-art.js";
 import { CITY_QUEST_PAGES } from "../../module/rules/city-quest.js";
 import { fingerprint } from "../../module/rules/book-text.js";
-import { FIGHTS_ON_CAST, WARBAND_CAST, castActor, castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, fieldedAsWarband, fightsOnByBook, mythCastFolders } from "../../module/rules/cast-npcs.js";
+import { FIGHTS_ON_CAST, WARBAND_CAST, castActor, castDetailUpdates, castEntryFor, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, fieldedAsWarband, fightsOnByBook, leaderLineUpdates, mythCastFolders, rangedUpdates } from "../../module/rules/cast-npcs.js";
 import { CITY_CAST } from "../../module/rules/myth-cast.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
@@ -229,5 +229,62 @@ describe("fightsOnByBook", () => {
 	it("marks only a listed one as fighting on", () => {
 		const of = { key: "1-10", name: "The Corpse", page: pageOf("1-10") };
 		expect(castActor({ name: "Somebody Else, of the Grave", stats: null, lines: [] }, of, 100, words).system.fightsOn).toBeUndefined();
+	});
+});
+
+describe("castEntryFor", () => {
+	it("finds the stat block a Cast member was made from, in a Myth's Cast or the City Quest's", () => {
+		expect(castEntryFor(index, { myth: "1-03", from: "Wade, the Grey Heron" })).toBe(heron.cast[0]);
+		expect(castEntryFor(index, { myth: CITY_CAST, from: "Ada, the Gatewarden" })).toBe(index.cityQuest.cast[0]);
+	});
+
+	it("finds nothing for a name or a Myth the index doesn't hold", () => {
+		expect(castEntryFor(index, { myth: "1-03", from: "Nobody" })).toBeNull();
+		expect(castEntryFor(index, { myth: "6-06", from: "Wade, the Grey Heron" })).toBeNull();
+		expect(castEntryFor(index, null)).toBeNull();
+	});
+});
+
+describe("rangedUpdates", () => {
+	const weapon = (name, ranged, id = name) => ({ id, type: "weapon", name, system: { ranged } });
+
+	it("marks the bows a Cast member brought in before has, and nothing else", () => {
+		const items = [weapon("Shortbow", false, "b1"), weapon("Axe", false, "a1"), weapon("Sling", true, "s1")];
+		const printed = [weapon("Shortbow", true), weapon("Axe", false), weapon("Sling", true)];
+		expect(rangedUpdates(items, printed)).toEqual([{ _id: "b1", "system.ranged": true }]);
+	});
+});
+
+describe("leaderLineUpdates", () => {
+	const entry = {
+		name: "Lantern Militia, led by Odrin",
+		stats: { vig: 10, cla: 10, spi: 7, guard: 3 },
+		lines: ["Spear (d8 long)", "Ordin has a crossbow (2d8) and a grudge against the reeve."]
+	};
+	const printed = castActor(entry, { key: "6-01", name: "The Fog", page: pageOf("6-01") }, 100, words);
+	const weapon = (name, damage, id) => ({ id, type: "weapon", name, system: { damage } });
+	/** The Militia as the stat block was read before its leader's line was the leader's. */
+	const before = (notes = "<p>a grudge against the reeve.</p><p>Of the Cast of the Fog (p1).</p>", items = [weapon("Spear", "d8", "s1"), weapon("Ordin has a crossbow", "2d8", "c1")]) =>
+		({ type: "npc", system: { notes }, items });
+
+	it("takes away the weapon read off the leader's line and keeps the line whole in its place", () => {
+		expect(leaderLineUpdates(before(), entry, printed, { attackName: "Attack" })).toEqual({
+			remove: ["c1"],
+			update: { "system.notes": "<p>Ordin has a crossbow (2d8) and a grudge against the reeve.</p><p>Of the Cast of the Fog (p1).</p>" }
+		});
+	});
+
+	it("adds the line where what was left of it is gone, and keeps a weapon the Referee changed", () => {
+		const changed = before("<p>My own notes.</p>", [weapon("Ordin has a crossbow", "d10", "c1")]);
+		expect(leaderLineUpdates(changed, entry, printed)).toEqual({
+			remove: [],
+			update: { "system.notes": "<p>My own notes.</p><p>Ordin has a crossbow (2d8) and a grudge against the reeve.</p>" }
+		});
+	});
+
+	it("owes nothing once mended, nor to a group with no leader's line", () => {
+		expect(leaderLineUpdates(before(printed.system.notes, [weapon("Spear", "d8", "s1")]), entry, printed)).toBeNull();
+		expect(leaderLineUpdates(before(), { ...entry, name: "Lantern Militia" }, printed)).toBeNull();
+		expect(leaderLineUpdates(before(), null, printed)).toBeNull();
 	});
 });

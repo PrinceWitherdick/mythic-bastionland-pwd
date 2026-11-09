@@ -77,7 +77,9 @@ A Cast belongs to the Myth, not to its number, so actors made for a book Myth jo
 When the table agrees a Myth is over, however it ended:
 
 1. **Click Myth Resolved** at the foot of its card.
-2. A window asks which Knights played a part. Tick them and press **Award Glory**: each gains 1 Glory and a card says so. The Myth is marked resolved whether or not you award any Glory.
+2. A window asks which Knights played a part. Tick them and press **Award Glory**: each gains 1 Glory and a card says so. The Myth is marked resolved as the window opens, whether or not you award any Glory, so a second click, or another Referee, can't give its Glory twice.
+
+Closed the window without awarding anything? While nobody has its Glory, the Myth's row shows an **Award Myth Glory** chip: click it to award it now. Those you tick are kept with the Myth, so **Not Resolved** offers to take it back as usual.
 
 A resolved Myth gets a **Resolved** chip, is written on the Timeline (with the Knights you ticked) and in the current Season's record on the Toolkit's **Time** page.
 
@@ -142,7 +144,9 @@ The City Quest section sits at the foot of the Myths page, below the six Myths. 
 - **Roll an Omen of the City** rolls a d12, adds the Omens of the City already met, and takes the next unmet one from there. The card is whispered to the Referees.
 - **Start Over** forgets every Omen of the City met, after you confirm, as for a new Company.
 
-Once any player's Knight is a Knight Radiant, a Wilderness Roll that would bring a random Myth's Omen brings an Omen of the City instead, rolled for you. Once an Omen of 18 or higher has come up, the Quest is over and the roll button is greyed out.
+Once a living Knight-Radiant rides with the Company, a Wilderness Roll that would bring a random Myth's Omen brings an Omen of the City instead, rolled for you. A Slain Knight-Radiant no longer counts. Once an Omen of 18 or higher has come up, the Quest is over and the roll button is greyed out.
+
+**Worthy of the Quest**, above the Omens met, settles it yourself: **Automatic** leaves it to the Knights as above, and the line under it says what that makes the Company now. **Worthy** has a Wilderness Roll of 1 bring an Omen of the City whoever rides, and **Not worthy** keeps bringing a Myth's Omen.
 
 ## Playing solo
 

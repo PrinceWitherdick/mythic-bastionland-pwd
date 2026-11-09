@@ -61,7 +61,7 @@ Lists each Domain that hasn't made its Crisis Roll this Season, so it can be mad
 
 ### Glory
 
-Three buttons: **Myth Resolved**, **Tournament Won** and **Battle Won**. Hover one for when it applies. Each opens the usual Glory window: tick the Knights who earned it and they each gain 1 Glory. That award posts its own card straight away, and a **Tournament Won** or **Battle Won** is written on the [Timeline](The-Campaign-Timeline) too. The window then lists the names beside the button, and the award goes on the summary card too.
+Three buttons: **Myth Resolved**, **Tournament Won** and **Battle Won**. Hover one for when it applies. Each opens the usual Glory window: tick the Knights who earned it (for **Tournament Won**, pick its one winner) and they each gain 1 Glory. That award posts its own card straight away, and a **Tournament Won** or **Battle Won** is written on the [Timeline](The-Campaign-Timeline) too. The window then lists the names beside the button, and the award goes on the summary card too.
 
 ### Plans and ambitions, and This session
 

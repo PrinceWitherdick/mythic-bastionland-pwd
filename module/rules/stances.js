@@ -34,7 +34,7 @@ export const changesArmour = (system) => Boolean(system?.armourFloor || system?.
  * @param {object|null|undefined} system An Ability's system data.
  * @returns {boolean} Whether it's a stance its Knight takes up and ends, from its row.
  */
-export const hasStance = (system) => changesArmour(system) || Boolean(system?.oath);
+export const hasStance = (system) => changesArmour(system) || Boolean(system?.oath || system?.drawsFire);
 
 /**
  * @param {{type: string, system: object}} item

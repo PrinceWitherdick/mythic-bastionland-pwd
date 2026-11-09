@@ -125,10 +125,18 @@ describe("granting a Holding", () => {
 	it("makes a Knight of the book an NPC Knight, ruling a Domain made beside them", async () => {
 		answer = { ruler: "book:1-03" };
 		const domain = await grantHolding(scene, hex);
-		expect(makeNpcKnight).toHaveBeenCalledWith("1-03", index);
+		// The Seat of Power asks a Knight-Dominant, so they're made with 9 Glory, worthy of it (p6).
+		expect(makeNpcKnight).toHaveBeenCalledWith("1-03", index, { glory: 9 });
 		expect(createDomain).toHaveBeenCalledWith(npc, { name: "Ashford", holding: "Scene.s1.Tile.t1", seat: true });
 		expect(linkKnightDomain).toHaveBeenCalledWith(npc, domain);
 		expect(foundDomain).not.toHaveBeenCalled();
+	});
+
+	it("makes a Knight of the book granted a Holding that isn't the Seat with a Ruler's Glory, a Knight-Tenant", async () => {
+		realm = { holdings: [{ ...castle, seat: false }], myths: [], landmarks: [] };
+		answer = { ruler: "book:1-03" };
+		await grantHolding(scene, hex);
+		expect(makeNpcKnight).toHaveBeenCalledWith("1-03", index, { glory: 6 });
 	});
 
 	it("hands a Domain already naming a Knight of the book to the NPC Knight made of them", async () => {

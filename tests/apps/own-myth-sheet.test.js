@@ -117,7 +117,7 @@ describe("a written Myth wherever a Myth is read", () => {
 		expect(artIndex).toContain('export const pageNote = (page) => (page ? t("realm.key.page", { page }) : null);');
 		expect(read("module/actions/hex-lore.js")).toContain("withPage(name, page)");
 		expect(read("module/actions/starts.js")).toContain('tagline: page ? t("company.starts.courtier.newsTagline", { name, page }) : name,');
-		expect(read("module/actions/people.js")).toContain('t(known.page ? "people.heardOfPage" : "people.heardOf",');
+		expect(read("module/actions/people.js")).toContain('t(entry.page ? "people.heardOfPage" : "people.heardOf",');
 		expect(read("module/apps/hex-edit.js")).toContain("reference: withPage(name, page),");
 		expect(toolkit).toContain('tagline: page ? t("gmToolkit.myths.tableTagline", { name, page }) : t("gmToolkit.myths.ownTableTagline", { name }),');
 	});

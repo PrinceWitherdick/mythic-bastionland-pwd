@@ -1,7 +1,10 @@
+import { chooseOne } from "../apps/actor-pick.js";
 import { postCard, t } from "../chat/cards.js";
+import { isNpcKnight } from "../rules/knight-types.js";
 import { GLORY_AWARDS, changeGlory } from "../rules/glory.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
+import { companyKnights, worldKnights } from "./knights.js";
 import { chooseCompany } from "./time.js";
 import { timelineGloryAwarded, timelineRank } from "./timeline-events.js";
 
@@ -52,19 +55,49 @@ export async function awardGlory(key) {
 }
 
 /**
- * Award 1 Glory as awardGlory does, saying who to.
+ * @param {Actor} actor
+ * @returns {boolean} Whether a tournament or battle can give them Glory: alive, and no Squire (p7).
+ */
+const winsGlory = (actor) => !actor.system?.slain && Boolean(actor.system?.gainsGlory);
+
+/** @returns {Actor[]} The Referee's NPC Knights who could win Glory, listed after the Company's. */
+const npcKnightsForGlory = () => worldKnights((actor) => isNpcKnight(actor) && winsGlory(actor));
+
+/**
+ * A tournament has one winner (p6): ask which Knight, of the Company or the
+ * Referee's, with none chosen to start with.
+ * @param {string} title
+ * @param {string} key
+ * @returns {Promise<{actor: Actor}[]|null>} The winner, none where there's no Knight to win, or null if closed.
+ */
+async function chooseWinner(title, key) {
+	const knights = [...companyKnights().filter(winsGlory), ...npcKnightsForGlory()];
+	if (!knights.length) return [];
+	const winner = await chooseOne(knights.map((actor) => ({
+		actor,
+		name: actor.name,
+		detail: t(isNpcKnight(actor) ? "glory.awards.npcKnightDetail" : "glory.awards.knightDetail", { rank: t(`rank.${actor.system.rank}`), glory: actor.system.glory })
+	})), { title, message: t(`glory.awards.${key}.intro`), icon: "fa-solid fa-crown", ok: t("glory.award"), unchosen: true });
+	return winner ? [{ actor: winner.actor }] : null;
+}
+
+/**
+ * Award 1 Glory as awardGlory does, saying who to. A tournament asks for its
+ * one winner; a battle ticks the Company's Knights riding with it, and lists
+ * the Referee's NPC Knights after them, unticked (p6).
  * @param {string} key One of GLORY_AWARDS.
  * @returns {Promise<{knights: Actor[], entries: object[]}|null>} Null if nobody was given it.
  */
 export async function awardGloryTo(key) {
 	if (!game.user.isGM || !GLORY_AWARDS.includes(key)) return null;
 	const title = t(`glory.awards.${key}.label`);
-	const company = await chooseCompany({
+	const company = key === "tournament" ? await chooseWinner(title, key) : await chooseCompany({
 		title,
 		icon: "fa-solid fa-crown",
 		intro: t(`glory.awards.${key}.intro`),
 		ok: t("glory.award"),
-		knightsOnly: true
+		knightsOnly: true,
+		...(key === "battle" ? { later: npcKnightsForGlory(), gainsGlory: true } : {})
 	});
 	if (!company) return null;
 	if (!company.length) {

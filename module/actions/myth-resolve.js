@@ -2,7 +2,8 @@ import { loadArtIndex, mythLookup, pageNote } from "../book-art/art-index.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { placeFeature } from "../rules/realm-edits.js";
 import { resolvedMyths } from "../rules/gm-toolkit.js";
-import { mythGloryFor } from "../rules/myth-notes.js";
+import { mythGloryFor, mythNoteFor } from "../rules/myth-notes.js";
+import { oncePerKey } from "../rules/queue.js";
 import { completedMythId } from "../rules/season-log.js";
 import { takeBackGlory } from "./glory.js";
 import { rollFreeMyth } from "./gm-toolkit.js";
@@ -18,29 +19,86 @@ import { timelineMythCompleted, timelineMythUndone } from "./timeline-events.js"
  * Realm, the Season's record in the Referee Toolkit, and the Timeline.
  */
 
+/** Myths this client is resolving, or giving the Glory of, now: one award window each. */
+const awarding = oncePerKey();
+
+/**
+ * @param {Scene} scene
+ * @param {object} myth
+ * @returns {boolean} Whether the Myth is marked resolved on its Realm.
+ */
+const isResolved = (scene, myth) => Boolean(mythNoteFor(getMythNotes(scene), myth).resolved);
+
 /**
  * The group feels the Myth is resolved (p27): mark it so, keep it in this
  * Season's record, award the Glory that comes with it, and write it on the
- * Timeline once the Referee has said who played a part in it.
+ * Timeline once the Referee has said who played a part in it. It's marked
+ * resolved before anyone is asked, so a second click, or another Referee, finds
+ * it resolved already and gives its Glory no second time.
  * @param {Scene} scene The Realm it's in.
  * @param {object} myth As the Realm keeps it.
  * @param {object} options
  * @param {string} options.name
  * @param {() => Promise<Actor[]>} options.award Gives the Glory, saying to whom.
  * @param {string} [options.note] Written on its note as it's resolved.
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} Whether it was resolved here.
  */
 export async function resolveMyth(scene, myth, { name, award, note }) {
 	const completed = { id: completedMythId(scene.id, myth), name };
-	// The Season's record needs nobody's name, so it's kept while the Glory is given.
-	const recorded = recordMythCompleted(completed);
-	// Who was given Glory is kept with the Myth, so it can be taken back if the Myth is unresolved.
+	const resolved = await awarding(completed.id, async () => {
+		if (isResolved(scene, myth)) return false;
+		await editMythNote(scene, myth, { ...(note === undefined ? {} : { note }), resolved: true, glory: [] });
+		// The Season's record needs nobody's name, so it's kept while the Glory is given.
+		const recorded = recordMythCompleted(completed);
+		const knights = await giveMythGlory(scene, myth, award);
+		await Promise.all([recorded, timelineMythCompleted({ scene, completedId: completed.id, name, knights })]);
+		return true;
+	}, () => false);
+	if (!resolved) warn("gmToolkit.myths.alreadyResolved");
+	return resolved;
+}
+
+/**
+ * Award the Glory of a Myth resolved with none given (p6, p27), as when the
+ * window was closed as it was resolved. Who gains it is kept with the Myth, so
+ * Unresolve can take it back. A Myth no longer resolved, or one whose Glory has
+ * been given since, gives none. GMs only.
+ * @param {Scene} scene
+ * @param {object} myth
+ * @param {() => Promise<Actor[]>} award Gives the Glory, saying to whom.
+ * @returns {Promise<Actor[]>} Those given it.
+ */
+export async function awardMythGlory(scene, myth, award) {
+	if (!game.user.isGM) return [];
+	const given = await awarding(completedMythId(scene.id, myth), async () => {
+		if (!isResolved(scene, myth) || mythGloryFor(getMythNotes(scene), myth).length) {
+			warn("gmToolkit.myths.gloryGiven");
+			return [];
+		}
+		return giveMythGlory(scene, myth, award);
+	}, () => warn("cardButtons.alreadyPressed"));
+	return given ?? [];
+}
+
+/**
+ * Ask who gains a resolved Myth's Glory, and keep them with the Myth, so it can
+ * be taken back if the Myth is unresolved. Unresolved while the window was
+ * open, the Myth keeps nobody's name, and the Referee is offered to take back
+ * the Glory just given, as Unresolve would have.
+ * @param {Scene} scene
+ * @param {object} myth
+ * @param {() => Promise<Actor[]>} award
+ * @returns {Promise<Actor[]>}
+ */
+async function giveMythGlory(scene, myth, award) {
 	const knights = (await award()) ?? [];
-	await Promise.all([
-		editMythNote(scene, myth, { ...(note === undefined ? {} : { note }), resolved: true, glory: knights.map((knight) => knight.id) }),
-		recorded,
-		timelineMythCompleted({ scene, completedId: completed.id, name, knights })
-	]);
+	if (!knights.length) return knights;
+	if (!isResolved(scene, myth)) {
+		await takeBackGlory("myth", knights);
+		return [];
+	}
+	await editMythNote(scene, myth, { glory: knights.map((knight) => knight.id) });
+	return knights;
 }
 
 /**

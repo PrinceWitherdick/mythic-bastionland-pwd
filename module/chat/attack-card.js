@@ -5,6 +5,8 @@ import { abilitiesWith } from "../rules/ability-uses.js";
 import { isBladedName } from "../rules/attack-fx.js";
 import { cardTarget, dieLabel, joinAttack, poolRerollers, renderAttackCard, showRolls, sigilHolders } from "../actions/attack.js";
 import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
+import { duelOf } from "../actions/duel.js";
+import { mountedNow } from "../rules/duel.js";
 import { singleArmour, takeAttack } from "../actions/damage.js";
 import { canDenyAttack, featRefusal, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
@@ -99,13 +101,13 @@ const CHANGE_GUARDS = Object.freeze({
 	dismissMark: (change, attack, user) => (ownsMarkedFoe(change, attack, user) ? change : null),
 	greater: (change, attack, user) => {
 		if (!change.other) return ownsMarkedFoe(change, attack, user) ? change : null;
-		// Writing in some other Greater effect changes nobody's sheet, so the attackers may do it too.
+		// Marking some other Greater effect changes nobody's sheet, so the attackers may do it too.
 		// A card rolled with no targets lands on whichever foe of theirs its reader targets, as targetActors has it.
 		const foe = attack.targets.length
 			? attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.testUserPermission(user, "OWNER"))
 			: Boolean(change.actor && fromUuidSync(change.actor)?.testUserPermission?.(user, "OWNER"));
 		if (!foe && !ownsAnAttacker(attack, user)) return null;
-		return { type: "greater", index: change.index, text: change.text };
+		return { type: "greater", index: change.index, text: t("attack.greater.otherDone") };
 	},
 	join: (change, attack, user) => {
 		const joiner = ownedBy(change.actor, user);
@@ -323,7 +325,8 @@ function watchGambitChoice(dialog) {
 /**
  * Whether a Gambit can be performed on this Attack: a Dismount needs a mounted foe
  * among its targets (p10), and one who can be thrown (p44). With nobody targeted,
- * or none of them found, the Referee judges.
+ * or none of them found, the Referee judges. The other duelist in a joust rides,
+ * as both do, before they've rolled and been marked so, unless thrown already.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {string} key One of GAMBITS.
  * @returns {boolean}
@@ -331,7 +334,8 @@ function watchGambitChoice(dialog) {
 function offersGambit(attack, key) {
 	if (key !== "dismount") return true;
 	const foes = attack.targets.length ? targetActors(attack) : [];
-	return !foes.length || foes.some((actor) => Boolean(actor.system.conditions?.mounted) && !keepsSeat(actor.items?.contents ?? []));
+	const duel = attack.duel ? duelOf(game.messages?.get(attack.duel)) : null;
+	return !foes.length || foes.some((actor) => mountedNow(actor, duel) && !keepsSeat(actor.items?.contents ?? []));
 }
 
 /**
@@ -695,7 +699,7 @@ async function onDeny(message) {
 	// Fatigue follows the SPI Save only once the card takes the Deny.
 	const save = await rollFeat(denier, "deny");
 	if (!save || !(await saveChange(message, { type: "deny", die, actor: denier.uuid, name: denier.name }))) return;
-	await payFeat(denier, save);
+	await payFeat(denier, save, "deny");
 	await postFeat(denier, "deny", save);
 }
 
@@ -905,9 +909,9 @@ async function onGreater(message, button) {
 	if (!gambit || gambit.strong !== "greater" || gambit.greater) return;
 
 	const options = greaterOptions(attack, gambit);
-	// Anything else it does, as an Ability may say (p114), is written in by the attacker or the foe.
-	const mayWrite = game.user.isGM || ownsAnAttacker(attack) || targetActors(attack).some((actor) => actor.isOwner);
-	if (!options.length && !mayWrite) return warn("attack.greater.nothing");
+	// Anything else it does, as an Ability may say (p114), is said at the table, and marked done by the attacker or the foe.
+	const mayMark = game.user.isGM || ownsAnAttacker(attack) || targetActors(attack).some((actor) => actor.isOwner);
+	if (!options.length && !mayMark) return warn("attack.greater.nothing");
 	const listed = options.map((option, at) => ({ id: String(at), name: `${option.actor.name}: ${t(`attack.greater.${option.effect}`, { item: option.name })}`, option }));
 	const data = await inputDialog({
 		title: t("attack.greater.title"),
@@ -919,11 +923,10 @@ async function onGreater(message, button) {
 	if (!data) return;
 	const picked = pickedFrom(listed, data.effect);
 	if (picked === PICK_BLANK) {
-		const effect = String(data.other ?? "").trim();
-		if (!effect) return warn("attack.greater.otherEmpty");
+		// What it does is said at the table; the card only marks the effect as done.
 		// On a card rolled with no targets, the GM is told which foe of theirs it lands on.
 		const foe = attack.targets.length ? null : targetActors(attack).find((actor) => actor.isOwner);
-		await saveChange(message, { type: "greater", index, text: t("attack.greater.otherDone", { effect }), other: true, ...(foe ? { actor: foe.uuid } : {}) });
+		await saveChange(message, { type: "greater", index, text: t("attack.greater.otherDone"), other: true, ...(foe ? { actor: foe.uuid } : {}) });
 		return;
 	}
 	if (!picked) return;

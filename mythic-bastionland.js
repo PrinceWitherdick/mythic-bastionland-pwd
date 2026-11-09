@@ -5,7 +5,6 @@ import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, regis
 import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
 import { registerNightTravel } from "./module/actions/night-travel.js";
-import { registerSightings } from "./module/actions/sighted.js";
 import { registerSolo } from "./module/actions/solo.js";
 import { registerBlogLandmarks } from "./module/actions/blog-landmarks.js";
 import { registerDuplicateKnightGuard, registerDuplicateKnights } from "./module/actions/knights.js";
@@ -31,7 +30,8 @@ import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { addNewMythButton, newOwnMyth } from "./module/actions/own-myths.js";
 import { registerCompanionQueries, watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
-import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
+import { COMPANION_LINES_STEP, COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, POSSESSION_EFFECTS_STEP, POSSESSION_SPLITS_STEP, THROWN_AND_PAIRS_STEP, catchUpThrownAndPairs, dropCompanionLines, dropOwnerFromCompanionNames, fillPossessionDetails, fillPossessionEffects, retypeKnightProperty, splitKnightGear } from "./module/actions/property.js";
+import { TABLE_RESULTS_STEP, routeTableResults } from "./module/actions/table-stats.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
 import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights, registerNpcKnightCreateChoice } from "./module/actions/npc-knights.js";
 import { KNIGHT_TYPES, NPC_KNIGHT_TYPE } from "./module/rules/knight-types.js";
@@ -41,8 +41,12 @@ import { registerTurnOrder } from "./module/actions/turn-order.js";
 import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
 import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
+import { registerTimeCapture, watchWrites } from "./module/actions/time-capture.js";
+import { registerTimeUndo, undoAdvance, undoOffer } from "./module/actions/time-undo.js";
 import { registerRulerDeaths } from "./module/actions/dominion.js";
 import { registerAbilityBlows, registerUnhorsed } from "./module/actions/damage.js";
+import { registerKnightPowers } from "./module/actions/knight-powers.js";
+import { registerPossessionEffects } from "./module/actions/possession-effects.js";
 import { registerLastingQueries } from "./module/actions/lasting-dice.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
@@ -64,7 +68,7 @@ import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorl
 import { addSoloTag } from "./module/apps/solo-tag.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
-import { CAST_DETAILS_STEP, LINGERING_CAST_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markLingeringAttacks, markOrAttacks, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
+import { CAST_DETAILS_STEP, CAST_LEADERS_AND_BOWS_STEP, LINGERING_CAST_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markLingeringAttacks, markOrAttacks, mendCastLeadersAndBows, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
@@ -105,7 +109,7 @@ import { registerTimelineStoreHooks, syncTrackPages } from "./module/actions/tim
 import { TIMELINE_PAGE_TYPE } from "./module/rules/timeline.js";
 import { openTimeline, reopenableTimeline } from "./module/apps/TimelineWindow.js";
 import { createTimelinePageSheet } from "./module/apps/TimelinePageSheet.js";
-import { applyKindColours, registerTimelineSettings } from "./module/apps/timeline-ui.js";
+import { applyKindColours, migrateTimelineReach, registerTimelineSettings } from "./module/apps/timeline-ui.js";
 import {
 	AbilityModel,
 	ArmourModel,
@@ -125,7 +129,7 @@ import { registerSettingsTabHooks } from "./module/sheets/settings-tab.js";
 import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
-import { adoptKeptRulebook, bringInRulebook } from "./module/rulebook/bring-in.js";
+import { adoptKeptRulebook, bringInRulebook, rereadOldImport } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { ATTACK_MACRO_STEP, attackFromHotbar, ensureAttackHotbar, seedAttackMacro } from "./module/actions/attack-macro.js";
@@ -151,7 +155,7 @@ import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-s
 import { registerRemedyQuery, restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
-import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
+import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, POWER_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, fillPowerKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
 
 const ITEM_MODELS = {
 	weapon: WeaponModel,
@@ -311,6 +315,8 @@ Hooks.once("init", () => {
 
 	// The world's calendar of Ages, Seasons and Phases.
 	registerCalendarSetting();
+	// What each time advance writes, noted so the Referee can take it back.
+	registerTimeCapture();
 
 	// The Referee's own Company pictures, offered in the gallery once used.
 	registerCompanyPictureSetting();
@@ -474,7 +480,10 @@ Hooks.once("init", () => {
 			nextEvent: () => {
 				const { next } = seasonEventsNow();
 				return next ? eventLabel(next.key) : null;
-			}
+			},
+			// The last advance taken back, should it have been pressed by mistake.
+			undo: () => undoAdvance(),
+			undoable: undoOffer
 		}
 	});
 
@@ -509,16 +518,19 @@ Hooks.once("init", () => {
 	registerSeatingLater();
 	// The Season card's buttons that roll a new Myth for each resolved one (p27).
 	registerReplaceMyth();
+	// A time advance's cards carry the Referee's Undo.
+	registerTimeUndo();
 	// A ruling Knight's death passes their Domain on (p21).
 	registerRulerDeaths();
 	// A steed brought down throws its rider, for d6 (p10).
 	registerUnhorsed();
 	registerAbilityBlows();
+	// Knights' Abilities that call for a card or a choice, and Possessions used from the sheet.
+	registerKnightPowers();
+	registerPossessionEffects();
 	// A weapon tempered by a Wound its owner can't record for the user applying it (p98).
 	registerLastingQueries();
 	registerCollisions();
-	// What the Company saw from afar is found once it gets there.
-	registerSightings();
 	registerSolo();
 	// No two characters are the same Knight from the book, unless the Referee says they may be.
 	registerDuplicateKnights();
@@ -672,12 +684,24 @@ const WORLD_SETUP = Object.freeze([
 	{ key: BOOK_EFFECT_KITS_STEP, run: fillBookEffectKits, repeats: ABILITY_KITS_STEP },
 	// Again, for the Abilities that count the sides, temper a weapon, or are spent by the weapon they give.
 	{ key: LINKED_KITS_STEP, run: fillLinkedKits, repeats: ABILITY_KITS_STEP },
+	// The Knight audit of 2026-11-04: lines read as two possessions cut in two, thrown weapons ranged and
+	// pairs filling both hands, what possessions do when used, followers off the Property list, six more
+	// Abilities' kits, and table results carried again where they now land somewhere else. In that order,
+	// so the results land on possessions already cut and read.
+	{ key: POSSESSION_SPLITS_STEP, run: splitKnightGear },
+	{ key: THROWN_AND_PAIRS_STEP, run: catchUpThrownAndPairs, repeats: POSSESSION_DETAILS_STEP },
+	{ key: POSSESSION_EFFECTS_STEP, run: fillPossessionEffects, repeats: POSSESSION_DETAILS_STEP },
+	{ key: COMPANION_LINES_STEP, run: dropCompanionLines },
+	{ key: POWER_KITS_STEP, run: fillPowerKits, repeats: ABILITY_KITS_STEP },
+	{ key: TABLE_RESULTS_STEP, run: routeTableResults },
 	// Worlds that imported the book before a weapon's Damage could burn on each round (p173).
 	{ key: LINGERING_CAST_STEP, run: markLingeringAttacks },
 	// Again, for the Cast the book fields only as Warbands though their names don't say so.
 	{ key: "warbandCast", run: fillCastDetails, repeats: CAST_DETAILS_STEP },
 	// Again, for the Cast whose stat block has them fight on through a Mortal Wound.
 	{ key: "fightsOnCast", run: fillCastDetails, repeats: "warbandCast" },
+	// Worlds whose Cast had bows that weren't ranged, and the Militia's leader's longbow as the Warband's own (p11).
+	{ key: CAST_LEADERS_AND_BOWS_STEP, run: mendCastLeadersAndBows },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.
@@ -703,10 +727,14 @@ const WORLD_SETUP = Object.freeze([
 ]);
 
 Hooks.once("ready", async () => {
+	// Time advances are noted from here, after every other module's init hooks, so each write is seen as they leave it.
+	watchWrites();
 	// The Phase at the top of the screen, for everyone at the table.
 	showPhaseBanner();
 	// Each kind of Timeline entry in the colour the Referee chose for it.
 	applyKindColours();
+	// A world from when the Timeline was on or off has that as a choice of where it shows.
+	migrateTimelineReach().catch((error) => console.error(`${SYSTEM_ID} | Couldn't update the Timeline setting`, error));
 	// Nothing else waits on this.
 	squareKnightTokens();
 	// A world imported before the rules text was read has it found in the rulebook it keeps.
@@ -735,8 +763,10 @@ Hooks.once("ready", async () => {
 	const finding = game.users.activeGM?.isSelf ? findKeptRulebook().catch((error) => console.error(`${SYSTEM_ID} | Couldn't look for a kept rulebook`, error)) : Promise.resolve();
 	const setup = (isSetupDone(WELCOME_CARDS_STEP) ? Promise.resolve() : finding).then(() => runWorldSetup(WORLD_SETUP));
 	// Its import runs beside the load rather than holding it up, and a failure is logged rather than thrown.
+	// A world last imported by an older Import PDF reads its book again, for what the new one reads better.
 	Promise.all([finding, setup])
 		.then(() => adoptKeptRulebook(welcomesThisWorld))
+		.then((adopted) => adopted || rereadOldImport(welcomesThisWorld))
 		.catch((error) => console.error(`${SYSTEM_ID} | Couldn't take up the kept rulebook`, error));
 	await Promise.all([
 		restoreOpenSheets(),

@@ -13,16 +13,16 @@ import {
 	sparkDiceCount,
 	takenTraits
 } from "../rules/people.js";
-import { nearestMyths } from "../rules/exploration.js";
+import { nearestMyths, placeFrom, vassalKnowsExactly } from "../rules/exploration.js";
 import { rollKnightName } from "../rules/knight-names.js";
 import { featureAt, holdingName } from "../rules/realm.js";
 import { midSentence } from "../rules/text.js";
 import { getCalendar } from "./calendar.js";
 import { getHexRecord, keepHexSparkRecords } from "./hex-lore.js";
 import { liveRealm } from "./myth-notes.js";
-import { toldWhere } from "./told-where.js";
+import { wayItLies, whereItLies } from "./told-where.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
-import { mythKeptFromMe } from "./solo.js";
+import { keptFromMe, mythKeptFromMe } from "./solo.js";
 
 /**
  * @typedef {object} RolledPerson
@@ -177,33 +177,43 @@ export async function rollUpHolding({ scene, hex }) {
 
 	const count = await new Roll(HOLDING_PEOPLE).evaluate();
 	const folk = count.total;
+	const g = sceneGeometry(scene);
 	// Several Myths as near as each other are settled by a die for each person, as Gathering Folklore does.
-	const myths = nearestMyths(liveRealm(scene, realm), sceneGeometry(scene), hex);
+	// Played alone, those dice are thrown apart from the card's, since their size counts Myths not yet met.
+	const myths = nearestMyths(liveRealm(scene, realm), g, hex);
+	const ties = myths.length > 1 ? Array.from({ length: folk }, () => `1d${myths.length}`) : [];
+	const apart = keptFromMe();
 	const tables = [...set.map(({ table }) => table), ...Array.from({ length: folk }, () => people.tables).flat()];
-	const { roll, d12s, others } = await throwTables(tables, myths.length > 1 ? Array.from({ length: folk }, () => `1d${myths.length}`) : []);
+	const { roll, d12s, others } = await throwTables(tables, apart ? [] : ties);
+	const picks = apart ? await Promise.all(ties.map(async (formula) => (await new Roll(formula).evaluate()).total)) : others;
 
 	const rolled = dealSparkDice(tables, d12s);
 	const place = rolled.slice(0, set.length).filter(({ prompt }) => prompt);
 	const when = getCalendar();
 	const reference = pageReference(civilisation);
 	const names = namesForHex(scene, hex, folk);
+	const found = new Set();
 	const persons = Array.from({ length: folk }, (_, number) => {
 		const start = set.length + number * people.tables.length;
 		const traits = personTraits(rolled.slice(start, start + people.tables.length));
-		const myth = heardOfMyth(myths, others[number]);
+		const myth = heardOfMyth(myths, picks[number]);
+		// A Vassal knows which way the Myth nearest their home lies, and just where only when it borders
+		// their home (p19). One whose place they know is found, played alone, as Gathering Folklore finds it.
+		const known = myth ? placeFrom(g, hex, myth.hex) : null;
+		const precise = Boolean(known) && vassalKnowsExactly(known);
+		const where = known ? (precise ? whereItLies(g, known) : wayItLies(g, known)) : null;
+		if (precise && mythKeptFromMe(myth, scene) && myth.id) found.add(myth.id);
 		// Played alone, a Myth not yet met is heard of by its number and the way it lies, not its name (p19).
-		const unmet = mythKeptFromMe(myth, scene)
-			? t("people.heardOfUnmet", { number: myth.number, where: toldWhere(sceneGeometry(scene), hex, myth.hex) })
-			: null;
-		const known = myth && !unmet ? mythEntry(index, myth) : null;
-		const mythName = known ? midSentence(known.name) : null;
+		const unmet = !precise && mythKeptFromMe(myth, scene) ? t("people.heardOfUnmet", { number: myth.number, where }) : null;
+		const entry = myth && !unmet ? mythEntry(index, myth) : null;
+		const mythName = entry ? midSentence(entry.name) : null;
 		return {
 			number: number + 1,
 			name: names[number],
 			traits,
 			// Kept on the hex without its page; told on the card with it.
-			heard: unmet ?? (known ? t("people.heardOf", { name: mythName }) : null),
-			heardPage: unmet ?? (known ? t(known.page ? "people.heardOfPage" : "people.heardOf", { name: mythName, page: known.page }) : null)
+			heard: unmet ?? (entry ? t("people.heardOf", { name: mythName, where }) : null),
+			heardPage: unmet ?? (entry ? t(entry.page ? "people.heardOfPage" : "people.heardOf", { name: mythName, page: entry.page, where }) : null)
 		};
 	});
 
@@ -239,5 +249,9 @@ export async function rollUpHolding({ scene, hex }) {
 		})),
 		note: myths.length ? null : t("people.holding.noMyths")
 	}, { rolls: [count, roll], mode: "gm" });
+	if (found.size) {
+		const { markOnPlayersMap } = await import("./exploration.js");
+		await markOnPlayersMap(scene, [...found]);
+	}
 	return { holding: place, people: persons };
 }

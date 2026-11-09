@@ -2,7 +2,7 @@ import { getCalendar } from "../actions/calendar.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { endTheSession, getSessionEnd } from "../actions/session-end.js";
+import { endTheSession, getSessionEnd, situationLabel } from "../actions/session-end.js";
 import { t } from "../chat/cards.js";
 import { GLORY_BUTTONS } from "../rules/glory.js";
 import { crisisRollsDue } from "../rules/season-log.js";
@@ -55,10 +55,10 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {"season"|"age"|null} A turn this session's roll puts at the end of the next one. */
 	#promised = null;
 
-	/** @type {{id: number, name: string, d6: number|null, result: string|null}[]} Situations left unresolved (p17). */
+	/** @type {{id: number, d6: number|null, result: string|null}[]} Situations left unresolved (p17); each is told by its number. */
 	#situations = [];
 
-	/** Names the next situation, since a row is found by its own id rather than where it sits. */
+	/** Numbers the next situation. A row keeps its number when another is dropped, since the table has been calling it by that. */
 	#nextId = 1;
 
 	/** @type {{key: string, names: string}[]} The Glory awarded from this window, and to whom. */
@@ -114,8 +114,9 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				: null,
 			// Only a Season or an Age turning leaves a situation to change.
 			turning: turnsSeasonOrAge(this.#step),
-			situations: this.#situations.map((situation) => ({
+			situations: this.#numbered().map((situation) => ({
 				...situation,
+				label: situationLabel(situation.number),
 				text: situation.result ? t(`refereeRolls.tables.unresolved.results.${situation.result}`) : null
 			})),
 			shareSituations: this.#shareSituations,
@@ -144,11 +145,6 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 		root.querySelector("[name=recap]")?.addEventListener("input", (event) => { this.#recap = event.target.value; });
 		root.querySelector("[name=shareRecap]")?.addEventListener("change", (event) => { this.#shareRecap = event.target.checked; });
 		root.querySelector("[name=shareSituations]")?.addEventListener("change", (event) => { this.#shareSituations = event.target.checked; });
-		root.querySelector(".bastionland-session-end__situations")?.addEventListener("input", (event) => {
-			if (!event.target.matches("[name=situation]")) return;
-			const row = this.#row(event.target);
-			if (row) row.name = event.target.value;
-		});
 	}
 
 	/**
@@ -158,6 +154,11 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	#row(node) {
 		const id = Number(node.closest("[data-situation-id]")?.dataset.situationId);
 		return this.#situations.find((situation) => situation.id === id);
+	}
+
+	/** @returns {object[]} The situations, each with the number the table tells it by: its id, which never shifts. */
+	#numbered() {
+		return this.#situations.map((situation) => ({ ...situation, number: situation.id }));
 	}
 
 	/* -------------------------------------------- */
@@ -196,7 +197,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {SessionEnd} */
 	static #onAddSituation() {
-		this.#situations.push({ id: this.#nextId++, name: "", d6: null, result: null });
+		this.#situations.push({ id: this.#nextId++, d6: null, result: null });
 		return this.render();
 	}
 
@@ -254,7 +255,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 			const ended = await endTheSession({
 				step: this.#step,
 				passed: t(`sessionEnd.time.steps.${this.#step}.card`),
-				situations: this.#situations.filter((situation) => situation.result),
+				situations: this.#numbered().filter((situation) => situation.result),
 				shareSituations: this.#shareSituations,
 				glory: this.#glory.map(({ key, names }) => t("sessionEnd.glory.awarded", { award: t(`glory.awards.${key}.label`), names })),
 				plans: this.#plans,

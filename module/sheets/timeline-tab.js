@@ -5,13 +5,14 @@
 // The sheet lists the page among its TABS where it wants it on the rail, and
 // among its PARTS as a part of its own, so a write on the Timeline draws only
 // the page, and the sheet's other redraws leave it as it is. A world with the
-// Timeline turned off has no Timeline page.
+// Timeline turned off has no Timeline page, and one keeping it off player
+// sheets has it only on the Referee Toolkit.
 //
 // A sheet whose pages sit together under one header, as the Knight's and the
 // Domain's do, marks where the page goes with an empty `data-timeline-slot`
 // in its own part, and the page is put there each time either is drawn.
 
-import { TimelineTab, onTimelineAction, timelineRedrawer, timelineShown } from "../apps/timeline-ui.js";
+import { TimelineTab, onTimelineAction, timelineOnSheets, timelineRedrawer, timelineShown } from "../apps/timeline-ui.js";
 
 /** The page's id, among a sheet's TABS and its PARTS. */
 const TIMELINE_TAB = "timeline";
@@ -52,12 +53,13 @@ export const TimelineTabMixin = (Base, { board = false } = {}) => class extends 
 	}
 
 	/**
-	 * A world with the Timeline turned off has no Timeline page.
+	 * A world with the Timeline turned off has no Timeline page, nor do Knight,
+	 * Squire and Domain sheets while it's kept off them; the Toolkit's board stays.
 	 * @override
 	 */
 	_getTabsConfig(group) {
 		const config = super._getTabsConfig(group);
-		if (!config?.tabs?.some((tab) => tab.id === TIMELINE_TAB) || timelineShown()) return config;
+		if (!config?.tabs?.some((tab) => tab.id === TIMELINE_TAB) || (board ? timelineShown() : timelineOnSheets())) return config;
 		return { ...config, tabs: config.tabs.filter((tab) => tab.id !== TIMELINE_TAB) };
 	}
 

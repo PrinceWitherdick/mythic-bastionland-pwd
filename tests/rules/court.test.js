@@ -17,7 +17,9 @@ import {
 	retainerChoices,
 	seatHolder,
 	seatOf,
-	unworthyPosts
+	provenKnights,
+	unworthyPosts,
+	withProven
 } from "../../module/rules/court.js";
 import { COUNCIL_SEATS } from "../../module/rules/dominion.js";
 
@@ -121,6 +123,17 @@ describe("dramaCandidates", () => {
 	it("passes over rows nobody has named yet", () => {
 		const court = { a: member("courtier", ""), b: member("seer", "The Salt Seer") };
 		expect(dramaCandidates(court).map(({ name }) => name)).toEqual(["The Salt Seer"]);
+	});
+
+	it("never falls to one of the Company's Knights, though a Courtier Start seats them as Courtiers (p6)", () => {
+		const knights = [{ id: "k1", name: "Sir Ash", type: "knight" }, { id: "k2", name: "Sir Rival", type: "npcKnight" }];
+		const court = { a: member("courtier", "Sir Ash", { knight: "k1" }), b: member("courtier", "Sir Rival", { knight: "k2" }), c: member("retainer", "Coll") };
+		expect(dramaCandidates(court, knights).map(({ name }) => name)).toEqual(["Sir Rival"]);
+		// With only the Company's Knights at Court as Courtiers, it falls to anybody else there.
+		const theirs = { a: member("courtier", "Sir Ash", { knight: "k1" }), c: member("retainer", "Coll") };
+		expect(dramaCandidates(theirs, knights).map(({ name }) => name)).toEqual(["Coll"]);
+		// Found by a name only they go by, too.
+		expect(dramaCandidates({ a: member("courtier", "Sir Ash") }, knights)).toEqual([]);
 	});
 
 	it("finds nobody in an empty Court", () => {
@@ -288,7 +301,7 @@ describe("unworthyPosts", () => {
 				court: { r1: { role: "retainer", name: "Brand" }, c1: { role: "courtier", name: "Moss" }, p1: { role: "petitioner", name: "Wren" } }
 			}
 		};
-		expect(unworthyPosts(domain, knights)).toEqual([
+		expect(unworthyPosts(domain, knights)).toMatchObject([
 			{ name: "Tal", post: "holding", rank: "tenant" },
 			{ name: "Moss", post: "council", rank: "gallant" },
 			{ name: "Brand", post: "council", rank: "gallant" }
@@ -297,12 +310,12 @@ describe("unworthyPosts", () => {
 
 	it("knows a Courtier seated as a Knight by id, though the Knight has been renamed since", () => {
 		const domain = { system: { ruler: "", seat: false, council: {}, court: { c1: { role: "courtier", name: "Moss the Green", knight: moss.id } } } };
-		expect(unworthyPosts(domain, knights)).toEqual([{ name: "Moss", post: "court", rank: "gallant" }]);
+		expect(unworthyPosts(domain, knights)).toMatchObject([{ name: "Moss", post: "court", rank: "gallant" }]);
 	});
 
 	it("weighs a Seat of Power's ruler found by name against Knight-Dominant, and passes over the worthy", () => {
 		const domain = { system: { ruler: "Tal", seat: true, council: {}, court: { c1: { role: "courtier", name: "Tal" } } } };
-		expect(unworthyPosts(domain, knights)).toEqual([{ name: "Tal", post: "seat", rank: "dominant" }]);
+		expect(unworthyPosts(domain, knights)).toMatchObject([{ name: "Tal", post: "seat", rank: "dominant" }]);
 		expect(unworthyPosts(domain, [knight("aaaaaaaaaaaaaaaa", "Tal", 9)])).toEqual([]);
 	});
 
@@ -314,5 +327,27 @@ describe("unworthyPosts", () => {
 	it("leaves out Squires, a Petitioner, and names no Knight goes by", () => {
 		const domain = { system: { ruler: "Wren", council: { circle: ["Somebody"] }, court: { p1: { role: "petitioner", name: "Moss" }, c1: { role: "courtier", name: "Stranger" } } } };
 		expect(unworthyPosts(domain, knights)).toEqual([]);
+	});
+
+	it("says which Knight each is, and whether the Referee has ticked their worthiness proven (p6)", () => {
+		const domain = { system: { ruler: "", seat: false, council: { circle: [moss.id] }, court: { c1: { role: "courtier", name: "Brand" } }, proven: [brand.id] } };
+		expect(unworthyPosts(domain, knights)).toEqual([
+			{ id: moss.id, name: "Moss", post: "council", rank: "gallant", proven: false },
+			{ id: brand.id, name: "Brand", post: "court", rank: "gallant", proven: true }
+		]);
+	});
+});
+
+describe("worthiness proven (p6)", () => {
+	it("keeps each Knight's id once, and nothing else", () => {
+		expect(provenKnights(["a", "b", "a", "", 3, null])).toEqual(["a", "b"]);
+		expect(provenKnights(undefined)).toEqual([]);
+	});
+
+	it("ticks a Knight in, or out", () => {
+		expect(withProven(["a"], "b", true)).toEqual(["a", "b"]);
+		expect(withProven(["a", "b"], "a", false)).toEqual(["b"]);
+		expect(withProven(["a"], "a", true)).toEqual(["a"]);
+		expect(withProven(null, "", true)).toEqual([]);
 	});
 });

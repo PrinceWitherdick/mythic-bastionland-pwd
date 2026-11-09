@@ -209,6 +209,17 @@ function redrawSecrets() {
 	import("../canvas/hex-readout.js").then(({ updateHexReadout }) => updateHexReadout({ force: true })).catch(() => {});
 }
 
+/**
+ * Put away the Realm's Myths window, which names every Myth and shows its hex,
+ * as a Realm's secrets come to be kept from this client: solo play turned on,
+ * or a Realm drawn alone first finished. Rather than drawn again, it's closed.
+ * @param {string|null} [sceneId] Only while it shows this Realm; null for whichever it shows.
+ */
+function closeMythsWindow(sceneId = null) {
+	const chooser = globalThis.foundry?.applications?.instances?.get(MYTH_CHOOSER_ID);
+	if (chooser?.rendered && (sceneId === null || chooser.sceneId === sceneId)) chooser.close().catch(() => {});
+}
+
 /** Each Realm's secrets as last kept from this client, by Scene id, so only a change to them redraws. */
 const keptByScene = new Map();
 
@@ -223,6 +234,7 @@ const keptByScene = new Map();
 function noticeDrawingSettled(scene, changes) {
 	const flags = changes?.flags?.[SYSTEM_ID];
 	if (!flags || !(REALM_DRAWING_FLAG in flags || SOLO_SECRETS_FLAG in flags) || !keptFromMe()) return;
+	if (secretsKeptOn(scene)) closeMythsWindow(scene.id);
 	const kept = `${secretsKeptOn(scene)}|${secretsToSettle(scene)}`;
 	const was = keptByScene.get(scene.id);
 	keptByScene.set(scene.id, kept);
@@ -232,8 +244,7 @@ function noticeDrawingSettled(scene, changes) {
 /** Draw the map again, and the windows that show the Realm, when solo play is turned on or off. */
 function redrawForSolo() {
 	const on = isSolo();
-	// The Realm's Myths window shows every Myth, so it's closed rather than drawn again.
-	if (on && game.user?.isGM) foundry.applications.instances.get(MYTH_CHOOSER_ID)?.close();
+	if (on && game.user?.isGM) closeMythsWindow();
 	redrawSecrets();
 	// The players list carries the Solo Play tag.
 	ui.players?.render();

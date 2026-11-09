@@ -171,3 +171,145 @@ describe("applyTableStats", () => {
 		expect(notices).toEqual(["bastionland.knightTable.apply.none"]);
 	});
 });
+
+describe("applyTableStats, results that change kind or land elsewhere", () => {
+	const draughts = (rolls) => ({
+		name: "Odd Draughts",
+		columns: ["Effect"],
+		rows: [["Spit flame (d8 blast)"], ["Stone skin (A1)"], ["Hums"], ["Hums"], ["Hums"], ["Hums"]],
+		rolls
+	});
+
+	it("takes a result back to the gear first when the next one is of another kind", async () => {
+		const knight = knightWith([{ id: "jar", name: "Odd draughts (see below)", type: "gear", system: {} }], draughts([1]));
+		await applyTableStats(knight, [0]);
+		expect(knight.items.contents.map((item) => item.type)).toEqual(["weapon"]);
+
+		knight.system.bookTable.rolls = [2];
+		await applyTableStats(knight, [0]);
+		expect(knight.items.contents.map(({ type, name }) => `${type}:${name}`)).toEqual(["armour:Odd draughts (see below)"]);
+		expect(knight.items.contents[0].system.armour).toBe(1);
+
+		knight.system.bookTable.rolls = [1];
+		await applyTableStats(knight, [0]);
+		expect(knight.items.contents.map((item) => item.type)).toEqual(["weapon"]);
+		expect(knight.items.contents[0].system).toMatchObject({ damage: "d8", blast: true });
+
+		knight.system.bookTable.rolls = [3];
+		await applyTableStats(knight, [0]);
+		expect(knight.items.contents.map(({ type, name }) => `${type}:${name}`)).toEqual(["gear:Odd draughts (see below)"]);
+	});
+
+	it("adds a named piece beside the armour the table is about, and takes it away again", async () => {
+		const quirks = { name: "Strange Plate", columns: ["Quirk"], rows: [["Grim helm (A1)"], ["Spiked gloves (d6)"], ["Hums"], ["Hums"], ["Hums"], ["Hums"]], rolls: [1] };
+		const knight = knightWith([{ id: "plate", name: "Strange plate (A1, see below)", type: "armour", system: { kind: "plates", armour: 1 } }], quirks);
+		const said = await applyTableStats(knight, [0]);
+		expect(said).toEqual(["bastionland.knightTable.apply.added"]);
+		const helm = knight.items.contents.find((item) => item.name === "Grim helm");
+		expect(helm.system).toMatchObject({ kind: "helm", armour: 1, equipped: true });
+		expect(knight.items.get("plate").system).toEqual({ kind: "plates", armour: 1 });
+
+		knight.system.bookTable.rolls = [2];
+		await applyTableStats(knight, [0]);
+		expect(knight.items.contents.map(({ type, name }) => `${type}:${name}`)).toEqual(["armour:Strange plate (A1, see below)", "weapon:Spiked gloves"]);
+
+		knight.system.bookTable.rolls = [3];
+		await applyTableStats(knight, [0]);
+		expect(knight.items.contents.map((item) => item.name)).toEqual(["Strange plate (A1, see below)"]);
+	});
+
+	it("puts a companion's result on the NPC made from its line, and back", async () => {
+		const breeds = { name: "Grey Hawk", columns: ["Breed"], rows: [["Kestrel (d6 beak)"], ["Old bird (6GD)"], ["Hums"], ["Hums"], ["Hums"], ["Hums"]], rolls: [1], page: 99 };
+		const knight = knightWith([{ id: "hawk", name: "Grey hawk (VIG 4, CLA 9, SPI 5, 3GD, d4 beak, see below)", type: "gear", system: {} }], breeds);
+		knight.id = "knight1";
+		const npc = knightWith([{ id: "beak", name: "Beak", type: "weapon", system: { damage: "d4" } }]);
+		Object.assign(npc, { name: "Grey hawk", uuid: "Actor.hawk", system: { armour: 0, guard: { value: 3, max: 3 } } });
+		npc.getFlag = (_scope, key) => (key === "companionOf" ? "knight1" : undefined);
+		globalThis.game.actors = [npc];
+		globalThis.fromUuidSync = (uuid) => (uuid === npc.uuid ? npc : null);
+
+		await applyTableStats(knight, [0]);
+		expect(npc.items.get("beak").system.damage).toBe("d6");
+		expect(knight.items.contents.map((item) => item.type)).toEqual(["gear"]);
+		expect(knight.flags[SYSTEM_ID].tableApplied[0]).toMatchObject({ actor: "Actor.hawk", item: "beak", before: { damage: "d4" } });
+
+		knight.system.bookTable.rolls = [2];
+		await applyTableStats(knight, [0]);
+		expect(npc.items.get("beak").system.damage).toBe("d4");
+		expect(npc.system.guard).toEqual({ value: 6, max: 6 });
+
+		knight.system.bookTable.rolls = [3];
+		await applyTableStats(knight, [0]);
+		expect(npc.system.guard).toEqual({ value: 3, max: 3 });
+	});
+
+	it("names the companion from the column that says what it is, unless renamed by hand", async () => {
+		const kinds = { name: "Friend", columns: ["Past", "Kind"], rows: [["Lost", "Badger"], ["Proud", "Stoat"], ["x", "x"], ["x", "x"], ["x", "x"], ["x", "x"]], rolls: [1, 1], page: 30 };
+		const knight = knightWith([{ id: "pal", name: "Friend (see below) (VIG 5, CLA 10, SPI 7, 4GD)", type: "gear", system: {} }], kinds);
+		knight.id = "knight2";
+		const npc = knightWith([]);
+		Object.assign(npc, { name: "Friend", uuid: "Actor.pal", system: {} });
+		npc.getFlag = (_scope, key) => (key === "companionOf" ? "knight2" : undefined);
+		globalThis.game.actors = [npc];
+		globalThis.fromUuidSync = (uuid) => (uuid === npc.uuid ? npc : null);
+
+		await applyTableStats(knight, [0, 1]);
+		expect(npc.name).toBe("Badger");
+		knight.system.bookTable.rolls = [1, 2];
+		await applyTableStats(knight, [1]);
+		expect(npc.name).toBe("Stoat");
+		knight.system.bookTable.rolls = [1, 0];
+		await applyTableStats(knight, [1]);
+		expect(npc.name).toBe("Friend");
+
+		knight.system.bookTable.rolls = [1, 1];
+		await applyTableStats(knight, [1]);
+		npc.name = "Whiskers";
+		knight.system.bookTable.rolls = [1, 2];
+		await applyTableStats(knight, [1]);
+		expect(npc.name).toBe("Whiskers");
+	});
+
+	it("leaves a column alone, without asking, when several could take it", async () => {
+		const knight = knightWith([
+			{ id: "a", name: "Odd crossbow", type: "weapon", system: { damage: "d6" } },
+			{ id: "b", name: "Odd crossbow, spare", type: "weapon", system: { damage: "d6" } }
+		], table([2, 1]));
+		await applyTableStats(knight, [0], { ask: false });
+		expect(inputDialog).not.toHaveBeenCalled();
+		expect(knight.items.contents.map((item) => item.system.damage)).toEqual(["d6", "d6"]);
+	});
+
+	it("leaves what a column did in place, without asking, when several could take its result now", async () => {
+		const knight = knightWith([
+			{ id: "a", name: "Odd crossbow", type: "weapon", system: { damage: "d6" } },
+			{ id: "b", name: "Odd crossbow, spare", type: "weapon", system: { damage: "d6" } },
+			{ id: "piece", name: "Oakheart", type: "weapon", system: { damage: "d8" } }
+		], table([2, 1]));
+		const applied = { 0: { created: "piece", kind: "weapon" } };
+		knight.flags[SYSTEM_ID] = { tableApplied: applied };
+		await applyTableStats(knight, [0], { ask: false });
+		expect(knight.items.get("piece")).toBeDefined();
+		expect(knight.flags[SYSTEM_ID].tableApplied).toEqual(applied);
+		expect(knight.update).not.toHaveBeenCalled();
+	});
+
+	it("moves a companion's result once made a weapon of its line onto the NPC, the line gear again", async () => {
+		const line = "Grey hawk (VIG 4, CLA 9, SPI 5, 3GD, d4 beak, see below)";
+		const breeds = { name: "Grey Hawk", columns: ["Breed"], rows: [["Kestrel (d6 beak)"], ["Hums"], ["Hums"], ["Hums"], ["Hums"], ["Hums"]], rolls: [1], page: 99 };
+		const knight = knightWith([{ id: "made", name: line, type: "weapon", system: { damage: "d6", equipped: true } }], breeds);
+		knight.id = "knight1";
+		knight.flags[SYSTEM_ID] = { tableApplied: { 0: { item: "made", kind: "weapon", retypedFrom: { _id: "hawk", name: line, type: "gear", img: "icon.svg", sort: 0, flags: {}, system: {} } } } };
+		const npc = knightWith([{ id: "beak", name: "Beak", type: "weapon", system: { damage: "d4" } }]);
+		Object.assign(npc, { name: "Grey hawk", uuid: "Actor.hawk", system: { armour: 0, guard: { value: 3, max: 3 } } });
+		npc.getFlag = (_scope, key) => (key === "companionOf" ? "knight1" : undefined);
+		globalThis.game.actors = [npc];
+		globalThis.fromUuidSync = (uuid) => (uuid === npc.uuid ? npc : null);
+
+		await applyTableStats(knight, [0], { ask: false });
+		expect(knight.items.contents.map(({ type, name }) => `${type}:${name}`)).toEqual([`gear:${line}`]);
+		expect(npc.items.get("beak").system.damage).toBe("d6");
+		expect(knight.flags[SYSTEM_ID].tableApplied[0]).toMatchObject({ actor: "Actor.hawk", item: "beak" });
+		expect(knight.flags[SYSTEM_ID].tableApplied[0].retypedFrom).toBeUndefined();
+	});
+});

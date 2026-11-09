@@ -21,7 +21,7 @@ const byHand = (...hexes) => (at) => ({ holding: hexes.some((hidden) => hexKey(h
 
 function realmWith({ landmarks = [], holdings = [], myths = [] } = {}) {
 	const realm = emptyRealm(g);
-	realm.landmarks = landmarks.map(({ hex: where, type = "monument", revealed = false }, index) => ({ id: `l${index}`, hex: where, type, name: "", seer: null, revealed }));
+	realm.landmarks = landmarks.map(({ hex: where, type = "monument", variant, revealed = false }, index) => ({ id: `l${index}`, hex: where, type, ...(variant ? { variant } : {}), name: "", seer: null, revealed }));
 	realm.holdings = holdings.map((where, index) => ({ id: `h${index}`, hex: where, style: "town", seat: false, name: "" }));
 	realm.myths = myths.map((where, index) => ({ id: `m${index}`, hex: where, number: index + 1, d6: 1, d12: 1, omen: 0, revealed: false }));
 	return realm;
@@ -61,6 +61,18 @@ describe("sightable", () => {
 		const seen = sightable(realm, g, here, byHand(east));
 		expect(seen.map((step) => [step.direction, hexKey(step.hex)])).toEqual([[0, hexKey(west)], [3, hexKey(east)]]);
 		expect(seen[1].holding.id).toBe("h0");
+	});
+
+	it("leaves out a hidden Landmark that can't be made out from afar, but not a Holding hidden beside it", () => {
+		const realm = realmWith({ landmarks: [{ hex: west, type: "grotto" }, { hex: east, type: "grotto" }], holdings: [east] });
+		const seen = sightable(realm, g, here, byHand(east));
+		expect(seen.map((step) => [hexKey(step.hex), step.landmark, step.holding?.id])).toEqual([[hexKey(east), null, "h0"]]);
+	});
+
+	it("makes out a Willow only in its own Season", () => {
+		const realm = realmWith({ landmarks: [{ hex: west, type: "willow", variant: "autumn" }] });
+		expect(sightable(realm, g, here, byHand(), { season: "spring" })).toEqual([]);
+		expect(sightable(realm, g, here, byHand(), { season: "autumn" }).map((step) => hexKey(step.hex))).toEqual([hexKey(west)]);
 	});
 });
 

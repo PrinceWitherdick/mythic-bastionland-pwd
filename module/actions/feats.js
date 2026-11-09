@@ -1,6 +1,7 @@
 import { postCard, t } from "../chat/cards.js";
 import { FEATS } from "../config.js";
 import { canDeny } from "../rules/attack.js";
+import { featBySeal, sealedPossession } from "../rules/knight-powers.js";
 import { downBy } from "../rules/virtues.js";
 import { causedBy } from "./ledger.js";
 import { evaluateSave, saveContext } from "./saves.js";
@@ -41,12 +42,19 @@ export async function rollFeat(actor, key) {
 }
 
 /**
- * Pay for a Feat whose Save was rolled: Fatigued on a failure (p10).
+ * Pay for a Feat whose Save was rolled: Fatigued on a failure (p10). A Feat
+ * performed only by a Knight's seal spends the seal (p70).
  * @param {Actor} actor
  * @param {import("./saves.js").SaveResult} save
+ * @param {string} [key] The Feat.
  */
-export async function payFeat(actor, save) {
+export async function payFeat(actor, save, key = null) {
 	if (!save.passed) await actor.update({ "system.fatigued": true }, causedBy("feat"));
+	if (key && actor.type === "npc" && featBySeal(actor.system, actor.items ?? [], key)) {
+		const sealed = sealedPossession(actor.items);
+		await sealed.update({ "system.sealed": false }, causedBy("feat"));
+		await postCard(actor, "note", { icon: "fa-solid fa-stamp", text: t("seal.spent", { name: actor.name, item: sealed.name, feat: t(`feats.${key}.name`) }) });
+	}
 }
 
 /**

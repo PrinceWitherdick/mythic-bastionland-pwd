@@ -80,8 +80,15 @@ async function keepRecap(key, heading, recap) {
 }
 
 /**
+ * How the window and the card both name a situation: by its number, since it's named out loud at the table.
+ * @param {number} number
+ * @returns {string}
+ */
+export const situationLabel = (number) => t("sessionEnd.situations.numbered", { number });
+
+/**
  * What became of the situations left unresolved, as the card lists them.
- * @param {{name: string, d6: number, result: string}[]} situations
+ * @param {{number: number, d6: number, result: string}[]} situations
  * @returns {object|null} An entry for a report card, or null where none was rolled for.
  */
 function situationsEntry(situations = []) {
@@ -90,7 +97,7 @@ function situationsEntry(situations = []) {
 	return {
 		name: t("sessionEnd.card.unresolved"),
 		lines: rolled.map((situation) => t("sessionEnd.card.situation", {
-			situation: situation.name?.trim() || t("sessionEnd.situations.unnamed"),
+			situation: situationLabel(situation.number),
 			d6: situation.d6,
 			result: t(`refereeRolls.tables.unresolved.results.${situation.result}`)
 		}))
@@ -121,7 +128,7 @@ function sessionEntries({ glory = [], plans = "" }, passed, unresolved) {
  * @param {object} session What the window gathered.
  * @param {string} session.step One of TIME_STEPS.
  * @param {string} [session.passed] How the step reads, for the card.
- * @param {{name: string, d6: number, result: string}[]} [session.situations] Unresolved situations
+ * @param {{number: number, d6: number, result: string}[]} [session.situations] Unresolved situations
  *   rolled (p17), each `result` a key of that table.
  * @param {boolean} [session.shareSituations] Whether the table's card shows them; otherwise they're told the Referee alone.
  * @param {string[]} [session.glory] Lines naming the Glory awarded this session.

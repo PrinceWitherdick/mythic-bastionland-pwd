@@ -49,6 +49,10 @@
 				{{#if resolved}}
 				<span class="bastionland-gm-toolkit__chip bastionland-pill is-resolved"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.gmToolkit.myths.resolved"}}</span>
 				{{/if}}
+				{{#if awardGlory}}
+				{{!-- Resolved with nobody given its Glory: it can be given still. --}}
+				<button type="button" class="bastionland-gm-toolkit__chip bastionland-pill bastionland-gm-toolkit__chip--button" data-action="awardMythGlory" data-tooltip="{{localize 'bastionland.gmToolkit.myths.awardGloryTooltip'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.gmToolkit.myths.awardGlory"}}</button>
+				{{/if}}
 			</span>
 		</summary>
 
@@ -155,6 +159,16 @@
 		{{#if cityQuest.missingText}}
 		<p class="bastionland-hint">{{localize "bastionland.cityQuest.noText"}}</p>
 		{{/if}}
+		{{!-- Whether a Wilderness Roll of 1 brings an Omen of the City: left to the Knights, or set by the Referee. --}}
+		<label class="bastionland-gm-toolkit__note bastionland-myths__worthy">
+			<span>{{localize "bastionland.cityQuest.worthy.label"}}</span>
+			<select data-toolkit-field="cityQuestWorthy">
+				{{#each cityQuest.worthy.options}}
+				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+		</label>
+		<p class="bastionland-hint">{{cityQuest.worthy.hint}}</p>
 		<p>{{cityQuest.seen}}</p>
 		{{#unless cityQuest.empty}}
 		<ol class="bastionland-myths__omens bastionland-myths__omens--city">

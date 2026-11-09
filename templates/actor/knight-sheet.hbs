@@ -200,6 +200,23 @@
 					{{/if}}{{/if}}
 					{{/if}}
 				</section>
+				{{!-- Who follows them besides their steed and Squire, as a hawk made from their Property. --}}
+				{{#if companions.length}}
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.companions.hint'}}">{{localize "bastionland.companions.label"}}</h2>
+					{{#each companions}}
+					<div class="bastionland-steed">
+						<img class="bastionland-steed__img" src="{{img}}" alt="">
+						<button type="button" class="bastionland-item__name" data-action="openCompanion" data-uuid="{{uuid}}">{{name}}</button>
+						{{#if ../editable}}{{#if releasable}}
+						<button type="button" class="bastionland-icon" data-action="releaseCompanion" data-uuid="{{uuid}}" data-tooltip="{{localize 'bastionland.companions.release'}}" aria-label="{{localize 'bastionland.companions.release'}}">
+							<i class="fa-solid fa-xmark" inert></i>
+						</button>
+						{{/if}}{{/if}}
+					</div>
+					{{/each}}
+				</section>
+				{{/if}}
 			</div>
 
 			<div class="bastionland-column">

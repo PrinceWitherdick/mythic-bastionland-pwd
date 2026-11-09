@@ -297,7 +297,8 @@ export async function dramaInCourt(domain) {
 	const result = dramaResult(roll.total);
 
 	// The Court is where the drama breeds (p21), so one of them is at the heart of it.
-	const candidates = dramaCandidates(domain.system.court);
+	// Never one of the Company's own Knights, whom their players play.
+	const candidates = dramaCandidates(domain.system.court, worldKnights());
 	const entries = [];
 	let member = null;
 	if (candidates.length) {

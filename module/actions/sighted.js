@@ -5,13 +5,12 @@ import { hiddenTilesIn } from "../rules/realm-documents.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { MAX_SIGHTED_NOTE, SIGHTED_FLAG, hiddenThere, normaliseSighted, sightable, sightedAt, sightingChanges } from "../rules/sighted.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { hexesReached } from "./held-back.js";
-import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { centredTiles, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { holdingName } from "../rules/realm.js";
 import { keptFromMe } from "./solo.js";
 import { directionName } from "./told-where.js";
 import { landmarkLabelKey } from "../rules/landmarks.js";
+import { getCalendar } from "./calendar.js";
 
 /**
  * Seen from afar (p183, p197, p199): the Referee marks on the players' map
@@ -99,7 +98,7 @@ function sightingLabel(g, { direction, hex, landmark, holding }) {
  */
 export async function offerSightings({ scene, realm, g, where }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
-	const seen = sightable(realm, g, where, handHiddenOn(scene));
+	const seen = sightable(realm, g, where, handHiddenOn(scene), { season: getCalendar().season });
 	if (!seen.length) return null;
 	const sighted = getSighted(scene);
 
@@ -138,7 +137,8 @@ export async function offerSightings({ scene, realm, g, where }) {
 /**
  * The Company reaching a hex it saw something in from afar finds what stands
  * there: its Tiles are shown on the players' map, and the mark is taken away.
- * GMs only.
+ * Asked by arrivals.js once a move has settled where the Company really went,
+ * so a blind drift or dire weather that kept it out finds nothing. GMs only.
  * @param {Scene} scene
  * @param {{col: number, row: number}[]} hexes The hexes the Company came into.
  * @returns {Promise<{col: number, row: number}[]>} Those it found something in.
@@ -154,20 +154,4 @@ export async function revealSighted(scene, hexes) {
 	await writeSightings(scene, { drop: [...new Set(reached.map(hexKey))] });
 	if (updates.length) ui.notifications.info(t("seenFromAfar.reached"));
 	return reached;
-}
-
-/**
- * Notice the Company coming into a hex it saw something in from afar. Heard on
- * the active GM's client alone. Not one dire weather may be keeping it out of,
- * played alone, till the Referee lets it on.
- * @param {Scene} scene
- * @param {{entered: {col: number, row: number}[]}} move
- */
-function noticeMove(scene, move) {
-	revealSighted(scene, hexesReached(scene, move)).catch((error) => console.error(`${SYSTEM_ID} | Couldn't show what the Company saw from afar`, error));
-}
-
-/** Follow the Company to what it saw from afar. Called during init. */
-export function registerSightings() {
-	Hooks.on(COMPANY_MOVED_HOOK, noticeMove);
 }

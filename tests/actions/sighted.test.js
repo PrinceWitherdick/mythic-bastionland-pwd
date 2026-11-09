@@ -20,7 +20,9 @@ vi.mock("../../module/apps/ui.js", () => ({
 	})
 }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
-vi.mock("../../module/actions/journey.js", () => ({ COMPANY_MOVED_HOOK: "mythic-bastionland.companyMoved" }));
+// The Season now, which a Willow stands in or doesn't.
+let season = "spring";
+vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({ age: 1, year: 1, season, day: 1, phase: "morning" }) }));
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => scene?.isRealm !== false,
 	sceneGeometry: () => g,
@@ -29,7 +31,8 @@ vi.mock("../../module/actions/realm.js", () => ({
 	hexHiddenByHand: (_scene, at) => ({ terrain: false, holding: handHidden.has(hexKey(at)), seat: false })
 }));
 
-const { getSighted, offerSightings, registerSightings, revealSighted, sightedMarkAt } = await import("../../module/actions/sighted.js");
+const sightedModule = await import("../../module/actions/sighted.js");
+const { getSighted, offerSightings, revealSighted, sightedMarkAt } = sightedModule;
 
 /** A Tile standing in the middle of a hex, as a Realm draws it. */
 const tile = (id, kind, at, hidden = true) => ({ id, hidden, ...hexCentre(g, at), flags: { [SYSTEM_ID]: { [REALM_FLAG]: { kind } } } });
@@ -56,7 +59,7 @@ function fakeScene({ sighted = {}, tiles = [] } = {}) {
 
 function realmWith({ landmarks = [], holdings = [] } = {}) {
 	const realm = emptyRealm(g);
-	realm.landmarks = landmarks.map(({ hex: where, type = "monument", name = "", revealed = false }, index) => ({ id: `l${index}`, hex: where, type, name, seer: null, revealed }));
+	realm.landmarks = landmarks.map(({ hex: where, type = "monument", name = "", revealed = false, variant = null }, index) => ({ id: `l${index}`, hex: where, type, ...(variant ? { variant } : {}), name, seer: null, revealed }));
 	realm.holdings = holdings.map((where, index) => ({ id: `h${index}`, hex: where, style: "town", seat: false, name: "Oakwall" }));
 	return realm;
 }
@@ -120,6 +123,20 @@ describe("offerSightings", () => {
 		expect(scene.update).not.toHaveBeenCalled();
 	});
 
+	it("offers no hex whose hidden Landmark isn't seen from afar: a Grotto, or a Willow out of its Season", async () => {
+		const scene = fakeScene();
+		const realm = realmWith({ landmarks: [{ hex: west, type: "willow", variant: "winter" }, { hex: east, type: "grotto", variant: "past" }] });
+		expect(await offerSightings({ scene, realm, g, where: here })).toBeNull();
+		expect(asked).toBeNull();
+		season = "winter";
+		try {
+			await offerSightings({ scene, realm, g, where: here });
+			expect(asked.context.hexes).toHaveLength(1);
+		} finally {
+			season = "spring";
+		}
+	});
+
 	it("asks nothing of a player", async () => {
 		game.user.isGM = false;
 		expect(await offerSightings({ scene: fakeScene(), realm: realmWith({ landmarks: [{ hex: west }] }), g, where: here })).toBeNull();
@@ -153,11 +170,7 @@ describe("revealSighted", () => {
 		expect(scene.update).not.toHaveBeenCalled();
 	});
 
-	it("follows the Company's moves", () => {
-		const on = vi.fn();
-		globalThis.Hooks = { on };
-		registerSightings();
-		expect(on).toHaveBeenCalledWith("mythic-bastionland.companyMoved", expect.any(Function));
-		delete globalThis.Hooks;
+	it("hangs nothing on the Company's moves itself: arrivals.js asks once a blind move has settled (p18)", () => {
+		expect(sightedModule.registerSightings).toBeUndefined();
 	});
 });

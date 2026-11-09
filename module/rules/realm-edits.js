@@ -340,7 +340,8 @@ export const placeFeature = mending(function placeFeature(realm, g, hex, feature
 			const variant = landmarkVariant(next, type, feature.variant, same ? here.landmark.variant : undefined);
 			const pair = feature.pair !== undefined ? feature.pair : same ? here.landmark.pair : null;
 			const won = feature.won ?? (same ? here.landmark.won : false);
-			const gloried = feature.gloried ?? (same ? here.landmark.gloried : false);
+			// A Bridge's Glory once given stays given, whatever the Landmark is made meanwhile, so it's never given twice.
+			const gloried = feature.gloried ?? here.landmark?.gloried ?? false;
 			next.landmarks.push({
 				id: here.landmark?.id ?? null,
 				hex: { ...hex },

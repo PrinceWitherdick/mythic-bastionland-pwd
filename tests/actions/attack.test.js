@@ -16,7 +16,7 @@ vi.mock("../../module/actions/attack-memory.js", async (importOriginal) => ({
 	recallAttack: () => null,
 	rememberAttack: vi.fn(async () => {})
 }));
-vi.mock("../../module/actions/duel.js", () => ({ openDuelFor: vi.fn(() => null), saveDuelChange: vi.fn() }));
+vi.mock("../../module/actions/duel.js", () => ({ knockedDownIn: vi.fn(() => null), openDuelFor: vi.fn(() => null), saveDuelChange: vi.fn() }));
 vi.mock("../../module/actions/feats.js", () => ({ canDenyAttack: () => false, featContext: vi.fn(), payFeat: vi.fn(async () => {}), rollFeat: vi.fn(async () => null) }));
 vi.mock("../../module/actions/leading.js", () => ({ leaderCandidates: vi.fn(() => []) }));
 
@@ -25,7 +25,7 @@ const { rememberAttack } = await import("../../module/actions/attack-memory.js")
 const { playBlowFx } = await import("../../module/actions/attack-fx.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { marksOn } = await import("../../module/chat/gambit-marks.js");
-const { openDuelFor } = await import("../../module/actions/duel.js");
+const { knockedDownIn, openDuelFor } = await import("../../module/actions/duel.js");
 const { leaderCandidates } = await import("../../module/actions/leading.js");
 const { attack, attackCardContext, joinAttack } = await import("../../module/actions/attack.js");
 
@@ -206,6 +206,60 @@ describe("an Attack in a sparring bout", () => {
 		openDuelFor.mockReturnValue({ message: { id: "duel-1" }, duel: { kind: "duel", sparring: false }, opponent: { token: "Scene.s.Token.Kay", name: "Ser Kay" } });
 		await attack(combatant({ uuid: "Actor.tal", name: "Tal", type: "knight" }));
 		expect(opened().duel).toBe("bastionland.duel.attackIn");
+	});
+
+	it("isn't made by a duelist knocked down in the bout, till it ends (p188)", async () => {
+		knockedDownIn.mockReturnValueOnce({ sparring: true });
+		expect(await attack(combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("mace", "Mace", "d8")] }))).toBeNull();
+		expect(inputDialog).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.duel.knockedDown");
+	});
+});
+
+describe("a joust (p10)", () => {
+	/** Tal on Bayard, who tramples, against Ser Kay, not yet marked Mounted. */
+	const setUp = ({ kind = "joust", exchanges = 0, kayMounted = false } = {}) => {
+		tokens["Actor.bayard"] = {
+			documentName: "Actor",
+			name: "Bayard",
+			system: { virtues: { vig: { value: 10 } } },
+			items: [weapon("hooves", "Hooves", "d6", { trample: true })]
+		};
+		const kay = combatant({ uuid: "Actor.kay", name: "Ser Kay", type: "knight" });
+		kay.system.mounted = kayMounted;
+		tokens["Scene.s.Token.Kay"] = { actor: kay };
+		openDuelFor.mockReturnValue({ message: { id: "duel-1" }, duel: { kind, exchanges, sparring: false, duelists: [{ uuid: "Actor.tal", token: null }, { uuid: "Actor.kay", token: "Scene.s.Token.Kay" }] }, opponent: { uuid: "Actor.kay", token: "Scene.s.Token.Kay", name: "Ser Kay" } });
+		const tal = combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("lance", "Lance", "d8")] });
+		Object.assign(tal.system, { steed: "Actor.bayard", mounted: true });
+		return tal;
+	};
+
+	it("has the other duelist ride before they've rolled, so the first rider's steed can't trample them", async () => {
+		await attack(setUp());
+		expect(opened().chargeBarred).toBe("bastionland.attack.chargeBarred");
+		inputDialog.mockClear();
+		// A plain duel at somebody on foot is another matter.
+		await attack(setUp({ kind: "duel" }));
+		expect(opened().chargeBarred).toBeNull();
+	});
+
+	it("leaves the trample out of a charge at the other rider", async () => {
+		const faces = async (options) => {
+			postCard.mockClear();
+			inputDialog.mockResolvedValue({ "source.lance": true, charge: true, duel: true });
+			await attack(setUp(options));
+			return postCard.mock.calls[0][3].flags[SYSTEM_ID].attack.dice.map((die) => die.faces);
+		};
+		expect(await faces()).toEqual([8]);
+		expect((await faces({ kind: "duel" })).sort()).toEqual([6, 8]);
+	});
+
+	it("leaves a rider thrown in an earlier exchange on foot, to be trampled", async () => {
+		await attack(setUp({ exchanges: 1, kayMounted: false }));
+		expect(opened().chargeBarred).toBeNull();
+		inputDialog.mockClear();
+		await attack(setUp({ exchanges: 1, kayMounted: true }));
+		expect(opened().chargeBarred).toBe("bastionland.attack.chargeBarred");
 	});
 });
 

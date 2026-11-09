@@ -53,6 +53,7 @@ export function lastingDiceOf(actor, combatant = combatantOf(actor)) {
 export function lastingDieLabel(die) {
 	const label = die.label || t("attack.bonus");
 	if (die.item) return t("attack.lastingDieWeapon", { label, faces: die.faces, weapon: die.itemName || "?" });
+	if (die.against) return t("attack.lastingDieAgainst", { label, faces: die.faces, name: die.againstName || "?" });
 	return t(die.melee ? "attack.lastingDieMelee" : "attack.lastingDie", { label, faces: die.faces });
 }
 

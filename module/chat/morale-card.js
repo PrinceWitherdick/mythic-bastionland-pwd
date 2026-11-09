@@ -4,7 +4,7 @@ import { gmAsker } from "../gm-asker.js";
 import { playerCharacter } from "../actions/knights.js";
 import { combatantOf } from "../actions/lasting-dice.js";
 import { letGoOf } from "../actions/leading.js";
-import { keepsMoraleMark, rollMorale } from "../actions/saves.js";
+import { keepsMoraleMark, moraleLeaderOf, rollMorale } from "../actions/saves.js";
 import { offerRevenge } from "../actions/scars.js";
 import { BREAK_ICONS, GROUP_ORDER, downOf, downedPlace, groupHalved, isMoraleBreak, moraleRollers, skipsBrokenTurn } from "../rules/morale.js";
 import { keyedSerialWrites } from "../rules/queue.js";
@@ -359,6 +359,8 @@ export function registerMoraleCards() {
  */
 export function moralePrompt({ name, uuid = null }, trigger) {
 	if (!trigger) return null;
-	const text = t(`morale.triggers.${trigger}`, { name });
+	// An organised group rolls once on its leader's SPI (p10): a Warband led from the front, on theirs.
+	const leader = trigger === "halved" && uuid ? moraleLeaderOf(globalThis.fromUuidSync?.(uuid)) : null;
+	const text = leader ? t("morale.triggers.halvedLed", { name, leader: leader.name }) : t(`morale.triggers.${trigger}`, { name });
 	return uuid ? { uuid, text, label: t("morale.roll") } : { text };
 }

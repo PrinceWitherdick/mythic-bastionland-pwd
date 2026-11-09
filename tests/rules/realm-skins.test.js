@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contrast, mix } from "../../module/rules/colour.js";
-import { TERRAIN } from "../../module/rules/realm.js";
+import { BLOG_LANDMARK_TYPES, TERRAIN } from "../../module/rules/realm.js";
 import {
 	REALM_CUSTOM_DIR,
 	REALM_PALETTES,
@@ -11,6 +11,7 @@ import {
 	lookForNewRealms,
 	matchCustomFiles,
 	normaliseRealmLook,
+	offeredRealmPictures,
 	OWN_SKIN_ROOT,
 	ownSkinLook,
 	ownSkinManifest,
@@ -140,6 +141,18 @@ describe("the GM's own pictures", () => {
 	it("names terrain for its terrain, and reads every picture's own name", () => {
 		expect(REALM_PICTURES.slice(0, TERRAIN.length)).toEqual(TERRAIN.map((key) => `terrain-${key}`));
 		for (const name of REALM_PICTURES) expect(customPictureName(`${name}.png`)).toBe(name);
+	});
+
+	it("asks for the blog's Landmarks' pictures only where the world offers them, and still reads their files", () => {
+		const blog = BLOG_LANDMARK_TYPES.map((type) => `landmark-${type}`);
+		expect(blog.every((name) => REALM_PICTURES.includes(name))).toBe(true);
+		expect(offeredRealmPictures(true)).toEqual(REALM_PICTURES);
+		const off = offeredRealmPictures(false);
+		expect(off).toEqual(REALM_PICTURES.filter((name) => !blog.includes(name)));
+		// The Referee's own Landmark is offered either way.
+		expect(off).toContain("landmark-other");
+		// A skin serves every world on the server, so a file for one is still kept while it isn't asked for.
+		expect(customPictureName("landmark-pond.png")).toBe("landmark-pond");
 	});
 
 	it("matches a folder's files, preferring the exact name", () => {

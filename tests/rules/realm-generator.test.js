@@ -368,6 +368,36 @@ describe("generateRealm with the blog's Landmarks", () => {
 		}
 	});
 
+	it("never leaves a Pond alone when the hexes run out", () => {
+		// The book's Landmarks crowded in till one or three Wilderness hexes are left for the blog's.
+		const crowded = (left) => ({
+			ignoreRules: true,
+			landmarks: { min: 3, max: 4, types: { dwelling: 23 - left, sanctum: 22, monument: 22, hazard: 22, curse: 22, ruin: 22 } }
+		});
+		let ponds = 0;
+		let short = 0;
+		for (const left of [1, 3]) {
+			for (const seed of seeds) {
+				const plain = generateRealm({ seed, setup: crowded(left) });
+				const free = 144 - plain.holdings.length - plain.myths.length - plain.landmarks.length;
+				const realm = generateRealm({ seed, setup: crowded(left), blogLandmarks: true });
+				const blog = realm.landmarks.filter((landmark) => BLOG_LANDMARK_TYPES.includes(landmark.type));
+				// Every hex left is filled, but where a Pond would have stood alone.
+				if (free <= 3) short += 1;
+				expect(blog.length).toBeLessThanOrEqual(free);
+				expect(blog.length).toBeGreaterThanOrEqual(Math.min(free, 1));
+				const paired = blog.filter((landmark) => landmark.type === "pond");
+				expect(paired.length % 2).toBe(0);
+				ponds += paired.length;
+				expect(validateRealm(realm, g)).toEqual([]);
+			}
+		}
+		expect(short).toBeGreaterThan(0);
+		// Some still find room for both.
+		expect(ponds).toBeGreaterThan(0);
+		// A hundred and sixty Realms rolled: given time while the whole suite runs at once.
+	}, 30000);
+
 	it("rolls none where the Landmarks are left to draw by hand", () => {
 		const realm = generateRealm({ seed: "blog", geometry: g, blogLandmarks: true, setup: { roll: { landmarks: false } } });
 		expect(realm.landmarks).toEqual([]);

@@ -3,13 +3,17 @@ import {
 	awaitsAttack,
 	canStakeGlory,
 	changeDuel,
+	duelAsItStands,
 	createDuel,
 	duelRefusal,
+	duelistDown,
 	opponentOf,
 	readyToResolve,
+	ridesInJoust,
 	shakenOff,
 	sparringOpen,
-	stakeChanges
+	stakeChanges,
+	stakesGlory
 } from "../../module/rules/duel.js";
 
 const duelists = [{ uuid: "Actor.ada", name: "Ada", token: "Token.a" }, { uuid: "Actor.bram", name: "Bram", token: "Token.b" }];
@@ -19,16 +23,28 @@ describe("createDuel", () => {
 		expect(createDuel({ kind: "joust", stake: true, duelists })).toEqual({
 			kind: "joust",
 			stake: true,
+			stakeAnswer: null,
 			bloodless: false,
 			sparring: false,
 			duelists: [
-				{ uuid: "Actor.ada", name: "Ada", token: "Token.a", attack: null, start: null },
-				{ uuid: "Actor.bram", name: "Bram", token: "Token.b", attack: null, start: null }
+				{ uuid: "Actor.ada", name: "Ada", token: "Token.a", knight: true, attack: null, start: null, down: false },
+				{ uuid: "Actor.bram", name: "Bram", token: "Token.b", knight: true, attack: null, start: null, down: false }
 			],
 			exchanges: 0,
 			victor: null,
-			ended: false
+			ended: false,
+			closed: null
 		});
+	});
+
+	it("stakes nothing on a sparring bout, whatever it's asked (p188)", () => {
+		expect(createDuel({ sparring: true, stake: true, duelists }).stake).toBe(false);
+	});
+
+	it("says why a stake offered isn't on it, and nothing else", () => {
+		expect(createDuel({ stakeAnswer: "refused", duelists }).stakeAnswer).toBe("refused");
+		expect(createDuel({ stakeAnswer: "unanswered", duelists }).stakeAnswer).toBe("unanswered");
+		expect(createDuel({ stakeAnswer: "<b>", duelists }).stakeAnswer).toBeNull();
 	});
 
 	it("needs two different duelists, and falls back to a duel for an unknown kind", () => {
@@ -152,17 +168,117 @@ describe("stakeChanges", () => {
 		expect(stakeChanges(duel, null)).toEqual([]);
 		expect(stakeChanges(createDuel({ duelists }), "Actor.ada")).toEqual([]);
 	});
+
+	it("moves only a Knight's Glory, against a non-Knight either way", () => {
+		const duel = createDuel({ stake: true, duelists: [duelists[0], { ...duelists[1], knight: false }] });
+		expect(stakeChanges(duel, "Actor.ada")).toEqual([{ uuid: "Actor.ada", amount: 1 }]);
+		expect(stakeChanges(duel, "Actor.bram")).toEqual([{ uuid: "Actor.ada", amount: -1 }]);
+		expect(stakeChanges(duel, "Actor.cole")).toEqual([]);
+	});
+
+	it("moves both, as it always did, on a card from before a duelist said whether they're a Knight", () => {
+		const duel = createDuel({ stake: true, duelists });
+		const older = { ...duel, duelists: duel.duelists.map(({ knight: _knight, ...duelist }) => duelist) };
+		expect(stakeChanges(older, "Actor.bram")).toHaveLength(2);
+	});
+
+	it("moves nothing on a sparring bout, even one staked on a card from before that was refused", () => {
+		const duel = { ...createDuel({ sparring: true, duelists }), stake: true };
+		expect(stakeChanges(duel, "Actor.ada")).toEqual([]);
+	});
 });
 
 describe("canStakeGlory", () => {
-	it("lets only two Knights stake Glory", () => {
+	it("lets a Knight stake Glory against a Knight or anybody else willing (p6)", () => {
 		expect(canStakeGlory([{ type: "knight" }, { type: "knight" }])).toBe(true);
-		expect(canStakeGlory([{ type: "knight" }, { type: "npc" }])).toBe(false);
-		expect(canStakeGlory([{ type: "knight" }, { type: "knight", isSquire: true }])).toBe(false);
+		expect(canStakeGlory([{ type: "knight" }, { type: "npc" }])).toBe(true);
+		expect(canStakeGlory([{ type: "npc" }, { type: "knight" }])).toBe(true);
 	});
 
-	it("lets a Knight stake Glory against the Referee's NPC Knight", () => {
+	it("needs a Knight on one side, which a Squire isn't yet", () => {
+		expect(canStakeGlory([{ type: "npc" }, { type: "npc" }])).toBe(false);
+		expect(canStakeGlory([{ type: "knight", isSquire: true }, { type: "npc" }])).toBe(false);
+		expect(canStakeGlory([{ type: "knight" }, { type: "knight", isSquire: true }])).toBe(true);
+		expect(stakesGlory({ type: "knight", isSquire: true })).toBe(false);
+	});
+
+	it("lets a Knight stake Glory against the Referee's NPC Knight, whose Glory moves too", () => {
 		expect(canStakeGlory([{ type: "knight" }, { type: "npcKnight" }])).toBe(true);
+		expect(stakesGlory({ type: "npcKnight" })).toBe(true);
+	});
+});
+
+describe("an Attack card deleted", () => {
+	const here = (...ids) => (id) => ids.includes(id);
+	const rolled = () => changeDuel(changeDuel(createDuel({ duelists }), { type: "attack", actor: "Actor.ada", message: "m1" }), { type: "attack", actor: "Actor.bram", message: "m2" });
+
+	it("is no Attack: its duelist rolls again, and the exchange waits for them", () => {
+		const duel = duelAsItStands(rolled(), here("m2"));
+		expect(duel.duelists.map(({ attack }) => attack)).toEqual([null, "m2"]);
+		expect(awaitsAttack(duel, "Actor.ada")).toBe(true);
+		expect(readyToResolve(duel)).toBe(false);
+		expect(changeDuel(duel, { type: "resolved" })).toBeNull();
+		const again = changeDuel(duel, { type: "attack", actor: "Actor.ada", message: "m3" });
+		expect(again.duelists[0].attack).toBe("m3");
+		expect(readyToResolve(duelAsItStands(again, here("m2", "m3")))).toBe(true);
+	});
+
+	it("leaves a duel whose Attack cards are all still there as it was", () => {
+		const duel = rolled();
+		expect(duelAsItStands(duel, here("m1", "m2"))).toBe(duel);
+		expect(duelAsItStands(null, here())).toBeNull();
+	});
+
+	it("is forgotten on the card, and only one that's on it", () => {
+		const duel = rolled();
+		expect(changeDuel(duel, { type: "forget", message: "m1" }).duelists.map(({ attack }) => attack)).toEqual([null, "m2"]);
+		expect(changeDuel(duel, { type: "forget", message: "m9" })).toBeNull();
+	});
+});
+
+describe("closing a duel a duelist has left", () => {
+	it("ends it without a victor, saying who and why", () => {
+		const duel = createDuel({ duelists });
+		expect(changeDuel(duel, { type: "end", victor: null, closed: { name: "Bram", reason: "slain" } })).toMatchObject({
+			ended: true,
+			victor: null,
+			closed: { name: "Bram", reason: "slain" }
+		});
+		expect(changeDuel(duel, { type: "end", victor: "Actor.ada", closed: { name: "Bram", reason: "gone" } })).toBeNull();
+		expect(changeDuel(duel, { type: "end", victor: null, closed: { name: "Bram", reason: "bored" } })).toBeNull();
+	});
+});
+
+describe("a sparring duelist knocked down", () => {
+	it("is down for the rest of the bout, and only in a sparring bout still going on (p188)", () => {
+		const bout = createDuel({ sparring: true, duelists });
+		const down = changeDuel(bout, { type: "down", actor: "Actor.bram" });
+		expect(duelistDown(down, "Actor.bram")).toBe(true);
+		expect(duelistDown(down, "Actor.ada")).toBe(false);
+		// Still down after the exchange is resolved.
+		const next = changeDuel(changeDuel(changeDuel(down, { type: "attack", actor: "Actor.ada", message: "m1" }), { type: "attack", actor: "Actor.bram", message: "m2" }), { type: "resolved" });
+		expect(duelistDown(next, "Actor.bram")).toBe(true);
+		expect(duelistDown(changeDuel(down, { type: "end", victor: "Actor.ada" }), "Actor.bram")).toBe(false);
+		expect(changeDuel(down, { type: "down", actor: "Actor.bram" })).toBeNull();
+		expect(changeDuel(createDuel({ duelists }), { type: "down", actor: "Actor.bram" })).toBeNull();
+	});
+});
+
+describe("ridesInJoust", () => {
+	it("has both duelists ride in a joust before either is marked (p10)", () => {
+		const joust = createDuel({ kind: "joust", duelists });
+		expect(ridesInJoust(joust, false)).toBe(true);
+		expect(ridesInJoust(joust, undefined)).toBe(true);
+		expect(ridesInJoust(createDuel({ duelists }), true)).toBe(false);
+		expect(ridesInJoust(null, true)).toBe(false);
+	});
+
+	it("leaves a rider thrown in an earlier exchange on foot", () => {
+		const later = { ...createDuel({ kind: "joust", duelists }), exchanges: 1 };
+		expect(ridesInJoust(later, false)).toBe(false);
+		expect(ridesInJoust(later, true)).toBe(true);
+		// Somebody with no Mounted mark of their own still rides.
+		expect(ridesInJoust(later, undefined)).toBe(true);
 	});
 });
 
@@ -173,5 +289,11 @@ describe("duelRefusal", () => {
 		expect(duelRefusal({ type: "npc", system: { scale: "individual", structure: true } })).toBe("structure");
 		expect(duelRefusal({ type: "npc", system: { scale: "individual" } })).toBeNull();
 		expect(duelRefusal({ type: "knight", system: {} })).toBeNull();
+	});
+
+	it("refuses the Slain and the Mortally Wounded, but not one of the Cast who fights on (p8)", () => {
+		expect(duelRefusal({ type: "knight", system: { slain: true } })).toBe("slain");
+		expect(duelRefusal({ type: "npc", system: { scale: "individual", mortalWound: true } })).toBe("mortalWound");
+		expect(duelRefusal({ type: "npc", system: { scale: "individual", mortalWound: true, fightsOn: true } })).toBeNull();
 	});
 });

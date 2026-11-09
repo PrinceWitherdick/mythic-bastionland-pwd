@@ -3,8 +3,8 @@ import { timelineNow } from "../actions/timeline-record.js";
 import { createCustomTag, worldCustomTags } from "../actions/timeline-tags.js";
 import { yearsOnHeading } from "../actions/travels.js";
 import { companyPicture } from "../actions/company.js";
-import { read } from "../client-settings.js";
-import { COMPANY_TRACK, KIND_GROUPS, documentUuid, isSeasonTurn, readEntries, realmSceneId } from "../rules/timeline.js";
+import { read, storedWorldSetting } from "../client-settings.js";
+import { COMPANY_TRACK, KIND_GROUPS, TIMELINE_REACH, documentUuid, isSeasonTurn, readEntries, realmSceneId, timelineReachOf } from "../rules/timeline.js";
 import { CUSTOM_TAG_ICON, DEFAULT_TAG_COLOUR, KIND_ICONS, TAG_NAME_MAX, TIMELINE_TAGS_FLAG, cleanColour, isKindTag, kindColourProperty, readKindColours } from "../rules/timeline-tags.js";
 import { boardView, defaultHiddenTracks, hiddenCount, kindMenu, periodChoices, threadGroups, threadMenu, trackView } from "../rules/timeline-view.js";
 import { clampScale, scrubTicks } from "../rules/timeline-scroll.js";
@@ -91,19 +91,40 @@ export function registerTimelineSettings() {
 			if (game.user?.isGM) redraw();
 		}
 	});
+	// A Boolean until 2026-11-05: a world from before still stores true or false,
+	// which timelineReachOf reads, and migrateTimelineReach rewrites on load so
+	// the settings window's drop-down shows it.
 	game.settings.register(SYSTEM_ID, SHOW_SETTING, {
 		name: "bastionland.timeline.setting.name",
 		hint: "bastionland.timeline.setting.hint",
 		scope: "world",
 		config: true,
-		type: Boolean,
-		default: true,
+		type: String,
+		choices: Object.fromEntries(TIMELINE_REACH.map((reach) => [reach, `bastionland.timeline.setting.${reach}`])),
+		default: "all",
 		requiresReload: true
 	});
 }
 
-/** @returns {boolean} Whether the world has the Timeline turned on. */
-export const timelineShown = () => read(SHOW_SETTING, true) !== false;
+/** @returns {string} Where the world has the Timeline, one of TIMELINE_REACH. */
+const timelineReach = () => timelineReachOf(read(SHOW_SETTING, "all"));
+
+/** @returns {boolean} Whether the world has the Timeline turned on anywhere. */
+export const timelineShown = () => timelineReach() !== "off";
+
+/** @returns {boolean} Whether Knight, Squire and Domain sheets have a Timeline page. */
+export const timelineOnSheets = () => timelineReach() === "all";
+
+/**
+ * Rewrite a world's old Boolean `showTimeline` as one of TIMELINE_REACH, once.
+ * The active Referee's alone, as it writes a world setting.
+ */
+export async function migrateTimelineReach() {
+	if (!game.user?.isGM || !game.users?.activeGM?.isSelf) return;
+	const stored = storedWorldSetting(`${SYSTEM_ID}.${SHOW_SETTING}`);
+	if (!stored || TIMELINE_REACH.includes(stored.value)) return;
+	await game.settings.set(SYSTEM_ID, SHOW_SETTING, timelineReachOf(stored.value));
+}
 
 /**
  * Say so, when the world has the Timeline turned off.

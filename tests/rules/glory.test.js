@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GLORY_AWARDS, GLORY_BUTTONS, changeGlory, nextRank, rankForGlory, unworthyOf } from "../../module/rules/glory.js";
+import { GLORY_AWARDS, GLORY_BUTTONS, changeGlory, gloryWorthyOf, nextRank, rankForGlory, unworthyOf } from "../../module/rules/glory.js";
 
 describe("changeGlory", () => {
 	it("adds Glory and names a Rank newly reached", () => {
@@ -64,5 +64,15 @@ describe("Glory for a Bridge", () => {
 		expect(GLORY_BUTTONS).not.toContain("bridge");
 		expect(GLORY_BUTTONS).not.toContain("myth");
 		expect(GLORY_BUTTONS).toEqual(["tournament", "battle"]);
+	});
+});
+
+describe("gloryWorthyOf", () => {
+	it("is the Glory each post asks (p6): Gallant for Court and Council, Tenant for a Holding, Dominant for a Seat", () => {
+		expect(gloryWorthyOf("court")).toBe(3);
+		expect(gloryWorthyOf("council")).toBe(3);
+		expect(gloryWorthyOf("holding")).toBe(6);
+		expect(gloryWorthyOf("seat")).toBe(9);
+		expect(gloryWorthyOf("nothing")).toBe(0);
 	});
 });

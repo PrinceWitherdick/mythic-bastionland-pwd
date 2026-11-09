@@ -16,7 +16,7 @@ import { stillServes } from "./squires.js";
  * How a player carries on, in the order the book gives them. p195 adds the
  * successor a Knight named (Succession, p17) as another way to carry on.
  */
-export const FALLEN_PATHS = Object.freeze(["newKnight", "successor", "squire", "follower"]);
+export const FALLEN_PATHS = Object.freeze(["rises", "newKnight", "successor", "squire", "follower"]);
 
 /**
  * @typedef {object} Companion One actor as this page reads it.
@@ -97,10 +97,12 @@ export function followersOf(knight, actors, theirSquire = undefined, theirSucces
  * @param {number} options.followers    How many followers they left.
  * @param {boolean} [options.successor] Whether they named a successor, other than their Squire, whom their player may take up.
  * @param {boolean} [options.canCreate] Whether this user may make a new Knight.
+ * @param {boolean} [options.rises] Whether their Ability brings them back from death (p158), first of all.
  * @returns {string[]} Some of FALLEN_PATHS, in the book's order.
  */
-export function fallenPaths({ squire, followers, successor = false, canCreate = true }) {
+export function fallenPaths({ squire, followers, successor = false, canCreate = true, rises = false }) {
 	return FALLEN_PATHS.filter((path) => {
+		if (path === "rises") return rises;
 		if (path === "newKnight") return canCreate;
 		if (path === "successor") return Boolean(successor);
 		if (path === "squire") return Boolean(squire);

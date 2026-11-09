@@ -76,6 +76,12 @@ export function nextRank(glory) {
 const POST_RANKS = Object.freeze({ court: "gallant", council: "gallant", holding: "tenant", seat: "dominant" });
 
 /**
+ * @param {string} post One of POST_RANKS' keys: court, council, holding or seat.
+ * @returns {number} The Glory that makes a Knight worthy of it (p6), 0 for anything else.
+ */
+export const gloryWorthyOf = (post) => RANKS.find((rank) => rank.key === POST_RANKS[post])?.glory ?? 0;
+
+/**
  * Rank alone doesn't grant a post, and a Knight may hold one their Rank isn't
  * worthy of yet, facing opposition until they prove themselves (Worthiness, p6).
  * @param {number} glory

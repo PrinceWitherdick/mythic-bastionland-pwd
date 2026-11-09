@@ -32,6 +32,7 @@
       },
       "unknownMyth": "A Myth not yet met",
       "unknownMythHint": "Nothing is known of it until one of its Omens is met.",
+      "mythsKept": "While you play alone, the Realm’s Myths window stays shut: it names every Myth and shows where each lies.",
       "mythFound": "The Company has found the hex of Myth {number}.",
       "newMythTitle": "Myth {number}",
       "newMythText": "A new Myth stirs in the Realm. It will be known by its first Omen.",
@@ -352,14 +353,16 @@
         },
         "tournament": {
           "label": "Tournament Won",
-          "intro": "Tick the winning Knight. They gain 1 Glory.",
+          "intro": "Choose the Knight who won the tournament. They gain 1 Glory.",
           "hint": "Only a tournament with a real crowd and real pageantry earns Glory."
         },
         "battle": {
           "label": "Battle Won",
-          "intro": "Tick every Knight on the victorious side. Each gains 1 Glory.",
+          "intro": "Tick every Knight on the victorious side, the Referee’s NPC Knights among them. Each gains 1 Glory.",
           "hint": "Only a battle big enough for the chronicles earns Glory."
         },
+        "knightDetail": "{rank}, {glory} Glory",
+        "npcKnightDetail": "{rank}, {glory} Glory · NPC Knight",
         "bridge": {
           "label": "Bridge Won",
           "intro": "Tick the Knight who beat the Bridge’s keeper. They gain 1 Glory.",
@@ -483,11 +486,11 @@
     },
     "rank": {
       "label": "Rank",
-      "errant": "Knight Errant",
-      "gallant": "Knight Gallant",
-      "tenant": "Knight Tenant",
-      "dominant": "Knight Dominant",
-      "radiant": "Knight Radiant"
+      "errant": "Knight-Errant",
+      "gallant": "Knight-Gallant",
+      "tenant": "Knight-Tenant",
+      "dominant": "Knight-Dominant",
+      "radiant": "Knight-Radiant"
     },
     "conditions": {
       "label": "Conditions",
@@ -592,7 +595,8 @@
         "season": "the Season's turn",
         "aging": "growing older",
         "book": "the rulebook",
-        "ability": "an Ability"
+        "ability": "an Ability",
+        "undo": "time turned back"
       },
       "gone": "someone since deleted",
       "unknownDay": "Unknown date",
@@ -682,7 +686,10 @@
         "blank": "None of them",
         "blankDetail": "The result stays on the table, and no possession changes.",
         "applied": "{item} is now as the table says.",
-        "none": "Nothing of {name}’s could take what {column} gives, so it stays on the table."
+        "none": "Nothing of {name}’s could take what {column} gives, so it stays on the table.",
+        "notYours": "{name} isn’t yours to change, so the table’s result stays on the table. The Referee can roll it again.",
+        "added": "{item} is added, as the table says.",
+        "named": "Their companion is now called {name}."
       },
       "open": "Roll on {name}",
       "view": "See {name}",
@@ -890,7 +897,19 @@
         "mirror": "Gives back Wounds and Scars",
         "mirrorHint": "When this Knight loses VIG to Damage, whoever dealt it loses as much, as Virtue Loss. When they’re Scarred, the dealer gets the same Scar.",
         "severs": "Takes limbs and heads",
-        "seversHint": "A Strong Gambit’s Greater effect, made with a bladed weapon, can take a limb, or the head of a foe at 0 GD."
+        "seversHint": "A Strong Gambit’s Greater effect, made with a bladed weapon, can take a limb, or the head of a foe at 0 GD.",
+        "mortalRally": "Rallies allies when Mortally Wounded",
+        "mortalRallyHint": "When this Knight is Mortally Wounded by somebody known, a card offers the Referee a button: each ally on their side of the Combat regains d6 GD, and keeps a d12 against that foe until the Combat ends.",
+        "seals": "Seals somebody else’s arms",
+        "sealsHint": "Its row has a seal: with one Token targeted that isn’t a Knight, pick one of their weapons, shields or armour. While they wear or wield it they can Smite or Deny once, which spends the seal.",
+        "breaksThrough": "Breaks through walls, at a cost",
+        "breaksThroughHint": "Its row has a runner: breaking through a wall or something solid deals this Knight d12 Damage.",
+        "drawsFire": "Makes foes pay for striking others",
+        "drawsFireHint": "A stance taken up from its row, ending at their next turn. While it holds, a foe in their Combat who Attacks somebody else gets a card offering the Referee a button that takes d10 SPI from them.",
+        "mendsByDay": "Mends in a day-long cocoon",
+        "mendsByDayHint": "Its row has a cocoon: after a full day in it, VIG returns to its most, the Mortal Wound and Wound go, and afflictions that cost VIG or deal Damage are cured.",
+        "rises": "Returns from death",
+        "risesHint": "While this Knight is Slain, its row and the card saying they fell bring them back: no longer Slain, every score just as it was."
       },
       "stance": {
         "label": "Stance",
@@ -1021,7 +1040,8 @@
       },
       "triggers": {
         "wounded": "{name} is Wounded: a SPI Save, or they rout or surrender.",
-        "halved": "{name} has lost half its number: a SPI Save, or it routs or surrenders."
+        "halved": "{name} has lost half its number: a SPI Save, or it routs or surrenders.",
+        "halvedLed": "{name} has lost half its number: a Save on the SPI of {leader}, who leads it from the front, or it routs or surrenders."
       },
       "group": {
         "title": "Wavering Morale",
@@ -1047,7 +1067,9 @@
       "needTarget": "Target the one Token you’ve agreed to duel, then press Duel.",
       "refused": {
         "warband": "{name} is a Warband. A duel is fought between two single combatants.",
-        "structure": "{name} is a ship or structure, not a combatant who can duel."
+        "structure": "{name} is a ship or structure, not a combatant who can duel.",
+        "slain": "{name} is Slain, and can fight no duel.",
+        "mortalWound": "{name} is Mortally Wounded, and can fight no duel until patched up."
       },
       "intro": "{name} and {opponent} agree to fight. It goes as any fight does, except both Attacks, Gambits and all, are rolled and settled at once, and either may use Feats first.",
       "kind": "Kind",
@@ -1062,8 +1084,21 @@
         }
       },
       "stake": "Stake Glory",
-      "stakeHint": "Fought in public, a duel or joust can have Glory staked on it, if both agree: the winner gains 1, the loser loses 1.",
-      "stakeKnightsOnly": "Only two Knights can stake Glory, and a Squire isn’t a Knight yet.",
+      "stakeHint": "Fought in public, a duel or joust can have Glory staked on it, if the other side agrees: the winner gains 1, the loser loses 1. Only a Knight’s Glory moves, and a sparring bout stakes none.",
+      "stakeKnightsOnly": "Only a Knight can stake Glory, and a Squire isn’t a Knight yet.",
+      "stakeAsking": "Asking whether {name} will stake Glory on it…",
+      "stakeAsk": {
+        "title": "Stake Glory?",
+        "message": "{challenger} challenges {opponent} to a {kind}, with Glory staked on it.",
+        "terms": "Fought in public, the winner gains 1 Glory and the loser loses 1, where they’re a Knight. Refuse, and it goes ahead with nothing staked.",
+        "agree": "Agree",
+        "refuse": "Refuse"
+      },
+      "stakeDeclined": {
+        "refused": "{name} wouldn’t stake Glory, so the duel goes ahead with none staked.",
+        "unanswered": "Nobody answered for {name} in time, so the duel goes ahead with no Glory staked."
+      },
+      "stakeUnmoved": "Nobody won it, so no staked Glory moved. The Referee can give any that’s due by hand.",
       "bloodless": "Bloodless",
       "bloodlessHint": "Training, or a duel that isn’t to the death. Scars only come from real, deadly combat, so it leaves none.",
       "sparring": "Sparring",
@@ -1084,7 +1119,7 @@
       "rolled": "Attack rolled",
       "waiting": "Yet to Attack",
       "exchanges": "Exchanges resolved: {count}",
-      "stakeNote": "Glory is staked: the victor gains 1, and the loser loses 1.",
+      "stakeNote": "Glory is staked: the victor gains 1, and the loser loses 1, where they’re a Knight.",
       "bloodlessNote": "Bloodless: a blow that would cause a Scar leaves none.",
       "howTo": "Each duelist presses Attack on their sheet, then uses Feats and declares Gambits on their card. A Referee, or whoever owns both, then resolves the two Attacks together.",
       "resolve": "Resolve Both Attacks",
@@ -1092,6 +1127,12 @@
       "noVictor": "No victor",
       "won": "{name} is the victor.",
       "endedNoVictor": "The duel ends without a victor.",
+      "closed": {
+        "gone": "{name} is gone, so the duel is over without a victor.",
+        "slain": "{name} was Slain, so the duel is over without a victor."
+      },
+      "downStatus": "Knocked down",
+      "knockedDown": "{name} was knocked down in a sparring bout, and is out of it until it ends.",
       "attackIn": "Part of the {kind} with {name}",
       "attackInSparring": "Part of the {kind} with {name}, a sparring bout",
       "attackHint": "Targets the other duelist, and holds the Damage back until both Attacks are in.",
@@ -1395,6 +1436,48 @@
         "hint": "An hour without care kills the Mortally Wounded; a few moments of it patches them up (p8)."
       }
     },
+    "timeUndo": {
+      "kinds": {
+        "phase": "Next Phase",
+        "weeks": "Weeks Pass",
+        "season": "Months Pass",
+        "age": "A Year Passes",
+        "distant": "the Journey to a Distant Realm"
+      },
+      "banner": "Undo {kind}",
+      "bannerHint": "Turn time back to {date}, taking back everything {kind} did.",
+      "button": "Undo",
+      "buttonHint": "Turn time back to before this, taking back everything it did.",
+      "confirm": {
+        "title": "Turn Time Back",
+        "intro": "Turn time back to {date}? Everything {kind} did is taken back:",
+        "names": "Put back as they were: {names}.",
+        "cards": "The {count} cards it posted are deleted.",
+        "cardsOne": "The card it posted is deleted.",
+        "made": "The {count} other things it made are deleted.",
+        "madeOne": "The one other thing it made is deleted.",
+        "settings": "{count} of the world’s settings, such as the weather, go back as they were.",
+        "settingsOne": "One of the world’s settings goes back as it was.",
+        "onlyTime": "It changed nothing else, so only the calendar goes back.",
+        "kept": "Changed since, so kept as they are now: {names}.",
+        "pressed": "Buttons were pressed since on {cards}. What they did stays.",
+        "aCard": "a card",
+        "aSetting": "a setting",
+        "yes": "Turn Time Back",
+        "no": "Keep It"
+      },
+      "card": {
+        "title": "Time Turned Back",
+        "hint": "The Referee took back {kind}, and everything it rolled and changed.",
+        "onlyTime": "The Referee took back {kind}."
+      },
+      "notNewest": "Undo the later time advance first.",
+      "gone": "That time advance can no longer be undone.",
+      "moved": "Time has moved since then, so that advance can no longer be undone.",
+      "busy": "Time is still moving. Try again once it has.",
+      "partly": "Some of it couldn’t be put back, so time stays where it is. Undo again to finish; the console says what went wrong.",
+      "unanswered": "The active Referee’s client didn’t answer, so time wasn’t turned back."
+    },
     "time": {
       "title": "Time",
       "now": "{phase}, {season}, Age {age}",
@@ -1453,10 +1536,10 @@
       "moveOn": "Move Time On",
       "nextPhase": "Next Phase",
       "seasonIntro": "{season} gives way to {next}. Each Knight ticked has their Virtues restored and chooses a pursuit, and any Mutilation Scar settles.",
-      "ageIntro": "Age {age} begins in Spring. Each Knight ticked has their Virtues restored, gains 1 Glory and chooses a pursuit. Old Knights lose d12 VIG, and any Mutilation Scar settles.",
+      "ageIntro": "Age {age} begins in Spring. Each Knight ticked has their Virtues restored and chooses a pursuit. Every living Knight gains 1 Glory, ticked or not. Old Knights lose d12 VIG, and any Mutilation Scar settles.",
       "agePick": {
         "title": "The Age",
-        "turn": "Turning the Age begins Age {next} in Spring. Each Knight taking part has their Virtues restored, gains 1 Glory and chooses a pursuit, and Old Knights lose d12 VIG.",
+        "turn": "Turning the Age begins Age {next} in Spring. Each Knight taking part has their Virtues restored and chooses a pursuit, every living Knight gains 1 Glory, and Old Knights lose d12 VIG.",
         "set": "Set the Age",
         "setHint": "Setting the Age only puts the number right. Nothing that comes between Ages happens.",
         "change": "A Year Passes, or set the Age by hand"
@@ -1504,9 +1587,11 @@
           "contact": "A new contact",
           "favour": "A favour",
           "whichCourt": "Whose Court does {name} join?",
+          "joinCourt": "Join This Court",
           "courtNote": "Earned by Courtesy before {season}.",
           "joined": "Courtesy: a place at the Court of {court}, as a Courtier.",
           "noCourt": "Courtesy: a place at Court, though no Domain is kept yet to write it in.",
+          "alreadyAtCourt": "Courtesy: already at the Court of {court}, so no place is added.",
           "made": {
             "contact": "Courtesy: a new contact.",
             "favour": "Courtesy: a favour owed."
@@ -1680,6 +1765,9 @@
       },
       "unworthy": {
         "line": "{name} holds {post} before rising to {rank}, and is sure to face opposition until their worthiness is proven.",
+        "provenLine": "{name} holds {post} before rising to {rank}, and has proven their worthiness of it.",
+        "proven": "Worthiness proven",
+        "provenHint": "Tick once {name} has proven worthy of the post, and the opposition is behind them.",
         "posts": {
           "seat": "the Seat of Power",
           "holding": "a Holding",
@@ -2393,8 +2481,8 @@
       "title": "A Person",
       "kept": "A person (p{page})",
       "missing": "Run Import PDF with your rulebook to bring in the People Spark Tables.",
-      "heardOf": "Has heard of {name}",
-      "heardOfPage": "Has heard of {name} (p{page})",
+      "heardOf": "Has heard of {name}, {where}",
+      "heardOfPage": "Has heard of {name} (p{page}), {where}",
       "heardOfUnmet": "Has heard tell of Myth {number}, {where}",
       "unnamed": "Unnamed",
       "rename": "Name this person",
@@ -2661,7 +2749,10 @@
       },
       "setting": {
         "name": "Campaign Timeline",
-        "hint": "Keep a Timeline of the campaign: a tab on each Knight, Squire and Domain sheet, a page in the Referee Toolkit and a window for everyone. Turned off, none of them are shown, though what happens is still written down for when it’s turned on again."
+        "hint": "Where the campaign’s Timeline shows, for everyone. Everywhere: a tab on each Knight, Squire and Domain sheet, a page in the Referee Toolkit, and a window and journal anyone can open. Not on Player Sheets: Knight, Squire and Domain sheets lose their tab; the rest stays. Off: none of them. What happens is still written down, for when it’s shown again.",
+        "all": "Everywhere",
+        "noSheets": "Not on Player Sheets",
+        "off": "Off"
       },
       "turnedOff": "The Timeline is turned off for this world.",
       "kindChips": {
@@ -2746,6 +2837,10 @@
         "resolved": "Resolved",
         "resolvedHint": "Once the table agrees a Myth is over, another takes its place next Season (p27).",
         "unresolve": "Not Resolved",
+        "awardGlory": "Award Myth Glory",
+        "awardGloryTooltip": "Nobody was given this Myth’s Glory when it was resolved. Tick each Knight who played a part in it.",
+        "alreadyResolved": "That Myth is resolved already, and its Glory was asked about then.",
+        "gloryGiven": "That Myth’s Glory has been given already.",
         "newMyth": "Roll the New Myth",
         "newMythTooltip": "Roll d6 and d12 on the Myths table for the Myth that replaces this one, in the same hex and under the same number.",
         "choose": "Choose the Myths",
@@ -2907,7 +3002,21 @@
       "reset": "Start Over",
       "resetTitle": "Start the City Quest Over?",
       "resetConfirm": "Every Omen of the City encountered is forgotten, as for a new Company.",
-      "wildernessHint": "This Company is worthy of the City Quest, so an Omen of the City comes in place of a random Myth’s. It follows below."
+      "wildernessHint": "This Company is worthy of the City Quest, so an Omen of the City comes in place of a random Myth’s. It follows below.",
+      "worthy": {
+        "label": "Worthy of the Quest",
+        "auto": "Automatic",
+        "worthy": "Worthy",
+        "unworthy": "Not worthy",
+        "autoNow": {
+          "worthy": "Worthy now: a living Knight-Radiant rides with the Company.",
+          "unworthy": "Not worthy yet: no living Knight-Radiant rides with the Company."
+        },
+        "setHint": {
+          "worthy": "Set by hand: a Wilderness Roll of 1 brings an Omen of the City, whoever rides with the Company.",
+          "unworthy": "Set by hand: a Wilderness Roll of 1 brings a Myth’s Omen, whoever rides with the Company."
+        }
+      }
     },
     "sites": {
       "newSite": "New Site",
@@ -3207,13 +3316,12 @@
       },
       "situations": {
         "title": "Anything left unresolved?",
-        "hint": "An important situation left unresolved before the turn changes on a d6 (p17).",
+        "hint": "An important situation left unresolved before the turn changes on a d6 (p17). Name each one out loud.",
         "add": "Add a situation",
-        "placeholder": "What was left hanging",
+        "numbered": "Situation {number}",
         "roll": "Roll",
         "rollHint": "Roll Unresolved Situations for this one.",
         "remove": "Take this situation off the list",
-        "unnamed": "A situation left unresolved",
         "share": "Show the players"
       },
       "crises": {
@@ -3278,11 +3386,8 @@
         "which": "What does the Greater effect do?",
         "ok": "Do It",
         "other": "Something else",
-        "otherDetail": "Whatever else it does, written in below. Nobody’s sheet changes.",
-        "otherLabel": "Something else",
-        "otherPlaceholder": "Takes the limb",
-        "otherEmpty": "Write what the Greater effect does.",
-        "otherDone": "Greater effect: {effect}",
+        "otherDetail": "Say at the table what it does. Nobody’s sheet changes.",
+        "otherDone": "Greater effect: something else, told at the table.",
         "disarm": "Disarm {item}",
         "unhelm": "Take off {item}",
         "break": "Break {item}",
@@ -3337,6 +3442,7 @@
       "lastingDie": "{label} d{faces}",
       "lastingDieMelee": "{label} d{faces} (melee)",
       "lastingDieWeapon": "{label} d{faces} ({weapon})",
+      "lastingDieAgainst": "{label} d{faces} (against {name})",
       "crowdMet": "Ticked: at least {count} stand on each side of this Combat.",
       "crowdShort": "Fewer than {count} stand on one side of this Combat. Tick it if more are fighting than the Combat Tracker shows.",
       "crowdUnknown": "Outside a Combat the sides can’t be counted. Tick it when at least {count} fight on each side.",
@@ -3766,6 +3872,8 @@
       "heftyMountedHint": "Counts as Hefty rather than Long when the wielder is mounted, as a lance does.",
       "ranged": "Ranged",
       "rangedHint": "Useless to someone who started their turn in melee.",
+      "pair": "A pair",
+      "pairHint": "Wielded as a pair, it fills both hands.",
       "blast": "Blast",
       "blastHint": "Attacks everybody in the area, rolled separately for each.",
       "ignoresArmour": "Ignores Armour",
@@ -3910,6 +4018,116 @@
       "blown": "{name} blows the horn ({ability}). Until the fight ends, VIG lost to Damage is doubled for everybody in it.",
       "notInCombat": "{name} isn’t in a Combat.",
       "already": "A horn has already been blown in this fight."
+    },
+    "mortalRally": {
+      "offer": "{name} is Mortally Wounded by {foe}. By {ability}, the allies fighting beside them may rally against {foe}.",
+      "button": "Rally the Allies",
+      "nobody": "Nobody fights beside {name} in a Combat to rally.",
+      "title": "Allies Rally",
+      "tagline": "Beside {name}, against {foe}",
+      "guard": "Regains {amount} GD ({from} → {to}).",
+      "die": "Keeps +d12 against {foe} until the Combat ends."
+    },
+    "drawsFire": {
+      "offer": "{attacker} struck at somebody other than {name} while {ability} holds. Once that Attack is resolved, {attacker} loses d10 SPI.",
+      "button": "Take d10 SPI",
+      "paid": "{name} loses {amount} SPI for striking elsewhere ({from} → {to})."
+    },
+    "rises": {
+      "use": "Return from death",
+      "notDead": "{name} isn’t dead.",
+      "notYours": "Only {name}’s player, or the Referee, can bring them back.",
+      "done": "{name} returns from death by {ability}, just as they were: VIG {vig}, GD {guard}."
+    },
+    "mendsByDay": {
+      "use": "Emerge from the cocoon",
+      "confirm": "Has {name} spent a full day in the cocoon? Their VIG returns to its most, their Mortal Wound and Wound go, and afflictions that cost VIG or deal Damage are cured. Scars stay. Move the day on from the calendar yourself.",
+      "emerge": "Emerge",
+      "done": "{name} emerges from {ability}, the body mended.",
+      "slain": "{name} is dead, which this doesn’t mend."
+    },
+    "breaksThrough": {
+      "use": "Break through",
+      "confirm": "{name} breaks through a wall or something solid, and takes d12 Damage doing it.",
+      "go": "Break Through",
+      "rolled": "{name} breaks through, taking {damage} Damage.",
+      "cause": "Breaking through ({ability})"
+    },
+    "possessionEffects": {
+      "label": "When used",
+      "hint": "What it does from its row: the dice it rolls, and the Virtue it Saves in or takes (none for Damage).",
+      "die": "Dice",
+      "virtue": "Virtue",
+      "kinds": {
+        "none": "Nothing",
+        "easesMortal": "Eases a Mortal Wound to a Wound",
+        "absorbsAffliction": "Takes an affliction into itself",
+        "restoresOne": "Restores one Virtue",
+        "restoresAll": "Restores every Virtue",
+        "saveOnUse": "Calls for a Save when used",
+        "harmsOther": "Costs somebody else",
+        "firstAttackImpaired": "Impairs a foe’s first Attack"
+      },
+      "easesMortal": {
+        "use": "Ease the Mortal Wound",
+        "done": "{name} uses {item}: their Mortal Wound is only a Wound now."
+      },
+      "absorbsAffliction": {
+        "use": "Draw out an affliction",
+        "which": "Which of {name}’s afflictions does {item} take into itself?",
+        "legend": "Their afflictions",
+        "ok": "Draw It Out",
+        "done": "{item} takes {affliction} out of {name}, and is spent."
+      },
+      "restoresOne": {
+        "use": "Restore a Virtue",
+        "which": "Which of {name}’s Virtues comes back to its most?",
+        "legend": "Their Virtues",
+        "now": "{value} of {max}",
+        "ok": "Restore It"
+      },
+      "restoresAll": {
+        "use": "Restore every Virtue"
+      },
+      "restored": "{name} uses {item}: {virtues} back to its most.",
+      "saveOnUse": {
+        "use": "Use one: {virtue} Save",
+        "passed": "{name} uses {item} and passes the {label}, {total} against {target}.",
+        "failed": "{name} uses {item} and fails the {label}, {total} against {target}."
+      },
+      "harmsOther": {
+        "useVirtue": "Make them pay {dice} {virtue}",
+        "useDamage": "Deal {dice} Damage to them",
+        "target": "Target the one Token who grabbed or struck, then press {item}’s button again.",
+        "confirmVirtue": "{name} loses {dice} {virtue} for it ({item}). The Referee applies it.",
+        "confirmDamage": "{name} takes {dice} Damage for it ({item}). The Referee applies it.",
+        "ok": "Ask the Referee",
+        "offerVirtue": "{bearer}’s {item}: {name} loses {dice} {virtue}.",
+        "offerDamage": "{bearer}’s {item}: {name} takes {dice} Damage.",
+        "button": "Roll It",
+        "paid": "{name} loses {amount} {virtue} ({from} → {to}).",
+        "rolled": "{name} takes {damage} Damage from {item}."
+      },
+      "firstAttackImpaired": {
+        "hint": "{name} wears {item}: a foe who knows what gold is worth has their first ever Attack at them Impaired."
+      }
+    },
+    "companions": {
+      "label": "Followers",
+      "hint": "Who follows them besides their steed and Squire, as a beast made from their Property. Drop an NPC here to add one.",
+      "release": "Let them go: no longer this Knight’s",
+      "released": "{name} no longer follows {knight}."
+    },
+    "seal": {
+      "use": "Seal somebody’s arms",
+      "target": "Target one Token first, somebody other than a Knight, whose arms {name} seals.",
+      "nothing": "{name} has no weapon, shield or armour to seal.",
+      "which": "Which of {name}’s arms takes the seal? While they wear or wield it, they can Smite or Deny once, as a Knight does.",
+      "legend": "Their arms",
+      "ok": "Seal It",
+      "needsGM": "A Referee needs to be logged in to seal {name}’s arms.",
+      "done": "{name} seals {bearer}’s {item}: they can Smite or Deny once, as a Knight does.",
+      "spent": "{name} uses {feat} by the seal on their {item}, and the seal is gone."
     },
     "stance": {
       "take": "Take up this stance",
@@ -5183,6 +5401,7 @@
       "tagline": "{name} is Slain.",
       "text": "Death comes for bold Knights too, often suddenly and without honour. Their player makes another Knight, who joins the Company soon, or takes up a successor, Squire or follower.",
       "paths": {
+        "rises": "Return from Death",
         "newKnight": "Make a New Knight",
         "successor": "Take up Their Successor",
         "squire": "Take up Their Squire",
@@ -5264,8 +5483,6 @@
           }
         },
         "ifItCalls": "If there’s a Save to make",
-        "what": "What they seek",
-        "whatPlaceholder": "What are they searching for?",
         "who": "Who rolls",
         "virtue": "Virtue",
         "virtueHint": "The Company picks who rolls, with their own Virtue. Choose the Virtue for whatever the risky part mostly is.",
@@ -5543,6 +5760,8 @@
       "copyFailed": "The rulebook couldn’t be copied into the world. Check that you’re allowed to upload files and that there’s space.",
       "keepFailed": "The rulebook was copied in, but the world couldn’t record where it went.",
       "adopted": "Your rulebook is already on this server, kept by another world, so this world reads it too. Bringing in its art and tables…",
+      "reread": "The system has been updated and reads your rulebook better than before, so it’s reading it again for this world. Bringing in its art and tables…",
+      "rereadMissing": "The system has been updated and would read your rulebook again, but the PDF this world kept is no longer on the server. Run Import PDF to bring it in again.",
       "keybinding": {
         "name": "Open the Rulebook",
         "hint": "Open the rulebook, or close it when it’s already in front."

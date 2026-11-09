@@ -24,6 +24,8 @@ import { afflictionLabel, cureAffliction, sufferAffliction } from "../actions/af
 import { etchRune, rollChance, sufferLoss, throwToChance } from "../actions/abilities.js";
 import { etchedNumber } from "../rules/ability-uses.js";
 import { blowHorn, stanceRowLabel, toggleStance } from "../actions/stances.js";
+import { breakThrough, mendInCocoon, riseFromDeath, sealArms } from "../actions/knight-powers.js";
+import { effectRowLabel, useEffect } from "../actions/possession-effects.js";
 import { inEffect } from "../rules/stances.js";
 import { isMoraleBreak } from "../rules/morale.js";
 import { clearMoraleBreak } from "../chat/morale-card.js";
@@ -73,6 +75,12 @@ const ITEM_ROW_ACTIONS = Object.freeze([
 	{ key: "toggleStance", icon: "fa-shield-halved", label: stanceRowLabel, run: toggleStance },
 	// A horn that doubles the VIG lost to Damage, blown only in a fight (p72).
 	{ key: "blowHorn", icon: "fa-bullhorn", label: ({ type, system }, actor, { fighting }) => (type === "ability" && system.wildHorn && fighting ? t("wildHorn.blow") : null), run: blowHorn },
+	// A seal put on somebody else's arms (p70), a wall broken through (p84), a day in a cocoon (p156),
+	// and a return from death, offered only to the dead (p158).
+	{ key: "sealArms", icon: "fa-stamp", label: ({ type, system }) => (type === "ability" && system.seals ? t("seal.use") : null), run: sealArms },
+	{ key: "breakThrough", icon: "fa-person-running", label: ({ type, system }) => (type === "ability" && system.breaksThrough ? t("breaksThrough.use") : null), run: breakThrough },
+	{ key: "mendInCocoon", icon: "fa-egg", label: ({ type, system }, actor) => (type === "ability" && system.mendsByDay && !actor.system.slain ? t("mendsByDay.use") : null), run: mendInCocoon },
+	{ key: "riseFromDeath", icon: "fa-hand-sparkles", label: ({ type, system }, actor) => (type === "ability" && system.rises && actor.system.slain ? t("rises.use") : null), run: (actor) => riseFromDeath(actor) },
 	{
 		key: "sufferLoss",
 		icon: "fa-heart-crack",
@@ -89,6 +97,8 @@ const ITEM_ROW_ACTIONS = Object.freeze([
 		label: ({ system }) => (Number.isInteger(system.chance?.of) && Number.isInteger(system.chance?.in) ? t("chance.roll", { in: system.chance.in, of: system.chance.of }) : null),
 		run: rollChance
 	},
+	// What a possession does when used: eases a Mortal Wound, takes an affliction, restores, makes a Save, or costs somebody else.
+	{ key: "useEffect", icon: "fa-hand-holding-medical", label: (item, actor) => effectRowLabel(item, actor), run: useEffect },
 	// A Passion restores SPI when indulged (p7).
 	{ key: "indulgePassion", icon: "fa-wine-glass", label: ({ type }, actor) => (type === "passion" && actor.system.virtues?.spi ? t("passion.indulge") : null), run: indulgePassion }
 ]);

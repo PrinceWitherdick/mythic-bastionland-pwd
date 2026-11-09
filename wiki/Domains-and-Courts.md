@@ -63,7 +63,7 @@ A Holding a Domain rules flies that Domain's arms on the Realm map, as a small s
 - **Successor**: whom the ruler names to follow them. Left blank, its placeholder shows the ruling Knight's own named successor from their sheet, and that is who Pass On offers.
 - **Holding**: which Holding on the Realm map this Domain rules. Until one is picked, a Holding with the Domain's exact name counts, and the blank option says so. A Holding is ruled by one Domain: picking one another Domain rules takes it from that Domain.
 
-Under these, a line says how many wilderness hexes the Holding's rule reaches (those nearer it than any other Holding) and names any Landmarks in them you know of. A warning line appears for any Knight holding a post here (ruler, Council seat or place at Court) that their Rank isn't worthy of yet.
+Under these, a line says how many wilderness hexes the Holding's rule reaches (those nearer it than any other Holding) and names any Landmarks in them you know of. A warning line appears for any Knight holding a post here (ruler, Council seat or place at Court) that their Rank isn't worthy of yet. Under each, the Referee has a **Worthiness proven** tick: tick it once that Knight has proven themselves, and the line says so instead of warning.
 
 ### Authority: Warbands
 

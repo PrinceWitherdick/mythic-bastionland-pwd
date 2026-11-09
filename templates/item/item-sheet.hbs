@@ -61,25 +61,6 @@
 		</div>
 		<p class="hint">{{localize "bastionland.item.specialistHint"}}</p>
 	</div>
-	<fieldset class="bastionland-item-alternate">
-		<legend>{{localize "bastionland.item.alternate"}}</legend>
-		<div class="form-group">
-			<label for="{{rootId}}-alternate-label">{{localize "bastionland.item.alternateLabel"}}</label>
-			<div class="form-fields">
-				<input id="{{rootId}}-alternate-label" type="text" name="system.alternate.label" value="{{system.alternate.label}}" placeholder="{{localize 'bastionland.item.alternatePlaceholder'}}" autocomplete="off">
-				<input type="text" name="system.alternate.damage" value="{{system.alternate.damage}}" placeholder="d10" aria-label="{{localize 'bastionland.item.damage'}}" autocomplete="off">
-			</div>
-		</div>
-		<div class="bastionland-qualities">
-			{{#each alternateQualities}}
-			<label class="bastionland-check" data-tooltip="{{hint}}">
-				<input type="checkbox" name="system.alternate.{{key}}" {{checked checked}}>
-				<span class="bastionland-check__label">{{label}}</span>
-			</label>
-			{{/each}}
-		</div>
-		<p class="hint">{{localize "bastionland.item.alternateHint"}}</p>
-	</fieldset>
 	{{#if insteadOf}}
 	{{!-- Attacks printed with "or" between them, of which an Attack uses only one. --}}
 	<div class="form-group">
@@ -196,6 +177,28 @@
 	</fieldset>
 	{{/if}}
 
+	{{#if alternateQualities.length}}
+	<fieldset class="bastionland-item-alternate">
+		<legend>{{localize "bastionland.item.alternate"}}</legend>
+		<div class="form-group">
+			<label for="{{rootId}}-alternate-label">{{localize "bastionland.item.alternateLabel"}}</label>
+			<div class="form-fields">
+				<input id="{{rootId}}-alternate-label" type="text" name="system.alternate.label" value="{{system.alternate.label}}" placeholder="{{localize 'bastionland.item.alternatePlaceholder'}}" autocomplete="off">
+				<input type="text" name="system.alternate.damage" value="{{system.alternate.damage}}" placeholder="d10" aria-label="{{localize 'bastionland.item.damage'}}" autocomplete="off">
+			</div>
+		</div>
+		<div class="bastionland-qualities">
+			{{#each alternateQualities}}
+			<label class="bastionland-check" data-tooltip="{{hint}}">
+				<input type="checkbox" name="system.alternate.{{key}}" {{checked checked}}>
+				<span class="bastionland-check__label">{{label}}</span>
+			</label>
+			{{/each}}
+		</div>
+		<p class="hint">{{localize "bastionland.item.alternateHint"}}</p>
+	</fieldset>
+	{{/if}}
+
 	{{#if isPossession}}
 	<div class="form-group">
 		<label for="{{rootId}}-rarity">{{localize "bastionland.item.rarity"}}</label>
@@ -222,6 +225,20 @@
 			<input type="text" name="system.loss.when" value="{{system.loss.when}}" placeholder="{{localize 'bastionland.item.lossWhenPlaceholder'}}" aria-label="{{localize 'bastionland.item.lossWhen'}}" autocomplete="off">
 		</div>
 		<p class="hint">{{localize "bastionland.item.lossHint"}}</p>
+	</div>
+	{{!-- What it does when used, from its row: see rules/possession-effects.js. --}}
+	<div class="form-group">
+		<label for="{{rootId}}-effect">{{localize "bastionland.possessionEffects.label"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-effect" name="system.effect">
+				{{selectOptions effectOptions selected=system.effect}}
+			</select>
+			<input type="text" name="system.effectDie" value="{{system.effectDie}}" placeholder="d6" aria-label="{{localize 'bastionland.possessionEffects.die'}}" autocomplete="off">
+			<select name="system.effectVirtue" aria-label="{{localize 'bastionland.possessionEffects.virtue'}}">
+				{{selectOptions lossVirtueOptions selected=system.effectVirtue}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.possessionEffects.hint"}}</p>
 	</div>
 	{{/if}}
 

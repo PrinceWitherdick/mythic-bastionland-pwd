@@ -6,6 +6,7 @@ import {
 	CITY_QUEST_KIND,
 	EXPECTED_PAGES,
 	INDEX_FILE,
+	INDEX_VERSION,
 	KINDS,
 	KIND_FOLDERS,
 	PAGE_KINDS,
@@ -41,17 +42,25 @@ import { CITY_OMEN_COUNT, CITY_QUEST_PAGES, cityQuestCastFromItems, cityQuestOme
 import { BOOK_PRINTS } from "../rules/book-text.js";
 import { RULE_PAGES, rulePageFromItems } from "../rules/rule-pages.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
+import { setImportedVersion } from "../rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { markSetupDone } from "../world-setup.js";
-import { artIndexWritten } from "./art-index.js";
+import { artIndexWritten, loadArtIndex } from "./art-index.js";
 import { BOOK_TEXT_TOTAL, readBookText } from "./book-text.js";
-import { ensureDirectories, uploadFile } from "./files.js";
+import { ensureDirectories, filePicker, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
 import { NPC_PACK, NPC_PACK_STEP, fillNpcPack } from "./npc-pack.js";
 import { fillPack } from "./packs.js";
 import { imageFormat, listPageImages, openPdf, saveImages, withPage } from "./pdf.js";
 import { showImportReport } from "./report.js";
 import { useSquareTokens } from "./square-tokens.js";
+
+/**
+ * The last INDEX_VERSION whose pictures differ from an earlier import's: 6 cut each Knight's square token.
+ * Read again after an update, an index this new keeps the pictures it saved and only the text is read anew.
+ * Raise it to INDEX_VERSION when a change alters the pictures themselves, such as how a token is cropped.
+ */
+const ART_VERSION = 6;
 
 /** Stops a second import starting while one is under way. */
 let running = false;
@@ -62,9 +71,12 @@ let running = false;
  * that also holds the text read from each page. The Import PDF macro runs this.
  * @param {File} [given] The rulebook, when the caller already has it, as
  *   bringInRulebook does. Without one the GM is asked to choose it.
+ * @param {object} [options]
+ * @param {boolean} [options.again] Read again by the system after an update, not by the GM: Arms & Goods
+ *   aren't copied into the world, so folders the GM deleted stay deleted.
  * @returns {Promise<object|null>} The index, or null if nothing was imported.
  */
-export async function importBookArt(given) {
+export async function importBookArt(given, { again = false } = {}) {
 	if (!game.ready) {
 		ui.notifications.warn(t("bookArt.notReady"));
 		return null;
@@ -82,7 +94,7 @@ export async function importBookArt(given) {
 	try {
 		// A macro may pass anything, so only a real file skips the question.
 		const file = given instanceof File ? given : await chooseRulebookPdf();
-		return file ? await importFrom(file) : null;
+		return file ? await importFrom(file, { again }) : null;
 	} finally {
 		running = false;
 	}
@@ -119,9 +131,10 @@ export async function chooseRulebookPdf() {
 
 /**
  * @param {File} file
+ * @param {{again: boolean}} options As importBookArt's.
  * @returns {Promise<object|null>}
  */
-async function importFrom(file) {
+async function importFrom(file, options) {
 	let opened;
 	try {
 		opened = await openPdf(file);
@@ -133,8 +146,9 @@ async function importFrom(file) {
 
 	const { pdf, OPS } = opened;
 	try {
-		if (!(await looksLikeTheRulebook(pdf, OPS))) return null;
-		return await extractArt(pdf, OPS);
+		// Read again by the system, it's the book the Referee already took, and isn't asked about each load.
+		if (!options.again && !(await looksLikeTheRulebook(pdf, OPS))) return null;
+		return await extractArt(pdf, OPS, options);
 	} finally {
 		await pdf.destroy();
 	}
@@ -169,9 +183,12 @@ const confirmMismatch = (message) => confirmDialog({ title: t("bookArt.mismatchT
 
 /**
  * Save the art from every spread, then the index.
+ * @param {object} pdf
+ * @param {object} OPS
+ * @param {{again: boolean}} options As importBookArt's.
  * @returns {Promise<object>} The index.
  */
-async function extractArt(pdf, OPS) {
+async function extractArt(pdf, OPS, { again }) {
 	const format = await imageFormat();
 	await ensureDirectories(artDirectories());
 
@@ -182,11 +199,12 @@ async function extractArt(pdf, OPS) {
 	const last = pages.at(-1).number;
 	const progress = ui.notifications.info(t("bookArt.progress", { page: pages[0].number, last }), { progress: true });
 
+	const kept = again ? await keptPictures() : null;
 	const entries = [];
 	const problems = [];
 	for (const [done, { spread, role, number }] of pages.entries()) {
 		progress.update({ pct: done / pages.length, message: t("bookArt.progress", { page: number, last }) });
-		const result = await savePageArt(pdf, OPS, spread, role, number, format);
+		const result = await savePageArt(pdf, OPS, spread, role, number, format, kept);
 		entries.push(...result.entries);
 		problems.push(...result.problems);
 	}
@@ -223,19 +241,24 @@ async function extractArt(pdf, OPS) {
 
 	progress.update({ message: t("bookArt.fillingGoods") });
 	const goodsLines = [];
+	// A compendium left unfilled leaves the world behind, to be read again next load.
+	let unfilled = false;
 	if (!game.user.isGM) goodsLines.push(t("bookArt.report.goodsNotGM"));
 	else {
 		try {
 			goodsLines.push(t("bookArt.report.goods", await fillGoodsPacks(goods)));
-			try {
-				goodsLines.push(t("bookArt.report.goodsFolders", await copyGoodsToWorld()));
-			} catch (error) {
-				console.error(`${SYSTEM_ID} | Couldn't copy Arms & Goods into the world`, error);
-				goodsLines.push(t("bookArt.report.goodsFoldersFailed"));
+			if (!again) {
+				try {
+					goodsLines.push(t("bookArt.report.goodsFolders", await copyGoodsToWorld()));
+				} catch (error) {
+					console.error(`${SYSTEM_ID} | Couldn't copy Arms & Goods into the world`, error);
+					goodsLines.push(t("bookArt.report.goodsFoldersFailed"));
+				}
 			}
 		} catch (error) {
 			console.error(`${SYSTEM_ID} | Couldn't fill the Arms & Goods compendiums`, error);
 			goodsLines.push(t("bookArt.report.goodsFailed"));
+			unfilled = true;
 		}
 		progress.update({ message: t("bookArt.fillingNpcs") });
 		try {
@@ -244,6 +267,7 @@ async function extractArt(pdf, OPS) {
 		} catch (error) {
 			console.error(`${SYSTEM_ID} | Couldn't fill the NPCs compendium`, error);
 			goodsLines.push(t("bookArt.report.npcsFailed"));
+			unfilled = true;
 		}
 	}
 	let tokensLine = null;
@@ -256,6 +280,8 @@ async function extractArt(pdf, OPS) {
 			tokensLine = t("bookArt.report.knightTokensFailed");
 		}
 	}
+	// The world is up to date with this version's reading only once the index it reads is written.
+	if (indexPath && game.user.isGM && !unfilled) await setImportedVersion(INDEX_VERSION);
 	progress.update({ pct: 1 });
 
 	await showReport(index, indexPath, [...goodsLines, tokensLine]);
@@ -327,12 +353,57 @@ async function fillGoodsPacks(goods) {
 }
 
 /**
+ * @param {string} path
+ * @returns {string} The path as the server lists it, however it was encoded.
+ */
+const plainPath = (path) => {
+	try {
+		return decodeURI(path);
+	} catch {
+		return path;
+	}
+};
+
+/**
+ * The pictures an earlier import saved that a reading after an update can keep:
+ * its index, if it's no older than ART_VERSION, and the files still in the art folders.
+ * @returns {Promise<{index: object, files: Set<string>}|null>} Null when every picture is saved anew.
+ */
+async function keptPictures() {
+	const index = await loadArtIndex();
+	if (!(index?.version >= ART_VERSION)) return null;
+	try {
+		const listed = await Promise.all(artDirectories().map((dir) => filePicker().browse("data", dir)));
+		return { index, files: new Set(listed.flatMap((result) => result?.files ?? []).map(plainPath)) };
+	} catch (error) {
+		console.warn(`${SYSTEM_ID} | Couldn't list the saved book art, so it's saved again`, error);
+		return null;
+	}
+}
+
+/**
+ * A picture the earlier import saved just as this one would: the same roll,
+ * file name and size, and still on the server, with a Knight's token beside it.
+ * @param {{index: object, files: Set<string>}|null} kept From keptPictures.
+ * @returns {{path: string, token: string|null}|null}
+ */
+function keptPicture(kept, { kind, d6, d12, file, image, tokenName }) {
+	if (!kept || !image) return null;
+	const old = kept.index[KIND_FOLDERS[kind]]?.find((entry) => entry.d6 === d6 && entry.d12 === d12);
+	const there = (path) => typeof path === "string" && kept.files.has(plainPath(path));
+	if (!old || old.file !== file || old.width !== image.width || old.height !== image.height || !there(old.path)) return null;
+	if (kind !== "knight") return { path: old.path, token: null };
+	return there(old.token) && old.token.endsWith(`/${tokenName}`) ? { path: old.path, token: old.token } : null;
+}
+
+/**
  * Save the art on one page of a spread and read its text. Every kind the page
  * should hold gets an entry, saved or not, so a roll always finds its line in
- * the index.
+ * the index. A picture an earlier import saved just the same is kept, not saved again.
+ * @param {{index: object, files: Set<string>}|null} [kept] From keptPictures.
  * @returns {Promise<{entries: object[], problems: object[]}>}
  */
-async function savePageArt(pdf, OPS, spread, role, number, format) {
+async function savePageArt(pdf, OPS, spread, role, number, format, kept = null) {
 	const { d6, d12, roll } = spread;
 	const entries = [];
 	const problems = [];
@@ -354,9 +425,11 @@ async function savePageArt(pdf, OPS, spread, role, number, format) {
 				const image = art[kind];
 				const { dir, fileName, file } = artFile(kind, d6, d12, names[kind], format.extension);
 				// A Knight's token is cut from their portrait, decoded once for both.
+				const tokenTarget = kind === "knight" ? tokenFile(d6, d12, names[kind], format.extension) : null;
+				const reused = keptPicture(kept, { kind, d6, d12, file, image, tokenName: tokenTarget?.fileName });
 				const targets = [{ dir, fileName }];
-				if (image && kind === "knight") targets.push({ ...tokenFile(d6, d12, names[kind], format.extension), crop: tokenCrop(image, roll) });
-				const [saved = {}, token = {}] = image ? await saveImages(page, image, targets, { format }) : [];
+				if (image && tokenTarget) targets.push({ ...tokenTarget, crop: tokenCrop(image, roll) });
+				const [saved = {}, token = {}] = reused ? [{ path: reused.path }, { path: reused.token }] : image ? await saveImages(page, image, targets, { format }) : [];
 				if (saved.reason) report(kind, saved.reason);
 				if (token.reason) report(kind, token.reason);
 				const entry = indexEntry({

@@ -3206,6 +3206,16 @@ a.button:focus:not(:focus-visible) {
 	margin-top: 0.75rem;
 }
 
+/* Once the Referee ticks a Knight's worthiness proven, their notice warns no more. */
+.bastionland-domain__unworthy.is-proven {
+	border-left-color: var(--bastionland-ink-soft);
+}
+
+/* The Referee's tick under each notice. Spacing only: the shared tick row centres box and words. */
+.bastionland-domain__ruler .bastionland-domain__proven {
+	margin-top: 0.3rem;
+}
+
 /* The Muster button stands a little below the tally, or the Warband list when there is one. */
 .bastionland-domain__muster {
 	margin-top: 0.6rem;

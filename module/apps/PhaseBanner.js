@@ -5,7 +5,8 @@
  * Morning, amber for Afternoon, dark for Night, green for Spring, gold for
  * Harvest, pale blue for Winter. They turn with the calendar on every client,
  * and a GM can press any of them to let down the ways of moving time on under
- * the bar: Next Phase, Weeks Pass, Months Pass and A Year Passes.
+ * the bar: Next Phase, Weeks Pass, Months Pass and A Year Passes, and an
+ * Undo for the last of them, should it have been pressed by mistake.
  */
 import { CALENDAR_HOOK, chronicleLabel, getCalendar, ordinalLabel } from "../actions/calendar.js";
 import { t } from "../chat/cards.js";
@@ -46,13 +47,20 @@ let menu = null;
  * @property {() => unknown} year         A year passes: the Age turns, and the new one begins in Spring.
  * @property {() => unknown} end          End the Session: the book's end-of-session window.
  * @property {() => string|null} nextEvent The next seasonal event's name, or null once every one has passed.
+ * @property {() => unknown} [undo]       Take back the newest time advance.
+ * @property {() => {label: string, hint: string}|null} [undoable] The Undo button's words, such as "Undo Next Phase",
+ *   and what it does for its tooltip, or null with nothing to take back.
  */
 
 /** @type {TimeMoves} */
-let moves = { phase: () => null, weeks: () => null, months: () => null, year: () => null, end: () => null, nextEvent: () => null };
+let moves = { phase: () => null, weeks: () => null, months: () => null, year: () => null, end: () => null, nextEvent: () => null, undo: () => null, undoable: () => null };
 
-/** The buttons under the bar: Next Phase, most often wanted, over the three longer ways of moving time on, then End the Session under them. */
+/**
+ * The buttons under the bar: an Undo for the last advance while there is one to take back, Next Phase, most
+ * often wanted, over the three longer ways of moving time on, then End the Session under them.
+ */
 const MOVES = Object.freeze([
+	{ move: "undo", icon: "fa-solid fa-clock-rotate-left", label: null, hint: null },
 	{ move: "phase", icon: "fa-solid fa-sun", label: "time.nextPhase", hint: "time.banner.phaseHint" },
 	{ move: "weeks", icon: "fa-solid fa-forward", label: "time.banner.weeks", hint: "time.banner.weeksHint" },
 	{ move: "months", icon: "fa-solid fa-leaf", label: "time.banner.months", hint: "time.banner.monthsHint" },
@@ -156,6 +164,8 @@ function labelMoves() {
 		const name = (key) => t(`time.phases.${key}`);
 		phase.dataset.tooltip = t("time.banner.phaseHint", { phase: name(calendar.phase), next: name(nextPhase(calendar).phase) });
 	}
+	const undo = menu?.querySelector('[data-move="undo"]');
+	if (undo) undo.dataset.tooltip = moves.undoable?.()?.hint ?? "";
 	const weeks = menu?.querySelector('[data-move="weeks"]');
 	if (!weeks) return;
 	// Every event of the Season has passed only when the last was marked by hand; Months Pass is all that's left.
@@ -174,11 +184,14 @@ function openMoves() {
 	// The bar reads each new date out; the buttons coming and going aren't news.
 	menu.setAttribute("aria-live", "off");
 	for (const { move, icon, label, hint } of MOVES) {
+		// The Undo names the advance it takes back, and is there only while there's one.
+		const words = label ? t(label) : moves.undoable?.()?.label;
+		if (!words) continue;
 		const button = document.createElement("button");
 		button.type = "button";
 		button.dataset.move = move;
-		button.dataset.tooltip = t(hint);
-		button.innerHTML = `<i class="${icon}" inert></i> ${foundry.utils.escapeHTML(t(label))}`;
+		if (hint) button.dataset.tooltip = t(hint);
+		button.innerHTML = `<i class="${icon}" inert></i> ${foundry.utils.escapeHTML(words)}`;
 		button.addEventListener("click", () => {
 			closeMoves();
 			moves[move]();

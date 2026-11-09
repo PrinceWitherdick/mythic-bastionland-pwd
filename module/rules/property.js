@@ -5,10 +5,11 @@
  * steed or other companion. Pure, so it can be tested without Foundry.
  */
 import { keepsOnFrom } from "./afflictions.js";
-import { RANGED_NAME } from "./arms-and-goods.js";
+import { effectOf } from "./possession-effects.js";
+import { THROWN_NAME } from "./arms-and-goods.js";
 import { looksWooden } from "./armour.js";
 import { ALTERNATE_QUALITIES, SPECIALIST_DICE } from "./attack.js";
-import { countsAsHeftyMounted, parseAttacks, parseStatLine } from "./stat-blocks.js";
+import { countsAsHeftyMounted, parseAttacks, parseStatLine, RANGED_NAME } from "./stat-blocks.js";
 import { capitalise, paragraphs, parentheticals, splitOutside } from "./text.js";
 import { VIRTUES } from "./virtues.js";
 import { isKnight } from "./knight-types.js";
@@ -23,7 +24,7 @@ const BLAST = /\b(\d*d\d+)\s+blast\b/i;
 /** A companion's own attack, such as "d4 talons". */
 const NATURAL_ATTACK = /^(\d*d\d+)\s+(.+)$/i;
 /** "+d8 dropping from above": a specialist weapon's extra die, and when it applies (p12). */
-export const SPECIALIST_NOTE = /^\+\s*(d\d+)\s+(.+)$/i;
+export const SPECIALIST_NOTE = /^\+\s*(\d*d\d+)\s+(.+)$/i;
 /** How a Property line points at the d6 table on the Knight's page: "(see below)", or "as below" once. */
 const SEE_BELOW = /\b(?:see|as) below\b/i;
 
@@ -96,10 +97,30 @@ const RESTOCKS = Object.freeze([
 	["season", /\brestock each new season\b|\bat the start of the next season\b/i],
 	["day", /\b(?:one|a) (?:use|dose) each day\b/i]
 ]);
+/** A note that a weapon held in hand can also be thrown. */
+const CAN_BE_THROWN = /^can be thrown$/i;
+/**
+ * Words before a piece that say where it's worn rather than what it is, as
+ * "concealed beneath" in "concealed beneath a mail shirt (A1)".
+ */
+const WORN_HOW = /^((?:\p{L}+\s+)?(?:beneath|underneath|under))\s+(?:(?:a|an|the)\s+)?/iu;
 /** Something carried to be used once, as "use once only". */
 const ONCE = /\buse once only\b/i;
 /** Odds a possession gives, as "1-in-2 chance" (p88). */
 const CHANCE = /\b(\d+)-in-(\d+)\s+chance\b/i;
+
+/** A possession that brings back a Virtue when used, as a salve that "restores VIG" (p66). */
+const RESTORES = /\brestores (VIG|CLA|SPI)\b/i;
+
+/**
+ * The Virtue a possession's line says it restores, making it a Remedy (p9, p66).
+ * @param {string} text The possession as printed.
+ * @returns {{remedy?: string}}
+ */
+export function remedyOf(text) {
+	const match = RESTORES.exec(String(text ?? ""));
+	return match ? { remedy: match[1].toLowerCase() } : {};
+}
 
 /** A Virtue lost should something befall a possession, as "lose d6 SPI if it's dropped" (p62). */
 const LOSS = /\blose\s+(\d*d\d+)\s+(vig|cla|spi)\b\s*([^,;()]*)/i;
@@ -182,10 +203,13 @@ function countedName(name) {
  * @param {string} note
  * @returns {object|null} The alternate field's data, or null for a note that says nothing of the kind.
  */
-function alternateFrom(note) {
+function alternateFrom(note, damage = "") {
 	const text = tidy(note);
 	const pair = /^or\s+(\d*)d(\d+)\s+each\s+when\s+wielded\s+as\s+a\s+pair$/i.exec(text);
-	if (pair) return { label: "as a pair", damage: `2d${pair[2]}` };
+	// A pair fills both hands.
+	if (pair) return { label: "as a pair", damage: `2d${pair[2]}`, pair: true };
+	// "can be thrown": the same die, at a distance.
+	if (CAN_BE_THROWN.test(text) && damage) return { label: "thrown", damage, ranged: true };
 	const other = /^in\s+melee\s+or\s+(\d*d\d+)\s+(.+)$/i.exec(text);
 	if (!other) return null;
 	const words = other[2].toLowerCase().split(/\s+/);
@@ -234,7 +258,7 @@ function armourConditionFrom(inner) {
  */
 function gearItem(text) {
 	const { name, count } = countedName(capitalise(tidy(text)));
-	const system = { ...stockOf(text, count), ...chanceOf(text), ...lossOf(text), ...seatOf(text) };
+	const system = { ...stockOf(text, count), ...chanceOf(text), ...lossOf(text), ...seatOf(text), ...remedyOf(text), ...effectOf(text) };
 	return Object.keys(system).length ? { type: "gear", name, system } : { type: "gear", name };
 }
 
@@ -249,7 +273,10 @@ function readChunk(chunk) {
 	const text = chunk.replace(LEADING_JOINER, "").trim();
 	const group = typedGroup(text);
 	const kind = group?.kind;
-	const name = kind ? capitalise(tidy(text.slice(0, group.open))) : "";
+	const printed = kind ? tidy(text.slice(0, group.open)) : "";
+	// "concealed beneath a plate suit (A1)" is the plate suit, and says how it's worn.
+	const worn = WORN_HOW.exec(printed);
+	const name = capitalise(worn ? printed.slice(worn[0].length) : printed);
 	if (!kind || !name) return [{ item: gearItem(text) }];
 	const tail = text.slice(group.close + 1);
 	const more = typedGroup(tail) ? tail.replace(/^\s*(?:with|and|plus)\s+/i, "") : "";
@@ -300,7 +327,9 @@ function readChunk(chunk) {
 				...(kind === "shield" && /buckler/i.test(name) ? { buckler: true } : {}),
 				...(looksWooden(name, { type: "armour", kind }) ? { wooden: true } : {}),
 				...(counts ? { condition: counts.condition, situation: counts.situation } : {}),
-				description: tidyParagraphs(note, after)
+				// What it does to whoever grabs its wearer, or Impairs (p42, p82).
+				...effectOf(group.inner),
+				description: tidyParagraphs(worn?.[1] ?? "", note, after)
 			}
 		};
 		return [{ item }, ...rest];
@@ -327,7 +356,7 @@ function readChunk(chunk) {
 	let notes = attack.note ? splitOutside(attack.note, COMMA).filter(aside) : [];
 	const special = notes.map((note) => SPECIALIST_NOTE.exec(note)).find((match) => match && SPECIALIST_DICE.includes(match[1].toLowerCase()));
 	const qualities = new Set(attack.qualities);
-	if (RANGED_NAME.test(name)) qualities.add("ranged");
+	if (RANGED_NAME.test(name) || THROWN_NAME.test(name)) qualities.add("ranged");
 	// "2d8 hefty when mounted": Hefty only on horseback, as a lance is (p12).
 	if (qualities.has("hefty") && notes.some((note) => /^when mounted$/i.test(tidy(note)))) {
 		qualities.delete("hefty");
@@ -347,14 +376,14 @@ function readChunk(chunk) {
 		notes = notes.filter((note) => !onFoot.test(tidy(note)));
 	}
 	// "in melee or d6 ranged": another way to fight with it.
-	const alternateNote = notes.find((note) => alternateFrom(note));
+	const alternateNote = notes.find((note) => alternateFrom(note, attack.damage));
 	notes = notes.filter((note) => note !== alternateNote);
 	const counted = countedName(label);
 	const system = {
 		damage: attack.damage,
 		equipped: true,
 		specialist: special ? { die: special[1].toLowerCase(), situation: tidy(special[2]) } : { die: "", situation: "" },
-		...(alternateNote ? { alternate: alternateFrom(alternateNote) } : {}),
+		...(alternateNote ? { alternate: alternateFrom(alternateNote, attack.damage) } : {}),
 		...(looksWooden(name, { type: "weapon" }) ? { wooden: true } : {}),
 		...stockOf(own, counted.count),
 		description: tidyParagraphs(...notes.filter((note) => !special || note !== special[0]), after)
@@ -368,6 +397,29 @@ function readChunk(chunk) {
 	// SPI lost should a banner fall (p62).
 	Object.assign(system, lossOf(own));
 	return [{ item: { type: "weapon", name: counted.name, system } }, ...rest];
+}
+
+/** A comma or "and" straight after an aside, where one possession ends and the next begins. */
+const AFTER_ASIDE = /^\s*(?:,\s*(?:and\s+)?|and\s+)(?=\S)/i;
+
+/**
+ * A line with nothing typed in it, cut into its possessions where one aside
+ * closes and another thing is named after it, as in "Lantern (lights the
+ * way), map (see below)". Commas inside a single possession's words are left alone.
+ * @param {string} text
+ * @returns {string[]}
+ */
+function splitAfterAsides(text) {
+	const parts = [];
+	let start = 0;
+	for (const group of parentheticals(text)) {
+		const joint = AFTER_ASIDE.exec(text.slice(group.close + 1));
+		if (!joint) continue;
+		parts.push(text.slice(start, group.close + 1));
+		start = group.close + 1 + joint[0].length;
+	}
+	parts.push(text.slice(start));
+	return parts.map(tidy).filter(Boolean);
 }
 
 /**
@@ -386,7 +438,7 @@ export function propertyItems(lines) {
 		const text = String(line ?? "").trim();
 		if (!text) continue;
 		const typed = splitOutside(text, COMMA).some((part) => typedGroup(part));
-		const chunks = typed ? splitOutside(text, COMMA).flatMap((part) => splitOutside(part, JOINER)) : [text];
+		const chunks = typed ? splitOutside(text, COMMA).flatMap((part) => splitOutside(part, JOINER)) : splitAfterAsides(text);
 		for (const { item, companion } of chunks.flatMap(readChunk)) {
 			if (item) items.push(item);
 			if (companion) companions.push(companion);
@@ -443,6 +495,42 @@ export function retypedProperty(items) {
 }
 
 /**
+ * Knights read before a line with nothing typed in it was cut into its
+ * possessions carry two things as one piece of gear, sharing one count and
+ * restock. Each such piece, untouched since, becomes the possessions it names,
+ * in its place in the list. A count already spent stays spent on the piece
+ * that's counted.
+ * @param {{id: string, type: string, name: string, sort?: number, system: object}[]} items A Knight's items.
+ * @returns {{remove: string[], create: object[]}} The ids of the gear to remove, and item data to make.
+ */
+export function splitMergedGear(items) {
+	const remove = [];
+	const create = [];
+	for (const item of items) {
+		if (item.type !== "gear" || item.system.description || item.system.remedy) continue;
+		const pieces = propertyGear([item.name]);
+		if (pieces.length < 2 || pieces.some((piece) => piece.type !== "gear")) continue;
+		const left = item.system.quantity?.value;
+		for (const [index, piece] of pieces.entries()) {
+			piece.sort = (item.sort ?? 0) + index;
+			const counted = piece.system?.quantity;
+			if (counted && Number.isInteger(left) && item.system.quantity?.max === counted.max) counted.value = Math.min(left, counted.max);
+		}
+		remove.push(item.id);
+		create.push(...pieces);
+	}
+	return { remove, create };
+}
+
+/** What else is written along with a detail possessionDetails fills in, which its `only` keeps too. */
+const FILLED_WITH = Object.freeze({
+	condition: ["system.situation"],
+	quantity: ["name"],
+	alternate: ["system.alternate.pair"],
+	effect: ["system.effectDie", "system.effectVirtue"]
+});
+
+/**
  * What the Property reader now knows of a possession beyond its dice and
  * Armour: how many, when restocked, when its Armour counts, another way to
  * fight with it, and whether it's wooden or a buckler. Knights made before it
@@ -471,10 +559,20 @@ export function possessionDetails(items, lines, { only = null } = {}) {
 		if (got.wooden && !had.wooden) update["system.wooden"] = true;
 		if (got.buckler && !had.buckler) update["system.buckler"] = true;
 		if (got.alternate && !had.alternate?.damage) update["system.alternate"] = got.alternate;
+		// Fang blades read before a pair was known to fill both hands.
+		else if (got.alternate?.pair && !had.alternate?.pair && had.alternate?.damage === got.alternate.damage) update["system.alternate.pair"] = true;
+		// Javelins and darts read before thrown weapons were known to strike at a distance.
+		if (got.ranged && had.ranged === false) update["system.ranged"] = true;
 		if (got.chance && !had.chance?.of) update["system.chance"] = got.chance;
 		if (got.lingers && !had.lingers) update["system.lingers"] = got.lingers;
 		if (got.loss && !had.loss?.dice) update["system.loss"] = got.loss;
 		if (got.keepsSeat && !had.keepsSeat) update["system.keepsSeat"] = true;
+		if (got.effect && !had.effect) {
+			update["system.effect"] = got.effect;
+			if (got.effectDie) update["system.effectDie"] = got.effectDie;
+			if (got.effectVirtue) update["system.effectVirtue"] = got.effectVirtue;
+		}
+		if (got.remedy && !had.remedy) update["system.remedy"] = got.remedy;
 		if (got.condition && !had.condition) {
 			update["system.condition"] = got.condition;
 			update["system.situation"] = got.situation;
@@ -482,7 +580,7 @@ export function possessionDetails(items, lines, { only = null } = {}) {
 		// "3 javelins" is "Javelins" now its count is kept.
 		if (LEADING_COUNT.test(item.name) && update["system.quantity"]) update.name = piece.name;
 		if (only) {
-			const kept = new Set(only.flatMap((field) => [`system.${field}`, ...(field === "condition" ? ["system.situation"] : []), ...(field === "quantity" ? ["name"] : [])]));
+			const kept = new Set(only.flatMap((field) => [`system.${field}`, ...(FILLED_WITH[field] ?? [])]));
 			for (const key of Object.keys(update)) if (!kept.has(key)) delete update[key];
 		}
 		if (Object.keys(update).length) updates.push({ _id: item.id, ...update });
@@ -525,8 +623,8 @@ export function companionActorData({ name, stats, armour, trample, attacks = [],
  * @property {string} itemId The gear line.
  * @property {Companion} companion
  * @property {boolean} steed The Knight's steed, whose trample joins a mounted charge (p10).
- * @property {boolean} keepLine Whether the line stays once the companion is an NPC. The steed's goes,
- *   as the sheet shows the Steed on its own, unless the line points at the page's table.
+ * @property {boolean} keepLine Whether the line stays once the companion is an NPC: only where it
+ *   points at the page's table, as the sheet shows the steed and other followers on their own.
  */
 
 /**
@@ -546,7 +644,7 @@ export function knightCompanions(items, { steedOnly = false } = {}) {
 		const [companion] = companions;
 		const steed = isSteed(companion.name) && !found.some((carried) => carried.steed);
 		if (steedOnly && !steed) continue;
-		found.push({ itemId: item.id, companion, steed, keepLine: !steed || pointsBelow(item.name) });
+		found.push({ itemId: item.id, companion, steed, keepLine: pointsBelow(item.name) });
 	}
 	return found;
 }

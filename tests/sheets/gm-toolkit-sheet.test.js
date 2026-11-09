@@ -74,6 +74,20 @@ describe("GM Toolkit templates", () => {
 		expect(source).not.toContain("awaitOmens");
 	});
 
+	it("offer a resolved Myth's Glory on its row, as a pill, only while nobody has it", () => {
+		const source = templates["myths.hbs"];
+		const [chip] = tags(source).filter((tag) => tag.includes('data-action="awardMythGlory"'));
+		expect(chip).toMatch(/^<button type="button" class="[^"]*\bbastionland-pill\b/);
+		const before = source.slice(0, source.indexOf('data-action="awardMythGlory"'));
+		expect([...before.matchAll(/\{\{(?:#if|\/if)[^}]*\}\}/g)].at(-1)[0]).toBe("{{#if awardGlory}}");
+	});
+
+	it("let the Referee say whether the Company is worthy of the City Quest, in its part of the Myths page", () => {
+		const source = templates["myths.hbs"];
+		const city = source.slice(source.indexOf("bastionland-myths__city"));
+		expect(city).toContain('<select data-toolkit-field="cityQuestWorthy">');
+	});
+
 	it("only ask for actions the sheet has", () => {
 		const actions = new Set(Object.values(templates).flatMap((source) => [...source.matchAll(/data-action="(\w+)"/g)].map((match) => match[1])));
 		// Foundry's own document sheets pick a new picture this way.

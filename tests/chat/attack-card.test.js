@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
+import { createDuel } from "../../module/rules/duel.js";
 
 vi.mock("../../module/actions/attack.js", () => ({
 	renderAttackCard: vi.fn(async () => "<section></section>"),
@@ -590,23 +591,15 @@ describe("a Strong Gambit's Greater effect", () => {
 		expect(kay.items.get("sword").update).toHaveBeenCalledWith({ "system.equipped": false }, expect.anything());
 	});
 
-	it("records Something else as written, changing nobody's sheet (p114)", async () => {
-		inputDialog.mockResolvedValue({ effect: "blank", other: "  Takes the arm  " });
+	it("marks Something else done, said at the table, changing nobody's sheet (p114)", async () => {
+		inputDialog.mockResolvedValue({ effect: "blank" });
 		const card = renderCard(strong());
 		await card.click("greater");
 		expect(savedState(card.message).gambits[0].greater).toBe("bastionland.attack.greater.otherDone");
 		expect(kay.items.get("sword").update).not.toHaveBeenCalled();
 	});
 
-	it("asks for the words when Something else is left blank", async () => {
-		inputDialog.mockResolvedValue({ effect: "blank", other: " " });
-		const card = renderCard(strong());
-		await card.click("greater");
-		expect(card.message.update).not.toHaveBeenCalled();
-		expect(warnings).toEqual(["bastionland.attack.greater.otherEmpty"]);
-	});
-
-	it("lets an attacker's player, and only theirs, write one in for the GM to record", async () => {
+	it("lets an attacker's player, and only theirs, mark one done for the GM to record", async () => {
 		const player = { id: "player-1" };
 		const ask = (change) => CONFIG.queries[`${SYSTEM_ID}.changeAttack`]({ messageId: "message-1", change }, { user: player });
 		const other = { type: "greater", index: 0, text: "Greater effect: takes the arm", other: true };
@@ -618,10 +611,11 @@ describe("a Strong Gambit's Greater effect", () => {
 
 		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: (user) => user === player };
 		expect(await ask(other)).toBe(true);
-		expect(savedState(card.message).gambits[0].greater).toBe("Greater effect: takes the arm");
+		// The GM's own words go on the card, whatever the player's client sent.
+		expect(savedState(card.message).gambits[0].greater).toBe("bastionland.attack.greater.otherDone");
 	});
 
-	it("lets the owner of the foe a player targets write one in on a card rolled with no targets", async () => {
+	it("lets the owner of the foe a player targets mark one done on a card rolled with no targets", async () => {
 		const player = { id: "player-1" };
 		const ask = (change) => CONFIG.queries[`${SYSTEM_ID}.changeAttack`]({ messageId: "message-1", change }, { user: player });
 		const other = { type: "greater", index: 0, text: "Greater effect: takes the arm", other: true };
@@ -633,7 +627,8 @@ describe("a Strong Gambit's Greater effect", () => {
 		expect(await ask({ ...other, actor: "Actor.theirs" })).toBe(false);
 		expect(card.message.update).not.toHaveBeenCalled();
 		expect(await ask({ ...other, actor: "Actor.mine" })).toBe(true);
-		expect(savedState(card.message).gambits[0].greater).toBe("Greater effect: takes the arm");
+		// The GM's own words go on the card, whatever the player's client sent.
+		expect(savedState(card.message).gambits[0].greater).toBe("bastionland.attack.greater.otherDone");
 	});
 });
 
@@ -880,6 +875,23 @@ describe("rules check of 2026-10-27", () => {
 		expect(offered()).toContain("dismount");
 	});
 
+	it("offers a Dismount at the other rider in a joust before they're marked Mounted, unless thrown already (p10)", async () => {
+		const joust = createDuel({ kind: "joust", duelists: [{ uuid: "Actor.foe", name: "Foe" }, { uuid: "Actor.k", name: "Ser Kay" }] });
+		const card = renderCard(attackState({ duel: "duel-1" }));
+		const duelCard = { id: "duel-1", flags: { [SYSTEM_ID]: { duel: joust } } };
+		const attackCard = card.message;
+		game.messages.get = (id) => (id === "duel-1" ? duelCard : attackCard);
+		await card.click("gambit");
+		expect(offered()).toContain("dismount");
+
+		// Thrown in the exchange before, Ser Kay fights on foot.
+		inputDialog.mockClear();
+		duelCard.flags[SYSTEM_ID].duel = { ...joust, exchanges: 1 };
+		tokens["Scene.s.Token.k"].actor.system.mounted = false;
+		await card.click("gambit");
+		expect(offered()).not.toContain("dismount");
+	});
+
 	it("records no Dismount a player asks for at a foe on foot", async () => {
 		const card = renderCard(attackState());
 		expect(await ask({ type: "gambit", die: 0, key: "dismount", bonus: 4 })).toBe(false);
@@ -966,7 +978,7 @@ describe("what players can do, audit of 2026-10-30", () => {
 		expect(warnings).toEqual(["bastionland.attack.needsGM"]);
 	});
 
-	it("shows the Greater effect to whoever plays an attacker, who may write one in", () => {
+	it("shows the Greater effect to whoever plays an attacker, who may mark one done", () => {
 		game.user.isGM = false;
 		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", isOwner: false }) };
 		const strong = attackState({ gambits: [{ key: "repel", die: 0, strong: "greater", bonus: null, save: null, dismissed: false }] });

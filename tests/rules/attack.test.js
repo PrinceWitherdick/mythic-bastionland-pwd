@@ -1095,3 +1095,13 @@ describe("combat audit of 2026-10-29", () => {
 		expect(harmBarred({ blast: false, largeScale: false }, { warband: true })).toBe("warband");
 	});
 });
+
+describe("checkWielding, a pair", () => {
+	it("fills both hands, leaving none for a shield", () => {
+		const pair = { pair: true, of: "blades" };
+		const shield = { shield: true };
+		expect(checkWielding([pair, shield], { hands: true }).refusal).toBe("hands");
+		expect(checkWielding([pair], { hands: true }).refusal).toBeNull();
+		expect(checkWielding([{ of: "blades" }, shield], { hands: true }).refusal).toBeNull();
+	});
+});

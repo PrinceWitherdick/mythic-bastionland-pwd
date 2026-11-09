@@ -20,6 +20,7 @@ import { getRealm, isRealmScene } from "./realm.js";
 import { realmKnown, revealMythsReached, secretsKeptOn } from "./solo.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { revealSighted } from "./sighted.js";
+import { timelineArrivals } from "./timeline-events.js";
 import { gallop } from "./steeds.js";
 import { advancePhase } from "./time.js";
 import { markOmenOnEntering, wildernessRoll } from "./wilderness.js";
@@ -359,6 +360,24 @@ function keepHeldBack(scene, move, id) {
 }
 
 /**
+ * What the Company finds in the hexes it surely reached: played alone, the
+ * Myths there; and whatever it saw from afar. Asked only once a blind drift or
+ * dire weather has settled where it really went. The journey put the hexes come
+ * into for the first time on the Timeline as the players then knew them, before
+ * anything there was found, so each hex found something in now gets its row:
+ * written once by its key, it's never there twice.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}[]} hexes
+ * @returns {Promise<void>}
+ */
+async function findWhatsReached(scene, hexes) {
+	const myths = await revealMythsReached(scene, hexes);
+	const sighted = await revealSighted(scene, hexes);
+	const found = new Map([...myths.map((myth) => myth.hex), ...sighted].map((hex) => [hexKey(hex), hex]));
+	if (found.size) await timelineArrivals(scene, [...found.values()]);
+}
+
+/**
  * Follow one of the Company's moves: first whether it travelled blind and
  * where that left it, then, played alone, the Myth hexes it really came into
  * are found, and last what coming there calls for, so the card speaks of the
@@ -383,7 +402,7 @@ async function followMove(scene, moved) {
 	// Company plainly stayed there, so the hex it leaves is found too; not one it was put back from, by Stay or
 	// a blind roll, having never been there, nor one a drift put it in among those held back from.
 	const into = held ? [] : chosen ? (landed.entered ?? []) : hexesReached(scene, landed);
-	await revealMythsReached(scene, [...(chosen && landed.from ? [landed.from] : []), ...into]);
+	await findWhatsReached(scene, [...(chosen && landed.from ? [landed.from] : []), ...into]);
 	return noticeArrival(scene, landed, { move: held ? move : null, orders: landed.orders ?? null, chose: chosen ? (moved.entered ?? []) : null, movements: moved.movements ?? [] });
 }
 
@@ -404,8 +423,7 @@ const stillHeld = (scene, arrived) => heldBack(scene).move === (arrived.move ?? 
  * @returns {Promise<void>}
  */
 async function reachHeldHexes(scene, entered) {
-	await revealMythsReached(scene, entered);
-	await revealSighted(scene, entered);
+	await findWhatsReached(scene, entered);
 	await rollFirstArrival({ scene, hex: entered.at(-1) });
 	welcomeHome(scene, entered).catch((error) => console.error(`${SYSTEM_ID} | Couldn't welcome the Company home`, error));
 }

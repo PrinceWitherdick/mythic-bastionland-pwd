@@ -81,7 +81,9 @@ export function announceSeasonEvent(event, season, { weeks = false, due = [] } =
 		entries: [{ name: t(`time.seasonBynames.${season}`), lines: [t(`time.events.kinds.${event.key}.text`)].filter(Boolean) }],
 		due: [...(domains.length ? [t("time.events.collected", { domains: domains.map((domain) => domain.name).join(", ") })] : []), ...due],
 		hint: [weeks ? t("time.events.weeksPassed") : null, prompt].filter(Boolean).join(" "),
-		hintAside: true
+		hintAside: true,
+		// The Referee’s Undo, shown while the Weeks Pass that posted it can be taken back; marked by hand, there’s none.
+		undo: true
 	});
 }
 

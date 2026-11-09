@@ -1,8 +1,10 @@
+import { chooseOne } from "../apps/actor-pick.js";
 import { chooseDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { escapeHTML } from "../rules/text.js";
 import { pursuitMakings } from "../rules/time.js";
-import { addCourtMember } from "./court.js";
+import { canHoldPost } from "../rules/dominion.js";
+import { addCourtMember, sitsAtCourt } from "./court.js";
 import { worldDomains } from "./dominion.js";
 import { isRealmScene } from "./realm.js";
 
@@ -14,13 +16,20 @@ import { isRealmScene } from "./realm.js";
  */
 
 /**
+ * @param {string|null} pursuit
+ * @param {Actor} actor
+ * @returns {readonly string[]} What the pursuit can make for them (pursuitMakings).
+ */
+export const makingsFor = (pursuit, actor) => pursuitMakings(pursuit, { holdsPost: canHoldPost(actor) });
+
+/**
  * Ask what came of a Knight's pursuit.
  * @param {Actor} actor
  * @param {string} pursuit
  * @returns {Promise<string|null>} One of the pursuit's PURSUIT_MAKINGS, or null if closed.
  */
 async function askMaking(actor, pursuit) {
-	const makings = pursuitMakings(pursuit);
+	const makings = makingsFor(pursuit, actor);
 	const choice = await chooseDialog({
 		title: t(`time.pursuits.${pursuit}.label`),
 		icon: "fa-solid fa-hand-holding-heart",
@@ -32,27 +41,30 @@ async function askMaking(actor, pursuit) {
 
 /**
  * Give a Knight a place at a Domain's Court, as a Courtier (p20): the only
- * Domain, or the one the GM picks.
+ * Domain, or the one the GM picks, of those they don't already sit at.
  * @param {Actor} actor
  * @param {string} season Its name, for the Court's note on them.
- * @returns {Promise<string|null>} The Domain's name, or null where there's none to join.
+ * @returns {Promise<{court: string, already?: true}|null>} The Domain's name, saying where they sat already,
+ *   or null where there's none to join.
  */
 async function joinCourt(actor, season) {
-	const domains = worldDomains().filter((domain) => domain.isOwner);
-	if (!domains.length) return null;
+	const owned = worldDomains().filter((domain) => domain.isOwner);
+	const domains = owned.filter((domain) => !sitsAtCourt(domain, actor));
+	// Already at every Court there is: none is joined twice.
+	if (!domains.length) return owned.length ? { court: owned.find((domain) => sitsAtCourt(domain, actor)).name, already: true } : null;
 	let domain = domains[0];
 	if (domains.length > 1) {
-		const id = await chooseDialog({
+		// A list of the Courts with one button, however many Domains there are.
+		domain = await chooseOne(domains, {
 			title: t("time.pursuitMakes.courtesy.court"),
 			icon: "fa-solid fa-chess-king",
-			message: t("time.pursuitMakes.courtesy.whichCourt", { name: escapeHTML(actor.name) }),
-			buttons: domains.map((each, index) => ({ action: each.id, label: each.name, default: index === 0 }))
+			message: t("time.pursuitMakes.courtesy.whichCourt", { name: actor.name }),
+			ok: t("time.pursuitMakes.courtesy.joinCourt")
 		});
-		domain = domains.find((each) => each.id === id);
 		if (!domain) return null;
 	}
 	await addCourtMember(domain, "courtier", { name: actor.name, note: t("time.pursuitMakes.courtesy.courtNote", { season }), knight: actor.id });
-	return domain.name;
+	return { court: domain.name };
 }
 
 /**
@@ -80,13 +92,14 @@ export async function followPursuits(company, entries, season) {
 	let dwelling = false;
 	for (const [index, { actor, pursuit, making: said = null }] of company.entries()) {
 		if (!pursuitMakings(pursuit).length) continue;
-		// Said beside the pursuit as the Season turned, or else asked now.
-		const making = pursuitMakings(pursuit).includes(said) ? said : await askMaking(actor, pursuit);
+		// Said beside the pursuit as the Season turned, or else asked now. A Squire can't take a place at Court.
+		const making = makingsFor(pursuit, actor).includes(said) ? said : await askMaking(actor, pursuit);
 		if (!making) continue;
 		const lines = entries[index].lines;
 		if (making === "court") {
-			const court = await joinCourt(actor, season);
-			lines.push(court ? t("time.pursuitMakes.courtesy.joined", { court }) : t("time.pursuitMakes.courtesy.noCourt"));
+			const joined = await joinCourt(actor, season);
+			lines.push(!joined ? t("time.pursuitMakes.courtesy.noCourt")
+				: t(joined.already ? "time.pursuitMakes.courtesy.alreadyAtCourt" : "time.pursuitMakes.courtesy.joined", { court: joined.court }));
 		} else {
 			if (making === "dwelling") dwelling = true;
 			lines.push(t(`time.pursuitMakes.${pursuit}.made.${making}`));

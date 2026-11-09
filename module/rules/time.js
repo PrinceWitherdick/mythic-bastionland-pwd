@@ -45,9 +45,15 @@ export const PURSUIT_MAKINGS = Object.freeze({
 
 /**
  * @param {string|null} pursuit
+ * @param {object} [options]
+ * @param {boolean} [options.holdsPost] Whether the one pursuing it can hold a post, knighted and
+ *   alive: a place at Court is only for one who can, so not a Squire (p7, p20).
  * @returns {readonly string[]} What it can make: none for a pursuit that makes nothing to keep.
  */
-export const pursuitMakings = (pursuit) => (Object.hasOwn(PURSUIT_MAKINGS, pursuit ?? "") ? PURSUIT_MAKINGS[pursuit] : []);
+export function pursuitMakings(pursuit, { holdsPost = true } = {}) {
+	const makings = Object.hasOwn(PURSUIT_MAKINGS, pursuit ?? "") ? PURSUIT_MAKINGS[pursuit] : [];
+	return holdsPost ? makings : makings.filter((making) => making !== "court");
+}
 
 /** Virtue Loss from hardship on the road (Travel, p18), and the Virtue each costs. */
 export const HARDSHIPS = Object.freeze([

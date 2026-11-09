@@ -11,6 +11,7 @@
  * kept in the Scene flag `sighted`, keyed by hex: `{"5,7": {note}}`, which every
  * client reads to draw them. Pure, so it can be tested without Foundry.
  */
+import { landmarkSeen } from "./landmarks.js";
 import { featureAt } from "./realm.js";
 import { hexKey, neighbours, parseHexKey } from "./realm-geometry.js";
 import { trimmedText } from "./text.js";
@@ -63,12 +64,17 @@ export function hiddenThere(realm, hex, handHidden) {
  * @param {object} g
  * @param {{col: number, row: number}} hex Where the Company stands.
  * @param {(hex: {col: number, row: number}) => {holding: boolean}} handHidden
+ * @param {object} [options]
+ * @param {string|null} [options.season] Now: a hidden Landmark is made out only if it's seen by looking,
+ *   so not a blog Landmark such as a Grotto, or a Willow out of its Season.
  * @returns {{direction: number, hex: {col: number, row: number}, landmark: object|null, holding: object|null}[]}
  */
-export function sightable(realm, g, hex, handHidden) {
+export function sightable(realm, g, hex, handHidden, { season = null } = {}) {
 	return neighbours(g, hex).flatMap(({ direction, hex: next }) => {
 		const hidden = hiddenThere(realm, next, handHidden);
-		return hidden ? [{ direction, hex: next, ...hidden }] : [];
+		const landmark = hidden?.landmark && landmarkSeen(hidden.landmark, season) ? hidden.landmark : null;
+		const holding = hidden?.holding ?? null;
+		return landmark || holding ? [{ direction, hex: next, landmark, holding }] : [];
 	});
 }
 
