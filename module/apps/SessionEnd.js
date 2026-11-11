@@ -55,11 +55,11 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {"season"|"age"|null} A turn this session's roll puts at the end of the next one. */
 	#promised = null;
 
-	/** @type {{id: number, d6: number|null, result: string|null}[]} Situations left unresolved (p17); each is told by its number. */
+	/** @type {{number: number, d6: number|null, result: string|null}[]} Situations left unresolved (p17); each is told, and found, by its number. */
 	#situations = [];
 
 	/** Numbers the next situation. A row keeps its number when another is dropped, since the table has been calling it by that. */
-	#nextId = 1;
+	#nextNumber = 1;
 
 	/** @type {{key: string, names: string}[]} The Glory awarded from this window, and to whom. */
 	#glory = [];
@@ -114,7 +114,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				: null,
 			// Only a Season or an Age turning leaves a situation to change.
 			turning: turnsSeasonOrAge(this.#step),
-			situations: this.#numbered().map((situation) => ({
+			situations: this.#situations.map((situation) => ({
 				...situation,
 				label: situationLabel(situation.number),
 				text: situation.result ? t(`refereeRolls.tables.unresolved.results.${situation.result}`) : null
@@ -152,13 +152,8 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	 * @returns {object|undefined} That situation.
 	 */
 	#row(node) {
-		const id = Number(node.closest("[data-situation-id]")?.dataset.situationId);
-		return this.#situations.find((situation) => situation.id === id);
-	}
-
-	/** @returns {object[]} The situations, each with the number the table tells it by: its id, which never shifts. */
-	#numbered() {
-		return this.#situations.map((situation) => ({ ...situation, number: situation.id }));
+		const number = Number(node.closest("[data-situation-number]")?.dataset.situationNumber);
+		return this.#situations.find((situation) => situation.number === number);
 	}
 
 	/* -------------------------------------------- */
@@ -197,7 +192,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {SessionEnd} */
 	static #onAddSituation() {
-		this.#situations.push({ id: this.#nextId++, d6: null, result: null });
+		this.#situations.push({ number: this.#nextNumber++, d6: null, result: null });
 		return this.render();
 	}
 
@@ -255,7 +250,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 			const ended = await endTheSession({
 				step: this.#step,
 				passed: t(`sessionEnd.time.steps.${this.#step}.card`),
-				situations: this.#numbered().filter((situation) => situation.result),
+				situations: this.#situations.filter((situation) => situation.result),
 				shareSituations: this.#shareSituations,
 				glory: this.#glory.map(({ key, names }) => t("sessionEnd.glory.awarded", { award: t(`glory.awards.${key}.label`), names })),
 				plans: this.#plans,
