@@ -1,5 +1,5 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
-import { askUser } from "../ask-gm.js";
+import { answerBy, askUser } from "../ask-gm.js";
 import { attackOf } from "../chat/attack-flag.js";
 import { postCard, statefulCard, t, warn } from "../chat/cards.js";
 import { queryAsker } from "../compat.js";
@@ -18,6 +18,7 @@ import {
 } from "../rules/duel.js";
 import { escapeHTML } from "../rules/text.js";
 import { outOfFight } from "../rules/virtues.js";
+import { serverNow } from "../server-now.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 /**
@@ -34,6 +35,9 @@ export const STAKE_QUERY = `${SYSTEM_ID}.agreeToStake`;
 
 /** How long the other side has to agree to a stake before the duel goes ahead without one. */
 const STAKE_TIMEOUT_MS = 60000;
+
+/** How much sooner the window asking closes itself, so an answer never comes after the challenger stops waiting. */
+const STAKE_CLOSE_EARLY_MS = 5000;
 
 /**
  * Whether an Attack card is still in chat: one deleted is no Attack, and its duelist rolls again.
@@ -92,13 +96,30 @@ function renderDuelCard(duel) {
 	return foundry.applications.handlebars.renderTemplate(templatePath("chat/duel.hbs"), duelCardContext(duel));
 }
 
+/**
+ * @param {object} change `{type: "forget", messages}`, the Attack cards a batch deleted.
+ * @returns {string[]} Their ids.
+ */
+const forgottenOf = (change) => (Array.isArray(change?.messages) ? change.messages.filter((id) => typeof id === "string" && id) : []);
+
+/**
+ * Forget every Attack card a change names, in the one write, on the duel as written.
+ * @param {import("../rules/duel.js").DuelState} duel
+ * @param {object} change
+ * @returns {import("../rules/duel.js").DuelState|null} Null when it names none the duel holds.
+ */
+function forgetAttacks(duel, change) {
+	const after = forgottenOf(change).reduce((state, message) => changeDuel(state, { type: "forget", message }) ?? state, duel);
+	return after === duel ? null : after;
+}
+
 // An Attack card since deleted is no Attack, so its duelist may roll another in its place. Forgetting
 // one is the change that writes that on the card, so it's made on the duel as written.
 const duelCard = statefulCard({
 	flag: "duel",
 	query: DUEL_QUERY,
 	notices: "duel",
-	change: (duel, change) => changeDuel(change?.type === "forget" ? duel : standing(duel), change),
+	change: (duel, change) => (change?.type === "forget" ? forgetAttacks(duel, change) : changeDuel(standing(duel), change)),
 	render: renderDuelCard,
 	fits: duelChangeFits
 });
@@ -126,7 +147,10 @@ export const writtenDuelOf = duelCard.stateOf;
  */
 function duelChangeFits(message, change) {
 	// Only an Attack card that's really gone is forgotten.
-	if (change?.type === "forget") return !attackCardHere(change.message);
+	if (change?.type === "forget") {
+		const ids = forgottenOf(change);
+		return ids.length > 0 && !ids.some((id) => attackCardHere(id));
+	}
 	if (change?.type !== "attack") return true;
 	// The Attack card's state, as attack-card.js keeps it.
 	const attack = attackOf(game.messages.get(change.message));
@@ -284,18 +308,22 @@ async function agreesToStake(opponent, asked) {
 	if (answerer === null) return true;
 	if (!answerer) return null;
 	ui.notifications.info(t("duel.stakeAsking", { name: asked.opponent }));
-	const answer = await askUser(answerer, STAKE_QUERY, { uuid: opponent.uuid, ...asked }, `Couldn't ask whether ${asked.opponent} stakes Glory`, { timeout: STAKE_TIMEOUT_MS, fallback: null });
+	const answer = await askUser(answerer, STAKE_QUERY, { uuid: opponent.uuid, ...asked }, `Couldn't ask whether ${asked.opponent} stakes Glory`, { timeout: STAKE_TIMEOUT_MS, fallback: null, dated: true });
 	return typeof answer === "boolean" ? answer : null;
 }
 
 /**
  * A challenger asks this client whether the duelist it answers for will stake
- * Glory on a duel: yes or no, and closing the window is no.
+ * Glory on a duel: yes or no, and closing the window is no. Unanswered, it
+ * closes itself before the challenger stops waiting, by the deadline the
+ * question carries, rather than take an answer nobody hears.
  * @param {{uuid?: string, kind?: string, challenger?: string, opponent?: string}} data
  * @param {object} context
- * @returns {Promise<boolean>}
+ * @returns {Promise<boolean|null>} Null when it closed itself unanswered.
  */
 export async function onStakeQuery(data = {}, context = {}) {
+	// A question that doesn't say when the challenger stops waiting is taken as just asked.
+	const closeBy = (answerBy(data) ?? serverNow() + STAKE_TIMEOUT_MS) - STAKE_CLOSE_EARLY_MS;
 	const asker = queryAsker(context);
 	const opponent = typeof data?.uuid === "string" ? fromUuidSync(data.uuid) : null;
 	if (!asker || !opponent?.testUserPermission?.(game.user, "OWNER")) return false;
@@ -309,7 +337,8 @@ export async function onStakeQuery(data = {}, context = {}) {
 			t("duel.stakeAsk.terms")
 		],
 		yes: { label: t("duel.stakeAsk.agree") },
-		no: { label: t("duel.stakeAsk.refuse") }
+		no: { label: t("duel.stakeAsk.refuse") },
+		closeBy
 	});
 }
 

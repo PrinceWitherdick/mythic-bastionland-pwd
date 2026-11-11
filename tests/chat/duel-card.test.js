@@ -562,6 +562,28 @@ describe("duel audit of 2026-11-04", () => {
 			expect(openDuelFor(actors["Actor.ada"]).message.id).toBe("duel-1");
 		});
 
+		it("is looked for once for a batch, such as the chat log cleared, leaving a duel card deleted with it be", async () => {
+			const { message, duel } = renderDuel(rolled(createDuel({ duelists })));
+			const update = vi.spyOn(message, "update");
+			game.messages.delete("attack-a");
+			game.messages.delete("attack-b");
+			const first = hooks.deleteChatMessage({ id: "attack-a" });
+			expect(hooks.deleteChatMessage({ id: "attack-b" })).toBe(first);
+			await first;
+			expect(duel().duelists.map(({ attack }) => attack)).toEqual([null, null]);
+			// Both forgotten in the one write.
+			expect(update).toHaveBeenCalledOnce();
+			update.mockClear();
+			// The whole log: the duel card goes in the same batch, and nothing writes to it.
+			const kept = rolled(createDuel({ duelists }));
+			const again = renderDuel(kept, "duel-2");
+			const writes = vi.spyOn(again.message, "update");
+			game.messages.clear();
+			const all = [hooks.deleteChatMessage({ id: "attack-a" }), hooks.deleteChatMessage({ id: "attack-b" }), hooks.deleteChatMessage({ id: "duel-2" })];
+			await Promise.all(all);
+			expect(writes).not.toHaveBeenCalled();
+		});
+
 		it("counts as no Attack even before the Referee's client forgets it", () => {
 			renderDuel(rolled(createDuel({ duelists })));
 			expect(openDuelFor(actors["Actor.ada"])).toBeNull();
@@ -667,7 +689,9 @@ describe("duel audit of 2026-11-04", () => {
 			const { actor } = challenge({ opponent: { type: "npcKnight", testUserPermission: () => false } });
 			inputDialog.mockResolvedValueOnce({ kind: "joust", stake: true });
 			await challengeToDuel(actor);
-			expect(query).toHaveBeenCalledWith(`${SYSTEM_ID}.agreeToStake`, { uuid: "Actor.bram", kind: "joust", challenger: "Ada", opponent: "Bram" }, { timeout: 60000 });
+			// With when the challenger stops waiting, by the clock the two clients share.
+			expect(query).toHaveBeenCalledWith(`${SYSTEM_ID}.agreeToStake`, { uuid: "Actor.bram", kind: "joust", challenger: "Ada", opponent: "Bram", answerBy: expect.any(Number) }, { timeout: 60000 });
+			expect(query.mock.calls[0][1].answerBy - Date.now()).toBeGreaterThan(59000);
 			expect(ui.notifications.info).toHaveBeenCalledWith("bastionland.duel.stakeAsking");
 			expect(posted().stake).toBe(true);
 		});
@@ -732,6 +756,23 @@ describe("duel audit of 2026-11-04", () => {
 			expect(await onStakeQuery({ uuid: "Actor.bram" }, { user: { name: "Ada's player" } })).toBe(false);
 			expect(await onStakeQuery({ uuid: "Actor.ada" }, {})).toBe(false);
 			expect(confirmDialog).not.toHaveBeenCalled();
+		});
+
+		it("closes itself 5 seconds before the challenger stops waiting, and says it went unanswered", async () => {
+			// The window closed by its own timer answers null; refused in time is still a refusal.
+			confirmDialog.mockResolvedValueOnce(null);
+			expect(await onStakeQuery({ uuid: "Actor.bram", answerBy: 1000000 }, { user: { name: "Ada's player" } })).toBeNull();
+			expect(confirmDialog.mock.calls[0][0].closeBy).toBe(1000000 - 5000);
+			confirmDialog.mockResolvedValueOnce(false);
+			expect(await onStakeQuery({ uuid: "Actor.bram", answerBy: 1000000 }, { user: { name: "Ada's player" } })).toBe(false);
+		});
+
+		it("takes a question that doesn't say when the challenger stops waiting as just asked", async () => {
+			const asked = Date.now();
+			await onStakeQuery({ uuid: "Actor.bram" }, { user: { name: "Ada's player" } });
+			const { closeBy } = confirmDialog.mock.calls[0][0];
+			expect(closeBy - asked).toBeGreaterThanOrEqual(55000);
+			expect(closeBy - Date.now()).toBeLessThanOrEqual(55000);
 		});
 	});
 

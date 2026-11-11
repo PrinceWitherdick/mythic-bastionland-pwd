@@ -1,4 +1,8 @@
+import { serverNow } from "./server-now.js";
 import { SYSTEM_ID } from "./system-id.js";
+
+/** Where a dated query's data says when the asker stops waiting, by the server's clock. */
+const ANSWER_BY = "answerBy";
 
 /**
  * Ask the active GM's client to do what this user can't, giving up after ten
@@ -20,13 +24,22 @@ export const askActiveGM = (name, data, failure) => askUser(globalThis.game?.use
  * @param {object} [options]
  * @param {number} [options.timeout] How long to wait, in milliseconds.
  * @param {unknown} [options.fallback] The answer when there was none.
+ * @param {boolean} [options.dated] Whether the data says when the asker stops waiting, for a window
+ *   the answer waits on to close by (see answerBy).
  * @returns {Promise<unknown>} Their answer, or the fallback.
  */
-export async function askUser(user, name, data, failure, { timeout = 10000, fallback = false } = {}) {
+export async function askUser(user, name, data, failure, { timeout = 10000, fallback = false, dated = false } = {}) {
 	try {
-		return (await user?.query(name, data, { timeout })) ?? fallback;
+		const sent = dated ? { ...data, [ANSWER_BY]: serverNow() + timeout } : data;
+		return (await user?.query(name, sent, { timeout })) ?? fallback;
 	} catch (error) {
 		console.warn(`${SYSTEM_ID} | ${failure}`, error);
 		return fallback;
 	}
 }
+
+/**
+ * @param {object} data A query's, asked with `dated`.
+ * @returns {number|null} When its asker stops waiting, by the server's clock, or null when it doesn't say.
+ */
+export const answerBy = (data) => (Number.isFinite(data?.[ANSWER_BY]) ? data[ANSWER_BY] : null);
