@@ -1,6 +1,6 @@
 import { landMirrors, takeAttack } from "../actions/damage.js";
 import { DUEL_QUERY, STAKE_QUERY, duelistScores, duelOf, onDuelQuery, onStakeQuery, saveDuelChange, writtenDuelOf } from "../actions/duel.js";
-import { CALENDAR_HOOK } from "../actions/calendar.js";
+import { onCalendarWrites } from "../actions/calendar.js";
 import { adjustGlory } from "../actions/glory.js";
 import { updateActors } from "../actions/actor-updates.js";
 import { causedBy } from "../actions/ledger.js";
@@ -11,6 +11,7 @@ import { escapeHTML } from "../rules/text.js";
 import { oncePerKey } from "../rules/queue.js";
 import { attackOf, confirmApply, saveChange as saveAttackChange } from "./attack-card.js";
 import { onCardClick, postCard, t, warn } from "./cards.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * @param {import("../rules/duel.js").DuelState} duel
@@ -262,8 +263,8 @@ async function forgetDeletedAttack(deleted) {
 
 /** Called during init. */
 export function registerDuelCards() {
-	CONFIG.queries[DUEL_QUERY] = onDuelQuery;
-	CONFIG.queries[STAKE_QUERY] = onStakeQuery;
+	registerQuery(DUEL_QUERY, onDuelQuery);
+	registerQuery(STAKE_QUERY, onStakeQuery);
 	Hooks.on("renderChatMessageHTML", activateDuelCard);
 	Hooks.on("deleteChatMessage", forgetDeletedAttack);
 	// A duelist deleted, an unlinked Token with its actor, or Slain: the duel is over.
@@ -274,7 +275,7 @@ export function registerDuelCards() {
 	Hooks.on("deleteCombat", onCombatGone);
 	// Next Phase, or any time passing: the bout is long over, and GD comes back with a moment's peace (p9).
 	// Time turned back, as an Undo does, ends no bout: the Undo puts back those the advance ended.
-	Hooks.on(CALENDAR_HOOK, (_after, _before, turned) => {
+	onCalendarWrites((_after, _before, turned) => {
 		if (!turned?.includes("phase")) return;
 		return shakeOffOpenSparring(null, t("duel.shaken.timePassed"));
 	});

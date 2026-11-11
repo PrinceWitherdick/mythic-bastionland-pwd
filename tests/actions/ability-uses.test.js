@@ -8,6 +8,12 @@ import { itemTags } from "../../module/actions/items.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 import { withBookText } from "../../module/rules/book-text.js";
 
+// The calendar's writers are told as its hook is, so the tests fire both alike.
+vi.mock("../../module/actions/calendar.js", async (importOriginal) => {
+	const actual = await importOriginal();
+	return { ...actual, onCalendarWrites: (fn) => globalThis.Hooks.on(actual.CALENDAR_HOOK, fn) };
+});
+
 const root = join(import.meta.dirname, "../..");
 const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
 const lookup = (key) => key.split(".").reduce((node, part) => node?.[part], lang);

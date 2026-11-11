@@ -50,6 +50,7 @@ import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, slay, spendUse } from "../actions/abilities.js";
 import { worldKnights } from "../actions/knights.js";
 import { KNIGHT_TYPES } from "../rules/knight-types.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
@@ -1092,6 +1093,6 @@ function activateAttackCard(message, html) {
 
 /** Called during init. */
 export function registerAttackCards() {
-	CONFIG.queries[CHANGE_QUERY] = onChangeQuery;
+	registerQuery(CHANGE_QUERY, onChangeQuery);
 	Hooks.on("renderChatMessageHTML", activateAttackCard);
 }

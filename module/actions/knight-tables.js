@@ -7,7 +7,7 @@ import { KNIGHT_TABLE_VERSION, KNIGHT_VERSE_VERSION } from "../rules/book-art.js
 import { asPattern, withSentences } from "../rules/knight-table-sentences.js";
 import { hasTable, knightEntryByType, knightRenewal, knightTableFill, knightVerseFill, clauseMidSentence, renewalDue, withRolls } from "../rules/knight-tables.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { CALENDAR_HOOK, getCalendar } from "./calendar.js";
+import { getCalendar, onCalendarWrites } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { applyTableStats } from "./table-stats.js";
 import { worldKnights } from "./knights.js";
@@ -174,16 +174,19 @@ const renewalNotice = (knight, renewal) => t("knightTable.renewal.notice", { nam
  * is ready.
  */
 export function watchTableRenewals() {
-	Hooks.on(CALENDAR_HOOK, (after, before, turned) => {
+	// The dating is returned, so a Time Undo noting the turning waits for it.
+	onCalendarWrites((after, before, turned) => {
+		const dating = [];
 		for (const knight of game.actors) {
 			const parsed = isKnight(knight) && knightRenewal(knight);
 			if (!parsed) continue;
 			// A table rolled before its roll was dated counts as rolled just before the calendar moved: the
 			// earlier of the two, so time turned back, as an Undo does, doesn't date it in a moment yet to come.
 			const undated = !knight.getFlag(SYSTEM_ID, ROLLED_AT) && knight.system.bookTable.rolls.some((roll) => roll > 0);
-			if (undated && game.user === game.users.activeGM) knight.setFlag(SYSTEM_ID, ROLLED_AT, compareCalendars(after, before) < 0 ? after : before);
+			if (undated && game.user === game.users.activeGM) dating.push(knight.setFlag(SYSTEM_ID, ROLLED_AT, compareCalendars(after, before) < 0 ? after : before));
 			if (game.user.isGM || !knight.isOwner || !turned.includes(parsed.cadence)) continue;
 			if (undated || knightTableRenewal(knight, after, parsed).due) ui.notifications.info(renewalNotice(knight, parsed));
 		}
+		return Promise.all(dating);
 	});
 }

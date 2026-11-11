@@ -2,7 +2,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { t } from "../chat/cards.js";
 import { isCompanyKnight } from "../rules/knight-types.js";
 import { RESTOCK_CADENCES, restockUpdates } from "../rules/restock.js";
-import { CALENDAR_HOOK } from "./calendar.js";
+import { onCalendarWrites } from "./calendar.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { worldKnights } from "./knights.js";
 
@@ -24,7 +24,7 @@ export function watchRestocks() {
 		if (!entered?.length) return;
 		return Promise.all(worldKnights().map((actor) => refreshAbilities(actor, ["location"])));
 	});
-	Hooks.on(CALENDAR_HOOK, (_after, _before, turned) => {
+	onCalendarWrites((_after, _before, turned) => {
 		if (!turned.length) return;
 		const writes = [];
 		for (const actor of restockableActors(turned)) {

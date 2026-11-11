@@ -6,6 +6,7 @@ import { afflictionsAt, tollsByKind, withAffliction } from "../rules/afflictions
 import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Afflictions (rules/afflictions.js): what some of the Cast leave in those they
@@ -276,5 +277,5 @@ async function onTurnChange(combat) {
 /** Take the toll as turns change, and answer the afflicting a player asks the Referee to finish. Called during init. */
 export function registerAfflictionHooks() {
 	Hooks.on("combatTurnChange", (combat) => onTurnChange(combat));
-	CONFIG.queries[AFFLICT_QUERY] = onAfflictQuery;
+	registerQuery(AFFLICT_QUERY, onAfflictQuery);
 }

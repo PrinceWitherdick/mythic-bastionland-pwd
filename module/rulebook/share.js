@@ -3,6 +3,7 @@ import { queryAsker } from "../compat.js";
 import { readerPage } from "../rules/rulebook.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { openRulebook } from "./BookReader.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Show Players: the page the GM is reading, opened on everyone else's screen.
@@ -14,7 +15,7 @@ const SHOW_QUERY = `${SYSTEM_ID}.showRulebookPage`;
 
 /** Answer the GM's query. Called during init. */
 export function registerRulebookShare() {
-	CONFIG.queries[SHOW_QUERY] = onShowQuery;
+	registerQuery(SHOW_QUERY, onShowQuery);
 }
 
 /**

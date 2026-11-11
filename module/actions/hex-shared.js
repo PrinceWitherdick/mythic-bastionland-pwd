@@ -24,6 +24,7 @@ import { getHexVisits } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { sightedMarkAt } from "./sighted.js";
 import { timelineNoteForgotten, timelinePartyNote } from "./timeline-events.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * What the players hold about each hex: what the Referee told them, and the
@@ -202,7 +203,7 @@ export async function onPartyNoteQuery(data = {}, context = {}) {
 
 /** Answer players' notes. Called during init. */
 export function registerHexSharedQuery() {
-	CONFIG.queries[PARTY_NOTE_QUERY] = onPartyNoteQuery;
+	registerQuery(PARTY_NOTE_QUERY, onPartyNoteQuery);
 }
 
 /**

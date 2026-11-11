@@ -4,6 +4,7 @@ import { stillServes } from "../rules/squires.js";
 import { isKnight } from "../rules/knight-types.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { playersOf } from "./knights.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Who belongs with a Knight or Domain, and the ownership that follows: a
@@ -175,5 +176,5 @@ export async function onShareQuery(data = {}, context = {}) {
 
 /** Answer players' sharing of what they've made. Called during init, with the other companion queries. */
 export function registerShareQuery() {
-	CONFIG.queries[SHARE_QUERY] = onShareQuery;
+	registerQuery(SHARE_QUERY, onShareQuery);
 }

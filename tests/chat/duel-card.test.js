@@ -18,7 +18,7 @@ vi.mock("../../module/chat/attack-card.js", () => ({
 }));
 vi.mock("../../module/actions/glory.js", () => ({ adjustGlory: vi.fn(async () => []) }));
 vi.mock("../../module/actions/ledger.js", () => ({ causedBy: (key) => ({ cause: key }) }));
-vi.mock("../../module/actions/calendar.js", () => ({ CALENDAR_HOOK: "calendarChanged" }));
+vi.mock("../../module/actions/calendar.js", () => ({ CALENDAR_HOOK: "calendarChanged", onCalendarWrites: (fn) => globalThis.Hooks.on("calendarChanged", fn) }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineDuel: vi.fn(async () => null) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");

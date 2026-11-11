@@ -9,15 +9,17 @@
  * part too and hands it over at the end.
  */
 import { setAskingGate } from "../apps/ui.js";
-import { askActiveGM } from "../ask-gm.js";
+import { askActiveGM, askUser } from "../ask-gm.js";
 import { warn } from "../chat/cards.js";
 import { storedWorldSetting } from "../client-settings.js";
 import { queryAsker } from "../compat.js";
 import { LEDGER_FLAG } from "../rules/ledger.js";
 import { normalizeCalendar } from "../rules/time.js";
 import { asFound, changedPaths, copyData, finishFields, joinParts, keepRecord, noteFields, sameValue } from "../rules/time-undo.js";
+import { serverNow } from "../server-now.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { getCalendar } from "./calendar.js";
+import { getCalendar, setTurningScope } from "./calendar.js";
+import { registerQuery, wrapQueries } from "../queries.js";
 
 /** The advances kept to be taken back, newest last, as `{records: AdvanceRecord[]}`. */
 export const RECORDS_SETTING = "timeUndo";
@@ -77,6 +79,9 @@ const QUIET_MS = 300;
 const STUCK_MS = 1500;
 const STEP_MS = 50;
 
+/** How long a window waits on the active GM letting its part land, which takes at most SETTLE_CAP_MS. */
+const PAUSE_ASK_MS = SETTLE_CAP_MS + 1000;
+
 /**
  * @typedef {object} Capture An advance being noted on this client.
  * @property {string} id
@@ -93,6 +98,10 @@ const STEP_MS = 50;
  * @property {boolean} remote Whether the active GM notes its part too.
  * @property {string|null} asker For the active GM's part of another Referee's advance, who that is.
  * @property {number|null} timer When the active GM gives up on that part.
+ * @property {number} answers How many writes of the advance's are being answered here, such as the calendar's turning.
+ * @property {number} turns For the active GM's part, how many turns of the event loop are under way that a write of
+ *   theirs, or one answering it, began: what Foundry's hooks set off at once is theirs.
+ * @property {Set<string>} inFlight For that part, what holds a write answering theirs not yet heard back.
  * @property {string|null} scene The active Scene's UUID as it began.
  */
 
@@ -116,9 +125,6 @@ const answeringOthers = () => answering.filter((id) => !(capture?.kind === "remo
 /** @returns {string|null} The active Scene's UUID. */
 const activeScene = () => globalThis.game?.scenes?.active?.uuid ?? null;
 
-/** @returns {number} Now, by the server's clock, which two clients share. */
-export const serverNow = () => globalThis.game?.time?.serverTime ?? Date.now();
-
 /**
  * @param {string} id
  * @param {string} kind
@@ -140,8 +146,23 @@ const newCapture = (id, kind, asker = null) => ({
 	remote: false,
 	asker,
 	timer: null,
+	answers: 0,
+	turns: 0,
+	inFlight: new Set(),
 	scene: asker ? null : activeScene()
 });
+
+/**
+ * For the active GM's part of another Referee's advance: whether a write now
+ * answers theirs rather than being the active GM's own edit. It does while
+ * answering a query of theirs; while answering their calendar's turning
+ * (answeringWrite), however long that takes; and in the turn of the event
+ * loop in which one of their writes, or one answering it, reached this client,
+ * so what the hooks it calls set off at once counts too. An edit of the active
+ * GM's own begins in a turn of its own, so it never does.
+ * @returns {boolean}
+ */
+const answeringAsker = () => answering.includes(capture.asker) || capture.answers > 0 || capture.turns > 0;
 
 /**
  * Whether a write now is the advance's to note: not while one of its windows
@@ -149,10 +170,63 @@ const newCapture = (id, kind, asker = null) => ({
  * this client answers another user's query, such as a player's Spend, which is
  * theirs too. A query from the Referee whose advance it is, the active GM
  * writing for them, is the advance's. A query's own window doesn't count, as
- * the advance runs on meanwhile.
+ * the advance runs on meanwhile. On the active GM's part of another Referee's
+ * advance, only what answers their writes counts.
  * @returns {boolean}
  */
-const noting = () => Boolean(capture) && capture.paused <= 0 && answeringOthers() <= waiting;
+function noting() {
+	if (!capture || capture.paused > 0 || answeringOthers() > waiting) return false;
+	return capture.kind !== "remote" || answeringAsker();
+}
+
+/**
+ * Take what this client writes for the rest of this turn of the event loop as
+ * answering the Referee whose advance it notes: a write's hooks start theirs at
+ * once, and each reaches its pre-hook before another turn begins.
+ * @param {Capture} noted
+ */
+function answerThisTurn(noted) {
+	noted.turns++;
+	setTimeout(() => noted.turns--, 0);
+}
+
+/**
+ * A write has reached this client: one by the Referee whose advance the active GM notes is answered.
+ * @param {string} userId Who made the write.
+ */
+const hear = (userId) => {
+	if (capture?.kind === "remote" && userId === capture.asker) answerThisTurn(capture);
+};
+
+/**
+ * A write of this client's own answering that Referee is heard back: what its hooks set off answers them too.
+ * @param {ClientDocument} doc
+ */
+const heardBack = (doc) => {
+	if (capture?.kind === "remote" && capture.inFlight.delete(doc.uuid)) answerThisTurn(capture);
+};
+
+/**
+ * Run work that answers a user's write, such as the calendar's turning, which
+ * the active GM's client answers on its own. On its part of another Referee's
+ * advance, what it writes meanwhile is theirs, however long the work takes;
+ * and the advance's end waits on it. Given to calendar.js.
+ * @template T
+ * @param {string|null} userId Who made the write it answers.
+ * @param {() => Promise<T>} work
+ * @returns {Promise<T>}
+ */
+export async function answeringWrite(userId, work) {
+	const noted = capture && userId && userId === (capture.kind === "remote" ? capture.asker : globalThis.game?.user?.id) ? capture : null;
+	if (!noted) return work();
+	noted.answers++;
+	try {
+		return await work();
+	} finally {
+		noted.answers--;
+		noted.touched = Date.now();
+	}
+}
 
 /** @returns {string|null} The id of the advance being noted on this client, which marks what it makes. */
 export const currentAdvanceId = () => capture?.id ?? null;
@@ -216,19 +290,33 @@ function onPreCreate(doc, _data, options) {
 }
 
 function onCreate(doc, options, userId) {
+	hear(userId);
 	if (!capture || userId !== game.user.id || byUndo(options)) return;
 	touch();
 	capture.pending = Math.max(0, capture.pending - 1);
-	if (doc.flags?.[SYSTEM_ID]?.[ADVANCE_FLAG] !== capture.id || KEPT_WHEN_MADE.has(doc.documentName) || madeHere(doc)) return;
+	if (doc.flags?.[SYSTEM_ID]?.[ADVANCE_FLAG] !== capture.id) return;
+	if (capture.kind === "remote") answerThisTurn(capture);
+	if (KEPT_WHEN_MADE.has(doc.documentName) || madeHere(doc)) return;
 	capture.created.set(doc.uuid, { uuid: doc.uuid, documentName: doc.documentName, name: nameOf(doc) });
 }
+
+/**
+ * A write being noted on the active GM's part of another Referee's advance, so what its hooks set off once
+ * it's heard back is theirs too.
+ * @param {ClientDocument} doc
+ */
+const sendingAnswer = (doc) => {
+	if (capture.kind === "remote") capture.inFlight.add(doc.uuid);
+};
 
 function onPreUpdate(doc, changes, options) {
 	if (!capture || byUndo(options)) return;
 	touch();
 	if (changesNothing(doc, changes)) return;
 	capture.pending++;
-	if (!noting() || madeHere(doc)) return;
+	if (!noting()) return;
+	sendingAnswer(doc);
+	if (madeHere(doc)) return;
 	const entry = capture.docs.get(doc.uuid) ?? { uuid: doc.uuid, name: nameOf(doc), fields: {} };
 	noteFields(entry.fields, changedPaths(changes, doc._source), doc._source, leftOutOf(doc), serverNow());
 	capture.docs.set(doc.uuid, entry);
@@ -239,16 +327,19 @@ function onPreDelete(doc, options) {
 	touch();
 	capture.pending++;
 	if (!noting()) return;
+	sendingAnswer(doc);
 	// Made and gone again within the advance: there's nothing to take back.
 	if (capture.created.delete(doc.uuid) || madeHere(doc)) return;
 	capture.deleted.push({ parentUuid: doc.parent?.uuid ?? null, documentName: doc.documentName, name: nameOf(doc), data: copyData(doc.toObject()), at: serverNow() });
 }
 
-function onWritten(_doc, ...rest) {
+function onWritten(doc, ...rest) {
 	const userId = rest.at(-1);
+	hear(userId);
 	if (!capture || userId !== game.user.id) return;
 	touch();
 	capture.pending = Math.max(0, capture.pending - 1);
+	heardBack(doc);
 }
 
 /**
@@ -284,7 +375,7 @@ async function settle(noted) {
 	const start = Date.now();
 	while (Date.now() - start < SETTLE_CAP_MS) {
 		const quiet = Date.now() - noted.touched;
-		if (quiet >= (noted.pending <= 0 ? QUIET_MS : STUCK_MS)) return;
+		if (noted.answers <= 0 && quiet >= (noted.pending <= 0 ? QUIET_MS : STUCK_MS)) return;
 		await new Promise((resolve) => setTimeout(resolve, STEP_MS));
 	}
 }
@@ -415,10 +506,11 @@ async function askingReferee() {
 	// Opened while answering a query, it's the query's, and the advance runs on meanwhile.
 	const forQuery = answeringOthers() > waiting;
 	if (forQuery) waiting++;
-	const noted = capture && capture.kind !== "remote" ? capture : null;
+	const noted = !forQuery && capture && capture.kind !== "remote" ? capture : null;
 	if (noted) {
-		await pauseCapture(noted);
-		if (noted.remote) await askActiveGM(CAPTURE_QUERY, { step: "pause", id: noted.id }, "Couldn't ask the active GM to wait on a window");
+		// Both clients let their writes land at once, rather than one after the other.
+		const there = noted.remote ? askUser(game.users?.activeGM, CAPTURE_QUERY, { step: "pause", id: noted.id }, "Couldn't ask the active GM to wait on a window", { timeout: PAUSE_ASK_MS }) : null;
+		await Promise.all([pauseCapture(noted), there]);
 	}
 	return async () => {
 		if (forQuery) waiting--;
@@ -476,29 +568,31 @@ async function onCaptureQuery(data = {}, context = {}) {
 	return finishCapture(noted);
 }
 
-/** Marks a query handler wrapped by answeringQueries. */
+/** Marks a query handler wrapped by answeringQuery. */
 const ANSWERS = Symbol("answers");
 
 /**
- * Mark every query this client answers, so what it writes for another user
- * isn't taken for part of an advance. Its own timeCapture query is left alone.
+ * Mark a query this client answers, so what it writes for another user isn't
+ * taken for part of an advance. Its own timeCapture query is left alone.
+ * Wrapped through queries.js, each query as it's registered.
+ * @param {string} name
+ * @param {Function} handler
+ * @returns {Function}
  */
-function answeringQueries() {
-	for (const [name, handler] of Object.entries(CONFIG.queries ?? {})) {
-		if (name === CAPTURE_QUERY || typeof handler !== "function" || handler[ANSWERS]) continue;
-		// Called at once, as v13's queryAsker hears the sender only before the handler first waits.
-		const marked = async function (...args) {
-			const asker = queryAsker(args[1])?.id ?? null;
-			answering.push(asker);
-			try {
-				return await handler.apply(this, args);
-			} finally {
-				answering.splice(answering.indexOf(asker), 1);
-			}
-		};
-		marked[ANSWERS] = true;
-		CONFIG.queries[name] = marked;
-	}
+function answeringQuery(name, handler) {
+	if (name === CAPTURE_QUERY || typeof handler !== "function" || handler[ANSWERS]) return handler;
+	// Called at once, as v13's queryAsker hears the sender only before the handler first waits.
+	const marked = async function (...args) {
+		const asker = queryAsker(args[1])?.id ?? null;
+		answering.push(asker);
+		try {
+			return await handler.apply(this, args);
+		} finally {
+			answering.splice(answering.indexOf(asker), 1);
+		}
+	};
+	marked[ANSWERS] = true;
+	return marked;
 }
 
 /**
@@ -522,7 +616,7 @@ export function watchWrites() {
 	Hooks.on("preUpdateSetting", (doc, changes, options) => {
 		if (!byUndo(options) && Object.hasOwn(changes ?? {}, "value")) noteSetting(doc.key, true, doc._source?.value ?? null);
 	});
-	answeringQueries();
+	wrapQueries(answeringQuery);
 	shownRecords = new Set(advanceRecords().map(({ id }) => id));
 	// Another Referee's advance, noted here, is given up once they leave, or once this client is no longer the active GM.
 	Hooks.on("userConnected", (user, connected) => {
@@ -553,7 +647,8 @@ function redrawAdvanceCards(value) {
 /** Register the record of advances. Called during init; watchWrites starts the noting once the world is ready. */
 export function registerTimeCapture() {
 	game.settings.register(SYSTEM_ID, RECORDS_SETTING, { scope: "world", config: false, type: Object, default: { records: [] }, onChange: redrawAdvanceCards });
-	CONFIG.queries[CAPTURE_QUERY] = onCaptureQuery;
+	registerQuery(CAPTURE_QUERY, onCaptureQuery);
 	setAskingGate(askingReferee);
+	setTurningScope(answeringWrite);
 	installed = true;
 }

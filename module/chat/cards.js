@@ -3,6 +3,7 @@ import { askActiveGM } from "../ask-gm.js";
 import { applyMessageMode, currentMessageMode, queryAsker } from "../compat.js";
 import { keyedSerialWrites, oncePerKey } from "../rules/queue.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Post a chat card spoken by an actor. Rolls ride along on the message so
@@ -139,7 +140,7 @@ export function onCardClick(element, selector, handler) {
  */
 export function registerCardButtons({ selector, gmOnly = false, fromPlayers = false, handler, once = false, oneChoice = false, mayPress = () => true }) {
 	if (once) {
-		CONFIG.queries[SPEND_QUERY] ??= onSpendQuery;
+		if (!CONFIG.queries[SPEND_QUERY]) registerQuery(SPEND_QUERY, onSpendQuery);
 		onceButtons.set(selector, { gmOnly, mayPress });
 	}
 	Hooks.on("renderChatMessageHTML", (message, html) => {

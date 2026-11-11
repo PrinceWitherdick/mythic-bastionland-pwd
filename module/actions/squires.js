@@ -28,6 +28,7 @@ import { COMPANY_KNIGHT_FLAG, companyKnights, inCompany, worldKnights } from "./
 import { SOLO_CHANGED_HOOK, isSolo } from "./solo.js";
 import { timelineKnighted, timelineSquireTaken } from "./timeline-events.js";
 import { isCompanyKnight, isKnight, isNpcKnight } from "../rules/knight-types.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir
@@ -238,7 +239,7 @@ export async function onReleaseQuery(data = {}, context = {}) {
  */
 export function registerCompanionQueries() {
 	registerShareQuery();
-	CONFIG.queries[RELEASE_QUERY] = onReleaseQuery;
+	registerQuery(RELEASE_QUERY, onReleaseQuery);
 }
 
 /**

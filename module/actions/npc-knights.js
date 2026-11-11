@@ -14,6 +14,7 @@ import { findFlaggedFolder, flaggedFolder } from "./folders.js";
 import { COMPANY_KNIGHT_FLAG, worldKnights } from "./knights.js";
 import { withoutLedger } from "./ledger.js";
 import { createKnightWithCompanions, rollStartScores } from "./new-knight.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Knights the Referee plays: NPC Knights, an Actor type of their own. One of
@@ -140,7 +141,7 @@ export async function onJoinQuery(data = {}, context = {}) {
 
 /** Answer players taking up their NPC Knights. Called during init. */
 export function registerNpcKnightQueries() {
-	CONFIG.queries[JOIN_QUERY] = onJoinQuery;
+	registerQuery(JOIN_QUERY, onJoinQuery);
 }
 
 /**

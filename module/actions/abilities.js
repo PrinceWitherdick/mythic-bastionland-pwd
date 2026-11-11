@@ -13,7 +13,7 @@ import { countAfter, isCounted } from "../rules/restock.js";
 import { escapeHTML, splitName } from "../rules/text.js";
 import { downBy, slainUpdate } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { CALENDAR_HOOK } from "./calendar.js";
+import { onCalendarWrites } from "./calendar.js";
 import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
@@ -243,7 +243,7 @@ export async function sufferLoss(actor, item) {
  * next. The active GM writes it. Called once the world is ready.
  */
 export function watchSunsets() {
-	Hooks.on(CALENDAR_HOOK, (_after, _before, turned) => {
+	onCalendarWrites((_after, _before, turned) => {
 		if (!turned.includes("night")) return;
 		const writes = [];
 		for (const actor of worldKnights()) {

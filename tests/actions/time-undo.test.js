@@ -20,14 +20,17 @@ vi.mock("../../module/actions/solo.js", () => ({ secretsKeptOn: vi.fn(() => fals
 vi.mock("../../module/actions/calendar.js", () => ({
 	getCalendar: () => ({ age: 1, year: 1, season: "spring", day: 1, phase: "morning", ...game.settings.get(SYS, "calendar") }),
 	calendarLabel: (calendar) => calendar.phase,
-	chronicleLabel: (calendar) => calendar.phase
+	chronicleLabel: (calendar) => calendar.phase,
+	setTurningScope: vi.fn()
 }));
 
-const { captureAdvance, currentAdvanceId, advanceRecords, registerTimeCapture, watchWrites } = await import("../../module/actions/time-capture.js");
+const { answeringWrite, captureAdvance, currentAdvanceId, advanceRecords, registerTimeCapture, watchWrites } = await import("../../module/actions/time-capture.js");
+const { setTurningScope } = await import("../../module/actions/calendar.js");
 const { registerTimeUndo, undoAdvance, undoOffer, undoMessage } = await import("../../module/actions/time-undo.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
 const { confirmDialog, setAskingGate } = await import("../../module/apps/ui.js");
 const { secretsKeptOn } = await import("../../module/actions/solo.js");
+const { registerQuery } = await import("../../module/queries.js");
 
 /** @returns {Function} The gate time-capture.js hands the system's dialogs. */
 const askingGate = () => vi.mocked(setAskingGate).mock.calls.at(-1)[0];
@@ -189,6 +192,10 @@ beforeEach(() => {
 	// Queries other users ask of this client: a player's Spend, and one that waits on the Referee's answer.
 	CONFIG.queries[`${SYS}.spend`] = async ({ uuid, changes }) => docs.get(uuid).update(changes);
 	CONFIG.queries[`${SYS}.ask`] = async ({ until }) => aDialog(() => until);
+	CONFIG.queries[`${SYS}.askOpened`] = async ({ opened, until }) => aDialog(() => {
+		opened();
+		return until;
+	});
 	registerTimeCapture();
 	registerTimeUndo();
 	watchWrites();
@@ -382,6 +389,9 @@ const UNDO = `${SYS}.timeUndo`;
 /** What a query handler is told of who sent it, as v14 tells it. */
 const from = (id) => ({ user: { id, isGM: true } });
 
+/** Wait for the next turn of the event loop, as an edit made by hand begins in. */
+const nextTurn = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe("the Undo button on the advance's own card", () => {
 	it("is drawn again once the advance is kept, and again once it's let go", async () => {
 		const world = await aWorld();
@@ -460,12 +470,81 @@ describe("another Referee's advance, noted by the active GM", () => {
 	it("is held while one of their windows is open", async () => {
 		const world = await aWorld();
 		await CONFIG.queries[CAPTURE]({ step: "start", id: "far" }, from("other"));
-		await world.ash.update({ "system.glory": 2 });
+		await answeringWrite("other", () => world.ash.update({ "system.glory": 2 }));
 		await CONFIG.queries[CAPTURE]({ step: "pause", id: "far" }, from("other"));
 		await world.torch.update({ "system.quantity.value": 1 });
 		await CONFIG.queries[CAPTURE]({ step: "resume", id: "far" }, from("other"));
 		const part = await CONFIG.queries[CAPTURE]({ step: "finish", id: "far" }, from("other"));
 		expect(part.docs.map(({ uuid }) => uuid)).toEqual(["Actor.ash"]);
+	});
+
+	it("is told the calendar's turning, which it answers in the scope it hands calendar.js", () => {
+		expect(setTurningScope).toHaveBeenCalledWith(answeringWrite);
+	});
+
+	it("leaves out the active GM's own edit, made right after their calendar turning was answered", async () => {
+		const world = await aWorld();
+		await CONFIG.queries[CAPTURE]({ step: "start", id: "far" }, from("other"));
+		// Nothing of theirs has reached it yet: an edit now is the active GM's own.
+		await world.torch.update({ "system.quantity.value": 2 });
+		await answeringWrite("other", () => world.ash.update({ "system.glory": 2 }));
+		await nextTurn();
+		await world.torch.update({ "system.quantity.value": 1 });
+		const part = await CONFIG.queries[CAPTURE]({ step: "finish", id: "far" }, from("other"));
+		expect(part.docs.map(({ uuid }) => uuid)).toEqual(["Actor.ash"]);
+	});
+
+	it("leaves out a turning another user answered, and the active GM's own", async () => {
+		const world = await aWorld();
+		await CONFIG.queries[CAPTURE]({ step: "start", id: "far" }, from("other"));
+		await answeringWrite("third", () => world.ash.update({ "system.glory": 2 }));
+		await answeringWrite(null, () => world.torch.update({ "system.quantity.value": 1 }));
+		const part = await CONFIG.queries[CAPTURE]({ step: "finish", id: "far" }, from("other"));
+		expect(part.docs).toEqual([]);
+	});
+
+	it("takes in an answer however slow, and finishing waits on it", async () => {
+		const world = await aWorld();
+		vi.useFakeTimers();
+		try {
+			await CONFIG.queries[CAPTURE]({ step: "start", id: "far" }, from("other"));
+			const answered = answeringWrite("other", async () => {
+				await new Promise((resolve) => setTimeout(resolve, 4000));
+				await world.ash.update({ "system.glory": 2 });
+			});
+			const finished = CONFIG.queries[CAPTURE]({ step: "finish", id: "far" }, from("other"));
+			await vi.advanceTimersByTimeAsync(4000 + 1000);
+			await answered;
+			const part = await finished;
+			expect(part.docs.map(({ uuid }) => uuid)).toEqual(["Actor.ash"]);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("takes in what the hooks of a write of theirs set off at once, and nothing in a later turn", async () => {
+		const world = await aWorld();
+		Hooks.on("updateJournalEntry", (_entry, _changes, _options, userId) => {
+			// A hook of the active GM's own, answering what reached it.
+			if (userId === "other") world.ash.update({ "system.glory": 2 });
+		});
+		await CONFIG.queries[CAPTURE]({ step: "start", id: "far" }, from("other"));
+		fire("updateJournalEntry", { uuid: "JournalEntry.log" }, {}, {}, "other");
+		await nextTurn();
+		await world.torch.update({ "system.quantity.value": 1 });
+		const part = await CONFIG.queries[CAPTURE]({ step: "finish", id: "far" }, from("other"));
+		expect(part.docs.map(({ uuid }) => uuid)).toEqual(["Actor.ash"]);
+	});
+
+	it("takes in the next write of a chain answering theirs, set off as the first is heard back", async () => {
+		const world = await aWorld();
+		Hooks.on("updateActor", (actor, _changes, _options, userId) => {
+			if (userId === "gm" && actor === world.ash) world.torch.update({ "system.quantity.value": 1 });
+		});
+		await CONFIG.queries[CAPTURE]({ step: "start", id: "far" }, from("other"));
+		await answeringWrite("other", () => world.ash.update({ "system.glory": 2 }));
+		const part = await CONFIG.queries[CAPTURE]({ step: "finish", id: "far" }, from("other"));
+		expect(part.docs.map(({ uuid }) => uuid).sort()).toEqual(["Actor.ash", "Actor.ash.Item.torch"]);
 	});
 
 	it("takes in what the active GM writes for them through a query, but not for anyone else", async () => {
@@ -516,6 +595,34 @@ describe("what isn't part of the advance", () => {
 		answer();
 		await query;
 		expect(advanceRecords()[0].docs.map(({ uuid }) => uuid)).toEqual(["Actor.ash"]);
+	});
+
+	it("notes the advance on while a window opened for a player's query waits", async () => {
+		const world = await aWorld();
+		let answer;
+		const asked = new Promise((resolve) => (answer = resolve));
+		await captureAdvance("phase", async () => {
+			let opened;
+			const open = new Promise((resolve) => (opened = resolve));
+			const query = CONFIG.queries[`${SYS}.askOpened`]({ opened, until: asked }, from("player"));
+			await open;
+			await world.ash.update({ "system.virtues.vig.value": 4 });
+			await game.settings.set(SYS, "calendar", { phase: "night", day: 3 });
+			answer();
+			await query;
+		});
+		expect(advanceRecords()[0].docs.map(({ uuid }) => uuid)).toEqual(["Actor.ash"]);
+	});
+
+	it("leaves out what a query handler registered since the world was ready writes for a player", async () => {
+		const world = await aWorld();
+		registerQuery(`${SYS}.late`, async ({ uuid, changes }) => docs.get(uuid).update(changes));
+		await captureAdvance("phase", async () => {
+			await CONFIG.queries[`${SYS}.late`]({ uuid: "Actor.ash.Item.torch", changes: { "system.quantity.value": 2 } }, from("player"));
+			await game.settings.set(SYS, "calendar", { phase: "night", day: 3 });
+		});
+		expect(advanceRecords()[0].docs.map(({ uuid }) => uuid)).not.toContain("Actor.ash.Item.torch");
+		expect(world.torch._source.system.quantity.value).toBe(2);
 	});
 
 	it("sees a write as hooks registered after it have left it", async () => {
