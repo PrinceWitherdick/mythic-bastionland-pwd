@@ -31,6 +31,15 @@
 		{{else}}
 		<p class="hint">{{localize "bastionland.attack.noWeapons"}}</p>
 		{{/each}}
+		{{!-- Something grabbed and swung, whose die the Referee rules (p194): a weapon, so not unarmed (p10).
+		     The words typed beside its die name it on the card. --}}
+		<div class="form-group">
+			<label for="bastionland-attack-improvised">{{localize "bastionland.attack.improvised"}}</label>
+			<div class="form-fields">
+				<input id="bastionland-attack-improvised" type="text" name="improvised" placeholder="{{localize 'bastionland.attack.improvisedPlaceholder'}}" autocomplete="off">
+			</div>
+			<p class="hint">{{localize "bastionland.attack.improvisedHint"}}</p>
+		</div>
 		{{#if unavailable}}
 		<p class="hint">{{unavailable}}</p>
 		{{/if}}
@@ -137,6 +146,14 @@
 		{{/if}}
 		{{/each}}
 	</fieldset>
+	{{/if}}
+
+	{{!-- Everybody attacking the same target rolls at the same time (p8): nothing rolls until the allies have joined. --}}
+	{{#if canWait}}
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.waitHint'}}">
+		<input type="checkbox" name="wait" {{checked wait}}>
+		<span class="bastionland-check__label">{{localize "bastionland.attack.wait"}}</span>
+	</label>
 	{{/if}}
 
 	{{!-- What seldom comes up, folded away: open as it's drawn where a remembered tick is in it. --}}

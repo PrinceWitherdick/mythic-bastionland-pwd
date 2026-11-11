@@ -23,7 +23,7 @@ const CHOICES_SETTING = "attackChoices";
 const REMEMBERED_ACTORS = 50;
 
 /** The situation boxes remembered from one Attack to the next. */
-export const REMEMBERED_TICKS = Object.freeze(["engaged", "confined", "mounted", "charge", "againstIndividuals"]);
+export const REMEMBERED_TICKS = Object.freeze(["engaged", "confined", "mounted", "charge", "againstIndividuals", "wait"]);
 
 /**
  * @typedef {object} AttackChoice

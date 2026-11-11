@@ -45,7 +45,7 @@ import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { ATTACK_FLAG, attackOf, ownsAnAttacker, targeted } from "./attack-flag.js";
-import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
+import { keepsRolls, onCardClick, ownedBy, plural, rollDicePool, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, slay, spendUse } from "../actions/abilities.js";
 import { worldKnights } from "../actions/knights.js";
@@ -155,22 +155,8 @@ const attackCard = statefulCard({
 	change: changeAttack,
 	render: renderAttackCard,
 	queryable: (change) => Object.hasOwn(CHANGE_GUARDS, change.type),
-	alsoUpdate: joinedRolls
+	alsoUpdate: keepsRolls(["join", "reroll"])
 });
-
-/**
- * A joiner's rolls, or the pool rolled again, kept on the card's message beside
- * its own so they have a tooltip too. A message's rolls are stored as JSON,
- * alike in v13 and v14, and Foundry takes only evaluated ones.
- * @param {ChatMessage} message
- * @param {object} change
- * @returns {{rolls?: string[]}}
- */
-function joinedRolls(message, change) {
-	const rolls = ["join", "reroll"].includes(change?.type) && Array.isArray(change.rolls) ? change.rolls.filter((roll) => roll?.evaluated) : [];
-	if (!rolls.length) return {};
-	return { rolls: [...(message._source?.rolls ?? []), ...rolls.map((roll) => JSON.stringify(roll))] };
-}
 
 // Read where the card keeps it (attack-flag.js), and offered from here too.
 export { attackOf };
@@ -220,16 +206,6 @@ function targetActors(attack) {
 function waitingTargets(attack) {
 	if (!attack.targets.length) return targetActors(attack).map((actor) => ({ actor, token: null }));
 	return unappliedTargets(attack).map(({ uuid }) => ({ actor: fromUuidSync(uuid)?.actor, token: uuid })).filter(({ actor }) => actor);
-}
-
-/**
- * @param {string} uuid
- * @param {User} user
- * @returns {Document|null} The document, when the user owns it.
- */
-function ownedBy(uuid, user) {
-	const doc = fromUuidSync(uuid);
-	return doc?.testUserPermission?.(user, "OWNER") ? doc : null;
 }
 
 /**
@@ -945,12 +921,23 @@ async function onGreater(message, button) {
  * @returns {Actor[]}
  */
 function joinCandidates(attack) {
-	const struck = new Set(targetActors(attack).map((actor) => actor.uuid));
+	return joinersFor(attackersOf(attack), targetActors(attack));
+}
+
+/**
+ * Who this user could add to an Attack, as joinCandidates says: an Attack card,
+ * or a Pack card still gathering its dice (p56).
+ * @param {string[]} attackers UUIDs of those already in it.
+ * @param {Actor[]} struck Those it's aimed at.
+ * @returns {Actor[]}
+ */
+export function joinersFor(attackers, struck) {
+	const aimed = new Set(struck.map((actor) => actor.uuid));
 	const pool = [
 		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
 		...(game.user.isGM ? [] : [game.user.character, ...worldKnights()])
 	];
-	return ownedAttackers(pool).filter((actor) => !isAttacker(attack, actor.uuid) && !struck.has(actor.uuid));
+	return ownedAttackers(pool).filter((actor) => !attackers.includes(actor.uuid) && !aimed.has(actor.uuid));
 }
 
 /**
@@ -1005,7 +992,7 @@ async function onReroll(message) {
 	const actor = await chooseActor(able.map((entry) => entry.actor), { title: t("attack.reroll.button"), message: t("attack.reroll.who"), icon: "fa-solid fa-rotate" });
 	const { item } = able.find((entry) => entry.actor === actor) ?? {};
 	if (!item) return;
-	const roll = await new Roll(attack.dice.map((die) => `1d${die.faces}`).join(" + ")).evaluate();
+	const roll = await rollDicePool(attack.dice);
 	const change = { type: "reroll", results: roll.dice.map((die) => die.total), by: actor.name, actor: actor.uuid, rolls: [roll.toJSON()] };
 	if (!(await saveChange(message, change))) return;
 	showRolls([roll]);

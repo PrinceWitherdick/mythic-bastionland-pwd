@@ -82,15 +82,50 @@ export function parseDice(notation) {
 }
 
 /**
+ * The terms of typed dice that parseDice skips, such as "8", "+2" or "barrel".
+ * @param {string} notation e.g. "d8", "d6, d12", "d8+2"
+ * @returns {string[]} Each term no die is read from, in the order typed.
+ */
+export function unreadDiceTerms(notation) {
+	return String(notation ?? "").split(DICE_SEPARATOR).map((term) => term.trim()).filter((term) => term && !parseDice(term).length);
+}
+
+/**
+ * Read what was typed for an improvised weapon (p194): its dice, and the words
+ * around them as its name, so "barrel d8" and "d8 barrel" are a Barrel's d8.
+ * A term with no letter that isn't a die, such as the "8" of "d 8" or a "+2",
+ * is a slip rather than a name, and so is a die half typed or of no size, such
+ * as the "d" of "d 8", a "2d" or a "d0".
+ * @param {string} text What was typed.
+ * @returns {{dice: number[], name: string, unread: string[]}} The die sizes, the
+ *   name with its first letter raised ("" for none), and each term that's neither.
+ */
+export function readImprovised(text) {
+	const dice = [];
+	const words = [];
+	const unread = [];
+	for (const term of String(text ?? "").split(DICE_SEPARATOR).map((each) => each.trim()).filter(Boolean)) {
+		const faces = parseDice(term);
+		if (faces.length) dice.push(...faces);
+		// A die half typed, as the "d" of "d 8" or a "2d", is no name.
+		else if (/\p{L}/u.test(term) && !/^\d*d\d*$/i.test(term)) words.push(term);
+		else unread.push(term);
+	}
+	const name = words.join(" ");
+	return { dice, name: name && name[0].toLocaleUpperCase() + name.slice(1), unread };
+}
+
+/**
  * Dice joined into one die as big as their faces together, as an Ability may
  * let its Knight do before an Attack with allies: a d4 and a d8 make a d12
  * (p56). Nothing joins past a d12.
  * @param {{faces: number, label: string}[]} dice What would be rolled.
  * @param {number[]} groups The group each die joins, by index; 0 or anything
  *   missing leaves it alone. A group of one is that die alone.
- * @returns {{dice: {faces: number, label: string, joined?: number[]}[], over: number[]}} The dice to
- *   roll, the joined ones after those left alone, each carrying the faces it was made of. `over`
- *   lists the groups that came to more than a d12, or to no die there is, which join nothing.
+ * @returns {{dice: {faces: number, label: string, joined?: number[], members?: object[]}[], over: number[]}} The dice to
+ *   roll, the joined ones after those left alone, each carrying the faces it was made of and the
+ *   dice themselves. `over` lists the groups that came to more than a d12, or to no die there is,
+ *   which join nothing.
  */
 export function combineDice(dice, groups = []) {
 	const byGroup = new Map();
@@ -113,7 +148,7 @@ export function combineDice(dice, groups = []) {
 			alone.push(...members);
 			continue;
 		}
-		joined.push({ faces, label: members.map((die) => `d${die.faces}`).join("+"), joined: members.map((die) => die.faces) });
+		joined.push({ faces, label: members.map((die) => `d${die.faces}`).join("+"), joined: members.map((die) => die.faces), members });
 	}
 	return { dice: [...alone, ...joined], over };
 }
@@ -950,6 +985,28 @@ function eitherHarm(a, b) {
 }
 
 /**
+ * An Attack card's state as it's first rolled, before anybody joins it or
+ * makes a Gambit, Feat or Deny on it. Its targets and dice are added after.
+ * @param {{attackId: string, attacker: string, attackerName: string,
+ *   place?: {combat: string, round: number, turn: number}|null, made?: object, duel?: string|null}} options
+ *   `place` is where in a running Combat it was rolled, so a Gambit's mark knows when it lapses;
+ *   `made` how the attacker attacks, as madeWith gives it.
+ * @returns {Omit<AttackState, "targets"|"dice">}
+ */
+export const newAttackState = ({ attackId, attacker, attackerName, place = null, made = {}, duel = null }) => ({
+	attackId,
+	attacker,
+	attackerName,
+	place,
+	...made,
+	duel,
+	gambits: [],
+	feats: [],
+	appliedTo: [],
+	appliedTokens: []
+});
+
+/**
  * Pool another combatant's dice into an Attack card, since everybody
  * attacking the same target rolls at the same time (p8). Each die remembers
  * who rolled it and how, the dice are sorted highest first again, and the
@@ -959,9 +1016,22 @@ function eitherHarm(a, b) {
  * @returns {AttackState|null}
  */
 function joinAttack(attack, change) {
+	return Array.isArray(change.dice) && change.dice.some(rolledDie) ? poolShare(attack, change) : null;
+}
+
+/**
+ * Pool one attacker's share into an Attack, as joinAttack does, but with no
+ * dice of their own as well: a Pack card's dice joined into another's die
+ * leave a share with none, though they still made the Attack (p56). Only the
+ * Pack card's roll pools a share this way; a card's `join` needs dice.
+ * @param {AttackState} attack
+ * @param {object} change See changeAttack's `join`.
+ * @returns {AttackState|null}
+ */
+export function poolShare(attack, change) {
 	const dice = Array.isArray(change.dice) ? change.dice.filter(rolledDie) : [];
 	// All roll before any Deny or Gambit, a duel is fought one on one, and each combatant rolls into an Attack once.
-	if (!canJoin(attack) || typeof change.actor !== "string" || !change.actor || isAttacker(attack, change.actor) || !dice.length) return null;
+	if (!canJoin(attack) || typeof change.actor !== "string" || !change.actor || isAttacker(attack, change.actor)) return null;
 	const name = String(change.name ?? "");
 	const stamp = (die, who) => ({ ...who, ...die });
 	// Each die carries its own share's traits, so what depends on the Damage follows the die that counts.

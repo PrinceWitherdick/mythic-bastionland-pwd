@@ -1,9 +1,9 @@
 <div class="bastionland-dialog__body">
-	<p class="hint">{{localize "bastionland.attack.combine.hint"}}</p>
+	<p class="hint">{{hint}}</p>
 
 	{{!-- Each die stays alone, or joins a group; a group becomes one die as big as its faces together (p56). --}}
 	<fieldset>
-		<legend>{{localize "bastionland.attack.combine.legend"}}</legend>
+		<legend>{{legend}}</legend>
 		{{#each dice}}
 		<div class="form-group">
 			<label for="bastionland-combine-{{index}}">{{label}}</label>

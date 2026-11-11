@@ -73,6 +73,14 @@ export const warn = (key, data) => ui.notifications.warn(t(key, data));
 export const plural = (key, count) => t(count === 1 ? `${key}One` : key, { count });
 
 /**
+ * Roll a card's dice together, one term each, so each die's result is its own
+ * in the roll's `dice`, in the same order.
+ * @param {{faces: number}[]} dice
+ * @returns {Promise<Roll>}
+ */
+export const rollDicePool = (dice) => new Roll(dice.map((die) => `1d${die.faces}`).join(" + ")).evaluate();
+
+/**
  * A list of keys as a window offers them to be picked between: each with the
  * words kept under its own key, and one of them marked as already chosen.
  * @param {readonly string[]} keys
@@ -387,6 +395,30 @@ function dropButtons(html, selector, which = () => true) {
 }
 
 /**
+ * @param {string} uuid
+ * @param {User} user
+ * @returns {Document|null} The document, when the user owns it.
+ */
+export function ownedBy(uuid, user) {
+	const doc = fromUuidSync(uuid);
+	return doc?.testUserPermission?.(user, "OWNER") ? doc : null;
+}
+
+/**
+ * A stateful card's `alsoUpdate` for changes that bring rolls: a joiner's, or
+ * the pool rolled again, kept on the card's message beside its own so they
+ * have a tooltip too. A message's rolls are stored as JSON, alike in v13 and
+ * v14, and Foundry takes only evaluated ones.
+ * @param {string[]} types The change types whose rolls are kept.
+ * @returns {(message: ChatMessage, change: object) => {rolls?: string[]}}
+ */
+export const keepsRolls = (types) => (message, change) => {
+	const rolls = types.includes(change?.type) && Array.isArray(change.rolls) ? change.rolls.filter((roll) => roll?.evaluated) : [];
+	if (!rolls.length) return {};
+	return { rolls: [...(message._source?.rolls ?? []), ...rolls.map((roll) => JSON.stringify(roll))] };
+};
+
+/**
  * A card that keeps its state in a flag and re-renders as it changes. With a
  * GM here, every change is recorded by the active GM, the card's author's too,
  * through the query `answer` builds, so changes made at once are kept one
@@ -405,8 +437,11 @@ function dropButtons(html, selector, which = () => true) {
  *   message a change updates, such as the rolls another combatant adds to an Attack card.
  * @param {(message: ChatMessage, change: object) => boolean} [options.fits] Whether the change fits
  *   what else the world holds, checked on every commit, the card's own client's or the asked GM's.
+ * @param {(state: State) => unknown} [options.shows] The part of the state the card draws, as plain
+ *   data. A change that leaves it as it was writes only the flag, without drawing the card again.
+ *   Without it, every change draws the card again.
  */
-export function statefulCard({ flag, query, notices, change, render, queryable = () => true, alsoUpdate = () => ({}), fits = () => true }) {
+export function statefulCard({ flag, query, notices, change, render, queryable = () => true, alsoUpdate = () => ({}), fits = () => true, shows = null }) {
 	/**
 	 * @param {ChatMessage|undefined} message
 	 * @returns {State|null}
@@ -424,9 +459,11 @@ export function statefulCard({ flag, query, notices, change, render, queryable =
 		return cardWrites(message.id)(async () => {
 			const card = game.messages?.get(message.id) ?? message;
 			if (!fits(card, delta)) return false;
-			const state = change(stateOf(card), delta);
+			const before = stateOf(card);
+			const state = change(before, delta);
 			if (!state) return false;
-			await card.update({ ...alsoUpdate(card, delta), content: await render(state), [`flags.${SYSTEM_ID}.${flag}`]: state });
+			const redraw = !shows || JSON.stringify(shows(before)) !== JSON.stringify(shows(state));
+			await card.update({ ...alsoUpdate(card, delta), ...(redraw ? { content: await render(state) } : {}), [`flags.${SYSTEM_ID}.${flag}`]: state });
 			return true;
 		});
 	}

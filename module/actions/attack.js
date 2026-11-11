@@ -1,5 +1,5 @@
 import { inputDialog } from "../apps/ui.js";
-import { plural, postCard, t } from "../chat/cards.js";
+import { plural, postCard, rollDicePool, t } from "../chat/cards.js";
 import { combatPlace, marksOn } from "../chat/gambit-marks.js";
 import { GAMBITS } from "../config.js";
 import {
@@ -31,7 +31,10 @@ import {
 	isSettled,
 	isShieldItem,
 	knownWeakness,
+	newAttackState,
 	parseDice,
+	readImprovised,
+	unreadDiceTerms,
 	shareOf,
 	shieldTrapped,
 	sortDice,
@@ -43,6 +46,7 @@ import {
 	wieldsInHands
 } from "../rules/attack.js";
 import { dieMask } from "../rules/die-shapes.js";
+import { PACK_FLAG, canJoinPack, joinablePool, newPack, packAsJoining, packAttackState, packCombines, packDice, packJoinsDice, packPreview } from "../rules/pack.js";
 import { impairedItem, impairsWhole } from "../rules/gambit-marks.js";
 import { countAfter, isAtHand, isCounted, isUsedUp } from "../rules/restock.js";
 import { stripHTML } from "../rules/text.js";
@@ -154,17 +158,48 @@ function unavailableNames(actor) {
 }
 
 /**
- * Take one off the count of each thing whose every Attack uses one up, such
- * as a titan bead thrown, and say how many are left.
- * @param {AttackSource[]} chosen
+ * One off the count of each thing whose every Attack uses one up, such as a
+ * titan bead thrown. How many are left is said by tellUsedUp, to whoever plays
+ * the actor, which on a Pack card may not be whoever spends it.
+ * @param {Item[]} wielded What the Attack was made with, each once.
+ * @returns {{_id: string, "system.quantity.value": number}[]} The item updates.
  */
-async function useUpThrown(chosen) {
-	const items = [...new Set(chosen.map(({ item }) => item))].filter((item) => item.system.usedUp && isCounted(item.system) && item.isOwner);
-	await Promise.all(items.map((item) => {
-		const left = countAfter(item.system.quantity, -1);
-		ui.notifications.info(t("attack.usedOne", { name: item.name, left }));
-		return item.update({ "system.quantity.value": left }, causedBy("attack"));
-	}));
+function useUpThrown(wielded) {
+	return wielded.filter((item) => item.system.usedUp && isCounted(item.system)).map((item) => ({ _id: item.id, "system.quantity.value": countAfter(item.system.quantity, -1) }));
+}
+
+/** The update option marking a write that used up something thrown, so whoever plays the actor is told. */
+const USED_UP_OPTION = "bastionlandUsedUp";
+
+/**
+ * Whether this user is the one to tell about an actor: a player who owns it,
+ * or the Referee where no player who owns it is logged in.
+ * @param {Actor|null|undefined} actor
+ * @returns {boolean}
+ */
+function playsActor(actor) {
+	if (!actor?.isOwner) return false;
+	if (!game.user.isGM) return true;
+	return !Array.from(game.users ?? []).some((user) => user.active && !user.isGM && actor.testUserPermission?.(user, "OWNER"));
+}
+
+/**
+ * Say how many are left of something thrown an Attack used up, on the client
+ * of whoever plays its actor, wherever it was spent from.
+ * @param {Item} item
+ * @param {object} changes
+ * @param {object} options
+ */
+export function tellUsedUp(item, changes, options) {
+	if (!options?.[USED_UP_OPTION] || !item.system?.usedUp) return;
+	const left = foundry.utils.getProperty(changes, "system.quantity.value");
+	if (left === undefined || !playsActor(item.actor)) return;
+	ui.notifications.info(t("attack.usedOne", { name: item.name, left }));
+}
+
+/** Called during init. */
+export function registerUsedUpNotices() {
+	Hooks.on("updateItem", tellUsedUp);
 }
 
 /**
@@ -178,11 +213,39 @@ const weaponsIn = (chosen) => [...new Set(chosen.map(({ item }) => item))].filte
 /**
  * Mark broken the weapons an Attack was made with, as a lance is shattered by
  * the charge it's used in (p92), until mended.
- * @param {AttackSource[]} chosen
+ * @param {Item[]} wielded What the Attack was made with, each once.
+ * @returns {{_id: string, "system.broken": true}[]} The item updates.
  */
-async function shatter(chosen) {
-	await Promise.all(weaponsIn(chosen).filter((item) => item.isOwner && !item.system.broken)
-		.map((item) => item.update({ "system.broken": true }, causedBy("attack"))));
+function shatter(wielded) {
+	return wielded.filter((item) => item.type === "weapon" && !item.system.broken).map((item) => ({ _id: item.id, "system.broken": true }));
+}
+
+/**
+ * Spend what an Attack uses up, once it's rolled: a thrown weapon, the lance a
+ * charge shatters (p92), an Ability's use (p112), and bonus dice kept for the
+ * rest of the fight. Kept as plain data, so a Pack card can spend it when its
+ * dice are rolled, and a Pack called off spends none of it. What it does to
+ * the actor's items is one write, each item's changes merged, so the Ledger
+ * hears them as one.
+ * @param {Actor} actor
+ * @param {import("../rules/pack.js").PackSpend} spend
+ */
+export async function spendAttack(actor, spend) {
+	const items = Array.from(actor.items ?? []);
+	const owner = Boolean(actor.isOwner);
+	const wielded = owner ? spend.items.map((id) => items.find((item) => item.id === id)).filter(Boolean) : [];
+	const merged = new Map();
+	const thrown = useUpThrown(wielded);
+	for (const update of [
+		...thrown,
+		...(spend.shatters ? shatter(wielded) : []),
+		// An Ability good once an Attack is ready again for this one, and those used here spend a use.
+		...(owner ? abilityUpdatesAfterAttack(items, spend.abilities) : [])
+	]) merged.set(update._id, { ...merged.get(update._id), ...update });
+	await Promise.all([
+		merged.size ? actor.updateEmbeddedDocuments("Item", [...merged.values()], { ...causedBy("attack"), ...(thrown.length ? { [USED_UP_OPTION]: true } : {}) }) : null,
+		spend.keep.length ? keepLastingDice(actor, spend.keep) : null
+	]);
 }
 
 /**
@@ -194,21 +257,55 @@ async function shatter(chosen) {
  */
 async function chooseCombined(dice) {
 	if (dice.length < 2) return dice;
-	const groups = [1, 2, 3];
+	const picked = await askGroups(dice);
+	if (!picked) return null;
+	return combineDice(dice, picked).dice.map((die) => (die.joined ? { faces: die.faces, label: t("attack.combine.joined", { dice: die.label }) } : die));
+}
+
+/**
+ * @typedef {object} CombinedLine What the dice window says will roll, as its groups stand.
+ * @property {string} text
+ * @property {boolean} warning Said as a warning.
+ * @property {boolean} blocked Holds back the roll, as a group past a d12 does.
+ */
+
+/**
+ * What one's own dice roll as, grouped so: their sizes, or which group comes
+ * to no die up to a d12.
+ * @param {{faces: number}[]} dice
+ * @returns {(groups: number[]) => CombinedLine}
+ */
+const ownDiceLine = (dice) => (groups) => {
+	const { dice: rolled, over } = combineDice(dice, groups);
+	if (over.length) return { text: t("attack.combine.over", { groups: over.join(", ") }), warning: true, blocked: true };
+	return { text: t("attack.combine.rolls", { dice: rolled.map((die) => `d${die.faces}`).join(", ") }), warning: false, blocked: false };
+};
+
+/**
+ * The Join Dice window: which group each die joins, or none.
+ * @param {{faces: number, label: string}[]} dice What would be rolled, each labelled as the window lists it.
+ * @param {{legend?: string, hint?: string, line?: (groups: number[]) => CombinedLine}} [options] What the list
+ *   of dice is headed, "Your dice" unless told; the line under the window; and what it says will roll.
+ * @returns {Promise<number[]|null>} The group each die joins, by index, 0 for alone; null if the window was closed.
+ */
+async function askGroups(dice, { legend = t("attack.combine.legend"), hint = t("attack.combine.hint"), line = ownDiceLine(dice) } = {}) {
+	// Enough groups for every die to pair off, and never fewer than three.
+	const groups = Array.from({ length: Math.max(3, Math.floor(dice.length / 2)) }, (_value, index) => index + 1);
 	const data = await inputDialog({
 		title: t("attack.combine.title"),
 		icon: "fa-solid fa-object-group",
 		template: "combine-dice",
 		context: {
+			legend,
+			hint,
 			dice: dice.map((die, index) => ({ index, label: t("attack.combine.die", { faces: die.faces, label: die.label }) })),
 			groups: groups.map((group) => ({ value: group, label: t("attack.combine.group", { group }) }))
 		},
 		ok: { label: t("attack.combine.ok"), icon: "fa-solid fa-dice" },
-		render: (_event, dialog) => watchCombined(dialog, dice)
+		render: (_event, dialog) => watchCombined(dialog, dice, line)
 	});
 	if (!data) return null;
-	const picked = dice.map((_die, index) => Number(data[`group.${index}`]) || 0);
-	return combineDice(dice, picked).dice.map((die) => (die.joined ? { faces: die.faces, label: t("attack.combine.joined", { dice: die.label }) } : die));
+	return dice.map((_die, index) => Number(data[`group.${index}`]) || 0);
 }
 
 /**
@@ -216,20 +313,18 @@ async function chooseCombined(dice) {
  * roll while a group comes to more than a d12.
  * @param {foundry.applications.api.DialogV2} dialog
  * @param {{faces: number}[]} dice
+ * @param {(groups: number[]) => CombinedLine} describe
  */
-function watchCombined(dialog, dice) {
+function watchCombined(dialog, dice, describe) {
 	const form = dialog.element.querySelector("form");
 	const line = form?.querySelector("[data-combined]");
 	if (!line) return;
 	const roll = dialog.element.querySelector("[data-action='ok']");
 	const update = () => {
-		const groups = dice.map((_die, index) => Number(form.querySelector(`[name='group.${index}']`)?.value) || 0);
-		const { dice: rolled, over } = combineDice(dice, groups);
-		line.textContent = over.length
-			? t("attack.combine.over", { groups: over.join(", ") })
-			: t("attack.combine.rolls", { dice: rolled.map((die) => `d${die.faces}`).join(", ") });
-		line.classList.toggle("is-warning", over.length > 0);
-		if (roll) roll.disabled = over.length > 0;
+		const said = describe(dice.map((_die, index) => Number(form.querySelector(`[name='group.${index}']`)?.value) || 0));
+		line.textContent = said.text;
+		line.classList.toggle("is-warning", said.warning);
+		if (roll) roll.disabled = said.blocked;
 	};
 	form.addEventListener("change", update);
 	update();
@@ -439,15 +534,98 @@ function readWielding(actor, sources, choice, { joining = null, duel = null, off
 }
 
 /**
+ * The dialog's boxes that dice are typed in, each with what it says when one
+ * can't be read, and whether what's typed in it can't. An improvised weapon's
+ * words are its name, but it needs a die to be swung at all (p10, p194). The
+ * improvised box is read once by whoever asks, and handed in as `swung`.
+ */
+const DICE_BOXES = [
+	{
+		name: "improvised",
+		unread: "attack.improvisedUnread",
+		misread: (_typed, swung) => swung.unread.length > 0 || !swung.dice.length
+	},
+	{ name: "bonus", unread: "attack.bonusUnread", misread: (typed) => unreadDiceTerms(typed).length > 0 }
+];
+
+/**
+ * What can't be read in the boxes dice are typed in, such as "8", the "+2" of
+ * "d8+2", or an improvised "barrel" with no die. Rolled as it stands, it would
+ * be quietly dropped, and an improvised weapon with no die read would leave the
+ * Attack unarmed and Impaired (p10), so the Attack waits for dice or an empty box.
+ * @param {object} choice The dialog's expanded form data.
+ * @param {ReturnType<typeof readImprovised>} [swung] The improvised box, read.
+ * @returns {string[]} One line for each box with anything unread in it.
+ */
+function unreadDice(choice, swung = readImprovised(choice.improvised)) {
+	return DICE_BOXES.flatMap(({ name, unread, misread }) => {
+		const typed = String(choice[name] ?? "").trim();
+		return typed && misread(typed, swung) ? [t(unread, { text: typed })] : [];
+	});
+}
+
+/**
+ * Who leads a Warband from the front, as the Attack dialog names them (p11).
+ * @param {Actor[]} leaders Those who could.
+ * @param {object} choice The dialog's expanded form data.
+ * @returns {Actor|null}
+ */
+const leaderOf = (leaders, choice) => leaders.find((candidate) => candidate.uuid === choice.leader) ?? null;
+
+/**
+ * What strikes in an Attack and the dice it brings, each labelled with the
+ * item or whoever brings it: the weapons wielded, a steed's trample on a
+ * charge (p10), the arms of a leader at a Warband's front (p11), and
+ * something grabbed and swung (p194). The actor's own dice name the item too,
+ * so a foe can Impair the weapon it has seen (p186). With none of it, the
+ * Attack is unarmed, and so Impaired (p10). Read alike by the Attack dialog,
+ * as boxes are ticked, and by the Attack it makes.
+ * @param {AttackSource[]} chosen What's wielded, less anything set aside.
+ * @param {object} choice The dialog's expanded form data.
+ * @param {{mount: ReturnType<typeof mountOf>, leader: Actor|null}} arms A steed that tramples, and who leads.
+ * @param {ReturnType<typeof readImprovised>} [swung] The improvised box, read.
+ * @returns {{weaponItems: object[], improvised: {name: string, damage: string}|null,
+ *   weaponDice: {faces: number, label: string, trample: boolean, item?: string}[]}}
+ */
+function weaponDiceOf(chosen, choice, { mount, leader }, swung = readImprovised(choice.improvised)) {
+	const weaponGroups = [
+		{ items: chosen, label: null, own: true },
+		{ items: mount && choice.charge ? mount.trample : [], label: mount?.steed.name, trample: true },
+		{ items: leader ? leaderArms(leader) : [], label: leader?.name }
+	];
+	// Something grabbed and swung, such as a barrel, whose die the Referee rules (p194). It's a
+	// weapon, so it isn't unarmed (p10), and bonus dice join it as they would any other. The words
+	// typed beside its die are its name on the card, so "barrel d8" rolls a Barrel's d8.
+	const improvised = swung.dice.length
+		? { name: swung.name || t("attack.improvised"), damage: swung.dice.map((faces) => `d${faces}`).join(" + ") }
+		: null;
+	return {
+		weaponItems: weaponGroups.flatMap(({ items }) => items),
+		improvised,
+		weaponDice: [
+			...weaponGroups.flatMap(({ items, label, trample = false, own = false }) =>
+				items.flatMap((source) => parseDice(source.system.damage).map((faces) => ({
+					faces,
+					label: label ?? source.name,
+					trample,
+					...(own ? { item: source.item.id } : {})
+				})))),
+			...swung.dice.map((faces) => ({ faces, label: improvised.name, trample: false }))
+		]
+	};
+}
+
+/**
  * What stops or changes the Attack as chosen, one line each.
  * @param {Actor} actor
  * @param {AttackSource[]} chosen
  * @param {ReturnType<typeof checkWielding>} check
  * @param {import("../rules/gambit-marks.js").Mark[]} [marks] Gambits a foe landed on them.
  * @param {boolean} [smite] Smite is ticked.
+ * @param {boolean} [unarmed] Nothing strikes: no weapon dice at all, as weaponDiceOf reads them (p10).
  * @returns {string[]}
  */
-function wieldingProblems(actor, chosen, check, marks = [], smite = false) {
+function wieldingProblems(actor, chosen, check, marks = [], smite = false, unarmed = false) {
 	const lines = check.refusal ? [t(`attack.refusals.${check.refusal}`, { name: actor.name })] : [];
 	for (const { index, reason } of check.setAside) lines.push(t(`attack.setAside.${reason}`, { name: chosen[index].name }));
 	if (check.impaired) lines.push(t("attack.confinedImpaired"));
@@ -455,7 +633,7 @@ function wieldingProblems(actor, chosen, check, marks = [], smite = false) {
 	const held = impairedItem(marks, check.usable.map((index) => chosen[index].item));
 	if (held) lines.push(t("attack.weaponImpaired", { name: held }));
 	// An Impaired Attack can't benefit from Feats (p8), so Smite isn't made, and costs nothing.
-	if (smite && (check.impaired || held)) lines.push(t("attack.smiteImpaired"));
+	if (smite && (check.impaired || held || unarmed)) lines.push(t("attack.smiteImpaired"));
 	return lines;
 }
 
@@ -467,25 +645,43 @@ function wieldingProblems(actor, chosen, check, marks = [], smite = false) {
  * @param {AttackSource[]} sources
  * @param {import("../rules/gambit-marks.js").Mark[]} marks
  * @param {Parameters<typeof readWielding>[3]} aim Who it is aimed at, as readWielding takes it.
+ * @param {{mount: ReturnType<typeof mountOf>, leaders: Actor[]}} arms A steed that tramples, and who could lead.
  */
-function watchWielding(dialog, actor, sources, marks, aim) {
+function watchWielding(dialog, actor, sources, marks, aim, { mount, leaders }) {
 	const form = dialog.element.querySelector("form");
 	const list = form?.querySelector("[data-wielding-problems]");
 	if (!list) return;
 	const roll = dialog.element.querySelector("[data-action='ok']");
 
-	const update = () => {
-		const choice = foundry.utils.expandObject(new foundry.applications.ux.FormDataExtended(form).object);
-		const { chosen, check } = readWielding(actor, sources, choice, aim);
-		list.replaceChildren(...wieldingProblems(actor, chosen, check, marks, Boolean(choice.smite)).map((text) => {
+	/** The whole form as last read, and what it wields, which typing dice changes none of. */
+	let read = null;
+	const show = (choice) => {
+		const { chosen, check } = read;
+		const swung = readImprovised(choice.improvised);
+		// Unarmed is Impaired (p10), weighed on the dice the Attack would roll.
+		const { weaponDice } = weaponDiceOf(check.usable.map((index) => chosen[index]), choice, { mount, leader: leaderOf(leaders, choice) }, swung);
+		const unread = unreadDice(choice, swung);
+		const lines = [...unread, ...wieldingProblems(actor, chosen, check, marks, Boolean(choice.smite), !weaponDice.length)];
+		list.replaceChildren(...lines.map((text) => {
 			const line = document.createElement("li");
 			line.textContent = text;
 			return line;
 		}));
 		list.hidden = list.childElementCount === 0;
-		if (roll) roll.disabled = Boolean(check.refusal);
+		if (roll) roll.disabled = Boolean(check.refusal || unread.length);
+	};
+	const update = () => {
+		const choice = foundry.utils.expandObject(new foundry.applications.ux.FormDataExtended(form).object);
+		read = { choice, ...readWielding(actor, sources, choice, aim) };
+		show(choice);
 	};
 	form.addEventListener("change", update);
+	// Dice are read as they're typed, so a slip shows before Enter rolls it. Only the box typed in
+	// has changed since the form was last read; leaving it reads the whole form again.
+	form.addEventListener("input", (event) => {
+		const { name, value } = event.target;
+		if (DICE_BOXES.some((box) => box.name === name)) show({ ...read.choice, [name]: value });
+	});
 	update();
 	// A charge is what runs onto a spearwall (p10), so ticking it opens the fold its box is in.
 	const more = form.querySelector(".bastionland-attack__more");
@@ -555,6 +751,8 @@ function leaderArms(leader) {
  * @property {boolean} warband
  * @property {Actor|null} leader
  * @property {object[]} weaponItems      What adds dice: their weapons, a steed's trample, a leader's.
+ * @property {{name: string, damage: string}|null} improvised Something grabbed and swung (p194):
+ *   the name typed for it, or "Improvised weapon", and its dice.
  * @property {{faces: number, label: string, trample: boolean}[]} weaponDice
  * @property {{faces: number, label: string}[]} dice The dice to roll, before a card's targets are weighed.
  * @property {{impaired: boolean}} pool
@@ -566,6 +764,15 @@ function leaderArms(leader) {
  * @property {ReturnType<typeof declaredGrants>} declared What was declared for this blow, by an Ability or by hand.
  * @property {object|null} inDuel        The duel this is a blow in.
  * @property {{uuid: string, name: string}[]} targets
+ * @property {"roll"|"pack"|"bring"} route Where it goes: rolled at once; posted as a Pack card before it's
+ *   rolled, so allies roll with it (p8) and an Ability can join their dice too (p56); or brought, unrolled,
+ *   to the Pack card it joins.
+ * @property {ReturnType<typeof diceAt>|null} weighed Its dice at its targets, unrolled, as its Pack card holds them.
+ * @property {boolean} combines          Its Ability joins dice into bigger ones, and it isn't Impaired (p56).
+ *   Rolled at once, they're joined already; on a Pack card, at its roll.
+ * @property {() => Promise<void>} declare What making the Attack does at once: remembers the choices, marks them
+ *   riding or led, and pays for Smite.
+ * @property {import("../rules/pack.js").PackSpend} spend What it uses up, which spendAttack spends.
  * @property {string|null} impairedWeapon The weapon a foe's Impair holds, when that alone Impairs this Attack.
  * @property {boolean} againstIndividuals A Warband's Attack ticked as against individuals, whose +d12 joins
  *   only the cards at individuals (p11).
@@ -577,7 +784,8 @@ function leaderArms(leader) {
  * Save, riding or not, and who leads a Warband. A fresh Attack and joining
  * another's are both made this way (p8).
  * @param {Actor} actor
- * @param {import("../rules/attack.js").AttackState|null} [joining] The card they join, whose targets they strike.
+ * @param {import("../rules/attack.js").AttackState|ReturnType<typeof packAsJoining>|null} [joining] The card
+ *   they join, whose targets they strike: an Attack card, or a Pack card still gathering.
  * @returns {Promise<AttackPlan|null>} Null if the dialog was closed or the Attack can't be made.
  */
 async function planAttack(actor, joining = null) {
@@ -691,7 +899,8 @@ async function planAttack(actor, joining = null) {
 			})),
 			smiteKnown: Boolean(actor.system.knowsFeat?.("smite")),
 			// Drawn only for a Knight who knows it, so all that bars it is how they stand.
-			smiteDisabled: conditions.fatigued || startsImpaired || !sources.length,
+			// Nothing on the sheet to swing is no bar: something to hand may be swung as an improvised weapon (p194).
+			smiteDisabled: conditions.fatigued || startsImpaired,
 			// The fold of what seldom comes up opens on its own where a tick in it was remembered,
 			// or a remembered charge, which runs onto the spearwall in it (p10), opens ticked.
 			moreOpen: ticks.confined || Boolean(mount && !chargeBarred && ticks.chargeChecked),
@@ -717,11 +926,13 @@ async function planAttack(actor, joining = null) {
 			woundEffects: declarableBy(actor).filter((key) => WOUND_EFFECTS.includes(key)).map((key) => ({ key, label: t(`attack.grant.${key}`) })),
 			lasting: lasting.map((die, index) => ({ index, label: lastingDieLabel(die) })),
 			canKeep: Boolean(combatant),
+			// A fresh Attack may wait for allies to bring their dice, so all roll at the same time (p8).
+			canWait: !joining,
 			warband,
 			leaders: leaders.map((leader) => ({ uuid: leader.uuid, name: leader.name, selected: leader.uuid === actor.system.leader }))
 		},
 		ok: { label: t(joining ? "attack.joinRoll" : "attack.roll"), icon: "fa-solid fa-dice" },
-		render: (_event, dialog) => watchWielding(dialog, actor, sources, marks, aim)
+		render: (_event, dialog) => watchWielding(dialog, actor, sources, marks, aim, { mount, leaders })
 	});
 	if (!data) return null;
 
@@ -730,6 +941,12 @@ async function planAttack(actor, joining = null) {
 	const declared = declaredGrants(choice, offers, declarableBy(actor));
 	if (check.refusal) {
 		ui.notifications.warn(t(`attack.refusals.${check.refusal}`, { name: actor.name }));
+		return null;
+	}
+	// Sent before the dialog could say so: what can't be read as dice is never quietly dropped.
+	const [unread] = unreadDice(choice);
+	if (unread) {
+		ui.notifications.warn(unread);
 		return null;
 	}
 	// A blow made alone, as Pain Strike's is (p68), joins nobody else's.
@@ -762,22 +979,9 @@ async function planAttack(actor, joining = null) {
 		return null;
 	}
 	// Leading from the front adds the leader's Attack dice to the Warband's roll (p11).
-	const leader = leaders.find((candidate) => candidate.uuid === choice.leader) ?? null;
-	// What rolls, each group's dice labelled with the item or whoever brings them. The actor's
-	// own dice name the item too, so a foe can Impair the weapon it has seen (p186).
-	const weaponGroups = [
-		{ items: chosen, label: null, own: true },
-		{ items: mount && choice.charge ? mount.trample : [], label: mount?.steed.name, trample: true },
-		{ items: leader ? leaderArms(leader) : [], label: leader?.name }
-	];
-	const weaponItems = weaponGroups.flatMap(({ items }) => items);
-	const weaponDice = weaponGroups.flatMap(({ items, label, trample = false, own = false }) =>
-		items.flatMap((source) => parseDice(source.system.damage).map((faces) => ({
-			faces,
-			label: label ?? source.name,
-			trample,
-			...(own ? { item: source.item.id } : {})
-		}))));
+	const leader = leaderOf(leaders, choice);
+	// What rolls, as the dialog weighed it while it was answered.
+	const { weaponItems, improvised, weaponDice } = weaponDiceOf(chosen, choice, { mount, leader });
 	// A foe's Impair on one weapon holds this Attack only if it's made with that weapon (p186).
 	const impairedWeapon = impairedItem(marks, chosen.map(({ item }) => item));
 	// Impaired is read off the actor and the marks on them, never declared in the dialog.
@@ -814,20 +1018,13 @@ async function planAttack(actor, joining = null) {
 	const exploited = weaknesses.filter((_weakness, index) => choice.weakness?.[index]);
 
 	const pool = buildAttackPool({
-		sources: weaponItems.map((item) => item.system.damage),
+		sources: [...weaponItems.map((item) => item.system.damage), ...(improvised ? [improvised.damage] : [])],
 		bonus: bonusDice.map((die) => die.faces),
 		impaired
 	});
 	let dice = pool.impaired
 		? [{ faces: 4, label: t(weaponDice.length ? "conditions.impaired.label" : "attack.unarmed") }]
 		: [...weaponDice, ...bonusDice];
-	// Dice joined into bigger ones before the roll, as an Ability may let them be (p56). A steed's
-	// trample stays its own, since it joins only a charge at foes on foot (p10).
-	if (declared.combine && !pool.impaired) {
-		const joined = await chooseCombined(dice.filter((die) => !die.trample));
-		if (!joined) return null;
-		dice = [...joined, ...dice.filter((die) => die.trample)];
-	}
 
 	// A Blast declared for an Ability isn't a Feat, so it holds even when the Attack is Impaired.
 	const blast = isBlastAttack({ granted: declared.blast, smite: smite?.mode, againstIndividuals, weapons: chosen.map((item) => item.system) });
@@ -840,12 +1037,40 @@ async function planAttack(actor, joining = null) {
 		ui.notifications.warn(t("attack.refusals.severalTargets", { name: actor.name }));
 		return null;
 	}
+	// Dice joined into bigger ones before the roll, as an Ability may let them be (p56).
+	const combines = Boolean(declared.combine && !pool.impaired);
+	// A fresh Attack may gather its allies' dice on a Pack card first, so all roll at the same time (p8).
+	// Never a blow in a duel, which is one on one, one made alone, or a Blast rolled at each target apart.
+	const mayGather = !joining && !inDuel && !declared.alone && !(blast && targets.length > 1);
+	// A Wait ticked for a blow that can't gather is said, not quietly dropped.
+	if (choice.wait && !joining && !mayGather) ui.notifications.info(t("attack.waitIgnored", { name: actor.name }));
+	// Its dice as they'd stand at its targets, weighed only where it may gather and has cause to.
+	const weighed = mayGather && (choice.wait || combines)
+		? diceAt({ weaponDice, dice, pool, mount, exploited, blast, warband, againstIndividuals, inDuel }, targets)
+		: null;
+	// Where the Attack goes, decided here alone: dice brought to a Pack card it joins, unrolled; a
+	// Pack card of its own where it's asked to wait for allies, or where it joins dice, so theirs can be
+	// joined too (p56); otherwise rolled at once. One that joins dice and wasn't asked to wait rolls at
+	// once where its targets Impair it anyway, as a swarm does: a d4 alone has nothing to join.
+	let route = "roll";
+	if (joining?.pack) route = "bring";
+	else if (weighed && (choice.wait || !weighed.impaired)) route = "pack";
+	// Rolled at once, its own dice are joined first, unless the roll is a d4 alone; joining another's
+	// rolled card, only their own dice are theirs to join. On a Pack, they're joined at its roll.
+	if (route === "roll" && combines && !weighed?.impaired) {
+		// A steed's trample stays its own, since it joins only a charge at foes on foot (p10).
+		const joined = await chooseCombined(dice.filter((die) => !die.trample));
+		if (!joined) return null;
+		dice = [...joined, ...dice.filter((die) => die.trample)];
+	}
 
 	// What making the Attack does to the actor, held back until it's certain to count, since
-	// a card can refuse a join after the dialog is answered.
-	const settle = async () => {
-		// Their next Attack with this actor opens on what they chose here.
-		await rememberAttack(actor, choice);
+	// a card can refuse a join after the dialog is answered. Declaring it is done at once;
+	// what it uses up, a Pack card spends only once its dice are rolled.
+	const declare = async () => {
+		// Their next Attack with this actor opens on what they chose here. A join draws no Wait box,
+		// so the Wait they last ticked on an Attack of their own stays as it was.
+		await rememberAttack(actor, joining ? { ...choice, wait: Boolean(remembered?.wait) } : choice);
 		const update = {};
 		// Riding or not, as ticked here, is marked on them, so a rider's plate counts while they ride.
 		if (typeof actor.system.mounted === "boolean" && actor.system.mounted !== riding) update["system.mounted"] = riding;
@@ -854,22 +1079,27 @@ async function planAttack(actor, joining = null) {
 		const leaderUuid = leader?.uuid ?? "";
 		if (warband && actor.system.leader !== leaderUuid) update["system.leader"] = leaderUuid;
 		if (actor.isOwner && Object.keys(update).length) await actor.update(update);
+		// The Smite's Save is already rolled, so it's paid for as it's made, called off or not.
 		if (smite) await payFeat(actor, smite.save, "smite");
-		await useUpThrown(chosen);
+	};
+	const spend = {
+		items: [...new Set(chosen.map(({ item }) => item.id))],
 		// A charge that shatters the lance it's made with (p92).
-		if (declared.shatters) await shatter(chosen);
-		// An Ability good once an Attack is ready again for this one, and those used here spend a use.
-		const abilities = abilityUpdatesAfterAttack(Array.from(actor.items ?? []), [...new Set([...declared.used.map((offer) => offer.id), ...linked.map((item) => item.id)])]);
+		shatters: Boolean(declared.shatters),
+		abilities: [...new Set([...declared.used.map((offer) => offer.id), ...linked.map((item) => item.id)])],
 		// Bonus dice kept with them for the rest of the fight, as an Ability that grows with each blow says.
-		await Promise.all([
-			abilities.length && actor.isOwner ? actor.updateEmbeddedDocuments("Item", abilities) : null,
-			// An Impaired Attack gains no bonus dice (p8), so it has none to keep.
-			choice.keepBonus && !impaired ? keepLastingDice(actor, typedBonus) : null
-		]);
+		// An Impaired Attack gains no bonus dice (p8), so it has none to keep.
+		keep: choice.keepBonus && !impaired ? typedBonus.map(({ faces, label }) => ({ faces, label })) : []
+	};
+	const settle = async () => {
+		await declare();
+		await spendAttack(actor, spend);
 	};
 
 	return {
 		settle,
+		declare,
+		spend,
 		actor,
 		choice,
 		picked,
@@ -880,6 +1110,7 @@ async function planAttack(actor, joining = null) {
 		warband,
 		leader,
 		weaponItems,
+		improvised,
 		weaponDice,
 		dice,
 		pool,
@@ -889,6 +1120,9 @@ async function planAttack(actor, joining = null) {
 		declared,
 		inDuel,
 		targets,
+		route,
+		weighed,
+		combines,
 		againstIndividuals,
 		// Said on the card only where nothing else Impaired it first.
 		impairedWeapon: startsImpaired || check.impaired ? null : impairedWeapon
@@ -1037,6 +1271,28 @@ const withCard = (made, card) => ({
  *   `impaired` is true where these targets alone Impair it.
  */
 async function rollAt(plan, group) {
+	const { cardDice, ...made } = diceAt(plan, group);
+	const roll = await rollDicePool(cardDice);
+	const rolled = cardDice.map((die, i) => ({
+		faces: die.faces,
+		label: die.label,
+		result: roll.dice[i].total,
+		deniedBy: null,
+		...(die.item ? { item: die.item } : {}),
+		...(die.weakness ? { weakness: true } : {})
+	}));
+	return { roll, dice: sortDice(rolled), ...made };
+}
+
+/**
+ * The dice an Attack rolls at one card's targets, weighed as rollAt says,
+ * before they're rolled: a Pack card holds them so until its Knight rolls (p56).
+ * @param {AttackPlan} plan
+ * @param {{uuid: string, name: string}[]} group The card's targets.
+ * @returns {{cardDice: {faces: number, label: string, item?: string, weakness?: boolean, trample?: boolean}[],
+ *   trampleOut: {name: string, reason: string}|null, impaired: boolean, swarm: boolean}}
+ */
+function diceAt(plan, group) {
 	const { weaponDice, dice, pool, mount, exploited } = plan;
 	// The other duelist in a joust rides, marked so or not yet (p10).
 	const standing = group.map((target) => standingOf(target, plan.inDuel));
@@ -1050,18 +1306,8 @@ async function rollAt(plan, group) {
 	const cardDice = unarmed || swarmed
 		? [{ faces: 4, label: t(unarmed ? "attack.unarmed" : "npc.scales.swarm.label") }]
 		: [...dice.filter((die) => !(trampleOut && die.trample)), ...individuals, ...(pool.impaired ? [] : weaknessDice(group, exploited))];
-	const roll = await new Roll(cardDice.map((die) => `1d${die.faces}`).join(" + ")).evaluate();
-	const rolled = cardDice.map((die, i) => ({
-		faces: die.faces,
-		label: die.label,
-		result: roll.dice[i].total,
-		deniedBy: null,
-		...(die.item ? { item: die.item } : {}),
-		...(die.weakness ? { weakness: true } : {})
-	}));
 	return {
-		roll,
-		dice: sortDice(rolled),
+		cardDice,
 		trampleOut: trampleOut ? { name: mount.steed.name, reason: "mountedFoe" } : null,
 		impaired: unarmed || swarmed,
 		swarm: swarmed
@@ -1076,17 +1322,39 @@ async function rollAt(plan, group) {
  * @param {AttackPlan} plan
  */
 function playBlows(plan) {
-	playBlowFx({
-		attacker: plan.actor,
-		weapons: plan.weaponItems.map((item) => ({ name: item.name, damage: item.system.damage, ranged: Boolean(item.system.ranged) })),
+	playStoredBlows(blowsOf(plan), plan.actor);
+}
+
+/**
+ * What an attacker's blows look like on the map, kept as plain data so a
+ * Pack card can hold them until its dice are rolled (p56).
+ * @param {AttackPlan} plan
+ * @returns {object}
+ */
+function blowsOf(plan) {
+	return {
+		attacker: plan.actor.uuid,
+		weapons: [
+			...plan.weaponItems.map((item) => ({ name: item.name, damage: item.system.damage, ranged: Boolean(item.system.ranged) })),
+			...(plan.improvised ? [{ ...plan.improvised, ranged: false }] : [])
+		],
 		mounted: Boolean(plan.choice.mounted || plan.choice.charge),
 		warband: plan.warband,
 		// An Impaired Attack rolls one d4 whatever they hold (p9), so it strikes once.
 		impaired: plan.pool.impaired,
-		targets: plan.targets,
-		// A card the table wasn't shown isn't drawn on their map either.
-		whispered: !chatIsPublic()
-	});
+		targets: plan.targets
+	};
+}
+
+/**
+ * Draw blows kept by blowsOf, for whoever made them.
+ * @param {object|null} blows
+ * @param {Actor|null} [attacker] Who made them, found from the blows when left out.
+ */
+function playStoredBlows(blows, attacker = blows ? fromUuidSync(blows.attacker) : null) {
+	if (!blows || !attacker) return;
+	// A card the table wasn't shown isn't drawn on their map either.
+	playBlowFx({ ...blows, attacker, whispered: !chatIsPublic() });
 }
 
 /**
@@ -1100,23 +1368,21 @@ export async function attack(actor) {
 	const plan = await planAttack(actor);
 	if (!plan) return null;
 	const { targets, inDuel } = plan;
+	// Gathered on a Pack card first, so allies attacking too roll with it at the same time (p8), and an
+	// Ability that joins dice can join theirs (p56), as planAttack decided.
+	if (plan.route === "pack") return gatherPack(plan, plan.weighed);
 	// A Blast rolls for everybody in its area, one target at a time (p8).
 	const groups = plan.blast && targets.length > 1 ? targets.map((target) => [target]) : [targets];
 
-	const shared = {
+	const shared = newAttackState({
 		// Cards from one Blast share an id, so a Feat used on one counts for all of them.
 		attackId: foundry.utils.randomID(),
 		attacker: actor.uuid,
 		attackerName: actor.name,
-		// Where in a running Combat this was rolled, so a Gambit's mark knows when it lapses.
 		place: combatPlace(),
-		...madeWith(plan),
-		duel: inDuel?.message.id ?? null,
-		gambits: [],
-		feats: [],
-		appliedTo: [],
-		appliedTokens: []
-	};
+		made: madeWith(plan),
+		duel: inDuel?.message.id ?? null
+	});
 
 	const messages = [];
 	for (const [index, group] of groups.entries()) {
@@ -1169,12 +1435,8 @@ export function showRolls(rolls) {
  *   (see changeAttack), or null if the dialog was closed or the join can't be made.
  */
 export async function joinAttack(actor, attackState) {
-	const plan = await planAttack(actor, attackState);
+	const plan = await planJoin(actor, attackState);
 	if (!plan) return null;
-	if (plan.blast && attackState.targets.length > 1) {
-		ui.notifications.warn(t("attack.joinBlastSeveral", { name: actor.name }));
-		return null;
-	}
 	const card = await rollAt(plan, attackState.targets);
 	const rolls = [plan.smite?.roll, card.roll].filter(Boolean);
 	return {
@@ -1196,6 +1458,226 @@ export async function joinAttack(actor, attackState) {
 		}
 	};
 }
+
+/**
+ * The joiner's Attack dialog, aimed at the card they join. A Blast can't join
+ * a card at several targets, since it rolls for each (p8).
+ * @param {Actor} actor Whoever joins.
+ * @param {{targets: object[]}} joining The card as planAttack reads it.
+ * @returns {Promise<AttackPlan|null>}
+ */
+async function planJoin(actor, joining) {
+	const plan = await planAttack(actor, joining);
+	if (!plan) return null;
+	if (plan.blast && joining.targets.length > 1) {
+		ui.notifications.warn(t("attack.joinBlastSeveral", { name: actor.name }));
+		return null;
+	}
+	return plan;
+}
+
+/**
+ * One attacker's share of a Pack card: how they attack, their dice unrolled,
+ * and what the Attack will use up of theirs once it's rolled.
+ * @param {AttackPlan} plan
+ * @param {ReturnType<typeof diceAt>} at
+ * @returns {{actor: string, name: string, made: object, dice: object[], blows: object, combine: boolean,
+ *   spend: import("../rules/pack.js").PackSpend}}
+ */
+function packShareOf(plan, at) {
+	return {
+		actor: plan.actor.uuid,
+		name: plan.actor.name,
+		made: { ...withCard(madeWith(plan), at), ...(at.swarm ? { swarm: true } : {}) },
+		dice: at.cardDice,
+		blows: blowsOf(plan),
+		// An Impaired share rolls its d4 alone, with nothing to join (p8).
+		combine: plan.combines && !at.impaired,
+		spend: plan.spend
+	};
+}
+
+/**
+ * Post a Pack card, so allies attacking the same target bring their dice
+ * before anything is rolled (p8), and an Ability that joins dice can join
+ * theirs (p56). The Attack is declared once the card stands, so its Smite is
+ * paid for then; what it uses up waits for the roll, so calling it off spends none.
+ * @param {AttackPlan} plan
+ * @param {ReturnType<typeof diceAt>} at
+ * @returns {Promise<ChatMessage[]|null>}
+ */
+async function gatherPack(plan, at) {
+	const { actor } = plan;
+	const pack = newPack({
+		attackId: foundry.utils.randomID(),
+		attacker: actor.uuid,
+		attackerName: actor.name,
+		targets: plan.targets,
+		share: packShareOf(plan, at)
+	});
+	const message = await postCard(actor, "pack", packCardContext(pack), {
+		rolls: plan.smite ? [plan.smite.roll] : [],
+		flags: { [SYSTEM_ID]: { [PACK_FLAG]: pack } }
+	});
+	if (!message) return null;
+	await plan.declare();
+	return [message];
+}
+
+/**
+ * Bring an actor's dice to a Pack card, unrolled: their own Attack dialog,
+ * aimed at the card's targets, as joining an Attack card is (p8). Their Attack
+ * is declared once the card takes them; what it uses up waits for the roll.
+ * @param {Actor} actor Whoever joins.
+ * @param {import("../rules/pack.js").PackState} pack
+ * @returns {Promise<{change: object, settle: () => Promise<void>}|null>} The card's `join`
+ *   change (see changePack), or null if the dialog was closed or the join can't be made.
+ */
+export async function joinPack(actor, pack) {
+	const plan = await planJoin(actor, packAsJoining(pack));
+	if (!plan) return null;
+	const rolls = plan.smite?.roll ? [plan.smite.roll] : [];
+	return {
+		change: { type: "join", ...packShareOf(plan, diceAt(plan, pack.targets)), rolls: rolls.map((roll) => roll.toJSON()) },
+		settle: async () => {
+			await plan.declare();
+			showRolls(rolls);
+		}
+	};
+}
+
+/**
+ * What a die joined on a Pack card is called: "Joined d4+d8", and whose dice
+ * besides its owner's went into it.
+ * @param {string} faces
+ * @param {string[]} others
+ * @returns {string}
+ */
+const packJoinedLabel = (faces, others) => (others.length
+	? t("attack.combine.joinedWith", { dice: faces, names: others.join(", ") })
+	: t("attack.combine.joined", { dice: faces }));
+
+/**
+ * What the Pack's dice window says will roll: each die and whose it will be,
+ * and where one can't harm the target, why. A die joined from somebody's who
+ * could harm it into one of somebody's who can't is said as a warning (p11, p56).
+ * @param {import("../rules/pack.js").PackState} pack
+ * @returns {(groups: number[]) => CombinedLine}
+ */
+function packLine(pack) {
+	// What only some Attacks can harm, as the Attack card will weigh it.
+	const target = cardTarget({ targets: pack.targets, joined: pack.shares.slice(1) });
+	return (groups) => {
+		const { over, dice } = packPreview(pack, groups, packJoinedLabel, target);
+		if (over.length) return { text: t("attack.combine.over", { groups: over.join(", ") }), warning: true, blocked: true };
+		const parts = dice.map(({ faces, owner, barred }) => (barred
+			? t("attack.combine.ownedBarred", { faces, name: owner, reason: t(`attack.barred.${barred}`) })
+			: t("attack.combine.owned", { faces, name: owner })));
+		const warning = dice.some((die) => die.joined && die.barred);
+		const text = t("attack.combine.rolls", { dice: parts.join(", ") });
+		return { text: warning ? `${text} ${t("attack.combine.barredJoined")}` : text, warning, blocked: false };
+	};
+}
+
+/**
+ * The Join Dice window over everybody's dice on a Pack card, each named for
+ * who brought it, where somebody's Ability joins dice. Otherwise, and with
+ * nobody else there, nothing joins: the Ability needs an ally attacking too (p56).
+ * @param {import("../rules/pack.js").PackState} pack
+ * @returns {Promise<number[]|null>} As askGroups, or none at all with nothing to join.
+ */
+export function askPackGroups(pack) {
+	if (!packJoinsDice(pack)) return Promise.resolve([]);
+	return askGroups(joinablePool(pack).map((die) => ({ faces: die.faces, label: t("attack.pooledDie", { name: pack.shares[die.share].name, label: die.label }) })), {
+		legend: t("attack.combine.packLegend"),
+		hint: t("attack.combine.packHint", { name: pack.attackerName }),
+		line: packLine(pack)
+	});
+}
+
+/**
+ * Roll a Pack card's dice, joined as they were grouped, into one Attack card
+ * made by all of them together (p8, p56). What each attacker uses up is spent
+ * after, share by share, and the blows drawn (pack-card.js, packRolled).
+ * @param {Actor} knight Whoever gathered it.
+ * @param {import("../rules/pack.js").PackState} pack
+ * @param {number[]} groups As askPackGroups gives them.
+ * @returns {Promise<ChatMessage|null>} The Attack card.
+ */
+export async function rollPack(knight, pack, groups) {
+	const { dice } = packDice(pack, groups, packJoinedLabel);
+	const roll = await rollDicePool(dice);
+	// Where in the Combat it was rolled, which is when the Attack is made, so a Gambit's mark lapses from there.
+	const state = packAttackState(pack, dice, roll.dice.map((die) => die.total), combatPlace());
+	return (await postCard(knight, "attack", attackCardContext(state), { rolls: [roll], flags: { [SYSTEM_ID]: { attack: state } } })) ?? null;
+}
+
+/**
+ * What follows a Pack's roll once its Attack card stands: a Knight whose
+ * stance draws the fire makes a foe who struck somebody else pay (p128), and
+ * everybody's blows are drawn on the map.
+ * @param {Actor} knight Whoever gathered it.
+ * @param {import("../rules/pack.js").PackState} pack
+ */
+export async function packRolled(knight, pack) {
+	await offerDrawnFire(knight, pack.targets);
+	for (const share of pack.shares) playStoredBlows(share.blows);
+}
+
+/**
+ * The line under a card's title naming who it's aimed at, alike on an Attack card and a Pack card.
+ * @param {{name: string}[]} targets
+ * @returns {string|null} Null where it's aimed at nobody in particular.
+ */
+const againstLine = (targets) => (targets.length ? t("attack.against", { names: targets.map((target) => target.name).join(", ") }) : null);
+
+/**
+ * What a Pack card shows: who has brought which dice, and whether it still
+ * waits for more, was rolled, or was called off. Which Attack card it was
+ * rolled into, and whose spending is done, it never shows (packShown).
+ * @param {import("../rules/pack.js").PackState} pack
+ * @returns {object}
+ */
+function packCardContext(pack) {
+	const open = canJoinPack(pack);
+	const combine = packCombines(pack);
+	let closed = null;
+	if (pack.calledOff) closed = t("attack.pack.calledOff");
+	else if (!open) closed = t("attack.pack.rolled");
+	return {
+		targets: againstLine(pack.targets),
+		shares: pack.shares.map((share) => ({
+			name: share.name,
+			smite: share.made.smite ?? null,
+			dice: share.dice.map((die) => ({ faces: die.faces, shape: dieMask(die.faces), label: die.label }))
+		})),
+		waiting: open ? t(combine ? "attack.pack.waitingCombine" : "attack.pack.waiting", { name: pack.attackerName }) : null,
+		// Where somebody's Ability joins dice, the roll asks which first (p56).
+		rollLabel: t(combine ? "attack.pack.roll" : "attack.pack.rollPlain"),
+		rollHint: t(combine ? "attack.pack.rollHint" : "attack.pack.rollPlainHint"),
+		closed,
+		// Closed for a roll, so it may yet need opening again if the Attack card never comes.
+		stalled: pack.rolled,
+		open
+	};
+}
+
+/**
+ * @param {import("../rules/pack.js").PackState} pack
+ * @returns {Promise<string>} The card's HTML.
+ */
+export function renderPackCard(pack) {
+	return foundry.applications.handlebars.renderTemplate(templatePath("chat/pack.hbs"), packCardContext(pack));
+}
+
+/**
+ * The part of a Pack card's state that packCardContext draws: all of it but
+ * the Attack card it was rolled into and whose spending is done, so marking
+ * either writes the card's flag without drawing it again.
+ * @param {import("../rules/pack.js").PackState} pack
+ * @returns {object}
+ */
+export const packShown = ({ message: _message, spent: _spent, ...shown }) => shown;
 
 /** The longest weapon note an Attack card repeats; anything longer is on the weapon itself. */
 const NOTE_LENGTH = 160;
@@ -1412,7 +1894,7 @@ export function attackCardContext(attack) {
 	return {
 		smite: attack.smite,
 		smiteMark: attack.smiteMark ? t("attack.smiteMarkLine") : null,
-		targets: attack.targets.length ? t("attack.against", { names: attack.targets.map((target) => target.name).join(", ") }) : null,
+		targets: againstLine(attack.targets),
 		joined: joinedContext(joined),
 		dice: attack.dice.map((die, index) => {
 			const gambit = attack.gambits.find((entry) => entry.die === index);

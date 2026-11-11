@@ -13,7 +13,7 @@ vi.mock("../../module/actions/attack-fx.js", () => ({ chatIsPublic: () => true, 
 vi.mock("../../module/actions/items.js", () => ({ alternateText: () => "" }));
 vi.mock("../../module/actions/attack-memory.js", async (importOriginal) => ({
 	...(await importOriginal()),
-	recallAttack: () => null,
+	recallAttack: vi.fn(() => null),
 	rememberAttack: vi.fn(async () => {})
 }));
 vi.mock("../../module/actions/duel.js", () => ({ knockedDownIn: vi.fn(() => null), openDuelFor: vi.fn(() => null), saveDuelChange: vi.fn() }));
@@ -21,13 +21,14 @@ vi.mock("../../module/actions/feats.js", () => ({ canDenyAttack: () => false, fe
 vi.mock("../../module/actions/leading.js", () => ({ leaderCandidates: vi.fn(() => []) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");
-const { rememberAttack } = await import("../../module/actions/attack-memory.js");
+const { recallAttack, rememberAttack } = await import("../../module/actions/attack-memory.js");
 const { playBlowFx } = await import("../../module/actions/attack-fx.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { marksOn } = await import("../../module/chat/gambit-marks.js");
 const { knockedDownIn, openDuelFor } = await import("../../module/actions/duel.js");
 const { leaderCandidates } = await import("../../module/actions/leading.js");
-const { attack, attackCardContext, joinAttack } = await import("../../module/actions/attack.js");
+const { askPackGroups, attack, attackCardContext, joinAttack, joinPack, packRolled, rollPack, spendAttack, tellUsedUp } = await import("../../module/actions/attack.js");
+const { changePack } = await import("../../module/rules/pack.js");
 
 /** A weapon as the Attack dialog reads one off a sheet. */
 const weapon = (id, name, damage, extra = {}) => ({ id, name, type: "weapon", system: { equipped: true, damage, ...extra } });
@@ -42,6 +43,7 @@ function combatant({ uuid, name, type = "npc", scale = "individual", items = [] 
 		items,
 		getActiveTokens: () => [],
 		update: vi.fn(async () => {}),
+		updateEmbeddedDocuments: vi.fn(async () => []),
 		system: { scale, wields: "", conditions: {}, knowsFeat: () => false }
 	};
 }
@@ -193,6 +195,206 @@ describe("an Attack under an Impair that named one weapon (p186)", () => {
 		await attack(croc());
 		expect(opened().impaired).toBe(true);
 		expect(postCard.mock.calls[0][3].flags[SYSTEM_ID].attack.dice.map((die) => die.faces)).toEqual([4]);
+	});
+});
+
+describe("an improvised weapon (p10, p194)", () => {
+	// Two d6 weapons, as the brute of the user's report who smashed a barrel over somebody's head.
+	const brute = (conditions = {}) => {
+		const npc = combatant({ uuid: "Actor.brute", name: "Brute", items: [weapon("club", "Club", "d6"), weapon("axe", "Axe", "d6")] });
+		npc.system.conditions = conditions;
+		return npc;
+	};
+	const rolled = () => postCard.mock.calls[0][3].flags[SYSTEM_ID].attack;
+	const faces = () => rolled().dice.map((die) => die.faces).sort((a, b) => a - b);
+
+	beforeEach(() => target(combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" })));
+
+	it("is a weapon, so the barrel's d8 rolls in place of an unarmed d4", async () => {
+		inputDialog.mockResolvedValue({ improvised: "d8" });
+		await attack(brute());
+		expect(rolled().dice).toEqual([expect.objectContaining({ faces: 8, label: "bastionland.attack.improvised" })]);
+		expect(rolled().impaired).toBe(false);
+	});
+
+	it("takes bonus dice on top, as any weapon does", async () => {
+		inputDialog.mockResolvedValue({ improvised: "d8", bonus: "d6" });
+		await attack(brute());
+		expect(faces()).toEqual([6, 8]);
+	});
+
+	it("rolls beside the weapons ticked", async () => {
+		inputDialog.mockResolvedValue({ "source.club": true, improvised: "d4" });
+		await attack(brute());
+		expect(faces()).toEqual([4, 6]);
+	});
+
+	it("is drawn on the map as a blow", async () => {
+		inputDialog.mockResolvedValue({ improvised: "d8" });
+		await attack(brute());
+		expect(playBlowFx.mock.calls[0][0].weapons).toEqual([{ name: "bastionland.attack.improvised", damage: "d8", ranged: false }]);
+	});
+
+	it("is still Impaired to a single d4 when the attacker is", async () => {
+		inputDialog.mockResolvedValue({ improvised: "d8", bonus: "d6" });
+		await attack(brute({ impaired: true }));
+		expect(faces()).toEqual([4]);
+		expect(rolled().impaired).toBe(true);
+	});
+
+	it("leaves an Attack with nothing ticked or typed unarmed, a single Impaired d4", async () => {
+		inputDialog.mockResolvedValue({ improvised: "", bonus: "d8" });
+		await attack(brute());
+		expect(rolled().dice).toEqual([expect.objectContaining({ faces: 4, label: "bastionland.attack.unarmed" })]);
+		expect(rolled().impaired).toBe(true);
+	});
+
+	it("isn't rolled, quietly unarmed, from text that names no die", async () => {
+		for (const improvised of ["barrel", "8", "d 8"]) {
+			postCard.mockClear();
+			inputDialog.mockResolvedValue({ improvised });
+			expect(await attack(brute())).toBeNull();
+			expect(ui.notifications.warn).toHaveBeenLastCalledWith("bastionland.attack.improvisedUnread");
+			expect(postCard).not.toHaveBeenCalled();
+		}
+	});
+
+	it("isn't rolled with bonus dice that can't all be read, so none is quietly dropped", async () => {
+		for (const bonus of ["8", "d8+2", "d6, x"]) {
+			postCard.mockClear();
+			inputDialog.mockResolvedValue({ "source.club": true, bonus });
+			expect(await attack(brute())).toBeNull();
+			expect(ui.notifications.warn).toHaveBeenLastCalledWith("bastionland.attack.bonusUnread");
+			expect(postCard).not.toHaveBeenCalled();
+		}
+	});
+
+	it("is named on the card and the map by the words typed beside its die, either side", async () => {
+		for (const improvised of ["barrel d8", "d8 barrel"]) {
+			postCard.mockClear();
+			playBlowFx.mockClear();
+			inputDialog.mockResolvedValue({ improvised });
+			await attack(brute());
+			expect(rolled().dice).toEqual([expect.objectContaining({ faces: 8, label: "Barrel" })]);
+			expect(playBlowFx.mock.calls[0][0].weapons).toEqual([{ name: "Barrel", damage: "d8", ranged: false }]);
+		}
+	});
+
+	it("isn't rolled from a name with no die, or with a slip beside it", async () => {
+		for (const improvised of ["barrel", "barrel d8+2", "d 8"]) {
+			postCard.mockClear();
+			inputDialog.mockResolvedValue({ improvised });
+			expect(await attack(brute())).toBeNull();
+			expect(ui.notifications.warn).toHaveBeenLastCalledWith("bastionland.attack.improvisedUnread");
+			expect(postCard).not.toHaveBeenCalled();
+		}
+	});
+
+	it("takes an empty or blank box as no improvised weapon", async () => {
+		inputDialog.mockResolvedValue({ "source.club": true, improvised: "  " });
+		await attack(brute());
+		expect(faces()).toEqual([6]);
+	});
+
+	describe("in the dialog, as it's typed", () => {
+		let form;
+		let list;
+		let roll;
+		let typed;
+		const listeners = {};
+		// Typing reads only the box typed in, over the form as it was last read whole.
+		const type = (improvised, name = "improvised") => {
+			for (const listener of listeners.input) listener({ target: { name, value: improvised } });
+		};
+
+		beforeEach(() => {
+			for (const key of Object.keys(listeners)) delete listeners[key];
+			typed = {};
+			list = { hidden: true, childElementCount: 0, lines: [], replaceChildren(...lines) {
+				this.lines = lines.map((line) => line.textContent);
+				this.childElementCount = lines.length;
+			} };
+			roll = { disabled: false };
+			form = {
+				querySelector: (selector) => (selector === "[data-wielding-problems]" ? list : null),
+				addEventListener: (event, listener) => (listeners[event] ??= []).push(listener)
+			};
+			const element = { querySelector: (selector) => ({ form, "[data-action='ok']": roll })[selector] ?? null };
+			foundry.applications = { ux: { FormDataExtended: class { constructor() { this.object = typed; } } } };
+			globalThis.document = { createElement: () => ({}) };
+			inputDialog.mockImplementation(async (options) => {
+				options.render(null, { element });
+				return null;
+			});
+		});
+
+		afterEach(() => {
+			delete globalThis.document;
+		});
+
+		it("says no die was read and holds back the roll, until a die is typed", async () => {
+			await attack(brute());
+			expect(roll.disabled).toBe(false);
+			type("8");
+			expect(list.lines).toContain("bastionland.attack.improvisedUnread");
+			expect(list.hidden).toBe(false);
+			expect(roll.disabled).toBe(true);
+			type("d8");
+			expect(list.lines).not.toContain("bastionland.attack.improvisedUnread");
+			expect(roll.disabled).toBe(false);
+			// A name alone has nothing to roll; with its die beside it, it's ready.
+			type("barrel");
+			expect(roll.disabled).toBe(true);
+			type("barrel d8");
+			expect(list.lines).toEqual([]);
+			expect(roll.disabled).toBe(false);
+		});
+
+		it("does the same for the bonus dice", async () => {
+			await attack(brute());
+			type("d8+2", "bonus");
+			expect(list.lines).toEqual(["bastionland.attack.bonusUnread"]);
+			expect(roll.disabled).toBe(true);
+			type("d8, d6", "bonus");
+			expect(list.lines).toEqual([]);
+			expect(roll.disabled).toBe(false);
+		});
+
+		it("lets the box be cleared to fight unarmed", async () => {
+			await attack(brute());
+			type("barrel");
+			type("");
+			expect(list.lines).toEqual([]);
+			expect(list.hidden).toBe(true);
+			expect(roll.disabled).toBe(false);
+		});
+
+		it("says Smite isn't made unarmed, as the Attack would roll it, till something is swung (p8, p10)", async () => {
+			// Smite was ticked before typing began, so typing keeps it.
+			typed = { smite: "d12" };
+			await attack(brute());
+			expect(list.lines).toEqual(["bastionland.attack.smiteImpaired"]);
+			type("barrel d8");
+			expect(list.lines).toEqual([]);
+			type("");
+			expect(list.lines).toEqual(["bastionland.attack.smiteImpaired"]);
+		});
+
+		it("reads the whole form again only as it changes, not as dice are typed", async () => {
+			let reads = 0;
+			foundry.applications.ux.FormDataExtended = class {
+				constructor() {
+					reads += 1;
+					this.object = typed;
+				}
+			};
+			await attack(brute());
+			type("d8");
+			type("d8 barrel");
+			expect(reads).toBe(1);
+			for (const listener of listeners.change) listener({ target: { name: "improvised" } });
+			expect(reads).toBe(2);
+		});
 	});
 });
 
@@ -415,18 +617,16 @@ describe("joining an Attack (p8)", () => {
 
 	it("spends nothing until the card takes the join", async () => {
 		const javelins = weapon("jav", "Javelins", "d6", { usedUp: true, quantity: { value: 3, max: 3 } });
-		javelins.isOwner = true;
-		javelins.update = vi.fn(async () => {});
 		const thrower = combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [javelins] });
 		inputDialog.mockResolvedValue({ "source.jav": true });
 		const joined = await joinAttack(thrower, card());
 		expect(joined.change.dice.map((die) => die.faces)).toEqual([6]);
-		expect(javelins.update).not.toHaveBeenCalled();
+		expect(thrower.updateEmbeddedDocuments).not.toHaveBeenCalled();
 		expect(rememberAttack).not.toHaveBeenCalled();
 		expect(playBlowFx).not.toHaveBeenCalled();
 
 		await joined.settle();
-		expect(javelins.update).toHaveBeenCalledOnce();
+		expect(thrower.updateEmbeddedDocuments).toHaveBeenCalledExactlyOnceWith("Item", [{ _id: "jav", "system.quantity.value": 2 }], expect.anything());
 		expect(rememberAttack).toHaveBeenCalledOnce();
 		expect(playBlowFx).toHaveBeenCalledOnce();
 	});
@@ -595,7 +795,7 @@ describe("what's declared for one blow, by an Ability or by hand", () => {
 		inputDialog.mockResolvedValue({ "source.hammer": true, "ability.thunder": true });
 		await attack(actor);
 		expect(state(0)).toMatchObject({ blast: true, ignoresArmour: true });
-		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ _id: "thunder", "system.quantity.value": 1 }]);
+		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ _id: "thunder", "system.quantity.value": 1 }], expect.anything());
 	});
 
 	it("readies an Ability good once an Attack for this one, then spends it if used", async () => {
@@ -613,7 +813,7 @@ describe("what's declared for one blow, by an Ability or by hand", () => {
 		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [
 			{ _id: "rally", "system.quantity.value": 1 },
 			{ _id: "roar", "system.quantity.value": 0 }
-		]);
+		], expect.anything());
 	});
 
 	it("keeps a declared Blast when the Attack is Impaired, since it isn't a Feat", async () => {
@@ -640,10 +840,13 @@ describe("what the Knight pages' Abilities lend a blow", () => {
 		const spear = lance();
 		const charge = ability("charge", "Charge", { grants: { blast: true, shatters: true, alone: true }, bonusDie: "d12" });
 		inputDialog.mockResolvedValue({ "source.lance": true, "ability.charge": true });
-		await attack(knight([spear, charge]));
+		const actor = knight([spear, charge]);
+		await attack(actor);
 		expect(state().dice.map((die) => `${die.label} d${die.faces}`)).toEqual(["Charge d12", "Lance d10"]);
 		expect(state()).toMatchObject({ blast: true, alone: true, shattered: ["Lance"] });
-		expect(spear.update).toHaveBeenCalledWith({ "system.broken": true }, expect.anything());
+		// Shattered in one write the Ledger hears as the Attack's.
+		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledExactlyOnceWith("Item", [{ _id: "lance", "system.broken": true }], { ledgerCause: "bastionland.ledger.causes.attack" });
+		expect(spear.update).not.toHaveBeenCalled();
 		expect(opened().abilityOffers[0]).toMatchObject({ label: "bastionland.attack.useAbility", checked: false, hint: "bastionland.attack.useAbilityChosenHint" });
 	});
 
@@ -656,25 +859,250 @@ describe("what the Knight pages' Abilities lend a blow", () => {
 		expect(state()).toMatchObject({ spirit: true, drain: true, lingers: [{ name: "Flask", damage: "d8", when: "round", ignoresArmour: true }] });
 	});
 
-	it("joins dice into bigger ones as the dice window groups them (p56)", async () => {
-		const items = [weapon("mace", "Mace", "d8"), weapon("knife", "Knife", "d4"), weapon("club", "Club", "d6")];
+	/** Somebody whose Ability joins dice, with a mace and a knife. */
+	function horde() {
+		const actor = knight([weapon("mace", "Mace", "d8"), weapon("knife", "Knife", "d4"), weapon("club", "Club", "d6")]);
+		actor.uuid = "Actor.horde";
+		actor.name = "Horde";
+		actor.system.wields = "free";
+		actor.type = "npc";
+		return actor;
+	}
+	const pack = (call = 0) => postCard.mock.calls[call][3].flags[SYSTEM_ID].pack;
+
+	it("gathers allies' dice on a Pack card before anything is rolled (p56)", async () => {
+		const rolled = vi.spyOn(globalThis.Roll.prototype, "evaluate");
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, "declare.combine": true });
+		const actor = horde();
+		await attack(actor);
+		expect(inputDialog).toHaveBeenCalledTimes(1);
+		expect(rolled).not.toHaveBeenCalled();
+		expect(postCard.mock.calls[0][1]).toBe("pack");
+		expect(pack()).toMatchObject({ attacker: "Actor.horde", attackerName: "Horde", rolled: false, targets: [{ uuid: "Scene.s.Token.Boar", name: "Boar" }] });
+		expect(pack().shares[0].dice).toEqual([{ faces: 8, label: "Mace", item: "mace" }, { faces: 4, label: "Knife", item: "knife" }]);
+		// The Attack is made once the card stands, so what it spends is spent then.
+		expect(rememberAttack).toHaveBeenCalled();
+	});
+
+	it("brings an ally's dice unrolled, and never asks the ally to join them", async () => {
+		const rolled = vi.spyOn(globalThis.Roll.prototype, "evaluate");
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "declare.combine": true });
+		await attack(horde());
+		const card = pack();
+		inputDialog.mockReset().mockResolvedValueOnce({ "source.club": true, "source.knife": true, "declare.combine": true });
+		const anne = horde();
+		anne.uuid = "Actor.anne";
+		anne.name = "Anne";
+		const joined = await joinPack(anne, card);
+		expect(inputDialog).toHaveBeenCalledTimes(1);
+		expect(rolled).not.toHaveBeenCalled();
+		expect(joined.change).toMatchObject({ type: "join", actor: "Actor.anne", name: "Anne", dice: [{ faces: 4, label: "Knife" }, { faces: 6, label: "Club" }] });
+		expect(rememberAttack).toHaveBeenCalledTimes(1);
+		await joined.settle();
+		expect(rememberAttack).toHaveBeenCalledTimes(2);
+	});
+
+	it("keeps the Wait an actor last ticked on their own Attack when they join, which draws no Wait box", async () => {
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "declare.combine": true });
+		await attack(horde());
+		const card = pack();
+		recallAttack.mockReturnValueOnce({ wait: true, source: {}, specialist: {} });
+		inputDialog.mockReset().mockResolvedValueOnce({ "source.club": true });
+		const anne = horde();
+		anne.uuid = "Actor.anne";
+		const joined = await joinPack(anne, card);
+		await joined.settle();
+		expect(rememberAttack.mock.calls[1][1].wait).toBe(true);
+	});
+
+	it("joins anybody's dice, named for who brought them, and rolls them all into one Attack card", async () => {
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "declare.combine": true });
+		await attack(horde());
+		const card = changePack(pack(), { type: "join", actor: "Actor.anne", name: "Anne", made: { melee: true }, dice: [{ faces: 4, label: "Knife" }, { faces: 6, label: "Club" }], blows: null });
+		inputDialog.mockReset().mockResolvedValueOnce({ "group.0": "1", "group.1": "1", "group.2": "0" });
+		const groups = await askPackGroups(card);
+		const window = inputDialog.mock.calls[0][0];
+		expect(window.template).toBe("combine-dice");
+		expect(window.context.legend).toBe("bastionland.attack.combine.packLegend");
+		expect(window.context.dice).toHaveLength(3);
+		expect(groups).toEqual([1, 1, 0]);
+
+		postCard.mockClear();
+		playBlowFx.mockClear();
+		tokens["Actor.horde"] = horde();
+		await rollPack(horde(), card, groups);
+		const attackState = postCard.mock.calls[0][3].flags[SYSTEM_ID].attack;
+		expect(postCard.mock.calls[0][1]).toBe("attack");
+		expect(attackState.dice.map((die) => [die.faces, die.by])).toEqual([[12, "Horde"], [6, "Anne"]]);
+		expect(attackState.joined.map((entry) => entry.name)).toEqual(["Anne"]);
+		// The blows are drawn once the card stands; Anne's were kept as nothing, so only the Knight's are.
+		expect(playBlowFx).not.toHaveBeenCalled();
+		await packRolled(horde(), card);
+		expect(playBlowFx).toHaveBeenCalledTimes(1);
+	});
+
+	it("says in the dice window whose each die will be, and warns of a joined one that can't harm the target (p11)", async () => {
+		target(combatant({ uuid: "Actor.militia", name: "Militia", scale: "warband" }));
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "declare.combine": true });
+		await attack(horde());
+		const card = changePack(pack(), { type: "join", actor: "Actor.raiders", name: "Raiders", made: { melee: true, largeScale: true }, dice: [{ faces: 4, label: "Spears" }], blows: null });
+		inputDialog.mockReset().mockResolvedValueOnce(null);
+		await askPackGroups(card);
+		const window = inputDialog.mock.calls[0][0];
+		expect(window.context.hint).toBe("bastionland.attack.combine.packHint");
+		// The window's own line, as it's drawn and as the groups change.
+		const line = { textContent: "", classList: { toggle: vi.fn() } };
+		const selects = { "group.0": { value: "0" }, "group.1": { value: "0" } };
+		const roll = { disabled: false };
+		const form = { querySelector: (selector) => (selector === "[data-combined]" ? line : selects[selector.match(/group\.\d/)?.[0]] ?? null), addEventListener: (_type, fn) => { form.change = fn; } };
+		window.render(null, { element: { querySelector: (selector) => (selector === "form" ? form : roll) } });
+		expect(line.classList.toggle).toHaveBeenLastCalledWith("is-warning", false);
+		selects["group.0"].value = "1";
+		selects["group.1"].value = "1";
+		form.change();
+		expect(line.classList.toggle).toHaveBeenLastCalledWith("is-warning", true);
+		expect(roll.disabled).toBe(false);
+	});
+
+	it("waits for allies when asked, though nothing joins dice, and joins none at the roll", async () => {
+		const rolled = vi.spyOn(globalThis.Roll.prototype, "evaluate");
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, wait: true });
+		await attack(horde());
+		expect(rolled).not.toHaveBeenCalled();
+		expect(pack()).toMatchObject({ rolled: false });
+		expect(pack().shares.some((share) => share.combine)).toBe(false);
+		const card = changePack(pack(), { type: "join", actor: "Actor.anne", name: "Anne", made: { melee: true }, dice: [{ faces: 4, label: "Knife" }], blows: null });
+		inputDialog.mockReset();
+		expect(await askPackGroups(card)).toEqual([]);
+		expect(inputDialog).not.toHaveBeenCalled();
+		// Remembered, so their next Attack opens on it.
+		expect(rememberAttack.mock.calls[0][1].wait).toBe(true);
+	});
+
+	it("never waits for a blow made alone, which nobody joins, and says so", async () => {
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, wait: true, "declare.alone": true });
+		await attack(horde());
+		expect(postCard.mock.calls[0][1]).toBe("attack");
+		expect(ui.notifications.info).toHaveBeenCalledWith("bastionland.attack.waitIgnored");
+	});
+
+	it("rolls at once, asking nothing, where its targets Impair it and it wasn't asked to wait (p56, p61)", async () => {
+		target(combatant({ uuid: "Actor.bats", name: "Bats", scale: "swarm" }));
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, "declare.combine": true });
+		await attack(horde());
+		// A d4 alone has nothing to join, so no dice window opens either.
+		expect(inputDialog).toHaveBeenCalledTimes(1);
+		expect(postCard.mock.calls[0][1]).toBe("attack");
+		expect(state().dice.map((die) => die.faces)).toEqual([4]);
+	});
+
+	it("still waits at a swarm when asked to", async () => {
+		target(combatant({ uuid: "Actor.bats", name: "Bats", scale: "swarm" }));
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "declare.combine": true, wait: true });
+		await attack(horde());
+		expect(postCard.mock.calls[0][1]).toBe("pack");
+		expect(pack().shares[0]).toMatchObject({ combine: false, dice: [{ faces: 4 }] });
+	});
+
+	it("asks which of its own dice to join where it can't gather, as a blow in a duel (p56)", async () => {
+		openDuelFor.mockReturnValue({ message: { id: "duel-1" }, duel: { kind: "duel", sparring: false }, opponent: { token: "Scene.s.Token.Boar", name: "Boar" } });
+		tokens["Scene.s.Token.Boar"] = { actor: combatant({ uuid: "Actor.boar", name: "Boar" }) };
+		inputDialog
+			.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, duel: true, "declare.combine": true })
+			.mockResolvedValueOnce({ "group.0": "1", "group.1": "1" });
+		await attack(horde());
+		expect(inputDialog.mock.calls[1][0].template).toBe("combine-dice");
+		expect(postCard.mock.calls[0][1]).toBe("attack");
+		expect(state().dice.map((die) => die.faces)).toEqual([12]);
+	});
+
+	it("spends a thrown lance a charge shatters in one write, its count and its break merged (p92)", async () => {
+		const lances = { ...weapon("lances", "Lances", "d10", { usedUp: true, quantity: { value: 2, max: 2 } }) };
+		const actor = knight([lances]);
+		await spendAttack(actor, { items: ["lances"], shatters: true, abilities: [], keep: [] });
+		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledExactlyOnceWith("Item", [{ _id: "lances", "system.quantity.value": 1, "system.broken": true }], expect.objectContaining({ bastionlandUsedUp: true }));
+	});
+
+	it("tells whoever plays the actor how many are left, wherever it was spent from", () => {
+		foundry.utils.getProperty = (object, path) => path.split(".").reduce((node, key) => node?.[key], object);
+		const player = { active: true, isGM: false };
+		const actor = { isOwner: true, testUserPermission: (user) => user === player };
+		const lances = { name: "Lances", actor, system: { usedUp: true } };
+		const changes = { system: { quantity: { value: 1 } } };
+		// The player who owns them is told, on their own client.
+		game.user = player;
+		tellUsedUp(lances, changes, { bastionlandUsedUp: true });
+		expect(ui.notifications.info).toHaveBeenCalledExactlyOnceWith("bastionland.attack.usedOne");
+		// The Referee who spent them for that player isn't, while the player is here.
+		ui.notifications.info.mockClear();
+		game.user = { isGM: true };
+		game.users = [player];
+		tellUsedUp(lances, changes, { bastionlandUsedUp: true });
+		expect(ui.notifications.info).not.toHaveBeenCalled();
+		// With nobody else to play them, the Referee is.
+		player.active = false;
+		tellUsedUp(lances, changes, { bastionlandUsedUp: true });
+		expect(ui.notifications.info).toHaveBeenCalledOnce();
+		// A write that used nothing up says nothing.
+		ui.notifications.info.mockClear();
+		tellUsedUp(lances, changes, {});
+		expect(ui.notifications.info).not.toHaveBeenCalled();
+	});
+
+	it("spends nothing of an actor this user doesn't own", async () => {
+		const lances = weapon("lances", "Lances", "d10", { usedUp: true, quantity: { value: 2, max: 2 } });
+		const actor = knight([lances]);
+		actor.isOwner = false;
+		await spendAttack(actor, { items: ["lances"], shatters: true, abilities: [], keep: [] });
+		expect(actor.updateEmbeddedDocuments).not.toHaveBeenCalled();
+		expect(ui.notifications.info).not.toHaveBeenCalled();
+	});
+
+	it("offers to wait only on a fresh Attack, not one that joins another's", async () => {
+		inputDialog.mockResolvedValueOnce(null);
+		await attack(horde());
+		expect(opened().canWait).toBe(true);
+		inputDialog.mockClear();
+		const card = { attacker: "Actor.moss", attackerName: "Moss", targets: [], dice: [{ faces: 8, result: 3, label: "d8", deniedBy: null }], melee: true, gambits: [], feats: [], appliedTo: [] };
+		await joinAttack(horde(), card);
+		expect(opened().canWait).toBe(false);
+	});
+
+	it("uses up nothing until the Pack is rolled, then spends what was declared for it", async () => {
+		const ability = { id: "pack", name: "Pack Tactics", type: "ability", system: { grants: { combine: true }, quantity: { value: 2, max: 2 }, restock: "" } };
+		const actor = horde();
+		actor.items.push(ability);
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "ability.pack": true });
+		await attack(actor);
+		expect(actor.updateEmbeddedDocuments).not.toHaveBeenCalled();
+		const { spend } = pack().shares[0];
+		expect(spend).toEqual({ items: ["mace"], shatters: false, abilities: ["pack"], keep: [] });
+		await spendAttack(actor, spend);
+		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ _id: "pack", "system.quantity.value": 1 }], expect.anything());
+	});
+
+	it("joins nothing on a Pack card nobody else has joined", async () => {
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, "declare.combine": true });
+		await attack(horde());
+		inputDialog.mockReset();
+		expect(await askPackGroups(pack())).toEqual([]);
+		expect(inputDialog).not.toHaveBeenCalled();
+	});
+
+	it("joins only their own dice when joining an Attack card already rolled", async () => {
+		const card = { attacker: "Actor.moss", attackerName: "Moss", targets: [{ uuid: "Scene.s.Token.Boar", name: "Boar" }], dice: [{ faces: 8, result: 3, label: "d8", deniedBy: null }], melee: true, gambits: [], feats: [], appliedTo: [] };
 		inputDialog
 			.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, "source.club": true, "declare.combine": true })
 			.mockResolvedValueOnce({ "group.0": "1", "group.1": "1", "group.2": "0" });
-		const actor = knight(items);
-		actor.system.wields = "free";
-		actor.type = "npc";
-		await attack(actor);
+		const joined = await joinAttack(horde(), card);
 		expect(inputDialog.mock.calls[1][0].template).toBe("combine-dice");
-		expect(state().dice.map((die) => die.faces)).toEqual([12, 6]);
+		expect(joined.change.dice.map((die) => die.faces)).toEqual([12, 6]);
 	});
 
 	it("rolls nothing when the dice window is closed", async () => {
-		const actor = knight([weapon("mace", "Mace", "d8"), weapon("knife", "Knife", "d4")]);
-		actor.type = "npc";
+		const card = { attacker: "Actor.moss", attackerName: "Moss", targets: [{ uuid: "Scene.s.Token.Boar", name: "Boar" }], dice: [{ faces: 8, result: 3, label: "d8", deniedBy: null }], melee: true, gambits: [], feats: [], appliedTo: [] };
 		inputDialog.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, "declare.combine": true }).mockResolvedValueOnce(null);
-		expect(await attack(actor)).toBeNull();
-		expect(postCard).not.toHaveBeenCalled();
+		expect(await joinAttack(horde(), card)).toBeNull();
 	});
 
 	it("refuses an Ability outside the only kind of Attack it's used in (p68, p92)", async () => {
@@ -862,7 +1290,7 @@ describe("a weapon that spends its Ability (p112)", () => {
 		inputDialog.mockResolvedValue({ "source.light": true });
 		await attack(actor);
 		expect(postCard).toHaveBeenCalled();
-		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ _id: "eruption", "system.quantity.value": 0 }]);
+		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ _id: "eruption", "system.quantity.value": 0 }], expect.anything());
 	});
 
 	it("is refused with none left, though the other weapons aren't", async () => {

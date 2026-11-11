@@ -84,6 +84,8 @@ import { registerAttackFx } from "./module/actions/attack-fx.js";
 import { registerAttackMemory } from "./module/actions/attack-memory.js";
 import { registerCompanyPictureSetting } from "./module/apps/company-picture.js";
 import { registerAttackCards } from "./module/chat/attack-card.js";
+import { registerPackCards } from "./module/chat/pack-card.js";
+import { registerUsedUpNotices } from "./module/actions/attack.js";
 import { registerGambitMarks } from "./module/chat/gambit-marks.js";
 import { t } from "./module/chat/cards.js";
 import { registerMoraleCards } from "./module/chat/morale-card.js";
@@ -276,6 +278,7 @@ Hooks.once("init", () => {
 		"bastionland.steed-name": templatePath("dialogs/parts/steed-name.hbs"),
 		"bastionland.realm-picture": templatePath("dialogs/parts/realm-picture.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
+		"bastionland.die-face": templatePath("chat/parts/die-face.hbs"),
 		"bastionland.spark-entries": templatePath("chat/parts/spark-entries.hbs"),
 		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs"),
 		"bastionland.hex-gm": templatePath("apps/parts/hex-gm.hbs"),
@@ -337,6 +340,9 @@ Hooks.once("init", () => {
 
 	// Attack cards take Deny and Gambits after the roll, then apply the Damage.
 	registerAttackCards();
+	// Pack cards gather allies' dice before an Attack whose Knight joins them is rolled (p56).
+	registerPackCards();
+	registerUsedUpNotices();
 	registerGambitMarks();
 
 	// Attacks drawn on the map and heard at the table, for a world with Sequencer,

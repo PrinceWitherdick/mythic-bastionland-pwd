@@ -369,7 +369,8 @@
 	cursor: pointer;
 }
 
-.bastionland-die:disabled {
+.bastionland-die:disabled,
+.bastionland-die.is-waiting {
 	cursor: default;
 }
 
