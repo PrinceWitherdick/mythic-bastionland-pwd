@@ -19,7 +19,7 @@ import { confirmDialog } from "../apps/ui.js";
 import { rollCityOmen } from "../actions/city-quest.js";
 import { setCompanyHex } from "../actions/company.js";
 import { settleTask } from "../actions/council-tasks.js";
-import { addCourtMember, removeFromCourt } from "../actions/court.js";
+import { addCourtMember, grantCouncilSeat, removeFromCourt } from "../actions/court.js";
 import { dramaInCourt, linkKnightDomain, resolveCrisis, settleDomains, worldDomains } from "../actions/dominion.js";
 import { adjustGlory } from "../actions/glory.js";
 import { beginDesign } from "../actions/grand-designs.js";
@@ -1609,6 +1609,8 @@ class TestGame {
 		});
 		const now = seasonKey(getCalendar());
 		const taken = this.company.map((knight) => knight.name);
+		/** @type {{knight: Actor, domain: Actor, seat: boolean}[]} */
+		const made = [];
 		for (const [index, holding] of ruled.entries()) {
 			const spec = NEIGHBOURS[index] ?? { name: rollKnightName(Math.random, taken), note: "" };
 			taken.push(spec.name);
@@ -1636,7 +1638,33 @@ class TestGame {
 				}
 			});
 			await linkKnightDomain(knight, domain);
+			made.push({ knight, domain, seat: Boolean(holding.seat) });
 		}
+		await this.seatCouncils(made);
+	}
+
+	/**
+	 * Some of the Knights, not all, take seats on the Councils, as Take a Seat
+	 * on their own sheets does (p20): Sir Corvin is made envoy at the Seat of
+	 * Power, which holds the Company's places at Court, or the first neighbour's
+	 * Holding where none of theirs is the Seat. A neighbour too new to
+	 * their Rank sits as its marshal, so a post shows as unproven (p6). Another
+	 * neighbour sits in Dame Isolde's Circle beside Sir Oswin. Dame Isolde rules
+	 * her own Domain, and holds no seat on anyone's Council; neither do the rest
+	 * of the neighbours, who only rule their own.
+	 * @param {{knight: Actor, domain: Actor, seat: boolean}[]} neighbours As makeNeighbours made them.
+	 */
+	async seatCouncils(neighbours) {
+		const court = neighbours.find((each) => each.seat) ?? neighbours[0];
+		if (!court) return;
+		const [marshal, circle] = neighbours.filter((each) => each !== court);
+		const { corvin } = this.knights;
+		if (corvin && await grantCouncilSeat(court.domain, corvin, "envoy")) {
+			this.deeds.corvin.push(`Harvest, Age 2: made envoy at ${court.domain.name}, ${court.knight.name}'s Holding.`);
+			await this.chronicle(corvin, `Envoy at ${court.domain.name}`, { at: court.domain, body: `${court.knight.name} needs somebody to carry letters to the other Holdings, and Corvin talks well enough when he wants something.` });
+		}
+		if (marshal) await grantCouncilSeat(court.domain, marshal.knight, "marshal");
+		if (circle && this.domain) await grantCouncilSeat(this.domain, circle.knight, "circle");
 	}
 
 	/**

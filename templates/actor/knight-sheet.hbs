@@ -115,6 +115,39 @@
 					{{/if}}
 					{{/if}}
 				</section>
+
+				{{!-- What they hold in any Domain (p20), one line each: the Domain, then the post. --}}
+				<section class="bastionland-block" data-block="posts" style="--bastionland-narrow-order: 12">
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.posts.hint'}}">{{localize "bastionland.posts.label"}}</h2>
+					<ul class="bastionland-items bastionland-court">
+						{{#each posts.rows}}
+						<li class="bastionland-item" data-domain-id="{{domainId}}" data-member="{{member}}" data-seat="{{seat}}">
+							<div class="bastionland-item__line">
+								{{#if opens}}
+								<button type="button" class="bastionland-item__name bastionland-name-button" data-action="openPostDomain">{{domain}}</button>
+								{{else}}
+								<span class="bastionland-item__name">{{domain}}</span>
+								{{/if}}
+								<span class="bastionland-item__tags"><strong>{{post}}</strong>{{#if unproven}} · <span data-tooltip="{{unproven}}">{{localize "bastionland.posts.unproven"}}</span>{{/if}}</span>
+								{{#if leave}}
+								<span class="bastionland-item__controls">
+									<button type="button" class="bastionland-icon" data-action="{{leave.action}}" data-tooltip="{{leave.label}}" aria-label="{{leave.label}}">
+										<i class="fa-solid fa-xmark" inert></i>
+									</button>
+								</span>
+								{{/if}}
+							</div>
+						</li>
+						{{else}}
+						<li class="bastionland-empty">{{localize "bastionland.posts.empty"}}</li>
+						{{/each}}
+					</ul>
+					{{#if posts.canTake}}
+					<div class="bastionland-adds">
+						<button type="button" class="bastionland-button" data-action="takeSeat" data-tooltip="{{localize 'bastionland.posts.takeHint'}}"><i class="fa-solid fa-chair" inert></i> {{localize "bastionland.posts.take"}}</button>
+					</div>
+					{{/if}}
+				</section>
 			</div>
 
 			<div class="bastionland-column">

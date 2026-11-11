@@ -8,9 +8,14 @@ import {
 	circleKnights,
 	councilSeatPlan,
 	courtMembers,
+	courtPlacesOf,
 	courtSize,
+	domainRulerOf,
 	dramaCandidates,
 	seatHolders,
+	knightPosts,
+	leavePlan,
+	seatPlan,
 	newCourtMember,
 	normalizeCourt,
 	normalizeCourtMember,
@@ -207,20 +212,27 @@ describe("circleEntries", () => {
 });
 
 describe("seatHolders", () => {
-	const knights = [{ id: "k1", name: "Moss" }];
+	const knights = [{ id: "k1", name: "Moss" }, { id: "k2", name: "Brand" }];
 	const system = {
-		council: { [RETAINER_SEATS[0]]: "r1", [RETAINER_SEATS[1]]: "Old Name", circle: ["k1"] },
-		court: { r1: { role: SERVES_A_SEAT, name: "Wren", seat: RETAINER_SEATS[0], at: 1 } }
+		council: { [RETAINER_SEATS[0]]: "r1", [RETAINER_SEATS[1]]: "Old Name", [RETAINER_SEATS[3]]: "r2", circle: ["k1"] },
+		court: {
+			r1: { role: SERVES_A_SEAT, name: "Wren", seat: RETAINER_SEATS[0], at: 1 },
+			r2: { role: SERVES_A_SEAT, name: "Sir Brand", at: 2, knight: "k2" }
+		}
 	};
 
 	it("gives a Retainer seat its Retainer, or the name written in before the Court", () => {
-		expect(seatHolders(system, RETAINER_SEATS[0], knights)).toEqual([{ id: "r1", name: "Wren", legacy: false }]);
-		expect(seatHolders(system, RETAINER_SEATS[1], knights)).toEqual([{ id: "", name: "Old Name", legacy: true }]);
+		expect(seatHolders(system, RETAINER_SEATS[0], knights)).toEqual([{ id: "r1", name: "Wren", legacy: false, knight: "" }]);
+		expect(seatHolders(system, RETAINER_SEATS[1], knights)).toEqual([{ id: "", name: "Old Name", legacy: true, knight: "" }]);
 		expect(seatHolders(system, RETAINER_SEATS[2], knights)).toEqual([]);
 	});
 
+	it("says which Knight holds a Retainer's seat, by the place in the Court they were seated as", () => {
+		expect(seatHolders(system, RETAINER_SEATS[3], knights)).toEqual([{ id: "r2", name: "Sir Brand", legacy: false, knight: "k2" }]);
+	});
+
 	it("gives the Circle its Knights", () => {
-		expect(seatHolders(system, "circle", knights)).toEqual([{ id: "k1", name: "Moss", legacy: false }]);
+		expect(seatHolders(system, "circle", knights)).toEqual([{ id: "k1", name: "Moss", legacy: false, knight: "k1" }]);
 		expect(seatHolders(null, "circle", knights)).toEqual([]);
 	});
 });
@@ -301,11 +313,25 @@ describe("unworthyPosts", () => {
 				court: { r1: { role: "retainer", name: "Brand" }, c1: { role: "courtier", name: "Moss" }, p1: { role: "petitioner", name: "Wren" } }
 			}
 		};
+		// The Council in the book's order: Brand the Steward before Moss of the Circle.
 		expect(unworthyPosts(domain, knights)).toMatchObject([
 			{ name: "Tal", post: "holding", rank: "tenant" },
-			{ name: "Moss", post: "council", rank: "gallant" },
-			{ name: "Brand", post: "council", rank: "gallant" }
+			{ name: "Brand", post: "council", rank: "gallant" },
+			{ name: "Moss", post: "council", rank: "gallant" }
 		]);
+	});
+
+	it("knows a Slain Knight seated by id, so a living namesake isn't weighed in their place", () => {
+		const twin = knight("eeeeeeeeeeeeeeee", "Moss", 0);
+		const domain = { system: { ruler: "", council: {}, court: { c1: { role: "courtier", name: "Moss", knight: moss.id } } } };
+		expect(unworthyPosts(domain, [{ ...moss, system: { ...moss.system, slain: true } }, twin])).toEqual([]);
+	});
+
+	it("weighs a name against the knighted and living alone, as the Knight's own Posts do", () => {
+		const squire = knight("ffffffffffffffff", "Brand", 0, { isSquire: true });
+		const domain = { system: { ruler: "", council: { steward: "r1" }, court: { r1: { role: "retainer", name: "Brand" } } } };
+		expect(unworthyPosts(domain, [brand, squire])).toMatchObject([{ id: brand.id, post: "council" }]);
+		expect(knightPosts(domain, brand, [brand, squire])).toEqual([expect.objectContaining({ post: "steward", member: "r1" })]);
 	});
 
 	it("knows a Courtier seated as a Knight by id, though the Knight has been renamed since", () => {
@@ -349,5 +375,173 @@ describe("worthiness proven (p6)", () => {
 		expect(withProven(["a", "b"], "a", false)).toEqual(["b"]);
 		expect(withProven(["a"], "a", true)).toEqual(["a"]);
 		expect(withProven(null, "", true)).toEqual([]);
+	});
+});
+
+describe("a Knight's own posts", () => {
+	const eve = { id: "eveeveeveeveeve1", name: "Eve", system: { glory: 0 } };
+	const tal = { id: "taltaltaltaltal1", name: "Tal", system: { glory: 12 } };
+	const knights = [eve, tal];
+	const ids = () => {
+		let next = 0;
+		return () => `new${++next}`;
+	};
+	const domain = (system = {}) => ({
+		uuid: "Actor.d1",
+		system: {
+			ruler: "Tal",
+			seat: false,
+			council: { steward: "", marshal: "", sheriff: "", envoy: "", circle: [] },
+			court: {},
+			proven: [],
+			...system
+		}
+	});
+
+	describe("knightPosts", () => {
+		it("finds none where the Knight holds nothing", () => {
+			expect(knightPosts(domain(), eve, knights)).toEqual([]);
+		});
+
+		it("names one ruler, the Knight linked to it before one only bearing its ruler's name", () => {
+			const linked = { ...eve, system: { glory: 0, domain: "Actor.d1" } };
+			expect(knightPosts(domain(), linked, [linked, tal]).map((post) => post.post)).toEqual(["ruler"]);
+			expect(knightPosts(domain(), tal, [linked, tal])).toEqual([]);
+			expect(domainRulerOf(domain(), [linked, tal])).toBe(linked);
+		});
+
+		it("takes no Squire or Slain Knight for the ruler by name", () => {
+			const slain = { ...tal, system: { glory: 12, slain: true } };
+			expect(knightPosts(domain(), slain, [slain])).toEqual([]);
+			expect(domainRulerOf(domain(), [slain])).toBeNull();
+		});
+
+		it("names the ruler, weighed against a Holding or the Seat of Power", () => {
+			expect(knightPosts(domain(), tal, knights)).toEqual([expect.objectContaining({ post: "ruler", worth: "holding", rank: null })]);
+			expect(knightPosts(domain({ seat: true, ruler: "Eve" }), eve, knights)).toEqual([expect.objectContaining({ post: "ruler", worth: "seat", rank: "dominant" })]);
+		});
+
+		it("names a seat held through the Court, by the id the Knight was seated as", () => {
+			const system = { council: { steward: "r1", circle: [] }, court: { r1: member("retainer", "Old Name", { knight: eve.id }) } };
+			expect(knightPosts(domain(system), eve, knights)).toEqual([
+				{ post: "steward", role: "retainer", serves: "", member: "r1", worth: "council", rank: "gallant", proven: false }
+			]);
+		});
+
+		it("names the Circle, and a place in the Court that holds no seat", () => {
+			const system = { council: { circle: [eve.id] }, court: { c1: member("courtier", "Eve") }, proven: [eve.id] };
+			expect(knightPosts(domain(system), eve, knights)).toEqual([
+				expect.objectContaining({ post: "circle", worth: "council", rank: "gallant", proven: true }),
+				expect.objectContaining({ post: "court", role: "courtier", member: "c1", worth: "court" })
+			]);
+		});
+
+		it("asks no Rank of a Petitioner, and says which seat a Retainer serves", () => {
+			const system = { court: { p1: member("petitioner", "Eve"), r1: member("retainer", "Eve", { seat: "sheriff" }) } };
+			const posts = knightPosts(domain(system), { ...eve, name: "Eve" }, knights);
+			expect(posts).toEqual([
+				expect.objectContaining({ post: "court", role: "retainer", serves: "sheriff", worth: "court", rank: "gallant" }),
+				expect.objectContaining({ post: "court", role: "petitioner", worth: "", rank: null })
+			]);
+		});
+	});
+
+	describe("seatPlan", () => {
+		it("takes a Knight new to the Court on as a Retainer holding the seat", () => {
+			const plan = seatPlan(domain().system, eve, "marshal", knights, ids(), 5);
+			expect(plan.updates).toEqual({
+				"system.court.new1": { role: "retainer", name: "Eve", seat: "", leverage: "", note: "", at: 5, knight: eve.id },
+				"system.council.marshal": "new1"
+			});
+			expect(plan.joined).toEqual({ id: "new1", member: plan.updates["system.court.new1"] });
+			expect(plan.unseated).toBe("");
+		});
+
+		it("makes a Courtier a Retainer, keeping what's written of them", () => {
+			const court = { c1: member("courtier", "Eve", { note: "Sharp", leverage: "Debts" }) };
+			const plan = seatPlan(domain({ court }).system, eve, "envoy", knights, ids(), 5);
+			expect(plan.updates).toEqual({
+				"system.court.c1": { role: "retainer", name: "Eve", seat: "", leverage: "Debts", note: "Sharp", at: 1, knight: eve.id },
+				"system.council.envoy": "c1"
+			});
+			expect(plan.joined).toBeNull();
+		});
+
+		it("moves a Knight from one seat to another, and says who gave the new one up", () => {
+			const court = { r1: member("retainer", "Eve", { knight: eve.id }), r2: member("retainer", "Coll") };
+			const plan = seatPlan(domain({ court, council: { steward: "r1", sheriff: "r2", circle: [] } }).system, eve, "sheriff", knights, ids(), 5);
+			expect(plan.updates).toEqual({ "system.council.steward": "", "system.council.sheriff": "r1" });
+			expect(plan.unseated).toBe("Coll");
+		});
+
+		it("seats a Knight in the Circle, leaving any other seat", () => {
+			const court = { r1: member("retainer", "Eve", { knight: eve.id }) };
+			const plan = seatPlan(domain({ court, council: { steward: "r1", circle: ["Somebody"] } }).system, eve, "circle", knights, ids(), 5);
+			expect(plan.updates).toEqual({ "system.council.steward": "", "system.council.circle": ["Somebody", eve.id] });
+			expect(plan.circle).toBe("joined");
+		});
+
+		it("takes a Knight out of the Circle for a seat a Retainer holds", () => {
+			const plan = seatPlan(domain({ council: { circle: [eve.id, tal.id] } }).system, eve, "steward", knights, ids(), 5);
+			expect(plan.updates["system.council.circle"]).toEqual([tal.id]);
+			expect(plan.updates["system.council.steward"]).toBe("new1");
+			expect(plan.circle).toBe("left");
+		});
+
+		it("does nothing for the seat they hold already, or a seat there isn't", () => {
+			const court = { r1: member("retainer", "Eve", { knight: eve.id }) };
+			expect(seatPlan(domain({ court, council: { steward: "r1", circle: [] } }).system, eve, "steward", knights, ids(), 5).updates).toEqual({});
+			expect(seatPlan(domain({ council: { circle: [eve.id] } }).system, eve, "circle", knights, ids(), 5).updates).toEqual({});
+			expect(seatPlan(domain().system, eve, "throne", knights, ids(), 5).updates).toEqual({});
+		});
+	});
+
+	describe("courtPlacesOf", () => {
+		it("finds the Knight's places by the id they were seated as, or a name only they go by", () => {
+			const court = {
+				r1: member("retainer", "Old Name", { knight: eve.id }),
+				c1: member("courtier", "Eve"),
+				c2: member("courtier", "Eve", { knight: tal.id }),
+				p1: member("petitioner", "Tal")
+			};
+			expect(courtPlacesOf(court, eve, knights).map((place) => place.id)).toEqual(["r1", "c1"]);
+			expect(courtPlacesOf(court, eve, [...knights, { id: "eve2", name: "Eve" }]).map((place) => place.id)).toEqual(["r1"]);
+		});
+	});
+
+	describe("leavePlan", () => {
+		it("leaves the seat empty and the Court as it was", () => {
+			const court = { r1: member("retainer", "Eve", { knight: eve.id }) };
+			expect(leavePlan(domain({ court, council: { marshal: "r1", circle: [] } }).system, eve, knights))
+				.toEqual({ updates: { "system.council.marshal": "" }, seats: ["marshal"], circle: false });
+		});
+
+		it("leaves the Circle, found by a name only they go by", () => {
+			expect(leavePlan(domain({ council: { circle: ["Eve", tal.id] } }).system, eve, knights))
+				.toEqual({ updates: { "system.council.circle": [tal.id] }, seats: ["circle"], circle: true });
+		});
+
+		it("finds the seats the Knight's own Posts list, a Squire of their name making them no less theirs", () => {
+			const squire = { ...eve, id: "squire0000000000", system: { glory: 0, isSquire: true } };
+			const system = domain({ court: { r1: member("retainer", "Eve") }, council: { marshal: "r1", circle: ["Eve"] } }).system;
+			const world = [...knights, squire];
+			expect(knightPosts({ system }, eve, world).map((post) => post.post)).toEqual(["marshal", "circle"]);
+			expect(leavePlan(system, eve, world))
+				.toEqual({ updates: { "system.council.marshal": "", "system.council.circle": [] }, seats: ["marshal", "circle"], circle: true });
+			// Taking a seat reuses their place in the Court, rather than making another.
+			expect(seatPlan(system, eve, "steward", world, ids(), 5).joined).toBeNull();
+		});
+
+		it("leaves only the one seat a Posts row names, the others kept", () => {
+			const system = domain({ court: { r1: member("retainer", "Eve", { knight: eve.id }) }, council: { marshal: "r1", circle: ["Eve", tal.id] } }).system;
+			expect(leavePlan(system, eve, knights, "circle"))
+				.toEqual({ updates: { "system.council.circle": [tal.id] }, seats: ["circle"], circle: true });
+			expect(leavePlan(system, eve, knights, "marshal"))
+				.toEqual({ updates: { "system.council.marshal": "" }, seats: ["marshal"], circle: false });
+		});
+
+		it("has nothing to leave where they hold no seat", () => {
+			expect(leavePlan(domain({ court: { c1: member("courtier", "Eve") } }).system, eve, knights).seats).toEqual([]);
+		});
 	});
 });

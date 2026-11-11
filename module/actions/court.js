@@ -10,18 +10,24 @@ import {
 	SERVES_A_SEAT,
 	circleKnights,
 	councilSeatPlan,
-	courtKnight,
-	courtMembers,
+	courtPlacesOf,
+	domainRulerOf,
+	knightPosts,
+	leavePlan,
 	newCourtMember,
 	normalizeCourt,
 	normalizeCourtMember,
+	seatHolder,
 	seatOf,
+	seatPlan,
 	withProven
 } from "../rules/court.js";
 import { COUNCIL_SEATS, canHoldPost, isSameName } from "../rules/dominion.js";
 import { seersSanctums } from "../rules/realm.js";
 import { rollFreeName } from "../rules/knight-names.js";
-import { escapeHTML, trimmedText } from "../rules/text.js";
+import { escapeHTML } from "../rules/text.js";
+// dominion.js imports this module too; worldDomains is only read as a function runs.
+import { worldDomains } from "./dominion.js";
 import { worldKnights } from "./knights.js";
 import { timelineCircle, timelineCourtJoined, timelineCourtLeft } from "./timeline-events.js";
 
@@ -49,12 +55,147 @@ export const knightChoices = () => worldKnights().map((actor) => ({ id: actor.id
  * @param {Actor} domain
  * @returns {Actor[]} The world's Knights who could take the Domain or a seat
  *   in its Circle (canHoldPost: knighted and alive), other than its ruler,
- *   whether the ruler is linked to it or only named on it.
+ *   whether the ruler is linked to it or only named on it (domainRulerOf, as
+ *   the Knight's Posts and the Domain's Worthiness find them).
  */
 export function knightsBesidesRuler(domain) {
-	const ruler = trimmedText(domain.system.ruler);
-	const rules = (actor) => (Boolean(domain.uuid) && actor.system?.domain === domain.uuid) || Boolean(ruler && isSameName(actor.name, ruler));
-	return worldKnights((actor) => canHoldPost(actor) && !rules(actor));
+	const knights = worldKnights();
+	const ruler = domainRulerOf(domain, knights);
+	return knights.filter((actor) => canHoldPost(actor) && actor.id !== ruler?.id);
+}
+
+/**
+ * The Domains a Knight may be given a Council seat in from their own sheet:
+ * those whoever asks can grant seats in, which is to say owns, other than one
+ * the Knight rules, since a ruler doesn't sit on their own Council.
+ * @param {Actor} knight
+ * @param {Actor[]} [domains] The world's Domains, where the caller has them already.
+ * @param {Actor[]} [knights] The world's Knights, likewise.
+ * @returns {Actor[]}
+ */
+export const seatDomains = (knight, domains = worldDomains(), knights = worldKnights()) => domains
+	.filter((domain) => domain.isOwner && domainRulerOf(domain, knights)?.id !== knight.id);
+
+/**
+ * Everything a Knight holds in any Domain (p20), for their own sheet to list.
+ * @param {Actor} knight
+ * @param {Actor[]} [domains] The world's Domains, where the caller has them already.
+ * @param {Actor[]} [knights] The world's Knights, likewise.
+ * @returns {{domain: Actor, posts: import("../rules/court.js").KnightPost[]}[]} Only the Domains where they hold something.
+ */
+export function postsOfKnight(knight, domains = worldDomains(), knights = worldKnights()) {
+	return domains
+		.map((domain) => ({ domain, posts: knightPosts(domain, knight, knights) }))
+		.filter(({ posts }) => posts.length);
+}
+
+/**
+ * Who holds a seat now, as the window offering it says: nobody, this Knight,
+ * or whoever does.
+ * @param {Actor} domain
+ * @param {string} seat One of COUNCIL_SEATS.
+ * @param {boolean} yours Whether the one being seated holds it.
+ * @param {object[]} knights The world's Knights.
+ * @returns {string}
+ */
+function seatDetail(domain, seat, yours, knights) {
+	if (yours) return t("posts.seatYours");
+	const { council, court } = domain.system;
+	if (seat === "circle") {
+		const seated = circleKnights(council.circle, knights);
+		return seated.length ? t("posts.circleSits", { names: seated.map((each) => each.name).join(", ") }) : t("posts.seatEmpty");
+	}
+	const holder = seatHolder(council, court, seat);
+	return holder ? t("posts.seatHeld", { name: holder.name }) : t("posts.seatEmpty");
+}
+
+/**
+ * Give a Knight a seat on a Domain's Council from their own sheet (p20). One
+ * window lists every Domain they may sit in, each with its five seats and who
+ * holds them now. A seat granted to a Retainer goes to the Knight's place in
+ * the Court, made for them if they had none; whoever held it before stays in
+ * the Court. A Knight holds one seat in a Domain at a time.
+ * @param {Actor} knight
+ * @returns {Promise<boolean>} Whether they took a seat.
+ */
+export async function takeCouncilSeat(knight) {
+	if (!knight?.isOwner || !canHoldPost(knight)) return false;
+	const knights = worldKnights();
+	const domains = seatDomains(knight, worldDomains(), knights);
+	if (!domains.length) {
+		ui.notifications.warn(t("posts.noDomains", { name: knight.name }));
+		return false;
+	}
+	const groups = domains.map((domain) => {
+		const held = new Set(knightPosts(domain, knight, knights).map((post) => post.post));
+		return {
+			name: domain.name,
+			seats: COUNCIL_SEATS.map((seat) => ({
+				value: `${domain.id}:${seat}`,
+				name: seatLabel(seat),
+				detail: seatDetail(domain, seat, held.has(seat), knights),
+				checked: held.has(seat)
+			}))
+		};
+	});
+	// Their seat starts chosen, or else the first on offer.
+	if (!groups.some((group) => group.seats.some((seat) => seat.checked))) groups[0].seats[0].checked = true;
+	const data = await inputDialog({
+		title: t("posts.takeTitle", { name: knight.name }),
+		icon: "fa-solid fa-chair",
+		template: "council-seat",
+		context: { intro: t("posts.takeIntro", { name: knight.name }), domains: groups },
+		ok: { label: t("posts.take"), icon: "fa-solid fa-chair" }
+	});
+	const [domainId, seat] = String(data?.seat ?? "").split(":");
+	const domain = domains.find((each) => each.id === domainId);
+	if (!domain) return false;
+	const plan = await grantCouncilSeat(domain, knight, seat, knights);
+	if (!plan) return false;
+	if (plan.unseated) ui.notifications.info(t("posts.unseated", { name: plan.unseated, seat: seatLabel(seat), domain: domain.name }));
+	return true;
+}
+
+/**
+ * Take Council Seat's work once the seat is chosen: the Knight is given it,
+ * and the Timeline told of a place made in the Court or the Circle joined or left.
+ * @param {Actor} domain
+ * @param {Actor} knight
+ * @param {string} seat One of COUNCIL_SEATS.
+ * @param {object[]} [knights] The world's Knights, where the caller has them already.
+ * @returns {Promise<ReturnType<typeof seatPlan>|null>} What was done, or null where nothing was.
+ */
+export async function grantCouncilSeat(domain, knight, seat, knights = worldKnights()) {
+	if (!domain?.isOwner || !knight || !COUNCIL_SEATS.includes(seat)) return null;
+	const plan = seatPlan(domain.system, knight, seat, knights, () => foundry.utils.randomID(), Date.now());
+	if (!Object.keys(plan.updates).length) return null;
+	await domain.update(plan.updates);
+	if (plan.joined) await timelineCourtJoined(domain, plan.joined.id, plan.joined.member);
+	if (plan.circle) await timelineCircle(domain, { [plan.circle]: [{ id: knight.id, name: knight.name, actor: knight }] });
+	return plan;
+}
+
+/**
+ * Take a Knight off a Domain's Council, once it's confirmed: their seat is
+ * left empty, and their place in the Court stays theirs.
+ * @param {Actor} knight
+ * @param {Actor} domain
+ * @param {string|null} [seat] The one seat to leave, as a Posts row names it; every one they hold there without.
+ * @returns {Promise<boolean>} Whether they left a seat.
+ */
+export async function leaveCouncilSeat(knight, domain, seat = null) {
+	if (!knight || domain?.type !== "domain" || !domain.isOwner) return false;
+	const plan = leavePlan(domain.system, knight, worldKnights(), seat || null);
+	if (!plan.seats.length) return false;
+	const confirmed = await confirmDialog({
+		title: t("posts.leave"),
+		icon: "fa-solid fa-chair",
+		message: t("posts.leaveConfirm", { name: escapeHTML(knight.name), seat: plan.seats.map(seatLabel).join(", "), domain: escapeHTML(domain.name) })
+	});
+	if (!confirmed) return false;
+	await domain.update(plan.updates);
+	if (plan.circle) await timelineCircle(domain, { left: [{ id: knight.id, name: knight.name, actor: knight }] });
+	return true;
 }
 
 /**
@@ -95,10 +236,7 @@ export async function setWorthinessProven(domain, knightId, proven) {
  * @param {Actor} knight
  * @returns {boolean} Whether the Knight already holds a place in the Domain's Court, found by id or by a name only they go by.
  */
-export function sitsAtCourt(domain, knight) {
-	const knights = worldKnights();
-	return courtMembers(domain.system?.court).some((member) => courtKnight(member, knights)?.id === knight.id);
-}
+export const sitsAtCourt = (domain, knight) => courtPlacesOf(domain.system?.court, knight, worldKnights()).length > 0;
 
 /**
  * Take somebody new into the Court.

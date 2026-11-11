@@ -1,6 +1,8 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
-import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
-import { allowsDuplicateKnights, knightRows } from "../actions/knights.js";
+import { leaveCouncilSeat, postsOfKnight, removeCourtMember, seatDomains, seatLabel, takeCouncilSeat } from "../actions/court.js";
+import { knightDomain, linkKnightDomain, openKnightDomain, worldDomains } from "../actions/dominion.js";
+import { allowsDuplicateKnights, knightRows, worldKnights } from "../actions/knights.js";
+import { knightPosts } from "../rules/court.js";
 import { fillKnightFromBook, knightTableRenewal, withTableSentences } from "../actions/knight-tables.js";
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
@@ -24,6 +26,7 @@ import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, LINKED_ACTORS, PROPERTY_TYPES } from "../config.js";
 import { knightTypeFromName, knightTypeKey, knightTypeTakenBy, titleKnightType } from "../rules/creation.js";
+import { canHoldPost } from "../rules/dominion.js";
 import { RANKS } from "../rules/glory.js";
 import { hasTable, knightRenewal, knightTableItemId, knightVerse, namePartsWithoutSeeBelow, clauseMidSentence, splitAtRenewal, tableResults } from "../rules/knight-tables.js";
 import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
@@ -96,6 +99,10 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			makeSeer: KnightSheet.#onMakeSeer,
 			openPortrait: KnightSheet.#onOpenPortrait,
 			openDomain: KnightSheet.#onOpenDomain,
+			openPostDomain: KnightSheet.#onOpenPostDomain,
+			takeSeat: KnightSheet.#onTakeSeat,
+			leaveSeat: KnightSheet.#onLeaveSeat,
+			leaveCourt: KnightSheet.#onLeaveCourt,
 			rollLuck: KnightSheet.#onRollLuck,
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
@@ -269,8 +276,56 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			enrichedSeerInfo,
 			enrichedSeerNotes,
 			unchosen: isUnchosen(this.actor) && this.#unchosenContext(),
+			// What they hold in any Domain: its rule, a Council seat, or a place in its Court (p20).
+			posts: system.isSquire ? null : this.#postsContext(),
 			travels: this.#travelsContext(context.tabs)
 		});
+	}
+
+	/** The Domains the Posts block showed at the last draw, so a change to one of them draws it again. */
+	#postDomains = new Set();
+
+	/**
+	 * The Posts block: a row for each post the Knight holds, naming the Domain,
+	 * the post, and whether their Rank is worthy of it yet (p6), with a way to
+	 * give up a seat or a place in the Court for whoever holds that Domain.
+	 * @returns {{rows: object[], canTake: boolean}}
+	 */
+	#postsContext() {
+		// The world read once, for both the posts held and the Domains with a seat to take.
+		const domains = worldDomains();
+		const knights = worldKnights();
+		const held = postsOfKnight(this.actor, domains, knights);
+		this.#postDomains = new Set(held.map(({ domain }) => domain.id));
+		const rows = held.flatMap(({ domain, posts }) => posts.map((post) => ({
+			domainId: domain.id,
+			domain: domain.name,
+			opens: domain.visible,
+			member: post.member,
+			// The seat or the Circle the row is of, which its × leaves alone.
+			seat: post.post === "ruler" || post.post === "court" ? "" : post.post,
+			post: this.#postLabel(post),
+			unproven: post.rank && !post.proven
+				? t("domain.unworthy.line", { name: this.actor.name, post: t(`domain.unworthy.posts.${post.worth}`), rank: t(`rank.${post.rank}`) })
+				: "",
+			// Ruling passes by Succession, not from here.
+			leave: !domain.isOwner || post.post === "ruler" ? null
+				: post.post === "court" ? { action: "leaveCourt", label: t("posts.leaveCourt") }
+					: { action: "leaveSeat", label: t("posts.leave") }
+		})));
+		return { rows, canTake: this.isEditable && canHoldPost(this.actor) && seatDomains(this.actor, domains, knights).length > 0 };
+	}
+
+	/**
+	 * @param {import("../rules/court.js").KnightPost} post
+	 * @returns {string} What the post is called: Ruler, a seat, or their role in the Court and the seat they serve.
+	 */
+	#postLabel(post) {
+		if (post.post === "ruler") return t("domain.ruler");
+		if (post.post === "circle") return t("posts.circle");
+		if (post.post !== "court") return seatLabel(post.post);
+		const role = t(`domain.court.roles.${post.role}.one`);
+		return post.serves ? `${role} · ${t("domain.court.servesSeat", { seat: seatLabel(post.serves) })}` : role;
 	}
 
 	/**
@@ -571,7 +626,14 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			if ((shown && (linked(actor) || follows(actor))) || followChanged) renderWhenIdle(this);
 		});
 		this._watchHooks(["deleteActor"], (actor) => {
-			if (linked(actor) || follows(actor)) renderWhenIdle(this);
+			if (linked(actor) || follows(actor) || this.#postDomains.has(actor.id)) renderWhenIdle(this);
+		});
+		// A Domain's Council, Court or ruler changed: the Posts block follows, where it showed that Domain or now would.
+		const postsChanged = (changes) => ["name", "ownership"].some((key) => key in changes)
+			|| ["council", "court", "ruler", "proven", "seat"].some((key) => key in (changes.system ?? {}));
+		this._watchHooks(["updateActor"], (actor, changes) => {
+			if (actor.type !== "domain" || !postsChanged(changes) || this.actor.system.isSquire) return;
+			if (this.#postDomains.has(actor.id) || knightPosts(actor, this.actor, worldKnights()).length) renderWhenIdle(this);
 		});
 		this._watchHooks(["createActor"], (actor) => {
 			if (follows(actor)) renderWhenIdle(this);
@@ -778,6 +840,38 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @this {KnightSheet} */
 	static #onOpenDomain() {
 		return openKnightDomain(this.actor);
+	}
+
+	/**
+	 * @param {HTMLElement} target Inside a Posts row.
+	 * @returns {Actor|null} The Domain that row is of.
+	 */
+	static #postDomain(target) {
+		const domain = game.actors.get(target.closest("[data-domain-id]")?.dataset.domainId);
+		return domain?.type === "domain" ? domain : null;
+	}
+
+	/** @this {KnightSheet} */
+	static #onOpenPostDomain(_event, target) {
+		return KnightSheet.#postDomain(target)?.sheet.render({ force: true });
+	}
+
+	/** @this {KnightSheet} */
+	static #onTakeSeat() {
+		return takeCouncilSeat(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onLeaveSeat(_event, target) {
+		const domain = KnightSheet.#postDomain(target);
+		return domain && leaveCouncilSeat(this.actor, domain, target.closest("[data-seat]")?.dataset.seat);
+	}
+
+	/** @this {KnightSheet} */
+	static #onLeaveCourt(_event, target) {
+		const domain = KnightSheet.#postDomain(target);
+		const member = target.closest("[data-member]")?.dataset.member;
+		return domain && member && removeCourtMember(domain, member);
 	}
 
 	/** The Luck Roll (p16), asked the odds as the hotbar's is, so the sheet holds everything a player rolls. */

@@ -44,7 +44,23 @@ vi.mock("../../module/actions/homecoming.js", async () => {
 vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }) }));
 vi.mock("../../module/actions/solo.js", () => ({ realmKnown: (known) => (soloKept ? { ...known, landmarks: [] } : known) }));
 
-const { addCourtMember, editCourtMember, realmSeerNames, removeCourtMember, removeFromCourt, seatCircle, seatCouncilRetainers, setWorthinessProven, sitsAtCourt, takeIntoCourt } = await import("../../module/actions/court.js");
+const {
+	addCourtMember,
+	editCourtMember,
+	knightsBesidesRuler,
+	leaveCouncilSeat,
+	postsOfKnight,
+	realmSeerNames,
+	removeCourtMember,
+	removeFromCourt,
+	seatCircle,
+	seatCouncilRetainers,
+	seatDomains,
+	setWorthinessProven,
+	sitsAtCourt,
+	takeCouncilSeat,
+	takeIntoCourt
+} = await import("../../module/actions/court.js");
 const timeline = await import("../../module/actions/timeline-events.js");
 
 const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, knight: "", ...extra });
@@ -365,5 +381,109 @@ describe("sitsAtCourt", () => {
 		expect(sitsAtCourt(fakeDomain({ court: { c1: member("courtier", "Sir Tal", { knight: "k1" }) } }), game.actors[0])).toBe(true);
 		expect(sitsAtCourt(fakeDomain({ court: { c1: member("courtier", "Moss") } }), game.actors[1])).toBe(true);
 		expect(sitsAtCourt(fakeDomain(), game.actors[1])).toBe(false);
+	});
+});
+
+describe("a Council seat from the Knight's own sheet", () => {
+	/** Moss, a Knight their player owns, and Tal, who rules Bramblewatch. */
+	let moss;
+	let bramblewatch;
+	beforeEach(() => {
+		moss = { ...knight("k2", "Moss"), isOwner: true, system: { glory: 0 } };
+		bramblewatch = fakeDomain();
+		globalThis.ui.notifications.info = vi.fn();
+		game.actors = actors({ ...knight("k1", "Tal"), system: { glory: 12 } }, moss, bramblewatch);
+	});
+
+	it("offers the Domains whoever asks holds, but never one the Knight rules", () => {
+		const theirs = { ...fakeDomain({ ruler: "Moss" }), id: "d2" };
+		const another = { ...fakeDomain(), id: "d3", isOwner: false };
+		game.actors = actors(moss, bramblewatch, theirs, another);
+		expect(seatDomains(moss).map((domain) => domain.id)).toEqual(["d1"]);
+	});
+
+	it("agrees with the Knight's Posts on who rules: the Knight linked to it, not another bearing its ruler's name", () => {
+		const hollin = { ...fakeDomain({ ruler: "Moss" }), id: "d2", uuid: "Actor.d2" };
+		const ash = { ...knight("k3", "Sir Ash"), system: { domain: "Actor.d2" } };
+		game.actors = actors(moss, ash, hollin);
+		expect(seatDomains(moss).map((domain) => domain.id)).toEqual(["d2"]);
+		expect(seatDomains(ash)).toEqual([]);
+		expect(postsOfKnight(ash)).toEqual([{ domain: hollin, posts: [expect.objectContaining({ post: "ruler" })] }]);
+		expect(postsOfKnight(moss)).toEqual([]);
+		expect(knightsBesidesRuler(hollin).map((actor) => actor.id)).toEqual(["k2"]);
+	});
+
+	it("lists each Domain's five seats and who holds them, the first chosen", async () => {
+		await takeCouncilSeat(moss);
+		const { context, template } = asked[0];
+		expect(template).toBe("council-seat");
+		expect(context.domains).toHaveLength(1);
+		const seats = context.domains[0].seats;
+		expect(seats.map((seat) => seat.value)).toEqual(["d1:steward", "d1:marshal", "d1:sheriff", "d1:envoy", "d1:circle"]);
+		expect(seats[0]).toMatchObject({ detail: 'posts.seatHeld {"name":"Coll"}', checked: true });
+		expect(seats[1]).toMatchObject({ detail: "posts.seatEmpty", checked: false });
+	});
+
+	it("starts on the seat the Knight holds already", async () => {
+		bramblewatch.system.council.circle = ["k2"];
+		await takeCouncilSeat(moss);
+		const seats = asked[0].context.domains[0].seats;
+		expect(seats.filter((seat) => seat.checked).map((seat) => seat.value)).toEqual(["d1:circle"]);
+		expect(seats[4].detail).toBe("posts.seatYours");
+	});
+
+	it("takes the Knight into the Court as a Retainer holding the seat, and says who gave it up", async () => {
+		formData = { seat: "d1:steward" };
+		expect(await takeCouncilSeat(moss)).toBe(true);
+		expect(updates).toEqual([{
+			"system.court.new1": expect.objectContaining({ role: "retainer", name: "Moss", knight: "k2" }),
+			"system.council.steward": "new1"
+		}]);
+		expect(timeline.timelineCourtJoined).toHaveBeenCalledWith(bramblewatch, "new1", expect.objectContaining({ name: "Moss" }));
+		expect(ui.notifications.info).toHaveBeenCalledWith(expect.stringContaining('"name":"Coll"'));
+	});
+
+	it("puts the Circle on the Timeline", async () => {
+		formData = { seat: "d1:circle" };
+		expect(await takeCouncilSeat(moss)).toBe(true);
+		expect(updates).toEqual([{ "system.council.circle": ["k2"] }]);
+		expect(timeline.timelineCircle).toHaveBeenCalledWith(bramblewatch, { joined: [{ id: "k2", name: "Moss", actor: moss }] });
+	});
+
+	it("writes nothing when the window is closed, and warns where there's no Domain to sit in", async () => {
+		expect(await takeCouncilSeat(moss)).toBe(false);
+		bramblewatch.isOwner = false;
+		expect(await takeCouncilSeat(moss)).toBe(false);
+		expect(ui.notifications.warn).toHaveBeenCalledWith('posts.noDomains {"name":"Moss"}');
+		expect(updates).toEqual([]);
+	});
+
+	it("seats no Squire, nor the Slain", async () => {
+		expect(await takeCouncilSeat({ ...moss, system: { isSquire: true } })).toBe(false);
+		expect(await takeCouncilSeat({ ...moss, system: { slain: true } })).toBe(false);
+		expect(asked).toEqual([]);
+	});
+
+	it("leaves a seat once it's confirmed, keeping their place in the Court", async () => {
+		bramblewatch.system.court.r2 = member("retainer", "Moss", { knight: "k2" });
+		bramblewatch.system.council.marshal = "r2";
+		confirmed = false;
+		expect(await leaveCouncilSeat(moss, bramblewatch)).toBe(false);
+		confirmed = true;
+		expect(await leaveCouncilSeat(moss, bramblewatch)).toBe(true);
+		expect(updates).toEqual([{ "system.council.marshal": "" }]);
+	});
+
+	it("leaves the Circle on the Timeline too, and has nothing to leave where there's no seat", async () => {
+		expect(await leaveCouncilSeat(moss, bramblewatch)).toBe(false);
+		bramblewatch.system.council.circle = ["k2"];
+		expect(await leaveCouncilSeat(moss, bramblewatch)).toBe(true);
+		expect(timeline.timelineCircle).toHaveBeenCalledWith(bramblewatch, { left: [{ id: "k2", name: "Moss", actor: moss }] });
+	});
+
+	it("lists every Domain the Knight holds a post in", () => {
+		bramblewatch.system.court.c1.name = "Moss";
+		expect(postsOfKnight(moss)).toEqual([{ domain: bramblewatch, posts: [expect.objectContaining({ post: "court", role: "courtier", member: "c1" })] }]);
+		expect(postsOfKnight({ ...moss, id: "k9", name: "Nobody" })).toEqual([]);
 	});
 });

@@ -390,6 +390,26 @@
       "legacySquire": "{name} is a Squire, and a Squire gains no Glory. Knighted now, they gain the {amount} Glory of this Legacy. Otherwise it’s lost.",
       "legacyLost": "Legacy: {name} is still a Squire, so the {amount} Glory is lost."
     },
+    "posts": {
+      "label": "Posts",
+      "hint": "What this Knight holds in any Domain: its rule, a seat on its Council, or a place in its Court.",
+      "empty": "Holds no post in any Domain.",
+      "circle": "In the Circle",
+      "unproven": "Unproven",
+      "take": "Take a Seat",
+      "takeHint": "Give this Knight a seat on a Domain’s Council.",
+      "takeTitle": "Seat {name} on a Council",
+      "takeIntro": "Which seat does {name} take? Every seat but the Circle goes to one of the Domain’s Retainers, so {name} joins its Court as one if they haven’t already.",
+      "seatEmpty": "Empty",
+      "seatYours": "Theirs now",
+      "seatHeld": "Held by {name}",
+      "circleSits": "Sitting: {names}",
+      "noDomains": "There’s no Domain you can seat {name} in. Seats are granted by whoever holds the Domain, and a ruler doesn’t sit on their own Council.",
+      "unseated": "{name} is no longer {domain}’s {seat}, and stays in its Court.",
+      "leave": "Leave the Seat",
+      "leaveCourt": "Leave the Court",
+      "leaveConfirm": "{name} leaves the Council of {domain} ({seat}). Their place in its Court stays theirs."
+    },
     "follower": {
       "takeTitle": "Take On This Follower?",
       "dropTitle": "Steed or Follower?",

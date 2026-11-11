@@ -512,8 +512,9 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		expect(sources(corvin.id, "settled")).toEqual(["1-spring"]);
 		expect(sources(isolde.id, "heir")).toEqual(["2-2-harvest"]);
 		expect(sources(corvin.id, "heir")).toEqual([]);
-		// The Domain's: Oswin seated in its Circle, two Warbands mustered and one let go, the Court's comings and goings, and the walls begun.
-		expect(sources(domain.id, "circle")).toEqual(["2-2-spring"]);
+		// The Domain's: Oswin seated in its Circle, and a neighbour beside him by Harvest, two Warbands mustered and one let go,
+		// the Court's comings and goings, and the walls begun.
+		expect(sources(domain.id, "circle")).toEqual(["2-2-spring", "2-2-harvest"]);
 		expect(sources(oswin.id, "circle")).toEqual(["2-2-spring"]);
 		expect(rows(domain.id).filter((row) => row.source === "warband").map((row) => row.title.split(" ")[0])).toEqual(["timeline.auto.mustered", "timeline.auto.mustered", "timeline.auto.dismissed"]);
 		expect(rows(domain.id).filter((row) => row.source === "court").map((row) => row.title)).toEqual([
@@ -719,7 +720,8 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		expect(resolveCrisis).toHaveBeenCalledTimes(1);
 		expect(domain.system.crises).toEqual([]);
 		expect(domain.system.crisisRolled).toBe("2-2-spring");
-		expect(domain.system.council.circle).toEqual([knights()["Sir Oswin Hale"].id]);
+		// Oswin first, and one of the neighbours by Harvest of Age 2.
+		expect(domain.system.council.circle).toEqual([knights()["Sir Oswin Hale"].id, expect.any(String)]);
 		expect(knights()["Dame Isolde Marrow"].system.domain).toBe(domain.uuid);
 		const sites = world.journal.filter((entry) => entry.flags.core.sheetClass === "mythic-bastionland-pwd.SiteSheet");
 		expect(sites).toHaveLength(2);
@@ -815,6 +817,30 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		const seat = rulers[world.realm.holdings.findIndex((holding) => holding.seat)][0];
 		expect(seat.system.seat).toBe(true);
 		expect(isolde.system.domain).toBe(domains[0].uuid);
+	});
+
+	it("seats some of the Knights on Councils, not all: Corvin as envoy at the Seat, a neighbour as its marshal, another in Isolde's Circle", async () => {
+		await populateTestWorld();
+		const { knightPosts } = await import("../../module/rules/court.js");
+		const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = knights();
+		const domains = world.actors.filter((actor) => actor.type === "domain");
+		const [isoldes] = domains;
+		const seat = domains.find((domain) => domain.system.seat);
+		const neighbours = world.actors.filter((actor) => actor.type === "npcKnight");
+		const ruler = neighbours.find((knight) => knight.system.domain === seat.uuid);
+		const [marshal, circle] = neighbours.filter((knight) => knight !== ruler);
+		const holder = (domain, chair) => domain.system.court[domain.system.council[chair]];
+		// Seated as Take a Seat seats them: each in the Court as a Retainer, known by id.
+		expect(holder(seat, "envoy")).toMatchObject({ role: "retainer", name: corvin.name, knight: corvin.id });
+		expect(holder(seat, "marshal")).toMatchObject({ role: "retainer", name: marshal.name, knight: marshal.id });
+		expect(isoldes.system.council.circle).toEqual([oswin.id, circle.id]);
+		// Each listed on their own sheet's Posts; the rulers hold no seat on anybody's Council.
+		const everyone = world.actors.filter((actor) => ["knight", "npcKnight"].includes(actor.type) && !actor.system.isSquire);
+		const seats = (knight) => domains.flatMap((domain) => knightPosts(domain, knight, everyone)).map((post) => post.post).filter((post) => post !== "ruler");
+		expect([seats(corvin), seats(marshal), seats(circle), seats(oswin)]).toEqual([["envoy"], ["marshal"], ["circle"], ["circle"]]);
+		expect([seats(isolde), seats(ruler)]).toEqual([[], []]);
+		// A neighbour new to their Rank holds it unproven (p6).
+		expect(knightPosts(seat, marshal, everyone)[0]).toMatchObject({ post: "marshal", rank: "gallant", proven: false });
 	});
 
 	it("draws arms at random, the charge in a tincture over each of the field's groups", async () => {
