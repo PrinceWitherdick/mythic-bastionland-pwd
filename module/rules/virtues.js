@@ -56,6 +56,15 @@ export const slainUpdate = (actor, fate) => ({ ...SLAIN_UPDATE, ...unwrittenFate
 export const fullVirtues = (system) => Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
 
 /**
+ * @param {{virtues?: Record<string, {value: number, max: number}>}} system
+ * @returns {string[]} The Virtues below their most, which fullVirtues would restore.
+ */
+export const lowVirtues = (system) => VIRTUES.filter((key) => {
+	const virtue = system?.virtues?.[key];
+	return Boolean(virtue) && virtue.value < virtue.max;
+});
+
+/**
  * What a moment of peace restores (Recovery, p9): GD to full and Fatigue gone,
  * and with their guard back up, a marked Exposed goes too (p8). A Knight sworn
  * to a quest gets no GD back until it's done (p94).

@@ -34,7 +34,7 @@ import { causedBy } from "./ledger.js";
 import { getMythNotes } from "./myth-notes.js";
 import { getRealm, isRealmScene } from "./realm.js";
 import { mythKeptFromMe } from "./solo.js";
-import { VIRTUES, downBy, fullVirtues, needsRest, slainUpdate } from "../rules/virtues.js";
+import { VIRTUES, downBy, fullVirtues, lowVirtues, needsRest, slainUpdate } from "../rules/virtues.js";
 import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
 import { tasksDueNotices } from "./council-tasks.js";
@@ -352,7 +352,7 @@ function restoredBySeason(actor, company) {
 	const virtues = actor.system?.virtues;
 	if (!virtues || actor.type === "structure" || company.has(actor) || !actor.isOwner || downBy(actor.system)) return false;
 	if (virtues.vig.value <= 0) return false;
-	return VIRTUES.some((key) => virtues[key].value < virtues[key].max) || needsRest(actor.system, { sworn: swornToQuest(actor) });
+	return lowVirtues(actor.system).length > 0 || needsRest(actor.system, { sworn: swornToQuest(actor) });
 }
 
 /**
