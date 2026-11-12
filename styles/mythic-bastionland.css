@@ -1734,10 +1734,11 @@ a.button:focus:not(:focus-visible) {
 	margin-left: 0.25rem;
 }
 
+/* The Glory a rank needs sits back in the softer ink, not faded: faded, it fell below the contrast floor on parchment. */
 .bastionland-choice__glory {
+	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
 	font-style: normal;
-	opacity: 0.7;
 }
 
 /* ---------------------------------------------------------------- */

@@ -244,7 +244,6 @@ label.bastionland-settings__label:has(input[type="checkbox"]) {
 
 /* Writing that was faded to sit back reads at full strength, and rules are heavy enough to follow. */
 :root.bastionland-high-contrast :is(
-	.bastionland-choice__glory,
 	.bastionland-site__tally,
 	.bastionland-score__die,
 	.bastionland-move__icon
