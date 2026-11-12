@@ -9,6 +9,7 @@
  * in place of its roll. Pure, so it can be tested without Foundry.
  */
 import { isOwnMyth } from "./book-art.js";
+import { ownRef } from "./knight-refs.js";
 import { anyOmenScene, normaliseOmenScenes } from "./omen-scenes.js";
 import { OMEN_COUNT } from "./realm.js";
 
@@ -24,9 +25,6 @@ export const TABLE_ROWS = 6;
 
 /** Columns in a Myth's table, each rolled on its own d6. */
 export const TABLE_COLUMNS = 2;
-
-/** Put before the entry's id where a Myth's roll would go, so a written Myth is never taken for a rolled one. */
-const OWN_KEY = "own:";
 
 /**
  * @typedef {object} OwnMyth
@@ -44,7 +42,7 @@ const OWN_KEY = "own:";
  * @param {unknown} value
  * @returns {string} Trimmed text, or "" for anything that isn't text.
  */
-const textOf = (value) => (typeof value === "string" ? value.trim() : "");
+export const textOf = (value) => (typeof value === "string" ? value.trim() : "");
 
 /**
  * Lines from an array or from a form's numbered fields, which arrive as
@@ -55,7 +53,7 @@ const textOf = (value) => (typeof value === "string" ? value.trim() : "");
  * @returns {T[]}
  * @template T
  */
-function listOf(value, count, read) {
+export function listOf(value, count, read) {
 	const source = value && typeof value === "object" ? value : {};
 	return Array.from({ length: count }, (_, index) => read(source[index]));
 }
@@ -147,7 +145,7 @@ export function ownMythEntry(name, myth, { table: tableName, column }) {
  * @returns {string|null} What tells a written Myth from every other, where a
  *   rolled one is told by its roll, or null for one that isn't written.
  */
-export const ownMythKey = (myth) => (isOwnMyth(myth) ? `${OWN_KEY}${myth.own}` : null);
+export const ownMythKey = (myth) => (isOwnMyth(myth) ? ownRef(myth.own) : null);
 
 /**
  * @param {{own?: unknown}[]} myths The Myths a Realm holds.

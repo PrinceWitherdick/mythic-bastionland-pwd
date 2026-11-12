@@ -85,6 +85,15 @@ describe("whom a Holding can be granted to", () => {
 		expect([...domained, ...table, ...others].filter(({ checked }) => checked).map(({ value }) => value)).toEqual(["knight:Brand"]);
 	});
 
+	it("offers the Knights the Referee wrote after the book's, as the world's Knight where one was made", () => {
+		const ferry = { own: "j1", roll: null, name: "The Ferry Knight" };
+		const moth = { own: "j2", roll: null, name: "The Moth Knight" };
+		const ned = knightOf("Ned", { knightType: "Moth" });
+		const { own, others } = grantChoices({ index, own: [ferry, moth], knights: [ned], domains: [], ruling: [] });
+		expect(own.map(({ value, roll }) => [value, roll])).toEqual([["book:own:j1", "own:j1"], ["knight:Ned", null]]);
+		expect(others).toEqual([]);
+	});
+
 	it("starts on whoever rules it now, and finds a Domain already naming a Knight of the book", () => {
 		const claim = domainOf("Moss Hall", "Scene.s1.Tile.t1", "The Moss Knight");
 		const { table } = grantChoices({ index, knights: [], domains: [claim], ruling: [claim] });
@@ -126,7 +135,7 @@ describe("granting a Holding", () => {
 		answer = { ruler: "book:1-03" };
 		const domain = await grantHolding(scene, hex);
 		// The Seat of Power asks a Knight-Dominant, so they're made with 9 Glory, worthy of it (p6).
-		expect(makeNpcKnight).toHaveBeenCalledWith("1-03", index, { glory: 9 });
+		expect(makeNpcKnight).toHaveBeenCalledWith("1-03", expect.objectContaining({ knights: index.knights }), { glory: 9 });
 		expect(createDomain).toHaveBeenCalledWith(npc, { name: "Ashford", holding: "Scene.s1.Tile.t1", seat: true });
 		expect(linkKnightDomain).toHaveBeenCalledWith(npc, domain);
 		expect(foundDomain).not.toHaveBeenCalled();
@@ -136,7 +145,7 @@ describe("granting a Holding", () => {
 		realm = { holdings: [{ ...castle, seat: false }], myths: [], landmarks: [] };
 		answer = { ruler: "book:1-03" };
 		await grantHolding(scene, hex);
-		expect(makeNpcKnight).toHaveBeenCalledWith("1-03", index, { glory: 6 });
+		expect(makeNpcKnight).toHaveBeenCalledWith("1-03", expect.objectContaining({ knights: index.knights }), { glory: 6 });
 	});
 
 	it("hands a Domain already naming a Knight of the book to the NPC Knight made of them", async () => {

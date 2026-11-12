@@ -149,19 +149,28 @@ const partsOf = ({ before, entry, after }) => [{ text: before, bold: false }, { 
  * column that finishes the line before it is joined onto it, so the two are
  * read, and shown, as one sentence with a bold entry in each.
  * @template {{index: number, roll?: number, entry: string|null}} R
- * @param {{page: number}} stored The Knight's table.
+ * @param {{page: number|null, sentences?: string[], joins?: string[]}} stored The Knight's table. One the Referee
+ *   wrote tells its results in its own sentences, where it has any, as the book's are by its page, and
+ *   joins a column onto the one before by its `joins`, as copied from a book Knight's.
  * @param {R[]} results
  * @param {(roll: string, column: number) => string|{line: string, join?: string}|null} patternFor
  *   By the column's number from 1.
  * @returns {(R & {sentence: {parts: {text: string, bold: boolean}[]}|null})[]}
  */
 export function withSentences(stored, results, patternFor) {
-	const roll = rollForKnightPage(stored?.page);
+	const own = stored?.sentences?.some(Boolean) ? stored.sentences : null;
+	const roll = own ? null : rollForKnightPage(stored?.page);
 	// Almost every pattern is just its line, so it may be written as one.
-	const shaped = (pattern) => (typeof pattern === "string" ? { line: pattern } : pattern);
+	const shaped = (pattern) => (typeof pattern === "string" ? (pattern ? { line: pattern } : null) : pattern);
+	const ownPattern = (column) => {
+		const line = own[column - 1] ?? null;
+		const join = stored.joins?.[column - 1];
+		return line && join ? { line, join } : line;
+	};
+	const patternOf = (column) => (own ? ownPattern(column) : roll ? patternFor(roll, column) : null);
 	const lines = [];
 	for (const result of results) {
-		const pattern = roll && result.entry ? shaped(patternFor(roll, result.index + 1)) : null;
+		const pattern = result.entry ? shaped(patternOf(result.index + 1)) : null;
 		const previous = lines.at(-1);
 		const joined = pattern?.join && previous?.sentence && tableSentence(pattern.join, result.entry, { continues: true });
 		if (joined) {

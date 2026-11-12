@@ -1,4 +1,3 @@
-import { loadArtIndex } from "../book-art/art-index.js";
 import { tableForEntry, verseForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { seerAutoFill } from "../rules/creation.js";
@@ -8,6 +7,7 @@ import { asPattern, withSentences } from "../rules/knight-table-sentences.js";
 import { hasTable, knightEntryByType, knightRenewal, knightTableFill, knightVerseFill, clauseMidSentence, renewalDue, withRolls } from "../rules/knight-tables.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar, onCalendarWrites } from "./calendar.js";
+import { knightIndex } from "./knight-index.js";
 import { causedBy } from "./ledger.js";
 import { applyTableStats } from "./table-stats.js";
 import { worldKnights } from "./knights.js";
@@ -54,14 +54,15 @@ async function knightVerseUpdate(knight, index) {
 /**
  * Quietly fill in what a Knight takes from their page in the book: their
  * Seer, as seerAutoFill allows, their page's table and the verse under their
- * name. One read of the index and one update for all. Does nothing before Import PDF.
+ * name. One read of the index and one update for all. A Knight the Referee wrote
+ * is filled from what they wrote; one of the book, nothing before Import PDF.
  * @param {Actor} knight
  * @param {{seer?: boolean, table?: boolean, verse?: boolean}} [parts] Which to look at.
  * @returns {Promise<boolean>} Whether anything was filled in.
  */
 export async function fillKnightFromBook(knight, { seer = true, table = true, verse = true } = {}) {
 	if (!knight?.isOwner || knight.system.isSquire || !(seer || table || verse)) return false;
-	const index = await loadArtIndex();
+	const index = await knightIndex();
 	const [tableUpdate, verseUpdate] = await Promise.all([
 		table ? knightTableUpdate(knight, index) : {},
 		verse ? knightVerseUpdate(knight, index) : {}
@@ -92,7 +93,8 @@ export async function rollKnightTable(knight, columns) {
 	const { roll, results, prompt } = await rollMythTable(stored, asked);
 	const card = postCard(knight, "spark", {
 		name: stored.name,
-		tagline: t("knightTable.tagline", { name: knight.name, page: stored.page }),
+		// A table the Referee wrote has no page to send the reader to.
+		tagline: stored.page ? t("knightTable.tagline", { name: knight.name, page: stored.page }) : t("knightTable.taglineOwn", { name: knight.name }),
 		prompt,
 		results: withTableSentences(stored, results)
 	}, { rolls: [roll] });
@@ -107,13 +109,21 @@ export async function rollKnightTable(knight, columns) {
  * @returns {(R & {sentence: object|null})[]}
  */
 export function withTableSentences(stored, results) {
-	return withSentences(stored, results, (roll, column) => {
-		const key = `bastionland.knightTable.sentences.${roll}.${column}`;
-		// Read straight from the translations, in the language's own before English, since
-		// `localize` hands back only strings and a joining column is written as { line, join }.
-		const at = (source) => foundry.utils.getProperty(source ?? {}, key);
-		return asPattern(at(game.i18n.translations) ?? at(game.i18n._fallback));
-	});
+	return withSentences(stored, results, sentencePatternFor);
+}
+
+/**
+ * The sentence a book Knight's table tells a column's result in, the system's own words.
+ * @param {string} roll The Knight's, such as "1-08".
+ * @param {number} column From 1.
+ * @returns {string|{line: string, join?: string}|null}
+ */
+export function sentencePatternFor(roll, column) {
+	const key = `bastionland.knightTable.sentences.${roll}.${column}`;
+	// Read straight from the translations, in the language's own before English, since
+	// `localize` hands back only strings and a joining column is written as { line, join }.
+	const at = (source) => foundry.utils.getProperty(source ?? {}, key);
+	return asPattern(at(game.i18n.translations) ?? at(game.i18n._fallback));
 }
 
 /**

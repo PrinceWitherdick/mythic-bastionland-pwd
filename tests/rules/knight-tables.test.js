@@ -91,7 +91,8 @@ describe("knightEntryByType", () => {
 describe("knightTableFill", () => {
 	it("copies the table in, unrolled, for a Knight who holds none", () => {
 		const update = knightTableFill(table, { knightType: "Sack", bookTable: null }, 40);
-		expect(update).toEqual({ "system.bookTable": { ...stored(), rows: table.rows } });
+		// No sentences of its own, so one written for a Knight known before isn't kept.
+		expect(update).toEqual({ "system.bookTable": { ...stored(), rows: table.rows, sentences: [], joins: [] } });
 		// A copy, so the index isn't changed by what the Knight does with it.
 		update["system.bookTable"].rows[0][0] = "Changed";
 		expect(table.rows[0][0]).toBe("Found 1");

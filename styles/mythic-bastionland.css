@@ -8355,6 +8355,126 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-weight: bold;
 }
 
+/* ---------------------------------------------------------------- */
+/* A Knight the Referee writes (module/apps/OwnKnightSheet.js)      */
+/* ---------------------------------------------------------------- */
+
+.bastionland-own-knight-window .window-content {
+	padding: 0;
+}
+
+/* The written Knight shares the written Myth's page; these are what a Knight's page has besides. */
+.bastionland-own-knight {
+	gap: 0.9rem;
+}
+
+/* Ready for players and Start from a book Knight, a row above the page. */
+.bastionland-own-knight__bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem 1rem;
+}
+
+.bastionland-page .bastionland-own-knight__bar > .bastionland-button {
+	width: auto;
+	flex: none;
+}
+
+.bastionland-own-knight__pictures {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+/* A Knight's portrait stands; their token is square. */
+.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--img,
+.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--seer {
+	aspect-ratio: 3 / 4;
+}
+
+.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--token {
+	width: 6rem;
+	aspect-ratio: 1;
+}
+
+/* "The ___ Knight", the name typed between the words that frame it. */
+.bastionland-own-knight__name {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	font-family: var(--bastionland-font-display);
+	font-size: 1.9rem;
+}
+
+.bastionland-page .bastionland-own-knight__name .bastionland-own-myth__name {
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.bastionland-page textarea.bastionland-own-knight__verse {
+	font-style: italic;
+}
+
+/* Ability and Passion side by side, as the book sets them. */
+.bastionland-own-knight__parts {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+@container (max-width: 480px) {
+	.bastionland-own-knight__parts {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.bastionland-own-knight__part,
+.bastionland-own-knight__sentences,
+.bastionland-own-knight__scores {
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.bastionland-own-knight__part legend,
+.bastionland-own-knight__sentences legend,
+.bastionland-own-knight__scores legend {
+	padding: 0;
+}
+
+/* What the written lines give, a quiet list under the box they're written in. */
+.bastionland-own-knight__preview {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin: 0;
+	padding: 0.4rem 0.6rem;
+	border-left: 2px solid var(--bastionland-rule);
+	list-style: none;
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-own-knight__preview > li {
+	margin: 0;
+}
+
+.bastionland-own-knight__kind {
+	font-family: var(--bastionland-font-caps);
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-own-knight__detail {
+	color: var(--bastionland-ink-soft);
+}
+
+/* The Seer's four scores sit in Choose a Knight's score boxes, no wider than there. */
+.bastionland-own-knight__scores .bastionland-chooser__scores {
+	max-width: 18rem;
+	margin-bottom: 0;
+}
+
 /* The Seer chooser (module/apps/SeerChooser.js): the Seers of the players'
    Knights in a row on top, then the Myth chooser's table of every other, its
    grid taking the rest of the window's height, with the Seer living at the

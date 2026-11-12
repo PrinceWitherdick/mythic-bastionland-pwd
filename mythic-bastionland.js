@@ -27,6 +27,8 @@ import { SESSION_MACRO_STEP, ensureSessionHotbar, seedSessionMacro } from "./mod
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
+import { registerOwnKnightRenameHooks } from "./module/actions/own-knight-renames.js";
+import { addNewKnightButton, newOwnKnight } from "./module/actions/own-knights.js";
 import { addNewMythButton, newOwnMyth } from "./module/actions/own-myths.js";
 import { registerCompanionQueries, watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
@@ -59,6 +61,7 @@ import { registerDropdowns } from "./module/apps/dropdown.js";
 import { openSessionEnd } from "./module/apps/SessionEnd.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
+import { OwnKnightSheet } from "./module/apps/OwnKnightSheet.js";
 import { OwnMythSheet } from "./module/apps/OwnMythSheet.js";
 import { openSparkTables, registerSparkTablesSetting, toggleSparkTables } from "./module/apps/SparkTables.js";
 import { registerPhaseBanner, showPhaseBanner } from "./module/apps/PhaseBanner.js";
@@ -231,6 +234,12 @@ Hooks.once("init", () => {
 		canBeDefault: false,
 		label: "bastionland.ownMyth.sheet"
 	});
+	// And a Knight the Referee wrote, with their Seer.
+	DocumentSheetConfig.registerSheet(foundry.documents.JournalEntry, SYSTEM_ID, OwnKnightSheet, {
+		makeDefault: false,
+		canBeDefault: false,
+		label: "bastionland.ownKnight.sheet"
+	});
 	// A thread of the Timeline reads in the sidebar as its journal page; it's written from the Timeline window.
 	DocumentSheetConfig.registerSheet(foundry.documents.JournalEntryPage, SYSTEM_ID, createTimelinePageSheet(), {
 		types: [TIMELINE_PAGE_TYPE],
@@ -391,6 +400,9 @@ Hooks.once("init", () => {
 
 	// A Knight made blank shows an empty page until they're chosen, and opens for the player they're given to.
 	registerUnchosenKnightHooks();
+
+	// A Knight the Referee wrote, or their Seer, renamed from anywhere: the characters going by the old name follow.
+	registerOwnKnightRenameHooks();
 
 	// The Timeline keeps a page for each Knight, Domain and Realm as they come, and each reader their own Filter.
 	registerTimelineStoreHooks();
@@ -609,6 +621,7 @@ Hooks.once("init", () => {
 		openSessionEnd,
 		newSite,
 		newOwnMyth,
+		newOwnKnight,
 		openGmToolkit,
 		// The Myths window became the GM Toolkit's first page; macros that open it still work.
 		openMythsPanel: () => openGmToolkit("myths"),
@@ -810,6 +823,7 @@ Hooks.on("deleteActor", refreshDomainButtons);
 Hooks.on("renderJournalDirectory", (_directory, element) => {
 	addNewSiteButton(element);
 	addNewMythButton(element);
+	addNewKnightButton(element);
 	const canSetUp = canKeepRulebook() && !hasRulebook();
 	if (!canSetUp && !(hasRulebook() && canReadRulebook())) return;
 	addDirectoryButton(element, {

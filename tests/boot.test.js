@@ -212,6 +212,19 @@ describe("system boot", () => {
 		expect(game.system.api.newOwnMyth).toBeTypeOf("function");
 	});
 
+	it("opens a written Knight's Journal entry to be written, and offers that sheet to no other entry", async () => {
+		const { OWN_KNIGHT_SHEET_CLASS } = await import("../module/actions/own-knights.js");
+		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
+		const registered = registerSheet.mock.calls.filter(([registeredClass]) => registeredClass === foundry.documents.JournalEntry);
+		const [, scope, knightSheet, options] = registered.find(([, , sheet]) => sheet.name === "OwnKnightSheet");
+		expect(options).toMatchObject({ makeDefault: false, canBeDefault: false, label: "bastionland.ownKnight.sheet" });
+		expect(`${scope}.${knightSheet.name}`).toBe(OWN_KNIGHT_SHEET_CLASS);
+		for (const part of Object.values(knightSheet.PARTS)) {
+			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+		}
+		expect(game.system.api.newOwnKnight).toBeTypeOf("function");
+	});
+
 	it("preloads partials that exist on disk", () => {
 		const [[partials]] = foundry.applications.handlebars.loadTemplates.mock.calls;
 		expect(Object.keys(partials)).toEqual(expect.arrayContaining(["bastionland.item-row", "bastionland.add-item", "bastionland.save-result"]));

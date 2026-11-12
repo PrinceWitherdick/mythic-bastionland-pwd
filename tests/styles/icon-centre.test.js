@@ -333,6 +333,24 @@ describe("centring the letters", () => {
 		expect(Object.keys(label).filter((name) => /^(display|line-height|padding|vertical-align|top|translate|transform|margin)/.test(name))).toEqual([]);
 	});
 
+	/*
+	 * A written Knight's sheet opens on a bar of its Ready tick, on the shared
+	 * tick row, and Start from a book Knight; Choose a Knight's Edit this Knight
+	 * button sits under the name. Both buttons are the shared icon button. The
+	 * offline gallery draws them (fixture/own-knight, fixture/knight-chooser-own).
+	 */
+	it("leaves a written Knight's Ready tick and their sheet's and chooser's buttons centred by the shared rules", () => {
+		const sheet = readFileSync(join(root, "templates/apps/own-knight.hbs"), "utf8");
+		expect(sheet).toContain('<label class="bastionland-check bastionland-own-knight__ready">');
+		expect(sheet).toMatch(/<button type="button" class="bastionland-button" data-action="startFromBook"/);
+		expect(readFileSync(join(root, "templates/apps/knight-chooser.hbs"), "utf8")).toContain('class="bastionland-button bastionland-knight-chooser__edit"');
+		expect(rule("mythic-bastionland.css", ".bastionland-own-knight__bar")["align-items"]).toBe("center");
+		expect(Object.keys(rule("mythic-bastionland.css", ".bastionland-page .bastionland-own-knight__bar > .bastionland-button")).sort()).toEqual(["flex", "width"]);
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => ["bastionland-own-knight__ready", "bastionland-knight-chooser__edit"].some((name) => endsWith(selector, name))));
+		const moved = own.filter(({ body }) => /(^|;|\s)(display|line-height|padding|padding-(top|bottom|block)|vertical-align|margin-block-start):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

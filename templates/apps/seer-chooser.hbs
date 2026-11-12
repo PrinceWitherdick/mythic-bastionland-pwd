@@ -1,6 +1,6 @@
 {{#*inline "seerCard"}}
 <button type="button" class="bastionland-chooser__card{{#if selected}} is-selected{{/if}}{{#if takenLabel}} is-taken{{/if}}" data-action="pick" data-roll="{{roll}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}">
-	<span class="bastionland-chooser__card-roll"><span class="bastionland-myth-chooser__card-d6">{{d6}}-</span>{{d12}}</span>
+	{{#unless own}}<span class="bastionland-chooser__card-roll"><span class="bastionland-myth-chooser__card-d6">{{d6}}-</span>{{d12}}</span>{{/unless}}
 	{{#if img}}
 	<img class="bastionland-chooser__thumb" src="{{img}}" alt="" loading="lazy" data-name="{{name}}">
 	{{else}}
@@ -43,6 +43,12 @@
 					<button type="button" class="bastionland-chooser__group{{#if active}} is-active{{/if}}" data-action="showGroup" data-d6="{{d6}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{d6}}</button>
 				</li>
 				{{/each}}
+				{{!-- The Seers the Referee wrote, after the book's six d6 results. --}}
+				{{#with ownGroup}}
+				<li>
+					<button type="button" class="bastionland-chooser__group bastionland-myth-chooser__own-group{{#if active}} is-active{{/if}}" data-action="showGroup" data-d6="{{d6}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" data-tooltip="{{localize 'bastionland.ownKnight.yoursSeerTooltip'}}">{{localize "bastionland.ownKnight.yours"}}</button>
+				</li>
+				{{/with}}
 			</ul>
 			<input type="search" name="search" class="bastionland-myth-chooser__search" value="{{search}}" placeholder="{{localize 'bastionland.seerChooser.search'}}" aria-label="{{localize 'bastionland.seerChooser.search'}}" autocomplete="off">
 		</div>

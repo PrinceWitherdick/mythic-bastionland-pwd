@@ -319,12 +319,12 @@ async function namesFromTheBook() {
  * Referee's to know (p14), so only they are offered them, and a Referee playing
  * alone only those whose Sanctums have been found.
  * @param {Actor|null} domain
- * @returns {Promise<string[]>} Empty where there's no such Realm, or no Seer the book names in it.
+ * @returns {Promise<string[]>} Empty where there's no such Realm, or no Seer the book or the Referee names in it.
  */
 export async function realmSeerNames(domain) {
 	if (!domain || !game.user?.isGM) return [];
+	// Without an import, only the Seers the Referee wrote have names.
 	const index = await loadArtIndex();
-	if (!index?.seers?.length) return [];
 	// Loaded only when asked, as the Realm's modules lead back to the Court's.
 	const [{ domainHolding }, { getRealm }, { realmKnown }] = await Promise.all([import("./homecoming.js"), import("./realm.js"), import("./solo.js")]);
 	const scene = domainHolding(domain)?.scene;

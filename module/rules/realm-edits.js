@@ -5,6 +5,7 @@
  * replaced. Pure, so it can be tested without Foundry.
  */
 import { isDie } from "./book-art.js";
+import { isOwnRecord } from "./knight-refs.js";
 import { isOwnMyth } from "./own-myths.js";
 import {
 	HOLDING_STYLES,
@@ -327,10 +328,12 @@ export const placeFeature = mending(function placeFeature(realm, g, hex, feature
 		case "landmark": {
 			const type = LANDMARK_TYPES.includes(feature.type) ? feature.type : here.landmark?.type ?? LANDMARK_TYPES[0];
 			// Edit this hex sends a Seer roll one die at a time, so half a roll is kept, with the other die as it was or 1.
+			// A Seer the Referee wrote has no roll: dice make the Seer one of the book's again.
 			const before = here.landmark?.seer ?? null;
 			const rolled = { d6: isDie(feature.seer?.d6, 6), d12: isDie(feature.seer?.d12, 12) };
 			const seer = type !== "sanctum" ? null
 				: rolled.d6 || rolled.d12 ? { d6: rolled.d6 ? feature.seer.d6 : before?.d6 ?? 1, d12: rolled.d12 ? feature.seer.d12 : before?.d12 ?? 1 }
+					: isOwnRecord(feature.seer) ? { own: feature.seer.own }
 					// Every Sanctum is home to a Seer: one placed by hand rolls for theirs.
 					: before ?? (random ? rollFreeSeer(random, next.landmarks) : null);
 			// The Myth a Ruin echoes, once rolled, stays with it; another type forgets it.

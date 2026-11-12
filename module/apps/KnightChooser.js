@@ -1,5 +1,6 @@
 import { kitWeaponNames } from "../actions/abilities.js";
 import { createKnightWithCompanions, knightJoined, rollStartScores } from "../actions/new-knight.js";
+import { isOwnKnightEntry, newOwnKnight, openOwnKnight, ownKnightIndexEntries } from "../actions/own-knights.js";
 import { clearCompanions, knightOwner, makeCompanions } from "../actions/property.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { knightWithLists, peekVerseForEntry } from "../book-art/myth-tables.js";
@@ -9,6 +10,8 @@ import { KNIGHT_VERSE_VERSION, spreads } from "../rules/book-art.js";
 import { COMPANY_START_FLAG, realmStart } from "../rules/company.js";
 import { replacementGlory } from "../rules/fallen.js";
 import { rollKnightName, startingName } from "../rules/knight-names.js";
+import { findByRef, ownIdOf, ownRef } from "../rules/knight-refs.js";
+import { clearOfTheBook } from "../rules/own-knights.js";
 import { CHOOSING_FLAG, isSquireName, itemsGained, knightedChoice } from "../rules/squires.js";
 import {
 	DEFAULT_START,
@@ -23,7 +26,7 @@ import { midSentence } from "../rules/text.js";
 import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
 import { SCORES, VIRTUES, VIRTUE_MAX, clampVirtue } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { BastionlandChooser } from "./BastionlandChooser.js";
+import { BastionlandChooser, OWN_GROUP } from "./BastionlandChooser.js";
 import { confirmDialog, renderWhenIdle } from "./ui.js";
 import { allowsDuplicateKnights, knightRows, worldKnights } from "../actions/knights.js";
 import { NPC_KNIGHT_START, isKnight, isNpcKnight } from "../rules/knight-types.js";
@@ -77,6 +80,8 @@ export class KnightChooser extends BastionlandChooser {
 			rollName: KnightChooser.#onRollName,
 			browse: KnightChooser.#onBrowse,
 			toggleSearch: KnightChooser.#onToggleSearch,
+			writeKnight: () => newOwnKnight(),
+			editOwnKnight: KnightChooser.#onEditOwnKnight,
 			apply: KnightChooser.#onApply
 		}
 	};
@@ -126,6 +131,12 @@ export class KnightChooser extends BastionlandChooser {
 	/** @type {Map<string, string>} #taken as the window was last drawn: the hooks draw it again whenever that changes. */
 	#takenNow = new Map();
 
+	/** @type {{knights: object[], seers: object[]}} The Knights the Referee wrote that this user may choose, as the window was last drawn. */
+	#own = { knights: [], seers: [] };
+
+	/** Whether the window has opened on the Referee's Knights once already, for want of the book's. */
+	#openedOnOwn = false;
+
 	/** Whether the search box is open: after its magnifying glass, or while something is searched for. */
 	get #searchShown() {
 		return this.#searchOpen || Boolean(this.search);
@@ -139,14 +150,37 @@ export class KnightChooser extends BastionlandChooser {
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
+		// One sharing a book Knight's name is left out, as the two would be one on a sheet.
+		const written = ownKnightIndexEntries();
+		this.#own = { knights: clearOfTheBook(written.knights, this.index?.knights ?? []), seers: written.seers };
 
 		const entries = this.#entries();
+		const own = this.#ownEntries();
 		const taken = this.#takenNow = this.#taken();
 		const takenLabel = (roll) => (taken.has(roll) ? t("chooser.takenBy", { name: taken.get(roll) }) : null);
-		const selected = entries.find((entry) => entry.roll === this.roll);
+		const selected = [...entries, ...own].find((entry) => entry.roll === this.roll);
+		// Without the book, the Knights the Referee wrote are all there are to choose by name.
+		if (!this.index && own.length && !this.#openedOnOwn) {
+			this.#openedOnOwn = true;
+			this.group = OWN_GROUP;
+		}
+		const card = (entry) => {
+			const name = this.#knightName(entry);
+			return {
+				roll: entry.roll,
+				d12: entry.d12,
+				own: Boolean(entry.knight?.own),
+				...this._cardFields(entry, name),
+				name,
+				img: entry.knight?.path ?? null,
+				// Said on hover, so the card carries no line saying who has it.
+				takenTip: taken.has(entry.roll) ? t("chooser.takenTip", { name: taken.get(entry.roll) }) : null,
+				selected: entry.roll === this.roll
+			};
+		};
 
 		let notice = null;
-		if (!this.index) notice = t("chooser.noIndex");
+		if (!this.index) notice = own.length ? t("ownKnight.noIndexOwn") : t("chooser.noIndex");
 		else if (!entries.some((entry) => entry.knight?.ability)) notice = t("chooser.noText");
 
 		return Object.assign(context, {
@@ -171,22 +205,15 @@ export class KnightChooser extends BastionlandChooser {
 					{ abbr: t("guard.abbr"), value: this.actor.system.guard.max }]
 			},
 			searchOpen: this.#searchShown,
-			cards: entries.map((entry) => {
-				const name = this.#knightName(entry);
-				return {
-					roll: entry.roll,
-					d12: entry.d12,
-					...this._cardFields(entry, name),
-					name,
-					img: entry.knight?.path ?? null,
-					// Said on hover, so the card carries no line saying who has it.
-					takenTip: taken.has(entry.roll) ? t("chooser.takenTip", { name: taken.get(entry.roll) }) : null,
-					selected: entry.roll === this.roll
-				};
-			}),
+			// The Referee's own Knights, after the d6 results: for players, once any is let out to them.
+			ownGroup: game.user.isGM || own.length ? { d6: OWN_GROUP, active: this.group === OWN_GROUP } : null,
+			// The book's first, then the Referee's, drawn alike.
+			cards: [...entries, ...own].map(card),
+			writeCard: game.user.isGM ? { d6: OWN_GROUP, inGroup: this.group === OWN_GROUP } : null,
 			selected: selected && {
 				name: this.#knightName(selected),
-				reference: t("chooser.reference", { roll: selected.roll, page: selected.page }),
+				canEdit: Boolean(selected.knight?.own) && game.user.isGM,
+				reference: selected.knight?.own ? t("ownKnight.ownReference") : t("chooser.reference", { roll: selected.roll, page: selected.page }),
 				img: selected.knight?.path ?? null,
 				takenBy: takenLabel(selected.roll),
 				verse: this.#verse(selected),
@@ -217,9 +244,14 @@ export class KnightChooser extends BastionlandChooser {
 			if ("knightType" in system || "slain" in system || "isSquire" in system || "name" in changes) redraw();
 		};
 		const onKnight = (actor) => isKnight(actor) && redraw();
+		// A Knight the Referee writes, changes, lets out to players or takes back.
+		const onOwn = (entry) => isOwnKnightEntry(entry) && redraw();
 		this.#hooks = [["updateActor", Hooks.on("updateActor", onUpdate)],
 			["createActor", Hooks.on("createActor", onKnight)],
-			["deleteActor", Hooks.on("deleteActor", onKnight)]];
+			["deleteActor", Hooks.on("deleteActor", onKnight)],
+			["createJournalEntry", Hooks.on("createJournalEntry", onOwn)],
+			["updateJournalEntry", Hooks.on("updateJournalEntry", onOwn)],
+			["deleteJournalEntry", Hooks.on("deleteJournalEntry", onOwn)]];
 	}
 
 	/** @override */
@@ -296,6 +328,23 @@ export class KnightChooser extends BastionlandChooser {
 	}
 
 	/**
+	 * The Knights the Referee wrote that this user may choose, in a group of
+	 * their own after the book's.
+	 * @returns {{d6: string, d12: string, roll: string, page: null, knight: object, seer: object|null}[]}
+	 */
+	#ownEntries() {
+		return this.#own.knights.map((knight) => {
+			const roll = ownRef(knight.own);
+			return { d6: OWN_GROUP, d12: "", roll, page: null, knight, seer: findByRef(this.#own.seers, roll) };
+		});
+	}
+
+	/** @returns {object[]} Every Knight to choose from: the book's, then the Referee's. */
+	#allEntries() {
+		return [...this.#entries(), ...this.#ownEntries()];
+	}
+
+	/**
 	 * The verse under a Knight's name: from the index, or else read from the
 	 * world's rulebook for an index imported before the Knights' verses were.
 	 * @param {{page: number, knight: object|null}} entry From #entries.
@@ -318,7 +367,7 @@ export class KnightChooser extends BastionlandChooser {
 	 */
 	#taken() {
 		if (allowsDuplicateKnights()) return new Map();
-		return takenKnights(knightRows(), this.index?.knights ?? [], this.actor?.id);
+		return takenKnights(knightRows(), [...(this.index?.knights ?? []), ...this.#ownEntries().map(({ knight }) => knight)], this.actor?.id);
 	}
 
 	/* -------------------------------------------- */
@@ -392,8 +441,17 @@ export class KnightChooser extends BastionlandChooser {
 	 */
 	_canPick(roll) {
 		const takenBy = this.#takenNow.get(roll);
-		if (takenBy) this.#warnTaken(this.#entries().find((entry) => entry.roll === roll), takenBy);
+		if (takenBy) this.#warnTaken(this.#allEntries().find((entry) => entry.roll === roll), takenBy);
 		return !takenBy;
+	}
+
+	/**
+	 * A Knight the Referee wrote is shown among theirs once the search is let go.
+	 * @override
+	 */
+	_pickRoll(roll) {
+		super._pickRoll(roll);
+		if (ownIdOf(roll)) this.group = OWN_GROUP;
 	}
 
 	/**
@@ -480,11 +538,20 @@ export class KnightChooser extends BastionlandChooser {
 	}
 
 	/**
+	 * Open the Knight the Referee wrote that's picked, to change them.
+	 * @this {KnightChooser}
+	 */
+	static #onEditOwnKnight() {
+		const id = ownIdOf(this.roll);
+		if (game.user.isGM && id) return openOwnKnight(id);
+	}
+
+	/**
 	 * Give the Knight everything chosen and rolled here, and the name beside Apply.
 	 * @this {KnightChooser}
 	 */
 	static async #onApply() {
-		const entry = this.#entries().find((candidate) => candidate.roll === this.roll);
+		const entry = this.#allEntries().find((candidate) => candidate.roll === this.roll);
 		const name = this.#name.trim();
 		if (!entry || !name) return;
 		// Someone else may have become this Knight while the window was open.

@@ -80,7 +80,7 @@ export function hexFeatures(scene, realm, g, hex, index, { full = false } = {}) 
 	if (landmark) {
 		const named = landmarkName(landmark, t);
 		const seer = landmark.seer && seerEntry(index, landmark.seer);
-		lines.push({ kind: "landmark", text: hidden(seer ? `${named} — ${t("realm.panel.reference", { name: seer.name, page: seer.page })}` : named, !landmark.revealed) });
+		lines.push({ kind: "landmark", text: hidden(seer ? `${named} — ${withPage(seer.name, seer.page)}` : named, !landmark.revealed) });
 	}
 	for (const barrier of barriersAround(realm, g, hex, { showHidden: true })) {
 		const words = t("realm.readout.barrier", { direction: t(`realm.directions.${barrier.direction}`) });

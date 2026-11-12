@@ -1,0 +1,172 @@
+{{!-- A Knight the Referee writes, with the Seer who knighted them: what a Knight's page in the book has, to be filled in.
+      Players who may choose them see it too, every box shut. --}}
+<section class="bastionland-page bastionland-own-myth bastionland-own-knight">
+	{{#*inline "picture"}}
+	<div class="bastionland-own-myth__picture">
+		<button type="button" class="bastionland-own-myth__art bastionland-own-knight__art--{{which}}{{#unless img}} is-empty{{/unless}}" data-action="pickPicture" data-picture="{{which}}" {{#unless @root.editable}}disabled{{/unless}} data-tooltip="{{label}}" aria-label="{{label}}">
+			{{#if img}}<img src="{{img}}" alt="">{{else}}<i class="fa-solid fa-image" inert></i>{{/if}}
+		</button>
+		{{#if img}}{{#if @root.editable}}
+		<button type="button" class="bastionland-button bastionland-own-myth__clear" data-action="clearPicture" data-picture="{{which}}"><i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.ownMyth.clearPicture"}}</button>
+		{{/if}}{{/if}}
+	</div>
+	{{/inline}}
+
+	{{#*inline "part"}}
+	<fieldset class="bastionland-own-myth__field bastionland-own-knight__part">
+		<legend class="bastionland-own-myth__label">{{legend}}</legend>
+		<input type="text" name="{{part.prefix}}.name" value="{{part.name}}" placeholder="{{localize "bastionland.ownKnight.partName"}}" aria-label="{{legend}}: {{localize "bastionland.ownKnight.partName"}}" {{#unless @root.editable}}disabled{{/unless}}>
+		<textarea name="{{part.prefix}}.text" rows="3" aria-label="{{legend}}" {{#unless @root.editable}}disabled{{/unless}}>{{part.text}}</textarea>
+		<textarea name="{{part.prefix}}.list" rows="2" placeholder="{{localize "bastionland.ownKnight.partList"}}" aria-label="{{legend}}: {{localize "bastionland.ownKnight.partList"}}" {{#unless @root.editable}}disabled{{/unless}}>{{part.list}}</textarea>
+	</fieldset>
+	{{/inline}}
+
+	{{#*inline "preview"}}
+	{{#if rows.length}}
+	<ul class="bastionland-own-knight__preview" aria-label="{{label}}">
+		{{#each rows}}
+		<li><span class="bastionland-own-knight__kind">{{kind}}</span> <strong>{{name}}</strong>{{#if detail}} <span class="bastionland-own-knight__detail">{{detail}}</span>{{/if}}</li>
+		{{/each}}
+	</ul>
+	{{/if}}
+	{{/inline}}
+
+	<p class="bastionland-hint">{{#if editable}}{{localize "bastionland.ownKnight.hint"}}{{else}}{{localize "bastionland.ownKnight.readHint"}}{{/if}}</p>
+
+	{{#if isGM}}
+	<div class="bastionland-own-knight__bar">
+		<label class="bastionland-check bastionland-own-knight__ready">
+			<input type="checkbox" data-action="toggleReady" {{checked ready}} {{#unless canReady}}{{#unless ready}}disabled{{/unless}}{{/unless}}>
+			<span class="bastionland-check__label">{{localize "bastionland.ownKnight.ready"}}</span>
+		</label>
+		<button type="button" class="bastionland-button" data-action="startFromBook" {{#unless hasBook}}disabled data-tooltip="{{localize "bastionland.ownKnight.noBook"}}"{{/unless}}>
+			<i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.ownKnight.startFromBook"}}
+		</button>
+	</div>
+	{{#unless canReady}}<p class="bastionland-hint">{{localize "bastionland.ownKnight.readyHint"}}</p>{{/unless}}
+	{{/if}}
+
+	{{!-- The Knight --}}
+	<div class="bastionland-own-myth__top">
+		<div class="bastionland-own-knight__pictures">
+			{{> picture which="img" img=knight.img label=(localize "bastionland.ownKnight.pickPortrait")}}
+			{{!-- The token, square; without one, the portrait is the token. --}}
+			<span class="bastionland-own-myth__label">{{localize "bastionland.ownKnight.token"}}</span>
+			{{> picture which="token" img=knight.token label=(localize "bastionland.ownKnight.pickToken")}}
+		</div>
+		<div class="bastionland-own-myth__heading">
+			<div class="bastionland-own-myth__field">
+				<label class="bastionland-own-myth__label" for="{{rootId}}-type">{{localize "bastionland.ownKnight.name"}}</label>
+				<div class="bastionland-own-knight__name">
+					<span aria-hidden="true">{{localize "bastionland.ownKnight.namePrefix"}}</span>
+					<input id="{{rootId}}-type" class="bastionland-own-myth__name" type="text" name="type" value="{{type}}" {{#unless editable}}disabled{{/unless}}>
+					<span aria-hidden="true">{{localize "bastionland.ownKnight.nameSuffix"}}</span>
+				</div>
+				{{#if knightClash}}<p class="bastionland-chooser__notice">{{localize "bastionland.ownKnight.knightClash" name=knightClash}}</p>{{/if}}
+			</div>
+			<div class="bastionland-own-myth__field">
+				<label class="bastionland-own-myth__label" for="{{rootId}}-verse">{{localize "bastionland.ownMyth.verse"}}</label>
+				<textarea id="{{rootId}}-verse" class="bastionland-own-knight__verse" name="knight.verse" rows="2" {{#unless editable}}disabled{{/unless}}>{{knight.verse}}</textarea>
+			</div>
+		</div>
+	</div>
+
+	<section class="bastionland-own-myth__section">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.ownKnight.property"}}</h3>
+		<p class="bastionland-hint">{{localize "bastionland.ownKnight.propertyHint"}}</p>
+		<textarea name="knight.property" rows="4" aria-label="{{localize "bastionland.ownKnight.property"}}" {{#unless editable}}disabled{{/unless}}>{{knight.property}}</textarea>
+		{{> preview rows=knight.preview label=(localize "bastionland.ownKnight.propertyPreview")}}
+	</section>
+
+	<div class="bastionland-own-knight__parts">
+		{{~> part part=knight.ability legend=(localize "bastionland.ownKnight.ability")}}
+		{{~> part part=knight.passion legend=(localize "bastionland.ownKnight.passion")}}
+	</div>
+
+	<div class="bastionland-own-myth__field">
+		<label class="bastionland-own-myth__label" for="{{rootId}}-works-like">{{localize "bastionland.ownKnight.worksLike"}}</label>
+		<select id="{{rootId}}-works-like" name="knight.worksLike" {{#unless editable}}disabled{{/unless}}>
+			{{#each knight.worksLike}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+			{{#if knight.worksLikeUnknown}}<option value="{{knight.worksLikeUnknown}}" selected>{{localize "bastionland.ownKnight.worksLikeUnknown"}}</option>{{/if}}
+		</select>
+		<p class="bastionland-hint">{{#if hasBook}}{{localize "bastionland.ownKnight.worksLikeHint"}}{{else}}{{localize "bastionland.ownKnight.worksLikeNoBook"}}{{/if}}</p>
+	</div>
+
+	{{#with table}}
+	<details class="bastionland-own-myth__section bastionland-own-myth__table-fold" data-sync="table" {{#if open}}open{{/if}}>
+		<summary class="bastionland-heading bastionland-heading--small">{{localize "bastionland.ownMyth.table"}}</summary>
+		<p class="bastionland-hint">{{localize "bastionland.ownKnight.tableHint"}}</p>
+		<div class="bastionland-own-myth__field">
+			<label class="bastionland-own-myth__label" for="{{@root.rootId}}-table-name">{{localize "bastionland.ownMyth.tableName"}}</label>
+			<input id="{{@root.rootId}}-table-name" type="text" name="knight.table.name" value="{{name}}" {{#unless @root.editable}}disabled{{/unless}}>
+		</div>
+		<table class="bastionland-own-myth__table">
+			<thead>
+				<tr>
+					<th scope="col" class="bastionland-own-myth__die"><i class="fa-solid fa-dice-d6" inert></i></th>
+					{{#each columns}}
+					<th scope="col"><input type="text" name="{{name}}" value="{{value}}" placeholder="{{label}}" aria-label="{{label}}" {{#unless @root.editable}}disabled{{/unless}}></th>
+					{{/each}}
+				</tr>
+			</thead>
+			<tbody>
+				{{#each rows}}
+				<tr>
+					<th scope="row">{{number}}</th>
+					{{#each entries}}
+					<td><input type="text" name="{{name}}" value="{{value}}" aria-label="{{label}}" {{#unless @root.editable}}disabled{{/unless}}></td>
+					{{/each}}
+				</tr>
+				{{/each}}
+			</tbody>
+		</table>
+		<fieldset class="bastionland-own-myth__field bastionland-own-knight__sentences">
+			<legend class="bastionland-own-myth__label">{{localize "bastionland.ownKnight.sentences"}}</legend>
+			<p class="bastionland-hint">{{localize "bastionland.ownKnight.sentencesHint"}}</p>
+			{{#each sentences}}
+			<input type="text" name="{{name}}" value="{{value}}" placeholder="{{label}}" aria-label="{{label}}" {{#unless @root.editable}}disabled{{/unless}}>
+			{{/each}}
+		</fieldset>
+	</details>
+	{{/with}}
+
+	{{!-- The Seer who knighted them --}}
+	<section class="bastionland-own-myth__section bastionland-own-knight__seer">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.ownKnight.seer"}}</h3>
+		<div class="bastionland-own-myth__top">
+			{{> picture which="seer" img=seer.img label=(localize "bastionland.ownKnight.pickSeer")}}
+			<div class="bastionland-own-myth__heading">
+				<div class="bastionland-own-myth__field">
+					<label class="bastionland-own-myth__label" for="{{rootId}}-seer">{{localize "bastionland.ownKnight.seerName"}}</label>
+					<input id="{{rootId}}-seer" type="text" name="seer.name" value="{{seer.name}}" {{#unless editable}}disabled{{/unless}}>
+					{{#if seerClash}}<p class="bastionland-chooser__notice">{{localize "bastionland.ownKnight.seerClash" name=seerClash}}</p>{{/if}}
+				</div>
+				{{!-- The score boxes Choose a Knight rolls into. --}}
+				<fieldset class="bastionland-own-knight__scores">
+					<legend class="bastionland-own-myth__label">{{localize "bastionland.ownKnight.scores"}}</legend>
+					<div class="bastionland-chooser__scores">
+						{{#each seer.stats}}
+						<label class="bastionland-chooser__score">
+							<span>{{label}}</span>
+							<input class="bastionland-box" type="number" name="{{name}}" value="{{value}}" min="0" step="1" {{#unless @root.editable}}disabled{{/unless}}>
+						</label>
+						{{/each}}
+					</div>
+				</fieldset>
+			</div>
+		</div>
+		<label class="bastionland-own-myth__label" for="{{rootId}}-seer-lines">{{localize "bastionland.ownKnight.seerLines"}}</label>
+		<p class="bastionland-hint">{{localize "bastionland.ownKnight.seerLinesHint"}}</p>
+		<textarea id="{{rootId}}-seer-lines" name="seer.lines" rows="4" {{#unless editable}}disabled{{/unless}}>{{seer.lines}}</textarea>
+		{{#with seer.preview}}
+		<ul class="bastionland-own-knight__preview" aria-label="{{localize "bastionland.ownKnight.seerPreview"}}">
+			<li><span class="bastionland-own-knight__kind">{{localize "bastionland.ownKnight.preview.armourKind"}}</span> {{armour}}</li>
+			{{#each attacks}}
+			<li><span class="bastionland-own-knight__kind">{{kind}}</span> <strong>{{name}}</strong>{{#if detail}} <span class="bastionland-own-knight__detail">{{detail}}</span>{{/if}}</li>
+			{{/each}}
+			<li><span class="bastionland-own-knight__kind">{{localize "bastionland.ownKnight.preview.traitsKind"}}</span> {{traits}}</li>
+			{{#if structure}}<li>{{localize "bastionland.ownKnight.preview.structure"}}</li>{{/if}}
+		</ul>
+		{{/with}}
+	</section>
+</section>

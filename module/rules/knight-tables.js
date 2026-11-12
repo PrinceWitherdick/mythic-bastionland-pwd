@@ -86,6 +86,7 @@ export function knightEntryByType(index, knightType) {
  * @property {string[]} columns
  * @property {string[][]} rows  Six, each with an entry per column.
  * @property {number[]} rolls   For each column, the row rolled from 1, or 0 until it's rolled.
+ * @property {string[]} [sentences] For each column, the sentence a Knight the Referee wrote tells its result in, any blank.
  */
 
 /**
@@ -113,7 +114,9 @@ export function knightTableFill(table, { knightType, bookTable }, page) {
 			name: table.name,
 			columns: [...table.columns],
 			rows: table.rows.map((row) => [...row]),
-			rolls: table.columns.map(() => 0)
+			rolls: table.columns.map(() => 0),
+			sentences: [...(table.sentences ?? [])],
+			joins: [...(table.joins ?? [])]
 		}
 	};
 }

@@ -1,3 +1,4 @@
+import { isOwnKnightEntry } from "../actions/own-knights.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
 import { isSiteEntry } from "../actions/sites.js";
 import { HEX_JOURNAL_FLAG } from "../rules/hex-journal.js";
@@ -57,12 +58,12 @@ export function isKeptJournal(entry) {
 
 /**
  * Whether a Journal entry is one the system writes or draws: a hex's or a
- * Site's journal, the Timeline, a Site, or a Myth the Referee wrote.
+ * Site's journal, the Timeline, a Site, or a Myth or Knight the Referee wrote.
  * @param {JournalEntry|null|undefined} entry
  * @returns {boolean}
  */
 export function isSystemJournal(entry) {
-	return isKeptJournal(entry) || isSiteEntry(entry) || isOwnMythEntry(entry);
+	return isKeptJournal(entry) || isSiteEntry(entry) || isOwnMythEntry(entry) || isOwnKnightEntry(entry);
 }
 
 /**

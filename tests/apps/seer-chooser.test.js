@@ -14,6 +14,7 @@ const scene = { id: "realm" };
 let realm;
 
 vi.mock("../../module/apps/BastionlandChooser.js", () => ({
+	OWN_GROUP: "own",
 	BastionlandChooser: class {
 		static DEFAULT_OPTIONS = {};
 		static PARTS = {};
@@ -27,7 +28,20 @@ vi.mock("../../module/apps/BastionlandChooser.js", () => ({
 		_cardFields({ d6 }) {
 			return { d6, inGroup: d6 === this.group };
 		}
+		_pickRoll(roll) {
+			this.roll = roll;
+		}
 		render = vi.fn();
+	}
+}));
+// A Knight the Referee wrote, with their Seer.
+let ownSeers = [];
+vi.mock("../../module/actions/own-knights.js", () => ({
+	isOwnKnightEntry: () => false,
+	ownKnightIndexEntries: () => ({ knights: ownSeers.map(({ own }) => ({ own, roll: null, name: "The Ferry Knight" })), seers: ownSeers }),
+	ownSeerLookup: ({ own }) => {
+		const entry = ownSeers.find((seer) => seer.own === own) ?? null;
+		return { roll: null, page: null, entry, name: entry?.name ?? "ownKnight.seerGone" };
 	}
 }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
@@ -124,6 +138,49 @@ describe("choosing a Sanctum's Seer", () => {
 		expect(sanctum.seer).toEqual({ d6: 6, d12: 12 });
 		expect(sanctum.type).toBe("sanctum");
 		expect(realm.landmarks).toHaveLength(2);
+	});
+
+	it("offers the Seers the Referee wrote under Yours, and gives one to the Sanctum", async () => {
+		ownSeers = [{ own: "j1", roll: null, name: "The Reed Seer", path: null }];
+		try {
+			const chooser = openSeerChooser({ scene, hex: here });
+			chooser.index = index;
+			const context = await chooser._prepareContext({});
+			expect(context.ownGroup).toEqual({ d6: "own", active: false });
+			const card = context.cards.find(({ roll }) => roll === "own:j1");
+			expect(card).toMatchObject({ name: "The Reed Seer", own: true, d6: "own" });
+			chooser._pickRoll("own:j1");
+			expect(chooser.group).toBe("own");
+			await SeerChooser.DEFAULT_OPTIONS.actions.useSeer.call(chooser);
+			const sanctum = realm.landmarks.find((landmark) => landmark.hex.col === here.col && landmark.hex.row === here.row);
+			expect(sanctum.seer).toEqual({ own: "j1" });
+			// Opened again, it shows the Seer living there now.
+			const again = openSeerChooser({ scene, hex: here });
+			expect([again.roll, again.group]).toEqual(["own:j1", "own"]);
+			again.index = index;
+			expect((await again._prepareContext({})).cards.find(({ roll }) => roll === "own:j1").here).toBe(true);
+		} finally {
+			ownSeers = [];
+		}
+	});
+
+	it("opens on Yours without an import, the written Seers being all there are by name", async () => {
+		ownSeers = [{ own: "j1", roll: null, name: "The Reed Seer", path: null }];
+		realm.landmarks[0].seer = null;
+		try {
+			const chooser = openSeerChooser({ scene, hex: here });
+			chooser.index = null;
+			const context = await chooser._prepareContext({});
+			expect(context.notice).toBe("seerChooser.noIndexOwn");
+			expect(chooser.group).toBe("own");
+			// Only the first time: a d6 result the Referee goes to afterwards is left as they chose.
+			chooser.group = 3;
+			await chooser._prepareContext({});
+			expect(chooser.group).toBe(3);
+		} finally {
+			ownSeers = [];
+		}
+		expect((await openSeerChooser({ scene, hex: here })._prepareContext({})).notice).toBe("seerChooser.noIndex");
 	});
 
 	it("draws itself again as the Realm changes, and is opened from the Sanctum's tab", () => {

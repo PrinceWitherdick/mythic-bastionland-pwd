@@ -21,11 +21,8 @@ import { remoteMythHex } from "../rules/realm-generator.js";
 import { mythRolls, mythSlots, mythWithRoll, rollFreeMyth, rollMythsAgain } from "../rules/realm-myths.js";
 import { searchable } from "../rules/text.js";
 import { templatePath } from "../system-id.js";
-import { BastionlandChooser } from "./BastionlandChooser.js";
+import { BastionlandChooser, OWN_GROUP } from "./BastionlandChooser.js";
 import { confirmDialog, fitCards, renderWhenIdle } from "./ui.js";
-
-/** The group of the table's cards that holds the Referee's own Myths, beside the d6 results. */
-const OWN_GROUP = "own";
 
 /** The Myths on one d6 result of the table, one for each face of the d12. */
 const D6_RESULT_MYTHS = 12;

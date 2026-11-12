@@ -4,6 +4,7 @@ import { isBlankOwnMyth, isOwnMyth, normaliseOwnMyth, ownMythEntry } from "../ru
 import { keyedSerialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder } from "./folders.js";
+import { newOwnEntry } from "./own-entries.js";
 
 /** The flag a written Myth's Journal entry keeps the Myth under. */
 export const OWN_MYTH_FLAG = "ownMyth";
@@ -105,19 +106,13 @@ export const ownMythsFolder = () => flaggedFolder("JournalEntry", FOLDER_FLAG, t
  */
 export async function newOwnMyth() {
 	if (!game.user.isGM) return null;
-	const folder = await ownMythsFolder();
-	const entry = await foundry.utils.getDocumentClass("JournalEntry").create({
+	return newOwnEntry({
 		name: t("ownMyth.defaultName"),
-		folder: folder?.id ?? null,
-		flags: {
-			core: { sheetClass: OWN_MYTH_SHEET_CLASS },
-			[SYSTEM_ID]: { [OWN_MYTH_FLAG]: normaliseOwnMyth(null) }
-		}
+		folder: await ownMythsFolder(),
+		sheetClass: OWN_MYTH_SHEET_CLASS,
+		flag: OWN_MYTH_FLAG,
+		data: normaliseOwnMyth(null)
 	});
-	if (!entry) return null;
-	entry.sheet.discardIfBlank = true;
-	await entry.sheet.render({ force: true });
-	return entry;
 }
 
 /**

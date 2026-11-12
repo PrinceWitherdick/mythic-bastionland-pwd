@@ -3,9 +3,10 @@
  * functions, so the Knight chooser's choices can be tested without Foundry.
  */
 import { SYSTEM_ID } from "../system-id.js";
-import { kitForPage, kittedAbility, kitWeapons } from "./ability-kits.js";
+import { kitForPage, kitPageOf, kittedAbility, kitWeapons } from "./ability-kits.js";
 import { usesFrom } from "./ability-uses.js";
 import { RANKS } from "./glory.js";
+import { isOwnRecord, refOf } from "./knight-refs.js";
 import { propertyGear } from "./property.js";
 import { isStructureBlock, parseArmour } from "./stat-blocks.js";
 import { escapeHTML, searchable } from "./text.js";
@@ -130,11 +131,12 @@ export function seerBook(seer) {
 }
 
 /** "The Dice Seer", "dice seer" and "Dice" all name one Seer. */
-const seerKey = (name) => searchable(String(name ?? "").trim()).replace(/^the\s+/, "").replace(/\s+seer$/, "").trim();
+export const seerKey = (name) => searchable(String(name ?? "").trim()).replace(/^the\s+/, "").replace(/\s+seer$/, "").trim();
 
 /**
  * The Seer who knighted a Knight, found in the art index by the Seer's name,
- * or else by the Knight's own roll, since each Seer shares their Knight's page.
+ * or else by the Knight's own roll, since each Seer shares their Knight's page. A Seer the
+ * Referee wrote shares their Knight's Journal entry instead.
  * @param {object|null} index The art index.
  * @param {{seer: string, knightType: string}} knight
  * @returns {object|null} The Seer's entry.
@@ -146,7 +148,9 @@ export function seerForKnight(index, { seer = "", knightType = "" }) {
 	if (byName) return byName;
 	const type = knightTypeKey(knightType);
 	const knight = type && (index?.knights ?? []).find((entry) => entry.name && knightTypeKey(entry.name) === type);
-	return (knight && seers.find((entry) => entry.roll === knight.roll)) || null;
+	if (!knight) return null;
+	const sameSeer = isOwnRecord(knight) ? (entry) => entry.own === knight.own : (entry) => !isOwnRecord(entry) && entry.roll === knight.roll;
+	return seers.find(sameSeer) ?? null;
 }
 
 /**
@@ -206,19 +210,22 @@ const holders = (knights, exceptId) => knights.filter((knight) => knight.id !== 
 /**
  * Knights other characters already are, so no two players are the same one.
  * @param {KnightRow[]} knights Knight actors in the world.
- * @param {{roll: string, name: string|null}[]} entries Knights from the art index.
+ * @param {{roll: string|null, own?: string, name: string|null}[]} entries Knights from the art index, and any the Referee wrote.
  * @param {string|null} [exceptId] The Knight being chosen for.
- * @returns {Map<string, string>} Roll to the name of the character who took it.
+ * @returns {Map<string, string>} Ref (see knight-refs.js) to the name of the character who took it.
  */
 export function takenKnights(knights, entries, exceptId = null) {
-	const rollsByType = new Map(entries
-		.filter((entry) => entry.name)
-		.map((entry) => [knightTypeKey(entry.name), entry.roll]));
+	// The first of a name holds it, so a written Knight sharing a book Knight's never takes their place.
+	const refsByType = new Map();
+	for (const entry of entries) {
+		const key = entry.name ? knightTypeKey(entry.name) : "";
+		if (key && !refsByType.has(key)) refsByType.set(key, refOf(entry));
+	}
 
 	const taken = new Map();
 	for (const knight of holders(knights, exceptId)) {
-		const roll = rollsByType.get(knightTypeKey(knight.knightType));
-		if (roll && !taken.has(roll)) taken.set(roll, knight.name);
+		const ref = refsByType.get(knightTypeKey(knight.knightType));
+		if (ref && !taken.has(ref)) taken.set(ref, knight.name);
 	}
 	return taken;
 }
@@ -327,7 +334,7 @@ export function bookListUpdate(items, type, part) {
 export function knightItems(knight, kitNames, abilityWeaponNames = {}) {
 	const items = propertyGear(knight?.property);
 	// What their Ability does, as the page they're printed on has it.
-	const kit = knight?.ability ? kitForPage(knight.page) : null;
+	const kit = knight?.ability ? kitForPage(kitPageOf(knight)) : null;
 	for (const type of ["ability", "passion"]) {
 		const part = knight?.[type];
 		if (!part) continue;

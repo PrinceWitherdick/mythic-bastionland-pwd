@@ -1,8 +1,9 @@
 import { filterBySearch, inputDialog } from "../apps/ui.js";
-import { findByRoll, loadArtIndex } from "../book-art/art-index.js";
+import { findByRoll } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { spreads } from "../rules/book-art.js";
 import { knightTypeKey } from "../rules/creation.js";
+import { isOwnRecord, refOf } from "../rules/knight-refs.js";
 import { canHoldPost, domainRuledBy, holdingRef, holdingRulers, parseHoldingRef, rulingKnightOf } from "../rules/dominion.js";
 import { gloryWorthyOf } from "../rules/glory.js";
 import { featureAt, holdingName } from "../rules/realm.js";
@@ -10,6 +11,7 @@ import { escapeHTML, searchable } from "../rules/text.js";
 import { knightDomain, linkKnightDomain, worldDomains } from "./dominion.js";
 import { createDomain, foundDomain } from "./found-domain.js";
 import { realmHoldings } from "./homecoming.js";
+import { knightIndex } from "./knight-index.js";
 import { worldKnights } from "./knights.js";
 import { makeNpcKnight } from "./npc-knights.js";
 import { timelineHoldingGranted } from "./timeline-events.js";
@@ -55,7 +57,7 @@ export function rulersOf(scene, holding) {
  * @property {string} detail What granting it to them does.
  * @property {Actor|null} domain The Domain that would rule it, where one stands already.
  * @property {Actor|null} knight The world's Knight, where there is one.
- * @property {string|null} roll Their roll on the Knights table, for a Knight not yet made.
+ * @property {string|null} roll Their roll on the Knights table, or a written Knight's ref, for a Knight not yet made.
  * @property {boolean} checked
  * @property {string} search
  */
@@ -63,16 +65,17 @@ export function rulersOf(scene, holding) {
 /**
  * Everyone the Holding could be granted to: the Knights with a Domain first,
  * then every Knight of the book's table, each as the world's Knight where
- * one has been made of them, and last any Knight of the world the table
- * doesn't name.
+ * one has been made of them, then the Knights the Referee wrote, and last
+ * any Knight of the world neither names.
  * @param {object} data
  * @param {object|null} data.index The art index.
+ * @param {object[]} [data.own] The Knights the Referee wrote, as ownKnightIndexEntries gives them.
  * @param {Actor[]} data.knights The world's Knights who could rule.
  * @param {Actor[]} data.domains The world's Domains.
  * @param {Actor[]} data.ruling The Domains ruling the Holding now.
- * @returns {{domained: GrantChoice[], table: GrantChoice[], others: GrantChoice[]}}
+ * @returns {{domained: GrantChoice[], table: GrantChoice[], own: GrantChoice[], others: GrantChoice[]}}
  */
-export function grantChoices({ index, knights, domains, ruling }) {
+export function grantChoices({ index, knights, domains, ruling, own = [] }) {
 	const rules = (domain) => Boolean(domain) && ruling.includes(domain);
 	const choice = (value, name, detail, { domain = null, knight = null, roll = null } = {}) => ({
 		value,
@@ -92,27 +95,48 @@ export function grantChoices({ index, knights, domains, ruling }) {
 	const placed = new Set(domained.map(({ knight }) => knight));
 	const byType = new Map(knights.map((knight) => [knightTypeKey(knight.system.knightType), knight]).filter(([type]) => type));
 
-	const table = spreads().map(({ roll }) => {
-		const entry = findByRoll(index?.knights, roll);
-		const name = entry?.name ?? t("chooser.unnamed", { roll });
+	/**
+	 * A Knight of the book or the Referee's, as the world's Knight where one has been made of them.
+	 * @param {object|null} entry
+	 * @param {string} roll Their roll, or a written Knight's ref.
+	 * @param {string} name
+	 * @param {{isKnight: string, namedDomain: (domain: string) => string, unmade: string}} words
+	 */
+	const fromPage = (entry, roll, name, words) => {
 		const knight = entry?.name ? byType.get(knightTypeKey(entry.name)) ?? null : null;
 		if (knight && placed.has(knight)) return null;
 		if (knight) {
 			placed.add(knight);
-			return choice(`knight:${knight.id}`, knight.name, t("hexGm.ruler.isKnight", { roll, book: name }), { knight });
+			return choice(`knight:${knight.id}`, knight.name, words.isKnight, { knight });
 		}
-		// A Domain may already name a Knight of the book as its ruler, without an actor for them.
+		// A Domain may already name the Knight as its ruler, without an actor for them.
 		const domain = entry?.name ? domainRuledBy(domains, name) : null;
-		if (domain) return choice(`book:${roll}`, name, t("hexGm.ruler.namedDomain", { roll, domain: domain.name }), { domain, roll });
-		return choice(`book:${roll}`, name, t("hexGm.ruler.bookKnight", { roll }), { roll });
+		if (domain) return choice(`book:${roll}`, name, words.namedDomain(domain.name), { domain, roll });
+		return choice(`book:${roll}`, name, words.unmade, { roll });
+	};
+
+	const table = spreads().map(({ roll }) => {
+		const entry = findByRoll(index?.knights, roll);
+		const name = entry?.name ?? t("chooser.unnamed", { roll });
+		return fromPage(entry, roll, name, {
+			isKnight: t("hexGm.ruler.isKnight", { roll, book: name }),
+			namedDomain: (domain) => t("hexGm.ruler.namedDomain", { roll, domain }),
+			unmade: t("hexGm.ruler.bookKnight", { roll })
+		});
 	}).filter(Boolean);
+
+	const yours = own.map((entry) => fromPage(entry, refOf(entry), entry.name, {
+		isKnight: t("hexGm.ruler.isOwnKnight", { book: entry.name }),
+		namedDomain: (domain) => t("hexGm.ruler.namedDomainOwn", { domain }),
+		unmade: t("hexGm.ruler.ownKnight")
+	})).filter(Boolean);
 
 	const others = knights.filter((knight) => !placed.has(knight)).map((knight) => choice(`knight:${knight.id}`, knight.name, t("hexGm.ruler.noDomain"), { knight }));
 
 	// Whoever rules it now is chosen to start with, or else the first offered.
-	const all = [...domained, ...table, ...others];
+	const all = [...domained, ...table, ...yours, ...others];
 	if (!all.some(({ checked }) => checked) && all.length) all[0].checked = true;
-	return { domained, table, others };
+	return { domained, table, own: yours, others };
 }
 
 /**
@@ -142,8 +166,10 @@ export async function grantHolding(scene, hex) {
 	const holding = realm ? featureAt(realm, hex).holding : null;
 	if (!holding?.id) return null;
 	const before = rulersOf(scene, holding);
-	const index = await loadArtIndex();
-	const choices = grantChoices({ index, knights: rulingKnights(), domains: worldDomains(), ruling: before.map(({ domain }) => domain) });
+	const index = await knightIndex();
+	// knightIndex leaves out any written Knight sharing a book Knight's name.
+	const own = (index.knights ?? []).filter(isOwnRecord);
+	const choices = grantChoices({ index, own, knights: rulingKnights(), domains: worldDomains(), ruling: before.map(({ domain }) => domain) });
 	const name = holdingName(holding, t);
 	const data = await inputDialog({
 		title: t("hexGm.ruler.grantTitle", { name }),
@@ -153,7 +179,7 @@ export async function grantHolding(scene, hex) {
 		ok: { label: t("hexGm.ruler.grant"), icon: "fa-solid fa-chess-rook" },
 		render: (_event, dialog) => wireGrantSearch(dialog.element)
 	});
-	const chosen = [...choices.domained, ...choices.table, ...choices.others].find(({ value }) => value === data?.ruler);
+	const chosen = [...choices.domained, ...choices.table, ...choices.own, ...choices.others].find(({ value }) => value === data?.ruler);
 	if (!chosen) return null;
 
 	const ref = holdingRef(scene.id, holding.id);
