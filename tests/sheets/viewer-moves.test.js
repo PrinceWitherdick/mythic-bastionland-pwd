@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { withBookText } from "../../module/rules/book-text.js";
 
 const root = join(import.meta.dirname, "../..");
@@ -47,14 +47,19 @@ function knight() {
 	return { name: "Sir Ose", update: vi.fn(), system: { fatigued: false, knowsFeat: () => true } };
 }
 
-beforeEach(async () => {
-	messages = [];
+// The sheet's graph is most of the system, so it's loaded once, over stubs that stay for the whole file:
+// whatever the graph kept hold of as it loaded is what every test sees.
+beforeAll(async () => {
 	installFoundryStubs();
-	vi.resetModules();
 	({ BastionlandActorSheet } = await import("../../module/sheets/BastionlandActorSheet.js"));
 });
 
-afterEach(() => {
+beforeEach(() => {
+	messages = [];
+	vi.clearAllMocks();
+});
+
+afterAll(() => {
 	delete globalThis.foundry;
 	delete globalThis.game;
 	delete globalThis.ChatMessage;

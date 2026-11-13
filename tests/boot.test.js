@@ -1,9 +1,7 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../module/system-id.js";
-
-const root = join(import.meta.dirname, "..");
+import { fileFor } from "./repo-files.js";
 
 /**
  * Just enough of Foundry's globals for the entry module and everything it
@@ -74,9 +72,6 @@ function installFoundryStubs() {
 	};
 	return hooks;
 }
-
-/** Map a served template path back to the file in this repository. */
-const fileForTemplate = (path) => join(root, path.replace(/^systems\/[^/]+\//, ""));
 
 describe("system boot", () => {
 	let hooks;
@@ -149,7 +144,7 @@ describe("system boot", () => {
 
 		for (const sheet of [knightSheet, npcSheet, domainSheet, structureSheet, itemSheet]) {
 			for (const part of Object.values(sheet.PARTS)) {
-				expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+				expect(existsSync(fileFor(part.template)), part.template).toBe(true);
 			}
 		}
 	});
@@ -162,7 +157,7 @@ describe("system boot", () => {
 			.find(([registeredClass, , , sheetOptions]) => registeredClass === Actor && sheetOptions.types.includes(GM_TOOLKIT_TYPE));
 		expect(options).toMatchObject({ types: [GM_TOOLKIT_TYPE], makeDefault: true });
 		for (const part of Object.values(toolkitSheet.PARTS)) {
-			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+			expect(existsSync(fileFor(part.template)), part.template).toBe(true);
 		}
 		// Every page on the rail has a part to draw it, the GM's own Settings last.
 		const tabs = toolkitSheet.TABS.primary.tabs.map((tab) => tab.id);
@@ -193,7 +188,7 @@ describe("system boot", () => {
 		// Foundry knows a sheet by its scope and class name, and each Site's entry stores that name.
 		expect(`${scope}.${siteSheet.name}`).toBe(SITE_SHEET_CLASS);
 		for (const part of Object.values(siteSheet.PARTS)) {
-			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+			expect(existsSync(fileFor(part.template)), part.template).toBe(true);
 		}
 		expect(hooks.renderJournalDirectory).toBeTypeOf("function");
 	});
@@ -207,7 +202,7 @@ describe("system boot", () => {
 		// Each written Myth's entry stores the sheet by its scope and class name.
 		expect(`${scope}.${mythSheet.name}`).toBe(OWN_MYTH_SHEET_CLASS);
 		for (const part of Object.values(mythSheet.PARTS)) {
-			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+			expect(existsSync(fileFor(part.template)), part.template).toBe(true);
 		}
 		expect(game.system.api.newOwnMyth).toBeTypeOf("function");
 	});
@@ -220,7 +215,7 @@ describe("system boot", () => {
 		expect(options).toMatchObject({ makeDefault: false, canBeDefault: false, label: "bastionland.ownKnight.sheet" });
 		expect(`${scope}.${knightSheet.name}`).toBe(OWN_KNIGHT_SHEET_CLASS);
 		for (const part of Object.values(knightSheet.PARTS)) {
-			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+			expect(existsSync(fileFor(part.template)), part.template).toBe(true);
 		}
 		expect(game.system.api.newOwnKnight).toBeTypeOf("function");
 	});
@@ -229,7 +224,7 @@ describe("system boot", () => {
 		const [[partials]] = foundry.applications.handlebars.loadTemplates.mock.calls;
 		expect(Object.keys(partials)).toEqual(expect.arrayContaining(["bastionland.item-row", "bastionland.add-item", "bastionland.save-result"]));
 		for (const path of Object.values(partials)) {
-			expect(existsSync(fileForTemplate(path)), path).toBe(true);
+			expect(existsSync(fileFor(path)), path).toBe(true);
 		}
 	});
 

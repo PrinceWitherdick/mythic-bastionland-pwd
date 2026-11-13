@@ -50,6 +50,8 @@ async function load() {
 	welcome.greetGM();
 }
 
+// Welcome.js imports about half the system: a second or two alone, but past the 10s hook limit while the
+// full suite fills every thread, so this hook is given a minute.
 beforeAll(async () => {
 	globalThis.foundry = {
 		applications: {
@@ -70,7 +72,7 @@ beforeAll(async () => {
 	worldSetup = await import("../../module/world-setup.js");
 	welcome = await import("../../module/apps/Welcome.js");
 	realmTour = await import("../../module/apps/realm-tour.js");
-});
+}, 60_000);
 
 beforeEach(() => {
 	opened = [];

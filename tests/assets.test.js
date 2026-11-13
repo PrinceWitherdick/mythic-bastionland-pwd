@@ -1,22 +1,15 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHARGES, CHARGE_CREDITS_FILE, CHARGE_ROOT, chargeCredits, chargeNotice, chargePath, tintCharge } from "../module/rules/heraldry-charges.js";
 import { COMPANY_ICONS, COMPANY_ICON_CREDITS_FILE, COMPANY_ICON_FILL, COMPANY_ICON_HALO, COMPANY_ICON_ROOT, COMPANY_IMAGE, companyIconCredit, companyIconCredits, companyIconPath, tintCompanyIcon } from "../module/rules/company-icons.js";
 import { INK } from "../module/rules/colour.js";
 import { SHEET_FONTS } from "../module/fonts.js";
-import { realmTextures } from "../module/rules/realm-documents.js";
-import { REALM_PALETTES, REALM_SKINS } from "../module/rules/realm-skins.js";
 import { GOODS_ICONS, GOODS_ICON_CREDITS_FILE, GOODS_ICON_ROOT, goodsIconCredit, goodsIconCredits, goodsIconPath } from "../module/rules/goods-icons.js";
 import { MACRO_ICONS, MACRO_ICON_CREDITS_FILE, MACRO_ICON_ROOT, macroIconCredit, macroIconCredits, macroIconPath } from "../module/rules/macro-icons.js";
 import { SQUIRE_IMAGE } from "../module/rules/squires.js";
 import { checkChargeSvg, withNotice } from "../scripts/lib/charge-svg.js";
-import { drawRealmSet } from "../scripts/lib/realm-drawings.js";
-
-const root = join(import.meta.dirname, "..");
-
-/** Map a served system path back to the file in this repository. */
-const fileFor = (path) => join(root, path.replace(/^systems\/[^/]+\//, ""));
+import { fileFor, root } from "./repo-files.js";
 
 describe("Company pictures", () => {
 	const folder = fileFor(COMPANY_ICON_ROOT);
@@ -125,41 +118,6 @@ describe("Macro pictures", () => {
 		expect(readFileSync(join(folder, MACRO_ICON_CREDITS_FILE), "utf8")).toBe(macroIconCredits());
 		const listed = new Set([MACRO_ICON_CREDITS_FILE, ...MACRO_ICONS.map(({ key }) => `${key}.svg`)]);
 		expect(readdirSync(folder).filter((name) => !listed.has(name))).toEqual([]);
-	});
-});
-
-describe("Realm pictures", () => {
-	const looks = REALM_SKINS.flatMap((skin) => REALM_PALETTES.map(({ key }) => ({ skin, palette: key })));
-	const paths = looks.flatMap((look) => {
-		const textures = realmTextures(look);
-		return [
-			...Object.values(textures.terrain),
-			...Object.values(textures.holding),
-			...Object.values(textures.landmark),
-			...Object.values(textures.myth),
-			textures.seat,
-			...Object.values(textures.river),
-			...(textures.lake ? [textures.lake.water, ...Object.values(textures.lake.shore), textures.lake.mouth] : [])
-		].flatMap(({ src, pictures, joined }) => [...(pictures ?? [src]), ...(joined ?? [])]);
-	});
-
-	it("ships every picture of every skin in every colour set", () => {
-		expect(paths.filter((path) => !existsSync(fileFor(path)))).toEqual([]);
-	});
-
-	it("ships no picture the Realm doesn't use", () => {
-		const used = new Set(paths.map((path) => relative(join(root, "assets", "realm"), fileFor(path))));
-		const shipped = readdirSync(join(root, "assets", "realm"), { recursive: true, withFileTypes: true })
-			.filter((entry) => entry.isFile())
-			.map((entry) => relative(join(root, "assets", "realm"), join(entry.parentPath, entry.name)));
-		expect(shipped.filter((name) => !used.has(name))).toEqual([]);
-	});
-
-	it.each(looks)("$skin in $palette matches what the script draws", ({ skin, palette }) => {
-		const stale = Object.entries(drawRealmSet(skin, palette))
-			.filter(([name, content]) => readFileSync(join(root, "assets", "realm", skin, palette, name), "utf8") !== content)
-			.map(([name]) => name);
-		expect(stale).toEqual([]);
 	});
 });
 

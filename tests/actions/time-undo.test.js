@@ -25,6 +25,7 @@ vi.mock("../../module/actions/calendar.js", () => ({
 }));
 
 const { answeringWrite, captureAdvance, currentAdvanceId, advanceRecords, registerTimeCapture, watchWrites } = await import("../../module/actions/time-capture.js");
+
 const { setTurningScope } = await import("../../module/actions/calendar.js");
 const { registerTimeUndo, undoAdvance, undoOffer, undoMessage } = await import("../../module/actions/time-undo.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
@@ -136,6 +137,9 @@ function documentClass(name) {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	// Each settle waits out its real quiet, at once: the clock jumps to the next timer whenever the test waits.
+	vi.useFakeTimers();
+	vi.setTimerTickMode("nextTimerAsync");
 	hooks = new Map();
 	docs = new Map();
 	stored = new Map();
@@ -202,6 +206,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	vi.useRealTimers();
 	for (const name of ["Hooks", "CONFIG", "foundry", "fromUuidSync", "ChatMessage", "game", "ui"]) delete globalThis[name];
 });
 
