@@ -16,9 +16,20 @@ const SELECTOR = "[data-hex-target]";
  * What a card's template needs for the chip, through the bastionland.hex-target partial.
  * @param {{col: number, row: number}} hex
  * @param {Scene|null} scene The Realm it's in.
- * @returns {{key: string, scene: string, label: string}}
+ * @returns {{key: string, scene: string, label: string, smallCaps: boolean}}
  */
-export const hexTarget = (hex, scene) => ({ key: hexKey(hex), scene: scene?.id ?? "", label: hexLabel(hex, scene) });
+export function hexTarget(hex, scene) {
+	const label = hexLabel(hex, scene);
+	return { key: hexKey(hex), scene: scene?.id ?? "", label, smallCaps: smallCapsLabel(label) };
+}
+
+/**
+ * Whether words set in the Caps face are mostly its small capitals, and so are
+ * centred on those: any lowercase and no figures, which stand as tall as capitals.
+ * @param {string} label
+ * @returns {boolean}
+ */
+export const smallCapsLabel = (label) => /\p{Ll}/u.test(String(label ?? "")) && !/\d/.test(String(label ?? ""));
 
 /**
  * @param {HTMLElement} chip

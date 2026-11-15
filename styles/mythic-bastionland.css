@@ -39,6 +39,12 @@
  * the capitals: 0.978em above and 0.29em below. Each IM Fell face carries
  * the pair here and in module/fonts.js, whose faces Foundry adds after these
  * and so are the ones drawn (tests/styles/icon-centre.test.js).
+ *
+ * IM Fell SC, the Caps face of every button, draws its lowercase as small
+ * capitals only 0.4375em tall, and a label such as "Start from a book Knight"
+ * is mostly those. Its line box is centred on them instead: 0.853em above and
+ * 0.415em below, the same height again. A label all in capitals then sits
+ * 0.125em high, which is why none should be (2026-11-15, the user's call).
  */
 @font-face {
 	font-family: "Bastionland Body";
@@ -62,8 +68,8 @@
 	font-family: "Bastionland Caps";
 	src: url("../assets/fonts/IMFellEnglishSC-Regular.ttf") format("truetype");
 	font-display: swap;
-	ascent-override: 97.8%;
-	descent-override: 29%;
+	ascent-override: 85.3%;
+	descent-override: 41.5%;
 }
 
 /*
@@ -497,6 +503,15 @@ a.button:focus:not(:focus-visible) {
 	height: 1px;
 	background: var(--bastionland-rubric);
 	opacity: 0.4;
+}
+
+/* A heading is all capitals, but the Caps face's line box centres on its small
+   capitals, so the line beside it rises to the capitals' middle: half of
+   0.6875em less 0.4375em. Moved, not laid out again, so the heading keeps its height. */
+.bastionland-heading::after,
+.bastionland-oath .bastionland-heading::before {
+	position: relative;
+	top: -0.125em;
 }
 
 .bastionland-heading--small {
@@ -1854,6 +1869,15 @@ a.button:focus:not(:focus-visible) {
 	.bastionland-pill--small-caps {
 		--pill-edge: 1ex;
 		text-box: trim-both ex alphabetic;
+	}
+
+	/* An icon on the line stands where a capital's middle would be, so in a
+	   small-caps pill it drops to the small capitals': half of IM Fell SC's
+	   capital less its small capital (0.6875em − 0.4375em). Moved, not laid
+	   out again, so the trimmed pill keeps its height. */
+	.bastionland-pill--small-caps > i {
+		position: relative;
+		top: 0.125em;
 	}
 
 	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
@@ -4696,8 +4720,11 @@ a.button:focus:not(:focus-visible) {
 	border-radius: 6px;
 }
 
+/* A die's number is drawn from the body face, whose line box centres on figures
+   as tall as capitals; both faces take their figures from EB Garamond, so it
+   looks the same. The Caps face centres on its small capitals instead. */
 .bastionland-page .bastionland-chooser__group {
-	font-family: var(--bastionland-font-caps);
+	font-family: var(--bastionland-font-body);
 	font-size: 1.25rem;
 	text-align: center;
 }
@@ -8097,6 +8124,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-page .bastionland-chooser__group.bastionland-myth-chooser__own-group {
 	width: auto;
 	padding: 0 0.6rem;
+	font-family: var(--bastionland-font-caps);
 }
 
 /* ---------------------------------------------------------------- */
@@ -9233,7 +9261,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-welcome__where dt {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	gap: 0.4rem;
 	font-family: var(--bastionland-font-caps);
 	font-weight: normal;

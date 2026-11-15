@@ -162,7 +162,7 @@
 		<label>{{localize "bastionland.realm.landmarks.pairWith"}}</label>
 		<div class="form-fields">
 			{{#if key}}
-			<button type="button" class="bastionland-pill bastionland-hex-target" data-action="showPairedHex" data-pair-hex="{{key}}" data-tooltip="{{localize "bastionland.realm.landmarks.pairHint"}}"><i class="fa-solid fa-crosshairs" inert></i> {{label}}</button>
+			<button type="button" class="bastionland-pill{{#if smallCaps}} bastionland-pill--small-caps{{/if}} bastionland-hex-target" data-action="showPairedHex" data-pair-hex="{{key}}" data-tooltip="{{localize "bastionland.realm.landmarks.pairHint"}}"><i class="fa-solid fa-crosshairs" inert></i> {{label}}</button>
 			{{else}}
 			<span class="bastionland-hex-lore__hint">{{label}}</span>
 			{{/if}}

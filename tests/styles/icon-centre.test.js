@@ -96,11 +96,13 @@ describe("the badges that centre a glyph or a figure", () => {
 	/*
 	 * The Referee's own Myths take a word, Yours, in the row of d6 results.
 	 * Only the width gives way to the word: the height and the lettering stay
-	 * the whole pixels the d6 results are centred by.
+	 * the whole pixels the d6 results are centred by. The word keeps the Caps
+	 * face, centred on its small capitals, where the figures take the body's.
 	 */
 	it("widens the Myths window's Yours button and changes nothing else of the d6 results' box", () => {
 		const own = rule("mythic-bastionland.css", ".bastionland-page .bastionland-chooser__group.bastionland-myth-chooser__own-group");
-		expect(Object.keys(own).sort()).toEqual(["padding", "width"]);
+		expect(Object.keys(own).sort()).toEqual(["font-family", "padding", "width"]);
+		expect(own["font-family"]).toBe("var(--bastionland-font-caps)");
 		expect(own.width).toBe("auto");
 		expect(own.padding).toMatch(/^0 /);
 	});
@@ -151,19 +153,92 @@ describe("centring the letters", () => {
 	 * same height out so the line box centres on the capitals, in the
 	 * stylesheet and in the register Foundry draws from.
 	 */
-	it("gives every IM Fell face a line box centred on its capitals", () => {
+	/*
+	 * IM Fell SC, the Caps face every button is set in, draws lowercase as small
+	 * capitals 0.4375em tall, and a label such as "Start from a book Knight" is
+	 * mostly those: centred on its capitals, it read 1–2px low (the user's call,
+	 * 2026-11-15, measured offline and live). Its line box centres on the small
+	 * capitals instead, the same height shared out again.
+	 */
+	it("gives IM Fell's faces a line box centred on their capitals, and the small-caps face on its small capitals", () => {
 		const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((match) => match[1]).filter((body) => body.includes("IMFell"));
 		const registered = Object.values(SHEET_FONTS).flat().filter(({ urls }) => urls.some((url) => url.includes("IMFell")));
 		expect([faces.length, registered.length]).toEqual([3, 3]);
-		const pairs = new Set([
-			...faces.map((face) => `${/ascent-override:\s*([\d.]+%)/.exec(face)?.[1]} ${/descent-override:\s*([\d.]+%)/.exec(face)?.[1]}`),
-			...registered.map((font) => `${font.ascentOverride} ${font.descentOverride}`)
+		const pairsOf = (smallCaps) => new Set([
+			...faces.filter((face) => face.includes("IMFellEnglishSC") === smallCaps).map((face) => `${/ascent-override:\s*([\d.]+%)/.exec(face)?.[1]} ${/descent-override:\s*([\d.]+%)/.exec(face)?.[1]}`),
+			...registered.filter(({ urls }) => urls[0].includes("IMFellEnglishSC") === smallCaps).map((font) => `${font.ascentOverride} ${font.descentOverride}`)
 		]);
-		expect([...pairs], "one pair, on every face").toHaveLength(1);
-		// Chrome's measures of IM Fell, in em: ascent 0.905, descent 0.363, capitals 0.6875.
-		const [ascent, descent] = [...pairs][0].split(" ").map(parseFloat);
-		expect(ascent + descent).toBeCloseTo(90.5 + 36.3, 0);
-		expect(ascent - descent).toBeCloseTo(68.75, 0);
+		// Chrome's measures of IM Fell, in em: ascent 0.905, descent 0.363, capitals 0.6875; IM Fell SC's small capitals 0.4375.
+		for (const [smallCaps, middle] of [[false, 68.75], [true, 43.75]]) {
+			const pairs = pairsOf(smallCaps);
+			expect([...pairs], "one pair, here and in the register").toHaveLength(1);
+			const [ascent, descent] = [...pairs][0].split(" ").map(parseFloat);
+			expect(ascent + descent).toBeCloseTo(90.5 + 36.3, 0);
+			expect(ascent - descent).toBeCloseTo(middle, 0);
+		}
+	});
+
+	/*
+	 * With the Caps face centred on its small capitals, what stands as tall as a
+	 * capital is drawn otherwise: a die's figure in the body face (the same EB
+	 * Garamond figures), and a small-caps pill's icon dropped to the small
+	 * capitals' middle. A hex chip is a small-caps pill when its name has
+	 * lowercase and no figures. Measured offline with centre.mjs: 0 findings.
+	 */
+	it("draws figures and small-caps pills' icons to suit the Caps face's line box", () => {
+		expect(rule("mythic-bastionland.css", ".bastionland-page .bastionland-chooser__group")["font-family"]).toBe("var(--bastionland-font-body)");
+		expect(rule("mythic-bastionland.css", ".bastionland-page .bastionland-chooser__group.bastionland-myth-chooser__own-group")["font-family"]).toBe("var(--bastionland-font-caps)");
+		expect(rule("chat.css", ".bastionland-session-end__d6")["font-family"]).toBe("var(--bastionland-font-body)");
+		expect(css).toMatch(/\.bastionland-pill--small-caps > i \{\s*position: relative;\s*top: 0\.125em;/);
+		// A heading is all capitals, so the line beside it rises back to their middle (bullets.mjs: normal headings ≤1.2px).
+		expect(css).toMatch(/\.bastionland-heading::after,\s*\.bastionland-oath \.bastionland-heading::before \{\s*position: relative;\s*top: -0\.125em;/);
+		expect(readFileSync(join(root, "templates/chat/parts/hex-target.hbs"), "utf8")).toContain("{{#if smallCaps}} bastionland-pill--small-caps{{/if}}");
+	});
+
+	/*
+	 * Other words all in capitals beside a mark: the Knight Ledger's dates with
+	 * their rule line, and the Realm-drawing banner's title with its icon. Each
+	 * mark rises by the same 0.125em of the words' size, measured offline
+	 * (probe-ledger-date.mjs 3px to ≤1px, probe-banner-ink.mjs 4px to ≤1px).
+	 * A banner with a line under its title keeps its icon on the middle of both.
+	 */
+	it("raises the marks beside other all-capitals Caps words to the capitals' middle", () => {
+		expect(rule("chat.css", ".bastionland-ledger-window .bastionland-ledger__date")["text-transform"]).toBe("uppercase");
+		expect(rule("chat.css", ".bastionland-ledger__date::after")).toMatchObject({ position: "relative", top: "-0.125em" });
+		const title = rule("chat.css", ".bastionland-rail-dialog__title");
+		expect(title["text-transform"]).toBe("uppercase");
+		const icon = rule("chat.css", ".bastionland-rail-dialog__banner:not(:has(.bastionland-rail-dialog__sub)) > i");
+		expect(icon).toMatchObject({ position: "relative", top: `calc(-0.125 * ${title["font-size"]})` });
+		expect(rule("chat.css", ".bastionland-rail-dialog__banner > i")).not.toHaveProperty("top");
+	});
+
+	/*
+	 * Icon-plus-label rows in the Caps face whose labels are mostly small
+	 * capitals, so they centre on its line box as it stands: the welcome
+	 * window's places (centred, not on the baseline) and the written Knight's
+	 * Frame and No Picture buttons, which are the shared button with no rule of
+	 * their own. Measured offline: centre.mjs and probe-own-knight-frame.mjs, 0
+	 * findings at 1×/1.25×/1.5×.
+	 */
+	it("centres the welcome window's places and the written Knight's picture buttons on their small capitals", () => {
+		const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
+		const label = (key) => key.split(".").reduce((node, part) => node?.[part], lang) ?? lang[key];
+		const smallCaps = (text) => /\p{Ll}/u.test(text) && !/\d/.test(text);
+
+		const where = rule("mythic-bastionland.css", ".bastionland-welcome__where dt");
+		expect(where).toMatchObject({ display: "flex", "align-items": "center", "font-family": "var(--bastionland-font-caps)" });
+		const welcome = readFileSync(join(root, "templates/apps/welcome.hbs"), "utf8");
+		const terms = [...welcome.matchAll(/<dt><i class="[^"]+" inert><\/i> \{\{localize "([^"]+)"\}\}<\/dt>/g)].map((match) => label(match[1]));
+		expect(terms).toHaveLength(4);
+		expect(terms.filter((term) => !smallCaps(term))).toEqual([]);
+
+		const ownKnight = readFileSync(join(root, "templates/apps/own-knight.hbs"), "utf8");
+		for (const name of ["bastionland-own-knight__frame", "bastionland-own-myth__clear"]) {
+			const button = new RegExp(`<button type="button" class="bastionland-button ${name}"[^>]*><i class="[^"]+" inert></i> \\{\\{localize "([^"]+)"\\}\\}</button>`).exec(ownKnight);
+			expect(button, name).not.toBeNull();
+			expect(smallCaps(label(button[1])), name).toBe(true);
+			expect(rules.filter(({ selectors }) => selectors.some((selector) => selector.includes(name))), `${name} has no rule of its own`).toEqual([]);
+		}
 	});
 
 	/*

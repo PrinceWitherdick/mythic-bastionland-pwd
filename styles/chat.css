@@ -1039,6 +1039,14 @@
 	text-align: center;
 }
 
+/* Beside a title alone, all in capitals, it rises from the Caps face's small
+   capitals to the capitals' middle: 0.125em of the title's size. Moved, not
+   laid out again. Beside a title and the line under it, it stays on the middle of both. */
+.bastionland-rail-dialog__banner:not(:has(.bastionland-rail-dialog__sub)) > i {
+	position: relative;
+	top: calc(-0.125 * 1.35rem);
+}
+
 .bastionland-rail-dialog__banner > div {
 	display: flex;
 	flex-direction: column;
@@ -1578,14 +1586,6 @@
 	margin: 0;
 }
 
-/* A choice that belongs to the one above it, such as a weapon's specialist die. */
-.bastionland-check--nested {
-	margin-inline-start: 1.6rem;
-	font-size: var(--bastionland-font-note);
-}
-
-.bastionland-tag {
-	font-size: var(--bastionland-font-floor);
 /* A pick-one list long enough to want a search, such as Start from a book
    Knight's 72: the box over the list, which still scrolls on its own. */
 .bastionland-pick-one__search {
@@ -1603,6 +1603,14 @@
 	margin: 0;
 }
 
+/* A choice that belongs to the one above it, such as a weapon's specialist die. */
+.bastionland-check--nested {
+	margin-inline-start: 1.6rem;
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-tag {
+	font-size: var(--bastionland-font-floor);
 	opacity: 0.8;
 }
 
@@ -2343,6 +2351,10 @@
 	content: "";
 	flex: 1;
 	border-bottom: 1px solid var(--bastionland-rule);
+	/* The date is all capitals, so the line rises from the small capitals' middle,
+	   where the Caps face centres, to the capitals', as a heading's does. */
+	position: relative;
+	top: -0.125em;
 }
 
 .bastionland-ledger__day ol {
@@ -2478,7 +2490,8 @@
 	border: 1px solid var(--bastionland-ink);
 	border-radius: 3px;
 	background: var(--bastionland-paper-deep);
-	font-family: var(--bastionland-font-caps);
+	/* The body face: its line box centres on figures, the Caps face's on small capitals. */
+	font-family: var(--bastionland-font-body);
 	font-variant-numeric: lining-nums tabular-nums;
 	vertical-align: middle;
 }

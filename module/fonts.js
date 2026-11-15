@@ -6,6 +6,9 @@ export const FONT_ROOT = `${SYSTEM_PATH}/assets/fonts`;
 /** IM Fell's line box, centred on its capitals as its `@font-face` rules have it. */
 const FELL_CENTRED = Object.freeze({ ascentOverride: "97.8%", descentOverride: "29%" });
 
+/** IM Fell SC's line box, centred on its small capitals, which are most of any label set in it. */
+const FELL_SC_CENTRED = Object.freeze({ ascentOverride: "85.3%", descentOverride: "41.5%" });
+
 /**
  * The faces the stylesheet draws the sheets with. Foundry keeps its own
  * register of fonts, and offers only what is in it from the Chronicle's font
@@ -31,7 +34,7 @@ export const SHEET_FONTS = Object.freeze({
 		{ urls: [`${FONT_ROOT}/EBGaramond-Figures.ttf`], unicodeRange: "U+0030-0039" }
 	],
 	"Bastionland Caps": [
-		{ urls: [`${FONT_ROOT}/IMFellEnglishSC-Regular.ttf`], ...FELL_CENTRED },
+		{ urls: [`${FONT_ROOT}/IMFellEnglishSC-Regular.ttf`], ...FELL_SC_CENTRED },
 		{ urls: [`${FONT_ROOT}/EBGaramond-Figures.ttf`], unicodeRange: "U+0030-0039" }
 	]
 });
