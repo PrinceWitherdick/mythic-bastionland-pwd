@@ -436,6 +436,21 @@ export function filterBySearch(page, term, noMatch = null) {
 }
 
 /**
+ * A dialog's search box over its list: typing hides what it doesn't find, and
+ * Enter in it doesn't send the dialog with whatever happens to be chosen.
+ * @param {HTMLInputElement|null|undefined} box
+ * @param {HTMLElement|null|undefined} list What filterBySearch looks through.
+ * @param {string} [noMatch] The selector of the line saying nothing was found.
+ */
+export function wireSearchBox(box, list, noMatch = null) {
+	if (!box || !list) return;
+	box.addEventListener("input", () => filterBySearch(list, box.value, noMatch));
+	box.addEventListener("keydown", (event) => {
+		if (event.key === "Enter") event.preventDefault();
+	});
+}
+
+/**
  * Hang labelled buttons in a window's title bar, left of Foundry's own
  * controls, in place of any hung before under the same class. Their
  * data-action is the window's to handle.

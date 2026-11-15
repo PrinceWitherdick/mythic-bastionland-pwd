@@ -28,8 +28,8 @@ import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actio
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { registerOwnKnightRenameHooks } from "./module/actions/own-knight-renames.js";
-import { addNewKnightButton, newOwnKnight } from "./module/actions/own-knights.js";
-import { addNewMythButton, newOwnMyth } from "./module/actions/own-myths.js";
+import { addNewKnightButton, newOwnKnight, renameOldOwnKnightsFolder } from "./module/actions/own-knights.js";
+import { addNewMythButton, newOwnMyth, renameOldOwnMythsFolder } from "./module/actions/own-myths.js";
 import { registerCompanionQueries, watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_LINES_STEP, COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, POSSESSION_EFFECTS_STEP, POSSESSION_SPLITS_STEP, THROWN_AND_PAIRS_STEP, catchUpThrownAndPairs, dropCompanionLines, dropOwnerFromCompanionNames, fillPossessionDetails, fillPossessionEffects, retypeKnightProperty, splitKnightGear } from "./module/actions/property.js";
@@ -764,6 +764,9 @@ Hooks.once("ready", async () => {
 	convertImportedNpcKnights();
 	// Knights made while no GM was on get their folders now.
 	fileWaitingKnights();
+	// The written Knights' and Myths' folders, made as "Your Knights" and "Your Myths", are called Homebrew now.
+	renameOldOwnKnightsFolder().catch((error) => console.error(`${SYSTEM_ID} | Couldn't rename the Homebrew Knights folder`, error));
+	renameOldOwnMythsFolder().catch((error) => console.error(`${SYSTEM_ID} | Couldn't rename the Homebrew Myths folder`, error));
 	// A Knight given to this player while they were away opens for them to choose.
 	openOfferedKnights();
 	// A Knight's table rolled again each Season, Night or Day is marked, and its player told, when that time comes.

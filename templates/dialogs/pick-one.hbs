@@ -1,4 +1,12 @@
 <div class="bastionland-dialog__body">
 	{{#if intro}}<p>{{intro}}</p>{{/if}}
+	{{#if search}}
+	<input type="search" class="bastionland-pick-one__search" placeholder="{{search.label}}" aria-label="{{search.label}}" autocomplete="off">
+	<div class="bastionland-pick-one__list">
+		{{> "bastionland.pick-list" name="choice" legend=legend choices=choices full=full unchosen=unchosen}}
+		<p class="bastionland-empty bastionland-pick-one__none" hidden>{{search.none}}</p>
+	</div>
+	{{else}}
 	{{> "bastionland.pick-list" name="choice" legend=legend choices=choices full=full unchosen=unchosen}}
+	{{/if}}
 </div>

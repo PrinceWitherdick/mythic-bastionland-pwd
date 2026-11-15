@@ -4,9 +4,12 @@
 	{{#*inline "picture"}}
 	<div class="bastionland-own-myth__picture">
 		<button type="button" class="bastionland-own-myth__art bastionland-own-knight__art--{{which}}{{#unless img}} is-empty{{/unless}}" data-action="pickPicture" data-picture="{{which}}" {{#unless @root.editable}}disabled{{/unless}} data-tooltip="{{label}}" aria-label="{{label}}">
-			{{#if img}}<img src="{{img}}" alt="">{{else}}<i class="fa-solid fa-image" inert></i>{{/if}}
+			{{#if img}}<img src="{{img}}" alt=""{{#if style}} style="{{style}}"{{/if}}>{{else}}<i class="fa-solid fa-image" inert></i>{{/if}}
 		</button>
 		{{#if img}}{{#if @root.editable}}
+		{{#if frame}}
+		<button type="button" class="bastionland-button bastionland-own-knight__frame" data-action="framePortrait"><i class="fa-solid fa-crop-simple" inert></i> {{localize "bastionland.portrait.frame"}}</button>
+		{{/if}}
 		<button type="button" class="bastionland-button bastionland-own-myth__clear" data-action="clearPicture" data-picture="{{which}}"><i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.ownMyth.clearPicture"}}</button>
 		{{/if}}{{/if}}
 	</div>
@@ -48,12 +51,8 @@
 
 	{{!-- The Knight --}}
 	<div class="bastionland-own-myth__top">
-		<div class="bastionland-own-knight__pictures">
-			{{> picture which="img" img=knight.img label=(localize "bastionland.ownKnight.pickPortrait")}}
-			{{!-- The token, square; without one, the portrait is the token. --}}
-			<span class="bastionland-own-myth__label">{{localize "bastionland.ownKnight.token"}}</span>
-			{{> picture which="token" img=knight.token label=(localize "bastionland.ownKnight.pickToken")}}
-		</div>
+		{{!-- Their portrait, which is their token too, framed as a Knight sheet will show it. --}}
+		{{> picture which="img" img=knight.img style=knight.imgStyle frame=true label=(localize "bastionland.ownKnight.pickPortrait")}}
 		<div class="bastionland-own-myth__heading">
 			<div class="bastionland-own-myth__field">
 				<label class="bastionland-own-myth__label" for="{{rootId}}-type">{{localize "bastionland.ownKnight.name"}}</label>

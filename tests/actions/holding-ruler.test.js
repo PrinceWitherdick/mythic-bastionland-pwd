@@ -20,7 +20,7 @@ const inputDialog = vi.fn(async () => answer);
 const foundDomain = vi.fn(async () => domainOf("Founded", "Scene.s1.Tile.t1"));
 const create = vi.fn(async (data) => ({ ...domainOf(data.name, data.system.holding, data.system.ruler), created: data }));
 
-vi.mock("../../module/apps/ui.js", () => ({ filterBySearch: vi.fn(), inputDialog: (...args) => inputDialog(...args) }));
+vi.mock("../../module/apps/ui.js", () => ({ wireSearchBox: vi.fn(), inputDialog: (...args) => inputDialog(...args) }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 vi.mock("../../module/book-art/art-index.js", () => ({ findByRoll: (list, roll) => list?.find((entry) => entry.roll === roll) ?? null, loadArtIndex: async () => index }));
 const linkKnightDomain = vi.fn();

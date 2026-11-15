@@ -8,10 +8,11 @@ vi.mock("../../module/apps/ui.js", () => ({
 	inputDialog: vi.fn(async (options) => {
 		asked = options;
 		return answer;
-	})
+	}),
+	wireSearchBox: vi.fn()
 }));
 
-const { chooseOne, waitForChoice } = await import("../../module/apps/actor-pick.js");
+const { chooseOne, waitForChoice, wirePickSearch } = await import("../../module/apps/actor-pick.js");
 
 beforeEach(() => {
 	asked = null;
@@ -53,6 +54,17 @@ describe("chooseOne", () => {
 		expect(asked.render).toBeTypeOf("function");
 	});
 
+	it("gives each row its words to search by, name and detail, only when asked for a search", async () => {
+		await chooseOne(items, { title: "T", message: "M" });
+		expect(asked.context.search).toBeNull();
+		expect(asked.context.choices[1]).not.toHaveProperty("search");
+		const search = { label: "Search the Knights…", none: "No Knight matches." };
+		await chooseOne(items, { title: "T", message: "M", search });
+		expect(asked.context.search).toBe(search);
+		expect(asked.context.choices.map((choice) => choice.search)).toEqual(["sir ash", "sir rival npc knight"]);
+		expect(asked.render).toBeTypeOf("function");
+	});
+
 	it("answers none for a window closed, or sent with nothing picked", async () => {
 		expect(await chooseOne(items, { title: "T", message: "M" })).toBeNull();
 		answer = { choice: null };
@@ -72,5 +84,41 @@ describe("waitForChoice", () => {
 	it("does nothing without a button to grey out", () => {
 		expect(() => waitForChoice(null)).not.toThrow();
 		expect(() => waitForChoice({ querySelector: () => null })).not.toThrow();
+	});
+});
+
+describe("wirePickSearch", () => {
+	/**
+	 * @param {boolean} hidden Whether the chosen row is hidden by the search.
+	 * @returns {{element: object, chosen: object, type: () => void}} A pick list with a search box and a chosen row.
+	 */
+	function searchDialog(hidden) {
+		const inputs = [];
+		const box = { addEventListener: (name, fn) => name === "input" && inputs.push(fn), focus: vi.fn() };
+		const chosen = { checked: true, closest: () => (hidden ? {} : null), dispatchEvent: vi.fn() };
+		const element = {
+			querySelector: (selector) => {
+				if (selector.includes("__search")) return box;
+				if (selector.includes(":checked")) return chosen.checked ? chosen : null;
+				return {};
+			}
+		};
+		return { element, chosen, type: () => inputs.forEach((fn) => fn()) };
+	}
+
+	it("unpicks a choice the search hides, so the button can't send one out of sight", () => {
+		const dialog = searchDialog(true);
+		wirePickSearch(dialog.element);
+		dialog.type();
+		expect(dialog.chosen.checked).toBe(false);
+		expect(dialog.chosen.dispatchEvent).toHaveBeenCalledOnce();
+	});
+
+	it("keeps a choice the search still shows", () => {
+		const dialog = searchDialog(false);
+		wirePickSearch(dialog.element);
+		dialog.type();
+		expect(dialog.chosen.checked).toBe(true);
+		expect(dialog.chosen.dispatchEvent).not.toHaveBeenCalled();
 	});
 });

@@ -44,6 +44,7 @@ import { deleteHexJournals } from "../actions/hex-journals.js";
 import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../actions/site-journals.js";
 import { writeSightings } from "../actions/sighted.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
+import { OWN_KNIGHT_FLAG, OWN_KNIGHT_SHEET_CLASS, findOwnKnightsFolder, ownKnightIndexEntry, ownKnightsFolder, ownSeerIndexEntry } from "../actions/own-knights.js";
 import { OWN_MYTH_FLAG, OWN_MYTH_SHEET_CLASS, findOwnMythsFolder, ownMythsFolder } from "../actions/own-myths.js";
 import { announcePhase, closeSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
 import { omensMet, timelineCircle, timelineCrisisRoll, timelineDuel, timelineFounded, timelineGloryAwarded, timelineJoined, timelineLandmarkFound, timelineMortalWound, timelineMustered, timelineScar, timelineSquireTaken } from "../actions/timeline-events.js";
@@ -57,7 +58,7 @@ import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, t } from "../chat/cards.js";
 import { TASK_SCOPE_ICONS, newTask } from "../rules/council-tasks.js";
 import { newCourtMember } from "../rules/court.js";
-import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
+import { STANDARD_KIT, chosenKnightUpdate, knightItems, knightUpdate, startFor } from "../rules/creation.js";
 import { crisesDrawn, crisisFor, crisisResult, holdingRef } from "../rules/dominion.js";
 import { createDuel } from "../rules/duel.js";
 import { hasTable } from "../rules/knight-tables.js";
@@ -69,6 +70,7 @@ import { rollKnightName } from "../rules/knight-names.js";
 import { NPC_KNIGHT_TYPE } from "../rules/knight-types.js";
 import { OMEN_COUNT } from "../rules/realm.js";
 import { editFeature, placeFeature, setBarrier, setOmen, setRevealed } from "../rules/realm-edits.js";
+import { normaliseOwnKnight } from "../rules/own-knights.js";
 import { normaliseOwnMyth } from "../rules/own-myths.js";
 import { createRandom } from "../rules/random.js";
 import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
@@ -171,7 +173,78 @@ const LANDMARK_NAMES = Object.freeze({
 const NEIGHBOURS = Object.freeze([
 	{ name: "Lord Aldric Vane", note: "Holds the Seat, and the Company's places at Court. Cold, careful, and short of money." },
 	{ name: "Dame Mirela Thorne", note: "Holds the tourney town. Unhorsed Corvin once, and reminds him of it." },
-	{ name: "Sir Gaspard Lusk", note: "Holds the march. Says he'd come to Isolde's aid, and hasn't yet." }
+	// The Bell Knight the Referee wrote (OWN_KNIGHTS), so a sheet shows one taken.
+	{ name: "Sir Gaspard Lusk", note: "Holds the march. Says he'd come to Isolde's aid, and hasn't yet.", written: "bell" }
+]);
+
+/**
+ * Knights the Referee wrote for themselves, each with their Seer, as New
+ * Knight writes them (own-knights.js), both ready for players to choose. The
+ * Lamplighter Knight is left for a player to take; the Bell Knight is Sir Gaspard,
+ * and their Seer keeps the Sanctum the Company go to first. Their pictures are
+ * borrowed from Knights and Seers of the book the story doesn't use.
+ */
+const OWN_KNIGHTS = Object.freeze([
+	{
+		key: "lamplighter",
+		name: "The Lamplighter Knight",
+		knight: {
+			verse: ["Carries the last light of a burnt village", "and will not set it down."],
+			property: ["Hooked spear (d8 long), gambeson (A1)", "Storm lantern that never gutters, and oil for a week", "Grey palfrey (VIG 10, CLA 10, SPI 6, 3GD)"],
+			ability: { name: "Kindled Flare", text: "Throw open the lantern's shutters and a flare of white fire washes over everything near you. After, the lantern stays dark until it has been filled again at a hearth." },
+			passion: { name: "Keeper of the Flame", text: "Restore SPI when you bring light to a place that has long gone without it." },
+			// The Halo Knight's, whose flare is a weapon of its own.
+			worksLike: 112,
+			table: {
+				name: "What the Light Showed",
+				columns: ["Whose lantern it was", "What its light once showed"],
+				rows: [
+					["your mother", "a door in the side of a hill"],
+					["your first master", "the face of a Myth, sleeping"],
+					["a hermit you buried", "your own grave, freshly dug"],
+					["a Knight who fell beside you", "a road that isn't there by day"],
+					["a child who never woke", "a city under the water"],
+					["nobody you will name", "a Seer, weeping"]
+				],
+				sentences: ["The lantern belonged to {entry}.", "Its light once showed you {entry}."]
+			}
+		},
+		seer: {
+			name: "The Ember Seer",
+			stats: { vig: 7, cla: 13, spi: 14, guard: 2 },
+			lines: ["Keeps a coal alive in a clay pot and reads what's coming in its glow.", "Speaks only after dark, and then far too much.", "Knights anyone who can carry the coal a mile without letting it die."]
+		}
+	},
+	{
+		key: "bell",
+		name: "The Bell Knight",
+		knight: {
+			verse: ["Rings for the drowned at every dawn,", "and listens for the bell that answers."],
+			property: ["Bell-hammer (d8 hefty), brigandine (A1)", "Kite shield (d4, A1)", "Hand bell of green bronze, and a coil of wet rope"],
+			ability: { name: "The Tolling", text: "Ring your hand bell over the fight. Your allies who hear it may each roll one of their dice again. It can't be rung so again until the next dawn." },
+			passion: { name: "The Answering Bell", text: "Restore SPI when something you called for finally comes." },
+			// The Banner Knight's, whose rallying call lets the Company roll again.
+			worksLike: 62,
+			table: {
+				name: "Why the Bell Rings",
+				columns: ["Who drowned", "What you heard under the water"],
+				rows: [
+					["your brother", "a second bell, answering"],
+					["a whole parish", "your name, said slowly"],
+					["the girl you'd have married", "singing in no tongue you know"],
+					["a Seer's apprentice", "hooves on a road beneath the mere"],
+					["your own Squire", "a door being unbarred"],
+					["the Knight whose name you took", "nothing at all, which was worse"]
+				],
+				sentences: ["You ring for {entry}, drowned in the mere.", "Under the water you once heard {entry}."]
+			}
+		},
+		seer: {
+			name: "The Tolling Seer",
+			stats: { vig: 9, cla: 11, spi: 16, guard: 3 },
+			lines: ["Lives in the Sanctum's belfry and hasn't come down in years.", "Hears the drowned through the bell rope, and bargains with them for news.", "Asks a lock of hair of every Knight who passes, to plait into the rope."]
+		}
+	}
 ]);
 
 /** Who holds each seat of the Council the Domain was granted with, besides the Circle. */
@@ -346,13 +419,13 @@ export async function populateTestWorld() {
 		if (removing) {
 			const confirmed = await confirm("Remove the Test World", [
 				"This world holds the test world this macro made.",
-				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domains, Warband, Realm, Sites, written Myth, folders and chat messages, take what it wrote off the Timeline, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
+				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domains, Warband, Realm, Sites, written Myth and Knights, folders and chat messages, take what it wrote off the Timeline, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
 			]);
 			if (confirmed) await removeTestWorld();
 			return;
 		}
 		const confirmed = await confirm("Populate the Test World", [
-			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; NPC Knights with arms drawn at random ruling the Realm's other Holdings, so each flies its ruler's arms on the map; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast, with one Myth the Referee wrote for themselves; two Sites; a year of chat with its feasts and masses; the Timeline's threads for the Company, each Knight, the Squire, the Domain and the Realm, written as the story goes; and the Referee Toolkit's Seasons and notes filled in.`,
+			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; NPC Knights with arms drawn at random ruling the Realm's other Holdings, so each flies its ruler's arms on the map; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast, with one Myth the Referee wrote for themselves; two Knights the Referee wrote, with their Seers, ready for players to choose, one of them a neighbour and their Seer keeping the Sanctum; two Sites; a year of chat with its feasts and masses; the Timeline's threads for the Company, each Knight, the Squire, the Domain and the Realm, written as the story goes; and the Referee Toolkit's Seasons and notes filled in.`,
 			"The world's calendar, weather and City Quest move on to where the game has got to. Run the macro again to remove it all and put them and the Referee Toolkit back.",
 			"It takes a minute. Leave Foundry be until it says it's done."
 		]);
@@ -419,7 +492,7 @@ async function removeTestWorld() {
 		]));
 	}
 	if (!canvas.scene && game.scenes.active) await game.scenes.active.view();
-	ui.notifications.info(`Removed the test world: ${actors} actors, ${scenes} Realm, ${entries} Sites and ${messages} chat messages.${before ? " The calendar, the weather, the City Quest and the Referee Toolkit are as they were." : ""}`);
+	ui.notifications.info(`Removed the test world: ${actors} actors, ${scenes} Realm, ${entries} Journal entries and ${messages} chat messages.${before ? " The calendar, the weather, the City Quest and the Referee Toolkit are as they were." : ""}`);
 }
 
 /**
@@ -615,6 +688,8 @@ class TestGame {
 		this.sellswords = null;
 		/** @type {string|null} The GM's Rumours tag on the Timeline, once made. */
 		this.rumourTag = null;
+		/** @type {Record<string, JournalEntry>} The Referee's own Knights, by their key in OWN_KNIGHTS. */
+		this.ownKnights = {};
 	}
 
 	async play() {
@@ -727,6 +802,7 @@ class TestGame {
 		const [first, second, third] = places.myths.map((myth) => myth.number);
 		this.mythNumbers = { first, second, third };
 		await this.makeOwnMyth(third);
+		await this.makeOwnKnights();
 		const name = (place, fallback) => place?.name || fallback;
 		this.names = {
 			seat: name(places.seat, "the Seat of Power"),
@@ -764,6 +840,60 @@ class TestGame {
 		});
 		if (!entry) return;
 		await editRealmByHand(this.scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", number, own: entry.id, omen: 0, revealed: false }));
+	}
+
+	/**
+	 * Write the Referee's own Knights, as New Knight does, ready for players to
+	 * choose, and put the Bell Knight's Seer in the Sanctum the Company go to
+	 * first, as the Seer chooser puts one there.
+	 */
+	async makeOwnKnights() {
+		// Filed with the Referee's other Knights, as New Knight files one. A folder made for them goes with the test world.
+		const had = findOwnKnightsFolder();
+		const folder = had ?? await ownKnightsFolder();
+		if (folder && !had) await folder.setFlag(SYSTEM_ID, TEST_FLAG, true);
+		const used = new Set(COMPANY.map(({ roll }) => roll));
+		const spare = (list) => (list ?? []).filter((entry) => entry.path && !used.has(entry.roll));
+		const [knights, seers] = [spare(this.index?.knights), spare(this.index?.seers)];
+		const { OBSERVER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+		for (const [index, { key, name, knight, seer }] of OWN_KNIGHTS.entries()) {
+			const data = normaliseOwnKnight({
+				knight: { ...knight, img: knights.at(-1 - index)?.path ?? "" },
+				seer: { ...seer, img: seers.at(-1 - index)?.path ?? "" }
+			});
+			const entry = await foundry.utils.getDocumentClass("JournalEntry").create({
+				name,
+				folder: folder?.id ?? this.folders.JournalEntry.id,
+				// Ready for players, as the sheet's tick makes them (setReadyForPlayers).
+				ownership: { default: OBSERVER },
+				flags: {
+					core: { sheetClass: OWN_KNIGHT_SHEET_CLASS },
+					[SYSTEM_ID]: { [OWN_KNIGHT_FLAG]: data, [TEST_FLAG]: true }
+				}
+			});
+			if (entry) this.ownKnights[key] = entry;
+		}
+		const { sanctum } = this.places;
+		const bell = this.ownKnights.bell;
+		if (!sanctum || !bell) return;
+		await editRealmByHand(this.scene, (realm, g) => placeFeature(realm, g, sanctum.hex, { kind: "landmark", type: "sanctum", seer: { own: bell.id } }));
+		this.places.sanctum = this.realm.landmarks.find((landmark) => sameHex(landmark.hex, sanctum.hex)) ?? sanctum;
+	}
+
+	/**
+	 * Make an NPC Knight one of the Referee's own Knights, as Choose a Knight
+	 * does: their Knight and Seer named on the sheet, their picture, Property,
+	 * Ability and Passion, and their table filled in and rolled.
+	 * @param {Actor} actor
+	 * @param {JournalEntry|undefined} entry The written Knight's.
+	 */
+	async takeOwnKnight(actor, entry) {
+		if (!entry) return;
+		const knight = ownKnightIndexEntry(entry);
+		await actor.update(chosenKnightUpdate(knight, ownSeerIndexEntry(entry)));
+		const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
+		await actor.createEmbeddedDocuments("Item", knightItems(knight, kitNames));
+		await this.knightTable(actor);
 	}
 
 	/**
@@ -1637,6 +1767,7 @@ class TestGame {
 					notes: html(`Held by ${knight.name}.`, spec.note)
 				}
 			});
+			if (spec.written) await this.takeOwnKnight(knight, this.ownKnights[spec.written]);
 			await linkKnightDomain(knight, domain);
 			made.push({ knight, domain, seat: Boolean(holding.seat) });
 		}

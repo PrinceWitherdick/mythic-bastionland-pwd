@@ -1,4 +1,4 @@
-import { filterBySearch, inputDialog } from "../apps/ui.js";
+import { inputDialog, wireSearchBox } from "../apps/ui.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { spreads } from "../rules/book-art.js";
@@ -145,12 +145,7 @@ export function grantChoices({ index, knights, domains, ruling, own = [] }) {
  * @param {HTMLElement|null|undefined} element The dialog.
  */
 function wireGrantSearch(element) {
-	const box = element?.querySelector(".bastionland-grant__search");
-	const list = element?.querySelector(".bastionland-grant__lists");
-	box?.addEventListener("input", () => filterBySearch(list, box.value, ".bastionland-grant__none"));
-	box?.addEventListener("keydown", (event) => {
-		if (event.key === "Enter") event.preventDefault();
-	});
+	wireSearchBox(element?.querySelector(".bastionland-grant__search"), element?.querySelector(".bastionland-grant__lists"), ".bastionland-grant__none");
 }
 
 /**

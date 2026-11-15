@@ -25,23 +25,26 @@ import {
 	propertyPreview,
 	seerNameClash,
 	seerPreview,
-	withJoinsKept
+	withJoinsKept,
+	withPortrait,
+	withPortraitFrame
 } from "../rules/own-knights.js";
+import { portraitStyle } from "../rules/portrait-frame.js";
 import { TABLE_COLUMNS } from "../rules/own-myths.js";
 import { escapeHTML } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chooseOne } from "./actor-pick.js";
 import { OwnEntrySheet } from "./OwnEntrySheet.js";
+import { openFrameFor } from "./PortraitFrame.js";
 import { confirmDialog } from "./ui.js";
 
 /**
- * @param {"img"|"token"} which One of the Knight's pictures.
- * @returns {{get: Function, set: Function}}
+ * The Knight's portrait. Their token is chosen nowhere: it's the portrait, or
+ * a book Knight's square token copied in with their portrait, kept only while
+ * that portrait is (withPortrait).
+ * @type {{get: Function, set: Function}}
  */
-const knightPicture = (which) => ({
-	get: (data) => data.knight[which],
-	set: (data, path) => ({ ...data, knight: { ...data.knight, [which]: path } })
-});
+const knightPortrait = { get: (data) => data.knight.img, set: withPortrait };
 
 /**
  * @param {import("../rules/own-knights.js").PreviewRow} row
@@ -69,6 +72,7 @@ export class OwnKnightSheet extends OwnEntrySheet {
 		window: { icon: "fa-solid fa-chess-knight", resizable: true },
 		form: { handler: OwnKnightSheet.#onSubmit },
 		actions: {
+			framePortrait: OwnKnightSheet.#onFramePortrait,
 			startFromBook: OwnKnightSheet.#onStartFromBook,
 			toggleReady: OwnKnightSheet.#onToggleReady
 		}
@@ -79,7 +83,7 @@ export class OwnKnightSheet extends OwnEntrySheet {
 	};
 
 	/**
-	 * Their portrait, their token, and their Seer's picture are each chosen apart from the form.
+	 * Their portrait and their Seer's picture are each chosen apart from the form.
 	 * @type {import("./OwnEntrySheet.js").OwnEntryKind}
 	 */
 	static KIND = {
@@ -91,8 +95,7 @@ export class OwnKnightSheet extends OwnEntrySheet {
 		writes: ownKnightWrites,
 		discardable: isUntouchedOwnKnight,
 		pictures: {
-			img: knightPicture("img"),
-			token: knightPicture("token"),
+			img: knightPortrait,
 			seer: { get: (data) => data.seer.img, set: (data, path) => ({ ...data, seer: { ...data.seer, img: path } }) }
 		}
 	};
@@ -122,7 +125,8 @@ export class OwnKnightSheet extends OwnEntrySheet {
 			hasBook: Boolean(book?.knights?.length),
 			knight: {
 				img: knight.img || null,
-				token: knight.token || null,
+				// Drawn as a Knight sheet will draw it: framed, or its usual top crop.
+				imgStyle: knight.img ? portraitStyle(knight.img, knight.frame) : "",
 				verse: knight.verse.join("\n"),
 				property: knight.property.join("\n"),
 				preview: propertyPreview(knight.property).map(previewRow),
@@ -241,6 +245,22 @@ export class OwnKnightSheet extends OwnEntrySheet {
 	}
 
 	/**
+	 * Choose the part of their portrait a Knight sheet shows, in the same framer
+	 * a Knight's own sheet opens. A Knight made from them takes the frame.
+	 * @this {OwnKnightSheet}
+	 */
+	static #onFramePortrait() {
+		if (!this.isEditable || !readOwnKnight(this.document).knight.img) return;
+		const entry = this.document;
+		return openFrameFor(`own-knight-${entry.id}`, {
+			get name() { return entry.name; },
+			get src() { return readOwnKnight(entry).knight.img; },
+			get frame() { return readOwnKnight(entry).knight.frame; },
+			save: (frame) => this._writeOwn((data) => withPortraitFrame(data, frame))
+		});
+	}
+
+	/**
 	 * Copy a Knight of the book, and their Seer, in to start from: everything
 	 * their page has, and their Ability working as theirs does.
 	 * @this {OwnKnightSheet}
@@ -263,7 +283,8 @@ export class OwnKnightSheet extends OwnEntrySheet {
 			message: t("ownKnight.startFromBookLegend"),
 			intro: t("ownKnight.startFromBookIntro"),
 			icon: "fa-solid fa-book-open",
-			unchosen: true
+			unchosen: true,
+			search: { label: t("ownKnight.searchBook"), none: t("ownKnight.searchBookNone") }
 		});
 		if (!picked) return;
 		if (!isBlankOwnKnight(readOwnKnight(this.document))) {

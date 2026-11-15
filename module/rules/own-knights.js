@@ -13,6 +13,7 @@
 import { kitForPage } from "./ability-kits.js";
 import { knightTypeKey, seerKey } from "./creation.js";
 import { listOf, TABLE_COLUMNS, TABLE_ROWS, textOf } from "./own-myths.js";
+import { normalizeFrame, sameSrc } from "./portrait-frame.js";
 import { propertyItems } from "./property.js";
 import { actorFromStatBlock } from "./stat-blocks.js";
 import { VIRTUES } from "./virtues.js";
@@ -33,7 +34,10 @@ export const SEER_SCORES = Object.freeze([...VIRTUES, "guard"]);
  * @property {object} knight
  * @property {string[]} knight.verse      The lines under their name.
  * @property {string} knight.img          Their portrait's path, or "".
- * @property {string} knight.token        Their token's path, or "" to use the portrait.
+ * @property {string} knight.token        A book Knight's square token, copied in with their portrait and dropped
+ *   when the portrait changes (OwnKnightSheet), or "" to use the portrait. Never chosen by hand.
+ * @property {{src: string, rect: number[]}|null} knight.frame The part of the portrait a Knight sheet shows
+ *   (rules/portrait-frame.js), or null for its usual top crop. A Knight made from them takes it.
  * @property {string[]} knight.property   A line each, written as the book writes them, such as "Old sword (d8 hefty), mail (A1)".
  * @property {OwnPart} knight.ability
  * @property {OwnPart} knight.passion
@@ -98,6 +102,7 @@ export function normaliseOwnKnight(raw) {
 			verse: linesOf(knight.verse),
 			img: textOf(knight.img),
 			token: textOf(knight.token),
+			frame: normalizeFrame(knight.frame),
 			property: linesOf(knight.property),
 			ability: partOf(knight.ability),
 			passion: partOf(knight.passion),
@@ -177,6 +182,8 @@ export function ownKnightEntry(id, name, data, { table: tableName, column }) {
 		path: knight.img || null,
 		// No square cut is made of a written Knight's portrait, so it is their token too.
 		token: knight.token || knight.img || null,
+		// The part of it their sheet shows, only while it was framed on this portrait.
+		frame: knight.frame && sameSrc(knight.frame.src, knight.img) ? { src: knight.frame.src, rect: [...knight.frame.rect] } : null,
 		verse: knight.verse.length ? [...knight.verse] : null,
 		property: [...knight.property],
 		ability: entryPart(knight.ability),
@@ -289,6 +296,24 @@ export function withJoinsKept(before, after) {
 	const joins = before.knight.table.joins.map((join, index) => (join && after.knight.table.sentences[index] === before.knight.table.sentences[index] ? join : ""));
 	return { ...after, knight: { ...after.knight, table: { ...after.knight.table, joins } } };
 }
+
+/**
+ * A written Knight given a new portrait, or none. Any book Knight's token
+ * copied in with the old one goes with it, so the token is the portrait now,
+ * and so does the old one's frame. The same portrait picked again keeps both.
+ * @param {OwnKnight} data
+ * @param {string} path
+ * @returns {OwnKnight}
+ */
+export const withPortrait = (data, path) => ({ ...data, knight: { ...data.knight, img: path, ...(sameSrc(path, data.knight.img) ? {} : { token: "", frame: null }) } });
+
+/**
+ * A written Knight with the part of their portrait a sheet shows.
+ * @param {OwnKnight} data
+ * @param {{src: string, rect: number[]}} frame
+ * @returns {OwnKnight}
+ */
+export const withPortraitFrame = (data, frame) => ({ ...data, knight: { ...data.knight, frame: normalizeFrame(frame) } });
 
 /**
  * A Knight and Seer of the book as a written Knight, for the Referee to start

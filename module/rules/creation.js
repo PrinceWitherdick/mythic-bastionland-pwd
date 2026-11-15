@@ -7,6 +7,7 @@ import { kitForPage, kitPageOf, kittedAbility, kitWeapons } from "./ability-kits
 import { usesFrom } from "./ability-uses.js";
 import { RANKS } from "./glory.js";
 import { isOwnRecord, refOf } from "./knight-refs.js";
+import { FRAME_FLAG, sameSrc } from "./portrait-frame.js";
 import { propertyGear } from "./property.js";
 import { isStructureBlock, parseArmour } from "./stat-blocks.js";
 import { escapeHTML, searchable } from "./text.js";
@@ -268,11 +269,34 @@ export function knightUpdate({ start, virtues = {}, guard = null, knight = null,
 		update["system.guard.value"] = guard;
 		update["system.guard.max"] = guard;
 	}
-	if (knight) {
-		Object.assign(update, knightChoice(knight, seer));
-		if (knight.path) update.img = knight.path;
-		if (knight.token) update["prototypeToken.texture.src"] = knight.token;
-	}
+	if (knight) Object.assign(update, chosenKnightUpdate(knight, seer));
+	return update;
+}
+
+/**
+ * The actor update for becoming a Knight: their Knight and Seer named on the
+ * sheet, their portrait as the picture with its frame, and their token.
+ * @param {object} knight A Knight from the art index.
+ * @param {object|null} seer Their Seer from the art index.
+ * @returns {object}
+ */
+export function chosenKnightUpdate(knight, seer) {
+	const update = knightChoice(knight, seer);
+	if (knight.path) Object.assign(update, portraitUpdate(knight));
+	if (knight.token) update["prototypeToken.texture.src"] = knight.token;
+	return update;
+}
+
+/**
+ * The Knight's portrait as an actor's picture. A written Knight's comes framed
+ * as the Referee framed it, while the frame was measured on that picture.
+ * @param {{path: string, frame?: {src: string, rect: number[]}|null}} knight
+ * @returns {object}
+ */
+export function portraitUpdate(knight) {
+	const update = { img: knight.path };
+	const { frame } = knight;
+	if (frame && sameSrc(frame.src, knight.path)) update[`flags.${SYSTEM_ID}.${FRAME_FLAG}`] = { src: frame.src, rect: [...frame.rect] };
 	return update;
 }
 

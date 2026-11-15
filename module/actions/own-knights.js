@@ -11,7 +11,7 @@ import { isOwnRecord } from "../rules/knight-refs.js";
 import { isBlankOwnKnight, normaliseOwnKnight, ownKnightEntry, ownSeerEntry } from "../rules/own-knights.js";
 import { keyedSerialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder } from "./folders.js";
+import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder, renameOldFlaggedFolder } from "./folders.js";
 import { newOwnEntry } from "./own-entries.js";
 
 /** The flag a written Knight's Journal entry keeps the Knight and their Seer under. */
@@ -140,6 +140,16 @@ export const findOwnKnightsFolder = () => findFlaggedFolder("JournalEntry", FOLD
  * @returns {Promise<Folder|null>}
  */
 export const ownKnightsFolder = () => flaggedFolder("JournalEntry", FOLDER_FLAG, true, { name: t("ownKnight.folder"), color: JOURNAL_FOLDER_COLOR });
+
+/** What the folder was first named, before "Homebrew Knights" (2026-11-15). */
+const OLD_FOLDER_NAME = "Your Knights";
+
+/**
+ * The folder made under its old name takes the new one, once, by the active
+ * GM. One the Referee has named for themselves is left as they named it.
+ * @returns {Promise<Folder|null>} The folder renamed, if it was.
+ */
+export const renameOldOwnKnightsFolder = () => renameOldFlaggedFolder("JournalEntry", FOLDER_FLAG, OLD_FOLDER_NAME, t("ownKnight.folder"));
 
 /**
  * Make a Journal entry for a new Knight and open it to be written. Referees only.

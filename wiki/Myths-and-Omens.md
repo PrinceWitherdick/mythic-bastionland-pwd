@@ -2,7 +2,7 @@
 
 A Realm holds six Myths, each with six Omens met in order. The system keeps track of which Myths the Realm holds, where they lie and how far each has got, and gives the Referee one page to run them from: the **Myths and Omens** tab of the [Referee Toolkit](The-Referee-Toolkit). This page covers that tab, **The Realm's Myths** window where you settle which six the Realm holds, Myths you write yourself, resolving and replacing a Myth, and the City Quest.
 
-Everything here is for Referees only. Players never see the Myths page, the Myths window or a written Myth.
+Everything here is for Referees only. Players never see the Myths page, the Myths window or a homebrew Myth.
 
 ## The Myths and Omens tab
 
@@ -39,14 +39,14 @@ Once all six are met, the card says so.
 
 If you have a Scene ready for an Omen, such as a map of where it plays out, link it to that Omen so it's at hand when the Company gets there.
 
-- **Drag a Scene** from the Scenes sidebar onto an Omen, here or on the sheet of a Myth you wrote. It shows under the Omen as a pill with its name. An Omen can have several.
+- **Drag a Scene** from the Scenes sidebar onto an Omen, here or on the sheet of a homebrew Myth. It shows under the Omen as a pill with its name. An Omen can have several.
 - **Click the pill** to activate the Scene, taking everyone there.
 - **Click the eye** to view the Scene yourself, without moving the players.
 - **Click the cross** to unlink it.
 
 When a Wilderness Roll brings that Omen, its card has an **Activate** button for each Scene linked to it.
 
-A book Myth keeps its links only as long as it holds that Myth: roll it again, or replace it, and the new one starts with none. A Myth you wrote keeps its links with it. A Scene still in a compendium can't be linked, so import it into the world first. A Scene you delete drops off by itself.
+A book Myth keeps its links only as long as it holds that Myth: roll it again, or replace it, and the new one starts with none. A homebrew Myth keeps its links with it. A Scene still in a compendium can't be linked, so import it into the world first. A Scene you delete drops off by itself.
 
 ## Picture, verse and table
 
@@ -64,7 +64,7 @@ Under the Omens, **The Cast** folds the people printed for the Myth, with a coun
 - **Make Them** creates the person as an actor with the stat block the book prints, wearing the Myth's picture, in an Actors folder named after the Myth. You can rename or move that folder; the system still finds it.
 - Four of the book's Cast are only ever met as a warband, though their names don't say so. They are made as Warbands, and any already in your world are set to the Warband scale. See [Warbands in combat](Running-Combat#warbands-in-combat).
 - Once made, the person's name sits under their entry. **Click the name** to open their sheet, or **click the cross** to take them out of the Cast.
-- **Drag any actor from the Actors directory onto a Myth's card** (open or folded) to count them among its Cast. They show with a **Yours** chip. An actor still in a compendium can't join: import it into the world first.
+- **Drag any actor from the Actors directory onto a Myth's card** (open or folded) to count them among its Cast. They show with an **Added** chip. An actor still in a compendium can't join: import it into the world first.
 
 A Cast belongs to the Myth, not to its number, so actors made for a book Myth join it again in any Realm that holds it. The book's NPCs, Casts included, are also in the **NPCs** compendium, and one dragged from there into the world joins its Myth's Cast here (see [NPCs, Structures and Compendiums](NPCs-Structures-and-Compendiums)).
 
@@ -103,11 +103,11 @@ This is where you settle which six Myths the Realm holds, apart from play. Open 
 - **Choose the Myths** under the six Myths on the Toolkit's Myths page;
 - **Choose** beside the Myth's roll in **Edit this hex**, which opens the window on that Myth.
 
-The left side, **In the Realm**, lists every Myth number with its Myth, hex and page. The right side, **The Myths table**, has the book's 72, a page for each d6 result (buttons **1** to **6**), a **Yours** page for Myths you wrote, and a search box that finds a Myth by name or roll across every page. Hover a picture on either side to see it larger.
+The left side, **In the Realm**, lists every Myth number with its Myth, hex and page. The right side, **The Myths table**, has the book's 72, a page for each d6 result (buttons **1** to **6**), a **Homebrew** page for your homebrew Myths, and a search box that finds a Myth by name or roll across every page. Hover a picture on either side to see it larger.
 
 - **Click a row on the left** to choose which number you are working on.
 - **The die on a row** rolls that Myth again, on one the Realm hasn't got.
-- **Roll them all again**, under the list, rerolls every Myth at once, no two alike. Written Myths are rerolled into book Myths too.
+- **Roll them all again**, under the list, rerolls every Myth at once, no two alike. Homebrew Myths are rerolled into book Myths too.
 - **Pick a Myth on the right**, then press **Make it Myth N** to give it to the chosen number. A Myth the Realm already holds is marked with its number and can be looked at, but not taken twice.
 - **The cross on a row** takes that Myth out of the Realm after you confirm (**Take It Out**). Its hex is left empty, its Omens met go with it, and the row shows **No Myth**.
 - **The die on an empty row**, or **Make it Myth N** with that row chosen, puts a Myth back under that number in a remote hex of its own, hidden, as the Realm's Myths were placed when it was made.
@@ -122,20 +122,20 @@ To move a Myth, open the hex you want it in with **Edit this hex** (from **Edit 
 
 **Edit this hex** also sets a Myth's number and roll by hand, and its **Hidden from players** / **Revealed to players** button shows or hides the Myth on the players' map.
 
-## Writing your own Myth
+## Homebrew Myths
 
-You can write a Myth of your own and make it one of a Realm's six. Each written Myth is a Journal entry, filed in a **Your Myths** folder, so it can be used in any Realm of the world.
+You can write a homebrew Myth and make it one of a Realm's six. Each homebrew Myth is a Journal entry, filed in a **Homebrew Myths** folder, so it can be used in any Realm of the world.
 
 Start one with:
 
 - **New Myth** at the top of the Journal directory;
-- **Write a Myth**, the first card on the **Yours** page of The Realm's Myths.
+- **Write a homebrew Myth**, the first card on the **Homebrew** page of The Realm's Myths.
 
 The sheet has a picture (click the frame to choose one; **No Picture** clears it), a **Name**, two lines of **Verse**, six **Omens**, a **Cast** note and an optional **Table** of two columns and six rows. Everything saves as you type. Write "see opposite" in an Omen to make it open the table on the Toolkit, as a book Myth's does. Close a new Myth without writing anything and its empty entry is deleted.
 
-To use it, open The Realm's Myths, choose a number on the left, pick your Myth on the **Yours** page and press **Make it Myth N**. Written Myths are only ever chosen by hand; no roll lands on one.
+To use it, open The Realm's Myths, choose a number on the left, pick your Myth on the **Homebrew** page and press **Make it Myth N**. Homebrew Myths are only ever chosen by hand; no roll lands on one.
 
-On the Toolkit a written Myth works like a book Myth: Omens, picture and Show Players, table rolls, notes, Glory and the Timeline. Its Cast is whoever you drag onto it. **Edit this Myth** on its card (or under the pick in The Realm's Myths) opens the sheet again. Delete the Journal entry and the Realm's Myth falls back to being called "Myth N".
+On the Toolkit a homebrew Myth works like a book Myth: Omens, picture and Show Players, table rolls, notes, Glory and the Timeline. Its Cast is whoever you drag onto it. **Edit this Myth** on its card (or under the pick in The Realm's Myths) opens the sheet again. Delete the Journal entry and the Realm's Myth falls back to being called "Myth N".
 
 ## The City Quest
 

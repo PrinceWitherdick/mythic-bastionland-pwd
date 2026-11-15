@@ -20,9 +20,12 @@ import {
 	scoreOf,
 	seerNameClash,
 	withJoinsKept,
+	withPortrait,
+	withPortraitFrame,
 	withOwnKnights
 } from "../../module/rules/own-knights.js";
 import { seerActor } from "../../module/rules/seer-npcs.js";
+import { knightedChoice } from "../../module/rules/squires.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 // Every Knight and Seer here is invented, so no book text lives in the repository.
@@ -320,6 +323,45 @@ describe("bookToOwnKnight", () => {
 		expect(plain.knight.worksLike).toBeNull();
 		expect(plain.knight.token).toBe("");
 		expect(plain.seer.name).toBe("");
+	});
+
+	it("drops the book's token when the portrait is changed or cleared, so the token is the portrait", () => {
+		const changed = withPortrait(data, "worlds/test/knights/mine.webp");
+		expect(changed.knight).toMatchObject({ img: "worlds/test/knights/mine.webp", token: "" });
+		expect(ownKnightEntry("abc", name, changed, fallbacks).token).toBe("worlds/test/knights/mine.webp");
+		expect(withPortrait(data, "").knight).toMatchObject({ img: "", token: "" });
+		expect(data.knight.token).toBe(bookKnight.token);
+	});
+
+	describe("the portrait's frame", () => {
+		const rect = [0.1, 0.05, 0.6, 0.76];
+		const framed = withPortraitFrame(data, { src: bookKnight.path, rect });
+		const flagOf = (update) => Object.entries(update).find(([key]) => key.endsWith(".portraitFrame"))?.[1];
+
+		it("is kept through a save, and goes with the portrait it was framed on", () => {
+			expect(normaliseOwnKnight(framed).knight.frame).toEqual({ src: bookKnight.path, rect });
+			expect(data.knight.frame).toBeNull();
+			expect(withPortrait(framed, "worlds/test/knights/mine.webp").knight.frame).toBeNull();
+			// The same portrait picked again, as the picker offers it, keeps its frame and the book's token.
+			expect(withPortrait(framed, `${bookKnight.path}?v=2`).knight).toMatchObject({ img: `${bookKnight.path}?v=2`, token: bookKnight.token, frame: { src: bookKnight.path, rect } });
+			expect(normaliseOwnKnight({ knight: { frame: { src: "", rect } } }).knight.frame).toBeNull();
+		});
+
+		it("frames a Knight made from them, only on the portrait it was framed on", () => {
+			const entry = ownKnightEntry("abc", name, framed, fallbacks);
+			expect(entry.frame).toEqual({ src: bookKnight.path, rect });
+			expect(flagOf(knightUpdate({ start: STARTS[0], knight: entry, seer }))).toEqual({ src: bookKnight.path, rect });
+			const moved = { ...framed, knight: { ...framed.knight, img: "worlds/test/knights/other.webp" } };
+			expect(ownKnightEntry("abc", name, moved, fallbacks).frame).toBeNull();
+			expect(flagOf(knightUpdate({ start: STARTS[0], knight: knight, seer }))).toBeUndefined();
+		});
+
+		it("frames a Squire Knighted as them, where their picture was a stand-in", () => {
+			const entry = ownKnightEntry("abc", name, framed, fallbacks);
+			const blank = "icons/svg/mystery-man.svg";
+			expect(flagOf(knightedChoice({ img: blank, tokenImg: blank }, entry, seer, blank))).toEqual({ src: bookKnight.path, rect });
+			expect(flagOf(knightedChoice({ img: "me.webp", tokenImg: blank }, entry, seer, blank))).toBeUndefined();
+		});
 	});
 });
 

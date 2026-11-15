@@ -1586,6 +1586,23 @@
 
 .bastionland-tag {
 	font-size: var(--bastionland-font-floor);
+/* A pick-one list long enough to want a search, such as Start from a book
+   Knight's 72: the box over the list, which still scrolls on its own. */
+.bastionland-pick-one__search {
+	flex: none;
+	width: 100%;
+}
+
+.bastionland-pick-one__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bastionland-pick-one__none {
+	margin: 0;
+}
+
 	opacity: 0.8;
 }
 

@@ -8382,21 +8382,31 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	flex: none;
 }
 
-.bastionland-own-knight__pictures {
-	display: flex;
-	flex-direction: column;
-	gap: 0.4rem;
+/* The portrait is the shape a Knight sheet's is (PORTRAIT_ASPECT), held to its
+   top as that sheet holds it, so the frame chosen here is the one it shows. A
+   frame places the picture itself (frameStyle). */
+.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--img {
+	position: relative;
+	aspect-ratio: 144 / 204;
 }
 
-/* A Knight's portrait stands; their token is square. */
-.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--img,
+.bastionland-own-knight__art--img img {
+	object-position: top;
+}
+
+/* The Seer's picture is shown whole, as a Knight sheet's Seer page shows it. An empty
+   box stands as a portrait does. */
 .bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--seer {
 	aspect-ratio: 3 / 4;
 }
 
-.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--token {
-	width: 6rem;
-	aspect-ratio: 1;
+.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--seer:not(.is-empty) {
+	aspect-ratio: auto;
+}
+
+.bastionland-own-knight__art--seer img {
+	height: auto;
+	object-fit: contain;
 }
 
 /* "The ___ Knight", the name typed between the words that frame it. */

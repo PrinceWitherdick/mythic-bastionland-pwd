@@ -233,7 +233,12 @@ vi.mock("../../module/book-art/art-index.js", async () => {
 		mythEntry: (index, myth) => (myth?.own ? ownLookup(myth) : lookup(index?.myths, myth)),
 		// The new Myth a resolved one leaves is rolled as the Season card's button rolls it, through myth-resolve.js.
 		mythLookup: (index, myth) => (myth?.own ? ownLookup(myth) : lookup(index?.myths, myth)),
-		seerEntry: (index, seer) => lookup(index?.seers, seer),
+		// A Seer the Referee wrote is read from their Knight's Journal entry, as actions/own-knights.js reads one.
+		seerEntry: (index, seer) => {
+			if (!seer?.own) return lookup(index?.seers, seer);
+			const written = world.journal.find((document) => document.id === seer.own)?.flags?.[id]?.ownKnight?.seer;
+			return { roll: null, page: null, entry: written ? { ...written, path: written.img || null } : null, name: written?.name ?? "Gone" };
+		},
 		withPage: (name, page) => (page ? t("realm.panel.reference", { name, page }) : name),
 		pageNote: (page) => (page ? t("realm.key.page", { page }) : null)
 	};
@@ -355,7 +360,10 @@ function fakeIndex() {
 		knights: [
 			knight("1-01", "The Test Knight", ["Rusty sword (d8 hefty), mail (A1)", "Round shield (d4, A1)", "Old steed (VIG 10, CLA 10, SPI 5, 3GD)"]),
 			knight("1-10", "The Probe Knight", ["Short bow (d6 long), gambeson (A1)", "Lucky coin", "Grey horse (VIG 8, CLA 12, SPI 5, 2GD)"]),
-			knight("4-07", "The Fixture Knight", ["Big axe (d10 long), plate (A1)", "Charger (VIG 14, CLA 6, SPI 5, 3GD, d6 trample)"])
+			knight("4-07", "The Fixture Knight", ["Big axe (d10 long), plate (A1)", "Charger (VIG 14, CLA 6, SPI 5, 3GD, d6 trample)"]),
+			// Nobody in the Company, so the Knights the Referee writes can borrow their pictures.
+			knight("5-02", "The Spare Knight", ["Stick (d6)"]),
+			knight("6-11", "The Other Spare Knight", ["Stone (d4)"])
 		],
 		seers: every((roll) => ({ roll, name: `The ${roll} Seer`, path: `art/seer-${roll}.webp`, stats: { vig: 8, cla: 10, spi: 14, guard: 3 }, lines: ["Watches."] })),
 		myths: every((roll) => ({ roll, name: `The ${roll} Myth`, path: `art/myth-${roll}.webp`, omens: ["1", "2", "3", "4", "5", "6"], cast: [{ name: `Cast of ${roll}`, stats: { vig: 10, cla: 10, spi: 10, guard: 3 }, lines: [] }] })),
@@ -764,6 +772,57 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		expect(inRealm[0]).toMatchObject({ d6: null, d12: null, omen: 1 });
 	});
 
+	it("writes two Knights of the Referee's own, ready to choose: one left free, one a neighbour whose Seer keeps the Sanctum", async () => {
+		const { OWN_KNIGHT_SHEET_CLASS } = await import("../../module/actions/own-knights.js");
+		const { normaliseOwnKnight } = await import("../../module/rules/own-knights.js");
+		await populateTestWorld();
+		const written = world.journal.filter((entry) => entry.flags.core.sheetClass === OWN_KNIGHT_SHEET_CLASS);
+		expect(written.map((entry) => entry.name)).toEqual(["The Lamplighter Knight", "The Bell Knight"]);
+		const [lamplighter, bell] = written;
+		const folder = world.folders.find((candidate) => candidate.id === lamplighter.folder);
+		expect(folder.flags[SYSTEM_ID]).toEqual({ ownKnightsFolder: true, testWorld: true });
+		for (const entry of written) {
+			expect(entry.folder).toBe(folder.id);
+			expect(entry.ownership).toEqual({ default: 2 });
+			expect(entry.flags[SYSTEM_ID].testWorld).toBe(true);
+			// Kept as the sheet keeps them, and whole: property, Ability, Passion, a table with sentences, and a Seer with scores.
+			const data = entry.flags[SYSTEM_ID].ownKnight;
+			expect(normaliseOwnKnight(data)).toEqual(data);
+			expect(data.knight).toMatchObject({ ability: { name: expect.any(String) }, passion: { name: expect.any(String) }, worksLike: expect.any(Number) });
+			expect(data.knight.table.rows.every((row) => row.every(Boolean))).toBe(true);
+			expect(data.knight.table.sentences.every((sentence) => sentence.includes("{entry}"))).toBe(true);
+			expect(Object.values(data.seer.stats).every(Number.isInteger)).toBe(true);
+			// Pictures borrowed from the book where it's imported, from Knights and Seers the Company aren't.
+			if (imported) {
+				expect(data.knight.img).toMatch(/^art\//);
+				expect(data.seer.img).toMatch(/^art\/seer-/);
+				expect(["art/1-01.webp", "art/1-10.webp", "art/4-07.webp"]).not.toContain(data.knight.img);
+			} else {
+				expect([data.knight.img, data.seer.img]).toEqual(["", ""]);
+			}
+		}
+		// Nobody is the Lamplighter Knight, so a player can choose them.
+		expect(world.actors.filter((actor) => actor.system.knightType === "Lamplighter")).toEqual([]);
+		// Sir Gaspard is the Bell Knight, with what Choose a Knight gives.
+		const gaspard = world.actors.find((actor) => actor.name === "Sir Gaspard Lusk");
+		expect(gaspard.system).toMatchObject({ knightType: "Bell", seer: "The Tolling Seer" });
+		expect(gaspard.items.filter((item) => ["ability", "passion"].includes(item.type)).map((item) => item.name)).toEqual(["The Tolling", "The Answering Bell"]);
+		expect(gaspard.items.some((item) => item.type === "weapon" && item.name === "Bell-hammer")).toBe(true);
+		// The Sanctum's Seer is the Bell Knight's, and the Company met them there.
+		const sanctum = world.realm.landmarks.find((landmark) => landmark.seer?.own);
+		expect(sanctum).toMatchObject({ type: "sanctum", seer: { own: bell.id } });
+		expect(Object.values(world.notes).some((note) => note.includes("where The Tolling Seer keeps their vigil"))).toBe(true);
+	});
+
+	it("files the written Knights in a Your Knights folder the world has already, and leaves that folder be", async () => {
+		const mine = new FakeDocument({ name: "Your Knights", type: "JournalEntry", flags: { [SYSTEM_ID]: { ownKnightsFolder: true } } });
+		world.folders.push(mine);
+		await populateTestWorld();
+		const entries = world.journal.filter((candidate) => candidate.flags[SYSTEM_ID].ownKnight);
+		expect(entries.map((entry) => entry.folder)).toEqual([mine.id, mine.id]);
+		expect(mine.flags[SYSTEM_ID].testWorld).toBeUndefined();
+	});
+
 	it("turns Site journals on and makes each Site's at once, and removing it deletes them", async () => {
 		const { deleteSiteJournals, keepSiteJournal } = await import("../../module/actions/site-journals.js");
 		await populateTestWorld();
@@ -896,7 +955,8 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 
 	it(imported ? "rolls each Knight's table from the book" : "leaves the Knights' tables empty", async () => {
 		await populateTestWorld();
-		expect(rollKnightTable).toHaveBeenCalledTimes(imported ? 3 : 0);
+		// The Company's, and Sir Gaspard's as the Bell Knight.
+		expect(rollKnightTable).toHaveBeenCalledTimes(imported ? 4 : 0);
 		if (imported) for (const knight of Object.values(knights())) expect(knight.system.bookTable.rolls).toEqual([3]);
 	});
 
@@ -917,8 +977,9 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		} else {
 			expect(keepTableRoll).not.toHaveBeenCalled();
 			expect(rollHexSparkSet).not.toHaveBeenCalled();
-			// Three steeds, the Squire's pony, the Domain's levy and sellswords, and the mere's pike.
-			expect(npcs).toHaveLength(7);
+			// Three steeds, the Squire's pony, the Domain's levy and sellswords, the mere's pike, and the Seer the Referee wrote.
+			expect(npcs).toHaveLength(8);
+			expect(npcs).toContain("The Tolling Seer");
 		}
 	});
 });

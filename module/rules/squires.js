@@ -4,7 +4,7 @@
  * Pure, so the rolls and what they make can be tested without Foundry.
  */
 import { SYSTEM_PATH } from "../system-id.js";
-import { knightChoice } from "./creation.js";
+import { knightChoice, portraitUpdate } from "./creation.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
 
 /** A new Squire's portrait: somebody on one knee, waiting to be made a Knight. */
@@ -199,8 +199,8 @@ export function isSquireName(name, template) {
 /**
  * A Knighted Squire becoming the Knight chosen for them (p7: "Roll or choose a
  * Knight"). They're named that Knight, and the Seer on the Knight's page is the
- * one who knighted them. The Knight's portrait and Token picture are taken only
- * where theirs are still a stand-in. Their Virtues, GD, Age and Glory stay.
+ * one who knighted them. The Knight's portrait, with any frame, and Token
+ * picture are taken only where theirs are still a stand-in. Their Virtues, GD, Age and Glory stay.
  * @param {{img: string, tokenImg: string}} squire Their portrait and Token picture.
  * @param {object|null} knight A Knight from the art index; none before Import PDF, which names nothing.
  * @param {object|null} seer    Their Seer from the art index.
@@ -211,7 +211,7 @@ export function knightedChoice({ img, tokenImg }, knight, seer, blank) {
 	if (!knight) return {};
 	const update = knightChoice(knight, seer);
 	const standIn = (src) => !src || src === blank || src === SQUIRE_IMAGE;
-	if (knight.path && standIn(img)) update.img = knight.path;
+	if (knight.path && standIn(img)) Object.assign(update, portraitUpdate(knight));
 	if (knight.token && standIn(tokenImg)) update["prototypeToken.texture.src"] = knight.token;
 	return update;
 }
