@@ -231,6 +231,15 @@ describe("seatHolders", () => {
 		expect(seatHolders(system, RETAINER_SEATS[3], knights)).toEqual([{ id: "r2", name: "Sir Brand", legacy: false, knight: "k2" }]);
 	});
 
+	it("finds a Retainer's Knight by name only among Knights able to hold a post, as the Posts block does", () => {
+		const slain = [{ id: "k9", name: "Wren", system: { slain: true } }, { id: "k8", name: "Wren", system: { isSquire: true } }];
+		// A Retainer sharing a Slain Knight's or a Squire's name is nobody's, so still holds the seat.
+		expect(seatHolders(system, RETAINER_SEATS[0], slain)).toEqual([{ id: "r1", name: "Wren", legacy: false, knight: "" }]);
+		expect(seatHolders(system, RETAINER_SEATS[0], [{ id: "k7", name: "Wren" }])[0].knight).toBe("k7");
+		// Seated by id, a Knight Slain since is still known as theirs.
+		expect(seatHolders(system, RETAINER_SEATS[3], [{ id: "k2", name: "Brand", system: { slain: true } }])[0].knight).toBe("k2");
+	});
+
 	it("gives the Circle its Knights", () => {
 		expect(seatHolders(system, "circle", knights)).toEqual([{ id: "k1", name: "Moss", legacy: false, knight: "k1" }]);
 		expect(seatHolders(null, "circle", knights)).toEqual([]);

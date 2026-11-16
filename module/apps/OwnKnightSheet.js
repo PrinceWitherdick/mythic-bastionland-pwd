@@ -18,7 +18,6 @@ import { knightTypeFromName } from "../rules/creation.js";
 import {
 	SEER_SCORES,
 	bookToOwnKnight,
-	isBlankOwnKnight,
 	knightNameClash,
 	normaliseOwnKnight,
 	ownKnightChanged,
@@ -287,7 +286,8 @@ export class OwnKnightSheet extends OwnEntrySheet {
 			search: { label: t("ownKnight.searchBook"), none: t("ownKnight.searchBookNone") }
 		});
 		if (!picked) return;
-		if (!isBlankOwnKnight(readOwnKnight(this.document))) {
+		// A name already typed is the Referee's writing too, so it isn't replaced without asking.
+		if (!isUntouchedOwnKnight(this.document)) {
 			const replace = await confirmDialog({
 				title: t("ownKnight.startFromBook"),
 				icon: "fa-solid fa-book-open",

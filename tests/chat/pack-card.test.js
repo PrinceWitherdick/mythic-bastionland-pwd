@@ -331,6 +331,23 @@ describe("a Pack whose Attack card never came", () => {
 		expect(confirmDialog).not.toHaveBeenCalled();
 		expect(card.state()).toMatchObject({ rolled: true, message: "attack-message", spent: [0] });
 		expect(spendAttack).toHaveBeenCalledOnce();
+		// What follows the roll never came either: the drawn fire's offer and the blows (p128).
+		expect(packRolled).toHaveBeenCalledOnce();
+	});
+
+	it("waits on one timer however often the card is drawn, and shows Open Again on every drawing", () => {
+		vi.useFakeTimers();
+		try {
+			const state = stalled(1000);
+			const first = renderCard(state);
+			const again = renderCard(state);
+			expect(vi.getTimerCount()).toBe(1);
+			vi.advanceTimersByTime(30_000);
+			expect([first.recover.hidden, again.recover.hidden]).toEqual([false, false]);
+			expect(vi.getTimerCount()).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("opens the dice again to be rolled, once its player is sure, where no Attack card came", async () => {

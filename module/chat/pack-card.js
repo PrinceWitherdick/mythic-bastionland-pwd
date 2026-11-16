@@ -6,7 +6,7 @@ import { queryAsker } from "../compat.js";
 import { PACK_FLAG, canJoinPack, changePack, packAttackers, unspentShares } from "../rules/pack.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { joinersFor } from "./attack-card.js";
-import { keepsRolls, onCardClick, ownedBy, statefulCard, t, warn } from "./cards.js";
+import { guardedChanges, keepsRolls, onCardClick, ownedBy, statefulCard, t, warn } from "./cards.js";
 import { registerQuery } from "../queries.js";
 import { serverNow } from "../server-now.js";
 
@@ -53,6 +53,8 @@ const CHANGE_GUARDS = Object.freeze({
 	spent: (change, pack, user) => (ownedBy(pack.shares[change.share]?.actor, user) ? { type: "spent", share: change.share } : null)
 });
 
+const guarded = guardedChanges(CHANGE_GUARDS);
+
 const packCard = statefulCard({
 	flag: PACK_FLAG,
 	query: CHANGE_QUERY,
@@ -61,12 +63,12 @@ const packCard = statefulCard({
 	render: renderPackCard,
 	// Which Attack card it was rolled into, and whose spending is done, aren't drawn.
 	shows: packShown,
-	queryable: (change) => Object.hasOwn(CHANGE_GUARDS, change.type),
+	queryable: guarded.queryable,
 	// A joiner's Smite Save, kept beside the first's own so it has a tooltip too.
 	alsoUpdate: keepsRolls(["join"])
 });
 
-const onChangeQuery = packCard.answer((change, pack, user) => (Object.hasOwn(CHANGE_GUARDS, change.type) ? CHANGE_GUARDS[change.type](change, pack, user) : null));
+const onChangeQuery = packCard.answer(guarded.judge);
 
 /**
  * @param {ChatMessage|undefined} message
@@ -231,10 +233,12 @@ async function onCallOff(message) {
 async function onRecover(message) {
 	const pack = packNow(message);
 	if (!pack?.rolled || pack.message) return warn("attack.pack.closed");
-	if (!gatherer(pack)) return;
+	const knight = gatherer(pack);
+	if (!knight) return;
 	const rolled = Array.from(game.messages ?? []).find((each) => each.flags?.[SYSTEM_ID]?.attack?.attackId === pack.attackId);
 	if (rolled) {
-		if (await packCard.save(message, { type: "posted", message: rolled.id })) await spendShares(message, { ...pack, message: rolled.id });
+		// What follows the roll never came either, since it waits on the Attack card being kept, as onRoll does.
+		if (await packCard.save(message, { type: "posted", message: rolled.id })) await Promise.all([spendShares(message, { ...pack, message: rolled.id }), packRolled(knight, pack)]);
 		return;
 	}
 	const sure = await confirmDialog({
@@ -249,8 +253,17 @@ async function onRecover(message) {
 const HANDLERS = Object.freeze({ join: onJoin, roll: onRoll, "call-off": onCallOff, recover: onRecover });
 
 /**
+ * Each Pack card's one timer waiting to show Open Again, by message id, with
+ * the buttons it shows: every drawing of the card still on the page, as in the
+ * chat log and a popout at once.
+ * @type {Map<string, {timer: ReturnType<typeof setTimeout>, buttons: Set<HTMLElement>}>}
+ */
+const stallWatches = new Map();
+
+/**
  * Show Open Again to whoever plays the Knight once the Pack has stood closed
- * for a roll, with no Attack card, for longer than any roll takes.
+ * for a roll, with no Attack card, for longer than any roll takes. Drawing the
+ * card again joins the timer already running, rather than starting another.
  * @param {ChatMessage} message
  * @param {HTMLElement|null} button
  * @param {boolean} theirs
@@ -260,13 +273,30 @@ function watchStalled(message, button, theirs) {
 	button.hidden = true;
 	const pack = packOf(message);
 	if (!theirs || !pack?.rolled || pack.message) return;
-	const show = () => {
+	const stalled = () => {
 		const now = packNow(message);
-		button.hidden = !(now?.rolled && !now.message);
+		return Boolean(now?.rolled && !now.message);
 	};
 	const wait = STALL_MS - (serverNow() - (pack.rolledAt ?? 0));
-	if (wait <= 0) show();
-	else setTimeout(show, wait);
+	if (wait <= 0) {
+		button.hidden = !stalled();
+		return;
+	}
+	let watch = stallWatches.get(message.id);
+	if (!watch) {
+		watch = {
+			buttons: new Set(),
+			timer: setTimeout(() => {
+				stallWatches.delete(message.id);
+				const shown = stalled();
+				for (const each of watch.buttons) each.hidden = !shown;
+			}, wait)
+		};
+		stallWatches.set(message.id, watch);
+	}
+	// A drawing taken off the page since is let go.
+	for (const each of watch.buttons) if (each.isConnected === false) watch.buttons.delete(each);
+	watch.buttons.add(button);
 }
 
 /**

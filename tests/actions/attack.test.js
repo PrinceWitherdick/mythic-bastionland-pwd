@@ -1004,16 +1004,22 @@ describe("what the Knight pages' Abilities lend a blow", () => {
 		expect(pack().shares[0]).toMatchObject({ combine: false, dice: [{ faces: 4 }] });
 	});
 
-	it("asks which of its own dice to join where it can't gather, as a blow in a duel (p56)", async () => {
+	it("joins none of its own dice in a blow with no ally beside it, as a duel's or one made alone (p56)", async () => {
 		openDuelFor.mockReturnValue({ message: { id: "duel-1" }, duel: { kind: "duel", sparring: false }, opponent: { token: "Scene.s.Token.Boar", name: "Boar" } });
 		tokens["Scene.s.Token.Boar"] = { actor: combatant({ uuid: "Actor.boar", name: "Boar" }) };
-		inputDialog
-			.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, duel: true, "declare.combine": true })
-			.mockResolvedValueOnce({ "group.0": "1", "group.1": "1" });
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, duel: true, "declare.combine": true });
 		await attack(horde());
-		expect(inputDialog.mock.calls[1][0].template).toBe("combine-dice");
+		// Pack Tactics is used only with at least one ally, and a duel is one on one.
+		expect(inputDialog).toHaveBeenCalledTimes(1);
 		expect(postCard.mock.calls[0][1]).toBe("attack");
-		expect(state().dice.map((die) => die.faces)).toEqual([12]);
+		expect(state().dice).toHaveLength(2);
+		inputDialog.mockReset();
+		postCard.mockClear();
+		openDuelFor.mockReturnValue(null);
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, "declare.combine": true, "declare.alone": true });
+		await attack(horde());
+		expect(inputDialog).toHaveBeenCalledTimes(1);
+		expect(postCard.mock.calls[0][1]).toBe("attack");
 	});
 
 	it("spends a thrown lance a charge shatters in one write, its count and its break merged (p92)", async () => {

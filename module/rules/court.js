@@ -227,8 +227,9 @@ export function circleKnights(circle, knights) {
 /**
  * Who sits in a Council seat: the Retainer from the Court holding it, or the
  * Knights sitting in the Circle. Each says which Knight they are, if any: a
- * Knight of the Circle is their own, and a Retainer is the Knight their place
- * in the Court is (courtKnight), since Knights take Retainers' seats too.
+ * Knight of the Circle is their own, and a Retainer is the Knight they were
+ * seated as, by id, or else the one Knight able to hold a post going by their
+ * name, as domainPosts finds them, since Knights take Retainers' seats too.
  * @param {{council?: object, court?: unknown}|null|undefined} system The Domain's, as stored.
  * @param {string} seat One of COUNCIL_SEATS.
  * @param {{id: string, name: string}[]} knights The world's Knights.
@@ -240,7 +241,9 @@ export function seatHolders(system, seat, knights) {
 	const court = normalizeCourt(system?.court);
 	const holder = seatHolder(system?.council, court, seat);
 	if (!holder) return [];
-	const knight = holder.legacy ? null : courtKnight(court[holder.id], knights);
+	// Found as domainPosts finds a Retainer's Knight, so a Slain Knight sharing a Retainer's name doesn't take them over.
+	const member = holder.legacy ? null : court[holder.id];
+	const knight = member ? postHolderFinder(knights, null)(member.knight, member.name) : null;
 	return [{ ...holder, knight: knight?.id ?? "" }];
 }
 

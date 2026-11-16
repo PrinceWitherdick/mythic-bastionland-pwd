@@ -1055,9 +1055,11 @@ async function planAttack(actor, joining = null) {
 	let route = "roll";
 	if (joining?.pack) route = "bring";
 	else if (weighed && (choice.wait || !weighed.impaired)) route = "pack";
-	// Rolled at once, its own dice are joined first, unless the roll is a d4 alone; joining another's
-	// rolled card, only their own dice are theirs to join. On a Pack, they're joined at its roll.
-	if (route === "roll" && combines && !weighed?.impaired) {
+	// Joining another's rolled card, they attack with an ally, so they may join their own dice first,
+	// the only ones still theirs to join. A blow rolled at once with nobody beside it (a duel's, one
+	// made alone, a Blast at each target apart) has no ally, so joins nothing (p56), as a Pack card
+	// with nobody else on it doesn't. On a Pack, they're joined at its roll.
+	if (route === "roll" && joining && combines) {
 		// A steed's trample stays its own, since it joins only a charge at foes on foot (p10).
 		const joined = await chooseCombined(dice.filter((die) => !die.trample));
 		if (!joined) return null;

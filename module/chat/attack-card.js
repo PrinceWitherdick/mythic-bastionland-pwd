@@ -45,7 +45,7 @@ import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { ATTACK_FLAG, attackOf, ownsAnAttacker, targeted } from "./attack-flag.js";
-import { keepsRolls, onCardClick, ownedBy, plural, rollDicePool, statefulCard, t, warn } from "./cards.js";
+import { guardedChanges, keepsRolls, onCardClick, ownedBy, plural, rollDicePool, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, slay, spendUse } from "../actions/abilities.js";
 import { worldKnights } from "../actions/knights.js";
@@ -148,13 +148,15 @@ export function ownedAttackers(actors) {
 	});
 }
 
+const guarded = guardedChanges(CHANGE_GUARDS);
+
 const attackCard = statefulCard({
 	flag: ATTACK_FLAG,
 	query: CHANGE_QUERY,
 	notices: "attack",
 	change: changeAttack,
 	render: renderAttackCard,
-	queryable: (change) => Object.hasOwn(CHANGE_GUARDS, change.type),
+	queryable: guarded.queryable,
 	alsoUpdate: keepsRolls(["join", "reroll"])
 });
 
@@ -229,7 +231,7 @@ function ownsMarkedFoe(change, attack, user) {
  * client does, and some, such as a forced withdraw, are the GM's alone.
  * @type {(data: {messageId?: string, change?: object}, context: {user?: User}) => Promise<boolean>}
  */
-const onChangeQuery = attackCard.answer((change, attack, user) => (Object.hasOwn(CHANGE_GUARDS, change.type) ? CHANGE_GUARDS[change.type](change, attack, user) : null));
+const onChangeQuery = attackCard.answer(guarded.judge);
 
 /**
  * The Attack cards this user can see, read for the weapons foes have shown.

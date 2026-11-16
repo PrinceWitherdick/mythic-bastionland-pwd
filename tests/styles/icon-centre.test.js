@@ -426,6 +426,34 @@ describe("centring the letters", () => {
 		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
 	});
 
+	/*
+	 * A Pack card's Join, Roll, Call Off and Open Again buttons are the shared
+	 * card action buttons, and its dice still to roll are the Attack card's dice
+	 * with an empty face; the Knight sheet's Posts rows are the shared item rows,
+	 * with the shared × badge and Take a Seat as the shared icon button. The
+	 * offline gallery draws them (fixture/pack-open, fixture/pack-stalled,
+	 * fixture/knight-posts): 0 findings at 1×, 1.25× and 1.5× (2026-11-11).
+	 * Nothing of their own may move their letters off those rules.
+	 */
+	it("leaves a Pack card's buttons and dice and a Knight's Posts rows centred by the shared rules", () => {
+		const pack = readFileSync(join(root, "templates/chat/pack.hbs"), "utf8");
+		const actions = [...pack.matchAll(/<button ([^>]*data-pack-action="[\w-]+"[^>]*)>/g)].map((match) => match[1]);
+		expect(actions).toHaveLength(4);
+		for (const button of actions) expect(button).not.toMatch(/class=/);
+		expect(pack.match(/<div class="bastionland-card__actions">/g)).toHaveLength(2);
+		expect(pack).toContain('<span class="bastionland-die is-waiting"');
+		const sheet = readFileSync(join(root, "templates/actor/knight-sheet.hbs"), "utf8");
+		const posts = /<section class="bastionland-block" data-block="posts"[\s\S]*?<\/section>/.exec(sheet)?.[0] ?? "";
+		expect(posts).toContain('<ul class="bastionland-items bastionland-court">');
+		expect(posts).toContain('<div class="bastionland-item__line">');
+		expect(posts).toMatch(/<button type="button" class="bastionland-icon" data-action="\{\{leave\.action\}\}"/);
+		expect(posts).toMatch(/<div class="bastionland-adds">\s*<button type="button" class="bastionland-button" data-action="takeSeat"/);
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => /bastionland-card--pack|\.bastionland-die\.is-waiting(?![\w-])|data-block="posts"|data-pack-action/.test(selector)
+			|| endsWith(selector, "bastionland-court")));
+		const moved = own.filter(({ body }) => /(^|;|\s)(display|line-height|padding|padding-(top|bottom|block)|vertical-align|margin-block-start|top|translate|transform):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

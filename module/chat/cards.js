@@ -405,6 +405,24 @@ export function ownedBy(uuid, user) {
 }
 
 /**
+ * A stateful card's `queryable` and the judge its `answer` takes, both read
+ * from one table of guards by change type, so what a user may ask for and
+ * what the GM records never disagree. A type the table lacks, or one only an
+ * object's prototype has, is never asked for and always refused.
+ * @template State
+ * @param {Record<string, (change: object, state: State, user: User, card: object) => object|null>} guards
+ * @returns {{queryable: (change: object) => boolean,
+ *   judge: (change: object, state: State, user: User, card: object) => object|null}}
+ */
+export function guardedChanges(guards) {
+	const guardOf = (change) => (Object.hasOwn(guards, change?.type) ? guards[change.type] : null);
+	return {
+		queryable: (change) => Boolean(guardOf(change)),
+		judge: (change, state, user, card) => guardOf(change)?.(change, state, user, card) ?? null
+	};
+}
+
+/**
  * A stateful card's `alsoUpdate` for changes that bring rolls: a joiner's, or
  * the pool rolled again, kept on the card's message beside its own so they
  * have a tooltip too. A message's rolls are stored as JSON, alike in v13 and
