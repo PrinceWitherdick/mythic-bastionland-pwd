@@ -20,13 +20,14 @@ vi.mock("../../module/actions/solo.js", () => ({ secretsKeptOn: vi.fn(() => fals
 vi.mock("../../module/actions/calendar.js", () => ({
 	getCalendar: () => ({ age: 1, year: 1, season: "spring", day: 1, phase: "morning", ...game.settings.get(SYS, "calendar") }),
 	calendarLabel: (calendar) => calendar.phase,
-	chronicleLabel: (calendar) => calendar.phase,
+	// The Undo's date sits mid-sentence: the moment as a sentence says it, never the chronicle's "…Age." with its full stop.
+	momentLabel: vi.fn((calendar) => `the ${calendar.phase}`),
 	setTurningScope: vi.fn()
 }));
 
 const { answeringWrite, captureAdvance, currentAdvanceId, advanceRecords, registerTimeCapture, watchWrites } = await import("../../module/actions/time-capture.js");
 
-const { setTurningScope } = await import("../../module/actions/calendar.js");
+const { momentLabel, setTurningScope } = await import("../../module/actions/calendar.js");
 const { registerTimeUndo, undoAdvance, undoOffer, undoMessage } = await import("../../module/actions/time-undo.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
 const { confirmDialog, setAskingGate } = await import("../../module/apps/ui.js");
@@ -284,6 +285,7 @@ describe("taking it back", () => {
 		const world = await aWorld();
 		await nextPhase(world);
 		expect(undoOffer()?.label).toBe("timeUndo.banner");
+		expect(momentLabel).toHaveBeenLastCalledWith(expect.objectContaining({ phase: "afternoon" }));
 		const order = [];
 		registered.get(`${SYS}.calendar`).onChange = () => order.push(`calendar:${advanceRecords().length}`);
 		registered.get(`${SYS}.weather`).onChange = () => order.push("weather");

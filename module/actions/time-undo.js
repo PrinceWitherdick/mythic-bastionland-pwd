@@ -16,7 +16,7 @@ import { PHASE_ICONS } from "../rules/time.js";
 import { childUuid, isPlainObject, planChanges, undoable, undoPlan } from "../rules/time-undo.js";
 import { escapeHTML, stripHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { calendarLabel, chronicleLabel, getCalendar } from "./calendar.js";
+import { calendarLabel, getCalendar, momentLabel } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { secretsKeptOn } from "./solo.js";
 import { ADVANCE_FLAG, LEFT_OUT, UNDOING_OPTION, advanceRecords, capturing, sameMoment, storedSetting, writeAdvanceRecords } from "./time-capture.js";
@@ -70,7 +70,7 @@ export function undoOffer() {
 	const record = undoableAdvance();
 	if (!record) return null;
 	const kind = kindLabel(record);
-	return { label: t("timeUndo.banner", { kind }), hint: t("timeUndo.bannerHint", { kind, date: chronicleLabel(record.before) }) };
+	return { label: t("timeUndo.banner", { kind }), hint: t("timeUndo.bannerHint", { kind, date: momentLabel(record.before) }) };
 }
 
 /**
@@ -114,7 +114,8 @@ export function undoMessage(record, plan) {
 	const pressed = cards.filter((message) => (message.flags?.[SYSTEM_ID]?.spentButtons ?? []).length);
 	const kept = [...plan.kept.map(({ name }) => name), ...plan.keptSettings.map(() => t("timeUndo.confirm.aSetting"))];
 	return [
-		t("timeUndo.confirm.intro", { kind: escapeHTML(kindLabel(record)), date: escapeHTML(chronicleLabel(record.before)) }),
+		// The date sits mid-sentence, so it's the moment as a sentence says it, with no full stop of its own.
+		t("timeUndo.confirm.intro", { kind: escapeHTML(kindLabel(record)), date: escapeHTML(momentLabel(record.before)) }),
 		...(back.length ? [`<ul>${back.map((line) => `<li>${line}</li>`).join("")}</ul>`] : [t("timeUndo.confirm.onlyTime")]),
 		...(kept.length ? [t("timeUndo.confirm.kept", { names: listed(kept) })] : []),
 		...(pressed.length ? [t("timeUndo.confirm.pressed", { cards: listed(pressed.map(cardTitle)) })] : [])
