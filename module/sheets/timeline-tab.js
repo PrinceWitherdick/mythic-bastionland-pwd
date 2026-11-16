@@ -20,6 +20,71 @@ const TIMELINE_TAB = "timeline";
 /** Where a sheet's own part has the page put. */
 const SLOT = "[data-timeline-slot]";
 
+/** @type {Map<number, number>} A page's scrollbar width at each devicePixelRatio, measured once: it changes only with the zoom. */
+const scrollbarWidths = new Map();
+
+/** @type {WeakMap<HTMLElement, ResizeObserver>} The page each sheet's gutter is kept on. */
+const watchedPages = new WeakMap();
+
+/**
+ * @param {HTMLElement} page A tabbed page, laid out.
+ * @returns {number} How wide a scrollbar on it is: one as thin as the page's own.
+ */
+function scrollbarWidth(page) {
+	const ratio = globalThis.devicePixelRatio || 1;
+	if (scrollbarWidths.has(ratio)) return scrollbarWidths.get(ratio);
+	const probe = document.createElement("div");
+	probe.style.cssText = "position: absolute; visibility: hidden; width: 100px; height: 1px; overflow: scroll;";
+	page.append(probe);
+	const width = probe.offsetWidth - probe.clientWidth;
+	probe.remove();
+	scrollbarWidths.set(ratio, width);
+	return width;
+}
+
+/**
+ * Every other page keeps room for a scrollbar at the page's right; the Timeline
+ * page gives it up, so its board runs to the window's side. The header above it,
+ * and the page's own toolbar, keep that room instead (styles/timeline.css), so
+ * they sit where they sit on every other page. --bastionland-gutter is the room
+ * a scrollbar would take less what the page's own scrollbar takes now, so a
+ * Timeline page too short for its board, which scrolls, isn't inset twice.
+ * @param {HTMLElement} page
+ */
+function keepGutter(page) {
+	// A minimised or hidden sheet isn't laid out: it's measured once it shows again.
+	if (!page.offsetWidth) return;
+	const style = getComputedStyle(page);
+	const shown = page.offsetWidth - page.clientWidth - (parseFloat(style.borderLeftWidth) || 0) - (parseFloat(style.borderRightWidth) || 0);
+	page.style.setProperty("--bastionland-gutter", `${Math.max(0, scrollbarWidth(page) - shown)}px`);
+}
+
+/**
+ * Keep the gutter on the sheet's page as it's drawn, and whenever the page's
+ * room changes after: its scrollbar coming or going, the Timeline tab opened,
+ * the window restored or zoomed.
+ * @param {HTMLElement} root The sheet's element.
+ */
+function watchGutter(root) {
+	const page = root?.querySelector(".bastionland-page--tabbed");
+	if (!page || watchedPages.has(page)) return;
+	if (typeof ResizeObserver !== "function") {
+		keepGutter(page);
+		return;
+	}
+	// Called once as soon as the page is laid out, and again whenever its content box changes.
+	const observer = new ResizeObserver(() => {
+		if (!page.isConnected) {
+			observer.disconnect();
+			watchedPages.delete(page);
+			return;
+		}
+		keepGutter(page);
+	});
+	observer.observe(page);
+	watchedPages.set(page, observer);
+}
+
 /**
  * @param {typeof foundry.applications.api.ApplicationV2} Base An actor sheet with tabs, drawn by Handlebars a part at a time.
  * @param {object} [options]
@@ -157,6 +222,7 @@ export const TimelineTabMixin = (Base, { board = false } = {}) => class extends 
 	 */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
+		watchGutter(this.element);
 		if (!options.parts?.includes(TIMELINE_TAB) && !this.#moved) return;
 		this.#moved = false;
 		this.#timeline.wire(this.element);
