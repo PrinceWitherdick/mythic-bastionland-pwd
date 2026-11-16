@@ -31,6 +31,8 @@
 		{{else}}
 		<p class="hint">{{localize "bastionland.attack.noWeapons"}}</p>
 		{{/each}}
+		{{!-- What the weapons ticked together can't do, such as more than two hands hold, said beside their boxes. --}}
+		<ul class="bastionland-dialog__problems" data-weapon-problems hidden></ul>
 		{{!-- Something grabbed and swung, whose die the Referee rules (p194): a weapon, so not unarmed (p10).
 		     The words typed beside its die name it on the card. --}}
 		<div class="form-group">

@@ -299,6 +299,7 @@ describe("an improvised weapon (p10, p194)", () => {
 	describe("in the dialog, as it's typed", () => {
 		let form;
 		let list;
+		let weaponList;
 		let roll;
 		let typed;
 		const listeners = {};
@@ -310,13 +311,15 @@ describe("an improvised weapon (p10, p194)", () => {
 		beforeEach(() => {
 			for (const key of Object.keys(listeners)) delete listeners[key];
 			typed = {};
-			list = { hidden: true, childElementCount: 0, lines: [], replaceChildren(...lines) {
+			const problems = () => ({ hidden: true, childElementCount: 0, lines: [], replaceChildren(...lines) {
 				this.lines = lines.map((line) => line.textContent);
 				this.childElementCount = lines.length;
-			} };
+			} });
+			list = problems();
+			weaponList = problems();
 			roll = { disabled: false };
 			form = {
-				querySelector: (selector) => (selector === "[data-wielding-problems]" ? list : null),
+				querySelector: (selector) => ({ "[data-wielding-problems]": list, "[data-weapon-problems]": weaponList })[selector] ?? null,
 				addEventListener: (event, listener) => (listeners[event] ??= []).push(listener)
 			};
 			const element = { querySelector: (selector) => ({ form, "[data-action='ok']": roll })[selector] ?? null };
@@ -378,6 +381,17 @@ describe("an improvised weapon (p10, p194)", () => {
 			expect(list.lines).toEqual([]);
 			type("");
 			expect(list.lines).toEqual(["bastionland.attack.smiteImpaired"]);
+		});
+
+		it("says beside the weapons that a third can't be held, and holds back the roll (p12)", async () => {
+			typed = { "source.mace": true, "source.shield": true, "source.dagger": true };
+			const knight = combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("mace", "Mace", "d8"), weapon("shield", "Shield", "d4"), weapon("dagger", "Dagger", "d6")] });
+			await attack(knight);
+			expect(weaponList.lines).toEqual(["bastionland.attack.refusals.hands"]);
+			expect(weaponList.hidden).toBe(false);
+			expect(list.lines).toEqual([]);
+			expect(list.hidden).toBe(true);
+			expect(roll.disabled).toBe(true);
 		});
 
 		it("reads the whole form again only as it changes, not as dice are typed", async () => {

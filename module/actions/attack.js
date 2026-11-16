@@ -615,26 +615,47 @@ function weaponDiceOf(chosen, choice, { mount, leader }, swung = readImprovised(
 	};
 }
 
+/** Refusals that come of the weapons ticked together, said beside the boxes that fix them. */
+const WEAPON_REFUSALS = new Set(["twoWays", "hefty", "long", "armLost", "hands", "allSetAside"]);
+
 /**
- * What stops or changes the Attack as chosen, one line each.
+ * What stops or changes the Attack as chosen, one line each: what comes of the
+ * weapons ticked, said in their fieldset, and the rest, said below it.
  * @param {Actor} actor
  * @param {AttackSource[]} chosen
  * @param {ReturnType<typeof checkWielding>} check
  * @param {import("../rules/gambit-marks.js").Mark[]} [marks] Gambits a foe landed on them.
  * @param {boolean} [smite] Smite is ticked.
  * @param {boolean} [unarmed] Nothing strikes: no weapon dice at all, as weaponDiceOf reads them (p10).
- * @returns {string[]}
+ * @returns {{weapons: string[], others: string[]}}
  */
 function wieldingProblems(actor, chosen, check, marks = [], smite = false, unarmed = false) {
-	const lines = check.refusal ? [t(`attack.refusals.${check.refusal}`, { name: actor.name })] : [];
-	for (const { index, reason } of check.setAside) lines.push(t(`attack.setAside.${reason}`, { name: chosen[index].name }));
-	if (check.impaired) lines.push(t("attack.confinedImpaired"));
+	const weapons = [];
+	const others = [];
+	if (check.refusal) (WEAPON_REFUSALS.has(check.refusal) ? weapons : others).push(t(`attack.refusals.${check.refusal}`, { name: actor.name }));
+	for (const { index, reason } of check.setAside) weapons.push(t(`attack.setAside.${reason}`, { name: chosen[index].name }));
 	// A foe's Impair on one of their weapons holds any Attack made with it (p186).
 	const held = impairedItem(marks, check.usable.map((index) => chosen[index].item));
-	if (held) lines.push(t("attack.weaponImpaired", { name: held }));
+	if (held) weapons.push(t("attack.weaponImpaired", { name: held }));
+	if (check.impaired) others.push(t("attack.confinedImpaired"));
 	// An Impaired Attack can't benefit from Feats (p8), so Smite isn't made, and costs nothing.
-	if (smite && (check.impaired || held || unarmed)) lines.push(t("attack.smiteImpaired"));
-	return lines;
+	if (smite && (check.impaired || held || unarmed)) others.push(t("attack.smiteImpaired"));
+	return { weapons, others };
+}
+
+/**
+ * Fill a dialog's list of problems, hiding it while there are none.
+ * @param {HTMLElement|null} list
+ * @param {string[]} lines
+ */
+function showProblems(list, lines) {
+	if (!list) return;
+	list.replaceChildren(...lines.map((text) => {
+		const line = document.createElement("li");
+		line.textContent = text;
+		return line;
+	}));
+	list.hidden = list.childElementCount === 0;
 }
 
 /**
@@ -651,6 +672,7 @@ function watchWielding(dialog, actor, sources, marks, aim, { mount, leaders }) {
 	const form = dialog.element.querySelector("form");
 	const list = form?.querySelector("[data-wielding-problems]");
 	if (!list) return;
+	const weaponList = form.querySelector("[data-weapon-problems]");
 	const roll = dialog.element.querySelector("[data-action='ok']");
 
 	/** The whole form as last read, and what it wields, which typing dice changes none of. */
@@ -661,13 +683,10 @@ function watchWielding(dialog, actor, sources, marks, aim, { mount, leaders }) {
 		// Unarmed is Impaired (p10), weighed on the dice the Attack would roll.
 		const { weaponDice } = weaponDiceOf(check.usable.map((index) => chosen[index]), choice, { mount, leader: leaderOf(leaders, choice) }, swung);
 		const unread = unreadDice(choice, swung);
-		const lines = [...unread, ...wieldingProblems(actor, chosen, check, marks, Boolean(choice.smite), !weaponDice.length)];
-		list.replaceChildren(...lines.map((text) => {
-			const line = document.createElement("li");
-			line.textContent = text;
-			return line;
-		}));
-		list.hidden = list.childElementCount === 0;
+		const { weapons, others } = wieldingProblems(actor, chosen, check, marks, Boolean(choice.smite), !weaponDice.length);
+		// Without a list in the weapons fieldset, everything is said in the one below.
+		showProblems(weaponList, weapons);
+		showProblems(list, [...unread, ...(weaponList ? [] : weapons), ...others]);
 		if (roll) roll.disabled = Boolean(check.refusal || unread.length);
 	};
 	const update = () => {
