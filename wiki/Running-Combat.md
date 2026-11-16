@@ -24,7 +24,8 @@ What differs for you:
 - **Taking a Gambit back late.** Once a Gambit has been Saved against or its Greater effect carried out, or for any Dismount, only you can take it back, on any card. You're asked first, since whatever was rolled for it is lost and anything done to a sheet stays done. A Deny made after the Gambits lets the attacker take theirs back too.
 - **Out of the fight.** A fled or surrendered NPC, a fled, surrendered or wiped-out Warband, and a destroyed structure make no Attack; the dialog says why. A Broken Warband still attacks, but follows no orders.
 - **Feats for the Cast.** An NPC can only Smite, Focus or Deny if the Feat is marked under **Feats** on its sheet.
-- **Joining an Attack.** To have a second NPC roll into the same Attack, select its Token and press **Join this Attack** on the card. A Referee is offered only the selected Tokens, since you own everybody.
+- **Joining an Attack.** To have a second NPC roll into the same Attack, select its Token and press **Join this Attack** on the card. A Referee is offered only the selected Tokens, since you own everybody. To gather a pack's dice before anything rolls, tick **Wait for allies to join before rolling** on the first one's Attack; see [Gathering before the roll](Combat-for-Players#gathering-before-the-roll).
+- **Gathering cards.** You can **Roll** or **Call Off** anybody's **An Attack Gathers** card. When a player rolls one that holds another player's dice, your client spends what those dice use up, so a Referee must be logged in.
 - **Who sees the card.** The card follows the chat's roll mode. Posted privately, the players can't see it, and so can't Deny on it, and the blows on the map are shown only to Referees.
 
 ![The same Attack card as the Referee sees it, with the Deny, Focus, Join this Attack and Apply Damage buttons](images/running-combat-gambit-save.webp)
@@ -34,8 +35,10 @@ What differs for you:
 When a Knight attacks one of your NPCs, the card waits for your answers before the Damage lands.
 
 - **Saving against a Gambit.** A Gambit that allows a Save shows a button such as **VIG Save** on its line. Click it to roll the Save for the NPC the Attack was aimed at; if it was aimed at several of yours, you're asked which one Saves. A passed Save strikes the Gambit through. The die stays spent either way. On a card aimed at nobody, target or select the Token of whoever Saves first.
-- **Greater effects.** A Strong Gambit with a Greater effect shows **Disarm, unhelm or break** once the NPC has failed its Save, or straight away when it gets none. The window lists what the NPC holds, wears or carries that it could take. On an NPC, a helm knocked off or a shield lost takes a point off its Armour and the word for it off its Armour note; the card reminds you to give both back. **Something else** writes in any other effect and changes nobody's sheet.
+- **Greater effects.** A Strong Gambit with a Greater effect shows **Disarm, unhelm or break** once the NPC has failed its Save, or straight away when it gets none. The window lists what the NPC holds, wears or carries that it could take. On an NPC, a helm knocked off or a shield lost takes a point off its Armour and the word for it off its Armour note; the card reminds you to give both back. **Something else** changes nobody's sheet: the card says it was told at the table, so say what it is aloud.
 - **Denying for an NPC.** If an NPC knows Deny, the **Deny** button lets it discard a die with a SPI Save. It offers the NPCs this Attack targeted and the actors of any Tokens you've selected. On the map, a Denier must be a target, or stand within arm's reach of a target as its ally. The button is always shown to a Referee; when nobody can Deny, hovering it says why.
+
+Some Knights' Abilities post a card of their own for you to press: **Rally the Allies** when such a Knight is Mortally Wounded, and **Take d10 SPI** when your NPC strikes somebody other than a Knight whose stance draws the fire. See [Combat for Players](Combat-for-Players#taking-damage).
 
 Players act on your NPCs' cards too: they Deny, join, make their Saves and apply Damage to their own Knights. Only a message's author or a Referee can change a card, so the active Referee's client records those changes for them. **A Referee needs to be logged in** for those buttons to work.
 

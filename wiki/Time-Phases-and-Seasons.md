@@ -19,7 +19,7 @@ For the Referee, each part of the bar is a button:
 - **Hover Weeks Pass** to see which seasonal event it carries the Company on to.
 - **Click anywhere else, or press Escape,** to put the menu away.
 
-![The bar at the top of the screen reading Afternoon, Harvest and 2nd Age in their colours, with the time menu let down under it showing Next Phase across the top, Weeks Pass, Months Pass and A Year Passes in a row, and End the Session across the foot](images/time-phases-and-seasons-banner.webp)
+![The bar at the top of the screen reading Night, Harvest and 2nd Age, with the time menu let down under it: Undo Next Phase at the top, then Next Phase, Weeks Pass, Months Pass and A Year Passes, and End the Session across the foot](images/time-phases-and-seasons-banner.webp)
 
 ## The Time page
 
@@ -81,6 +81,8 @@ The collection's card names the Domains that gather it. The Season's events are 
 
 **Click Months Pass** (on the Time page or the bar). A window opens listing, under **Who takes part**, every Knight: ticked when a player owns them or their Token is selected. Each ticked Knight picks a pursuit (Pilgrimage, Courtesy or Service). Service and Courtesy then offer a second menu for what came of it, or **Ask once the Season turns**. Untick anyone who isn't part of it.
 
+Courtesy's **A place at Court** makes the Knight a Courtier. With more than one Domain whose Court they aren't in, **Whose Court does (name) join?** asks from a list. A Knight already at every Court gains no second place, and a Squire isn't offered a place at Court.
+
 **Click Months Pass** in that window. Then:
 
 - The calendar moves to the first Morning of the next Season. After Winter comes the next Spring of the same Age.
@@ -118,6 +120,8 @@ Pressed Next Phase, Weeks Pass, Months Pass, A Year Passes or Journey to a Dista
 Only the Referee sees it.
 
 A window first says what goes back, then **Turn Time Back** takes back everything the advance did:
+
+![The Turn Time Back window, asking to turn time back to the Afternoon of Harvest in the Second Age, listing Gravenmoor and the Timeline as put back and the two cards Next Phase posted as deleted, with Turn Time Back and Keep It](images/time-phases-and-seasons-undo.webp)
 
 - the calendar, Day and year included;
 - Virtues lost or restored, Guard, Glory and aging;

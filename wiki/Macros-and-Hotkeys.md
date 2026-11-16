@@ -101,6 +101,7 @@ The system's functions for macros are on `game.system.api`. Most of them are for
 | `openSessionEnd()` | Opens the end-of-session window. |
 | `newSite()` | Starts a new Site. |
 | `newOwnMyth()` | Starts a homebrew Myth. See [Myths and Omens](Myths-and-Omens#homebrew-myths). |
+| `newOwnKnight()` | Starts a homebrew Knight, with their Seer (Referee). See [Choosing a Knight](Choosing-a-Knight#homebrew-knights). |
 | `openNpcChooser()` | Opens the **NPCs** compendium. |
 | `rollCityOmen()` | Rolls the next Omen of the City Quest (Referee). |
 | `awardGlory(key)` | Awards 1 Glory: `"myth"`, `"tournament"` or `"battle"` (Referee). |

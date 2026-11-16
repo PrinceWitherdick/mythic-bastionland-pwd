@@ -8,7 +8,7 @@ Each person at the table can change how the system's sheets, windows and chat ca
 - **The Settings tab on the Referee Toolkit**, for the Referee. It has the same settings, plus groups for the Referee. See [The Referee Toolkit](The-Referee-Toolkit).
 - **Foundry's Configure Settings window**, under the Mythic Bastionland section. It holds the same settings, so a change in one place shows in the other at once.
 
-Changes take effect straight away; nothing needs a reload except the Campaign Timeline switch. **All Settings…** at the foot of the tab opens Foundry's Configure Settings window on the system's section, for anything not on the tab.
+Changes take effect straight away; nothing needs a reload except the Campaign Timeline setting. **All Settings…** at the foot of the tab opens Foundry's Configure Settings window on the system's section, for anything not on the tab.
 
 ## Reading
 

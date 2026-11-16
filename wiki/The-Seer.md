@@ -8,7 +8,7 @@ Every Knight in the book was knighted by a Seer, printed on the same page. The K
 
 ![The Seer page of a Knight sheet, "Knighted by" with the Seer's name at the top, the Seer's portrait on the left, their stat line and description from the book on the right, and the Notes box below](images/the-seer-page.webp)
 
-- **Knighted by** is the Seer's name. Type it in, or leave it: a Knight chosen from the book has their Seer named and filled in already.
+- **Knighted by** is the Seer's name. Type it in, or leave it: a Knight chosen from the book, or from the Referee's homebrew Knights, has their Seer named and filled in already. A homebrew Seer shows what the Referee wrote of them in place of the book's words.
 - **The picture** beside it is the Seer's portrait from the book. **Click it** (or **Choose the Seer's picture** while there is none) to pick another image.
 - **What the book says**, read-only: the Seer's stat line (VIG, CLA, SPI and GD, hover each for its name) and the description under it, shown whole.
 - **Notes** is yours: a rich-text box for what your Knight knows of their Seer, what they've asked them, what they owe. Click the edit button in its corner to write.
@@ -32,6 +32,8 @@ When you pick a Knight in **Choose a Knight**, the right-hand side ends with **K
 
 On a Knight's Seer page the Referee also sees **Make this Seer**. It brings the Seer into the world as an NPC of their own, built from the stat block on their Knight's page, and opens their sheet. If that Seer has been made already, in the world or by dragging them from the compendium, it opens the one that exists rather than making a second. A Seer whose stat block the book doesn't give (or Import PDF hasn't read) can't be made, and you're told so.
 
+This works for the Seer of a [homebrew Knight](Choosing-a-Knight#homebrew-knights) too: the NPC is built from the Scores and Traits the Referee wrote for them, so one with no Scores written can't be made.
+
 Every Seer is also in the **NPCs** compendium, under the **Seers** folder, one sub-folder per d6 result, each with their portrait and a note saying which Knight they knighted. Drag one into the world when you need them. See [NPCs, Structures and Compendiums](NPCs-Structures-and-Compendiums).
 
 ## The Seer at a Sanctum (Referee)
@@ -52,6 +54,8 @@ In **Choose the Seer**:
 - **Click a card** to pick them, then **Make Them This Sanctum's Seer**. A Seer can live at more than one Sanctum; the window tells you if they already do.
 
 Until the rulebook is imported, the Seers go by their roll alone.
+
+The Seers of homebrew Knights have a **Homebrew** page of their own, after the six d6 results. Only **Choose the Seer** places one at a Sanctum: **Roll the Seer** only rolls the book's Seers. A homebrew Seer can be chosen before the rulebook is imported. Delete their Knight's Journal entry and the Sanctum's Seer reads **A Seer no longer written**.
 
 ## See also
 - [The Knight Sheet](The-Knight-Sheet)

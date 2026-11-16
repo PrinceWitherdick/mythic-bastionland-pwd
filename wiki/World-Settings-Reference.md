@@ -8,7 +8,7 @@ As the Referee, open the **Game Settings** tab in the right-hand sidebar, press 
 
 Only one setting needs a reload: **Campaign Timeline**. Foundry asks you to reload when you change it. Everything else applies straight away, or the next time the thing it affects is drawn.
 
-![Foundry's Configure Settings window on the Mythic Bastionland section, showing the Realm Appearance, Visited Marks and Welcome buttons at the top and the first world settings with their hints below](images/world-settings-reference-configure.webp)
+![Foundry's Game Settings window on the Mythic Bastionland section, showing the Visited Marks, Realm Appearance and Welcome buttons at the top, then Text Size, Contrast, Colour Scheme and Typeface with their hints](images/world-settings-reference-configure.webp)
 
 ## World settings
 
@@ -19,7 +19,7 @@ Only one setting needs a reload: **Campaign Timeline**. Foundry asks you to relo
 | **Solo Play** | Off | For playing alone. The Realm keeps its Myths, Landmarks and Barriers from the Referee as it does from players, until the Company finds them. A Myth is named once one of its Omens is met. See [Solo Play](Solo-Play). |
 | **Allow the Same Knight Twice** | Off | Lets more than one character be the same Knight from the book. Off, a Knight a living character already is can't be rolled, chosen or typed in again; a slain Knight's can. See [Choosing a Knight](Choosing-a-Knight). |
 | **Let Players Open the Rulebook** | Off | Gives players the **Rulebook** button, the `B` key and the page links. Pages the Referee shows them open either way. See [The Rulebook Reader](The-Rulebook-Reader). |
-| **Campaign Timeline** | On | The Timeline: a tab on each Knight, Squire and Domain sheet, a page in the Referee Toolkit and a window for everyone. Off, none of them show, though events are still written down for when it is turned on again. **Needs a reload.** See [The Campaign Timeline](The-Campaign-Timeline). |
+| **Campaign Timeline** | Everywhere | Where the Timeline shows. **Everywhere**: a tab on each Knight, Squire and Domain sheet, a page in the Referee Toolkit and a window for everyone. **Not on Player Sheets**: the sheets lose their tab, the rest stays. **Off**: none of them show, though events are still written down for when it is shown again. **Needs a reload.** See [The Campaign Timeline](The-Campaign-Timeline). |
 | **Attack Effects on the Map** | On | Draws Attacks on the map and plays their sounds. Needs Sequencer and JB2A for the pictures, SoundFx Library for the sounds; without them, that half does nothing. See [Installing and Recommended Modules](Installing-and-Recommended-Modules). |
 
 ### The Realm

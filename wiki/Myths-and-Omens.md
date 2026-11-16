@@ -114,7 +114,7 @@ The left side, **In the Realm**, lists every Myth number with its Myth, hex and 
 
 In every other case only which Myth it is changes: the number and hex stay the same. A Myth given a new roll here starts with no Omens met. Nothing in this window posts to chat.
 
-![The Realm's Myths window, the Realm's six numbered Myths down the left with Myth 3 selected, and the Yours page open on the right showing the Write a Myth card beside The Bell Under the Mere, marked as Myth 3](images/myths-and-omens-realms-myths.webp)
+![The Realm's Myths window, the Realm's six numbered Myths down the left with Myth 3 selected, and the Homebrew page open on the right showing the Write a homebrew Myth card beside The Bell Under the Mere, marked as Myth 3](images/myths-and-omens-realms-myths.webp)
 
 ## Moving a Myth to another hex
 

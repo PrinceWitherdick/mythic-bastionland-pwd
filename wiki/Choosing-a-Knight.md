@@ -46,6 +46,7 @@ When the replacement joins a Company that already has Glory, a **Glory** box app
 - **Click a number from 1 to 6** above the grid to show that d6 result's twelve Knights.
 - **Click the magnifying glass** to search all 72 Knights by name or by roll (such as `3-07`). `Esc` closes the search and goes back to the d6 result.
 - **Click a Knight's card** to pick them. Hover a portrait to see it larger.
+- **Click Homebrew**, after the six numbers, for the Knights the Referee wrote (see [Homebrew Knights](#homebrew-knights)). Players see it once at least one is ready for them; the Referee always does.
 
 The right-hand side shows the picked Knight's roll and book page, portrait, the verse under their name, their Property, Ability and Passion, and under **Knighted by** their Seer's portrait, name and description.
 
@@ -84,6 +85,49 @@ Knighting a Squire (the **Knight this Squire** button in the Squire's title bar)
 - Apply only adds: the Knight's Property, Ability and Passion, any of the standard kit they don't already carry, the Seer, and the book portrait if they still had the stand-in picture. Nothing they had is taken away. A steed from the Knight's Property becomes the one they ride, and their pony stays in the Actors tab.
 
 If you close the window without choosing, the sheet's title bar shows **Choose Their Knight** until you do. See [Property, Steeds and Squires](Property-Steeds-and-Squires#knighting-a-squire).
+
+A Squire can be Knighted as a homebrew Knight too: pick them on the **Homebrew** page.
+
+## Homebrew Knights
+
+The Referee can write Knights of their own, each with the Seer who knighted them, and players choose them in this window as they would a Knight of the book. Each homebrew Knight is a Journal entry, filed in a **Homebrew Knights** folder.
+
+Start one with:
+
+- **New Knight** at the top of the Journal directory;
+- **Write a homebrew Knight**, the first card on the **Homebrew** page of Choose a Knight (Referee only).
+
+### The Homebrew Knight sheet
+
+![A homebrew Knight's sheet, The Lantern Knight, with Ready for players and Start from a book Knight at the top, the empty portrait frame, the name and verse, four Property lines with what each gives listed under them, Ability, Passion, Their Ability works like, and their Seer with scores](images/choosing-a-knight-homebrew-sheet.webp)
+
+Everything saves as you type. Close a new Knight without writing anything and its empty entry is deleted.
+
+- **Portrait.** Click the frame (**Choose their portrait**) to pick one. **Frame** under it chooses the part a Knight sheet shows, in the same window a Knight's own portrait uses; the box is the Knight sheet's shape, and a Knight made from them keeps that framing. **No Picture** clears it. There is no separate Token picture: the Token is the portrait.
+- **Name**, written between **The** and **Knight** (The Lantern Knight, say), and two lines of **Verse**.
+- **Property**, a line each, written the way Knights' Property is: dice and qualities in brackets for a weapon, such as `(d8 long)`, A and a number for armour, such as `(A1)`, a stat line for a companion, and `(see below)` on the possession their table is about. **What their Property gives** under the box shows what each line will make: a weapon, armour, gear or a companion.
+- **Ability** and **Passion**, each with a name and its text, and a box for **Choices, one a line, if it ends on a list**.
+- **Their Ability works like**: pick a Knight of the book to borrow what their Ability does in play, such as the dice it adds to an Attack or the weapon it gives, or leave it on **Nothing automatic**. It needs the rulebook imported.
+- **Table**: a name and a table of two columns and six rows, rolled from the Knight's sheet with a d6 for each column. Leave it empty if they have none. **Sentences** (optional) says how each column's result reads on the chat card: put `{entry}` where it goes, or `{a entry}` to give it "a" or "an".
+- **Their Seer**: their picture (shown whole, with no framing), the **Seer's name**, **Scores** (VIG, CLA, SPI and GD) and **Traits**, a line each: Armour first, such as `A1 (thick robes)`, then any attacks, such as `Staff (d6)`, then whatever else is true of them. **What their traits make of them** shows how they will be read.
+
+### Start from a book Knight
+
+**Start from a book Knight** copies a Knight of the book in to change as you like: everything on their page, their table, their Ability working as theirs does, and their Seer. Its list has a **Search the Knights…** box; each Knight is shown with the Seer who knighted them. If you've already written anything, you're asked before it is replaced. Give them a new name before players can choose them. It needs the rulebook imported.
+
+### Ready for players
+
+Players can't see a homebrew Knight until the Referee ticks **Ready for players** on the sheet. To tick it, the Knight needs a name, and they and their Seer need names no other Knight or Seer has, book or homebrew. Untick it to take them back.
+
+Names are kept apart from then on. While a Knight is ready, or a character goes by them, renaming them (or their Seer) into a name another Knight or Seer already has is put back, with a warning. A draft nobody can choose yet may share a name for now; the sheet says so under the box.
+
+Renaming a Knight that characters already go by asks **Rename Them Too?**, so those sheets keep their table, verse and Seer. This works from the sheet, the Journal sidebar or Start from a book Knight alike.
+
+### Choosing one
+
+In Choose a Knight, homebrew Knights are on the **Homebrew** page, after the six d6 results. They are only ever chosen by hand: **Roll d6 and d12** never lands on one. The right-hand side reads **Homebrew, written by the Referee** where a book Knight shows their roll and page, and gives the Referee an **Edit this Knight** button.
+
+Applying one fills in the sheet as a book Knight does: Property, Ability, Passion, the standard kit, their table, their Seer, and their portrait as framed. The rule that [no two characters are the same Knight](#no-two-characters-are-the-same-knight) covers them too.
 
 > **Did you know?**
 > - The chooser keeps up with the table: if another player takes a Knight while your window is open, that card greys out, and Apply checks again before it saves.

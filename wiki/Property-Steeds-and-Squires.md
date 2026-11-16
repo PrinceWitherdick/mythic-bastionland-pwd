@@ -4,6 +4,12 @@ The **Property, Steed and Squire** page of the Knight sheet holds everything a K
 
 A Knight chosen from the book arrives with their Property already filled in: each line of it read into a weapon, a piece of armour or gear, with dice, tags and Armour set, plus the standard kit every Knight carries. See [Choosing a Knight](Choosing-a-Knight).
 
+- **One line, two things.** A line that names two possessions, one after the other's bracketed note, becomes two rows.
+- **Thrown weapons** (javelins, darts and the like) are ranged, at the die the Knight's page prints for them.
+- **A weapon's second use** becomes its **Another way to fight**: "can be thrown", a shield's other uses, or two blades wielded as a pair, which fill both hands.
+
+Knights already in a world when these readings came in are mended on load.
+
 ![The Property, Steed and Squire page of Dame Isolde Marrow's sheet, with her steed and her Squire on the left, and on the right her Property, weapons first, then armour with her table result under the kite shield, and the Weapon, Armour and ](images/property-steeds-and-squires-page.webp)
 
 ## The Property list
@@ -38,6 +44,23 @@ Hover a row to find these, where the item has them:
 | Broken heart | An item that costs a Virtue | Take the loss when something befalls it. |
 | Die (d6) | An Ability with a die for the fight | During a Combat, add the die to every Attack until the fight is over. |
 | Coins / Star | Some Abilities | Flip a coin for a life, or etch a rune at sunset. |
+| Helping hand | A possession that does something when used | What its page says it does. See [Using a possession](#using-a-possession). |
+
+### Using a possession
+
+Some Knights' possessions do something when used: their Property line or table result says so. The system reads it and gives the row a helping-hand button, named for what it does:
+
+| Button | What happens |
+| --- | --- |
+| **Ease the Mortal Wound** | The Mortal Wound becomes a Wound. Shown only while the Knight has one. |
+| **Draw out an affliction** | Pick which of the Knight's afflictions it takes; that affliction is gone. Shown only while they have one. |
+| **Restore a Virtue** / **Restore every Virtue** | One Virtue you pick, or all of them, back to its most. Shown only while a Virtue is down, so nothing is spent for no gain. |
+| **Use one: VIG Save** (or CLA, SPI) | Rolls that Save, for something eaten. |
+| **Make them pay d6 VIG** / **Deal d6 Damage to them** | For whoever grabbed or struck the Knight. Target that one Token first. After a confirmation, a card goes to chat with **Roll It** for the Referee. |
+
+Each use posts a card, and a counted possession spends one. A piece that Impairs a foe's first Attack does nothing from its row: the Attack dialog shows it as a line instead.
+
+The item window's **When used** field holds what it does, with its dice and Virtue, for a possession of your own or one the system read wrongly.
 
 Nobody, person or pack beast, can carry two Remedies. Giving a second to someone who already carries one is refused, and the warning names a steed that could carry it instead.
 
@@ -50,7 +73,7 @@ An item with no picture of its own gets a matching game-icons.net picture (a swo
 
 ### The item window
 
-The item's window holds everything the system reads from it: damage dice, Hefty, Long, Slow, Ranged, Blast, Ignores Armour, Trample, Specialist, Wooden, **Another way to fight** for a weapon used two ways, Armour and the **Counts** rule for armour, Rarity, Remedy, Poison, **Carried** and **Restocked** for things that are counted, **Broken**, and a Description. Hover a field's label for what it does. A saved item's window has **Delete** in its footer (it asks first).
+The item's window holds everything the system reads from it: damage dice, Hefty, Long, Slow, Ranged, Blast, Ignores Armour, Trample, Specialist, Wooden, **Another way to fight** for a weapon used two ways, Armour and the **Counts** rule for armour, Rarity, Remedy, Poison, **When used**, **Carried** and **Restocked** for things that are counted, **Broken**, and a Description. Hover a field's label for what it does. A saved item's window has **Delete** in its footer (it asks first).
 
 Things marked **Restocked** each new Season or each day fill back up to their full stock, and are mended, when the calendar turns.
 
@@ -61,6 +84,8 @@ Most Knights' pages in the book carry a d6 table tied to one of their possession
 - **A d6 die** sits under that possession on the Property page (or on a row of its own at the foot of the list). **Click it** to open the table in its own window. What you have rolled shows after the die, as a sentence where the table has one.
 - In the window, **click the die** or **Roll** to roll every column, **click a column heading** to roll just that one, or **click an entry** to take it by hand (click it again to let it go). Rolls are posted to chat. **Done** closes the window.
 - When a result describes a possession (what form a weapon takes, say), it is written onto that possession. If more than one could take it, **Which Possession?** asks.
+- A result goes where it belongs. One about the Knight's steed or beast companion lands on that NPC's sheet: its Trample, Guard or attack. A named piece of armour of another kind (spiked gloves, say) becomes a new possession. A table that names a companion names that NPC.
+- **Rolling again puts the last result back first**, so a reroll never stacks on top of the old one.
 - Someone who can only view the Knight can still open the table to read what was rolled.
 
 Some tables come round again, each new Season, each night or each day. For those the die sits inside the possession's brackets, right after the words saying when, and is marked **Due** once that time has come since the last roll. You are also told when the calendar turns.
@@ -78,6 +103,10 @@ Under the name the steed's kind is shown (when its name doesn't already say it) 
 Taking a steed makes an actor, so a player needs Foundry's Create Actors permission (granted to players by default on a new world; see [Choosing a Knight](Choosing-a-Knight#making-a-knight)).
 
 A Knight whose book Property includes a steed or a beast companion (a hawk, a hound) gets those made as NPCs when they're chosen. Choosing a new Knight on the same sheet deletes those again; a steed you took yourself stays.
+
+### Followers
+
+Anyone else who follows the Knight, a companion from their Property or an NPC dropped on the sheet as a follower, is listed under **Followers**, below the Squire. The block shows only while there is one. **Click a follower's name** to open their sheet, or the × to let them go (they're kept in the Actors tab, no longer this Knight's).
 
 ## Squires
 

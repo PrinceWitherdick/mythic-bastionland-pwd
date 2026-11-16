@@ -109,7 +109,9 @@ Each one's tab in Places says, in the system's own words, what it is and links t
 | Fountain | Which of its three it is. | As usual. |
 | Willow | Which of its three it is, and whether it stands this Season. | Only in its own Season. |
 
-A rolled Realm has two Bridges, a pair of Ponds, two Chapels, and three each of Grottos, Fountains and Willows, one of each sort, with fewer on a smaller map. Bridges are laid on a river where there is one.
+A rolled Realm has two Bridges, a pair of Ponds, two Chapels, and three each of Grottos, Fountains and Willows, one of each sort, with fewer on a smaller map. Ponds only ever come in pairs. Bridges are laid on a river where there is one.
+
+The same rules hold when a Landmark is found another way: a **Sweep** or a **Vantage point** never finds a Pond or a Grotto, nor a Willow out of its Season, and somebody asked for Folklore tells of the next Landmark past an **Other** marker or a Willow out of its Season.
 
 ## Exploring a hex
 
@@ -124,7 +126,7 @@ Asks **Who is asked**: **A Vassal**, **A Knight or Vagabond**, or **A Seer**. Ea
 Spends a Phase searching. Choose what it is spent on:
 
 - **Sweep the whole Hex**: a quick look over it.
-- **Search for something known to be here**: a Save. Choose who rolls and with which Virtue, type the d20 if it was rolled at the table or leave it empty to roll here, and say what they seek. A failure says the goal may still be had at a cost.
+- **Search for something known to be here**: a Save. Choose who rolls and with which Virtue, and type the d20 if it was rolled at the table or leave it empty to roll here. Say what they seek out loud: the Save is made as **Searching the Hex**. A failure says the goal may still be had at a cost.
 - **Climb somewhere high**: a vantage point.
 
 **The Phase passes** is ticked by default; untick it where you rule otherwise.

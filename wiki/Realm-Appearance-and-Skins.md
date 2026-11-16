@@ -12,7 +12,7 @@ Any of these opens the **Realm Appearance** window (Referees only):
 
 A line at the top says which Realm you are changing: the Realm Scene in view, or, with no Realm on screen, the look new Realms start with.
 
-![The Realm Appearance window, with the Skin cards (Blank Realm, Roundels, Woodcut, Surveyor's Atlas, Wax Seal, Armorial and Your own pictures), the Colours row, the Icons and Hex Lines sliders and the Preview](images/realm-appearance-and-skins-window.webp)
+![The Realm Appearance window, with the Skin cards (Blank Realm, Roundels, Woodcut, Surveyor's Atlas, Wax Seal, Armorial and Homebrew pictures), the Colours, the Icons and Hex Lines sliders and the arms tick on the left, and the Preview on the right](images/realm-appearance-and-skins-window.webp)
 
 ## Trying a look
 

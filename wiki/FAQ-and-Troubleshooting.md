@@ -5,7 +5,7 @@ Answers to the questions that come up most, and what to do when something looks 
 ## Getting started
 
 **Do I need the rulebook PDF?**
-Yes. The system ships none of the book's text or art, so without your own copy there are no Knights, Seers or Myths to choose from, no Spark Tables, no portraits and no compendiums. Bring it in once and everything fills in. See [Bringing In Your Rulebook](Bringing-In-Your-Rulebook).
+Yes. The system ships none of the book's text or art, so without your own copy there are no Knights, Seers or Myths to choose from, no Spark Tables, no portraits and no compendiums. Only [homebrew Knights](Choosing-a-Knight#homebrew-knights) and [homebrew Myths](Myths-and-Omens#homebrew-myths) the Referee writes work without it. Bring it in once and everything fills in. See [Bringing In Your Rulebook](Bringing-In-Your-Rulebook).
 
 **Do I need any modules?**
 No. Everything is built in. A few optional modules add 3D dice, Attack animations and sounds, weather on the map and framed tokens. See [Installing and Recommended Modules](Installing-and-Recommended-Modules).
@@ -21,6 +21,9 @@ Many of the players' buttons ask the Referee's client to do the work, so **a Ref
 
 **Will a system update overwrite my world or my imported book?**
 No. Updates replace the system's own files. Your world's actors, journals, items and settings stay as they are, and what was read from your PDF lives in `mythic-bastionland-art/` in your Foundry data folder, outside the system's folder.
+
+**Do I need to run Import PDF again after an update?**
+No. When an update reads more of the book, the world reads its kept copy of the PDF again by itself the next time a Referee loads it, and shows the usual report. See [Bringing In Your Rulebook](Bringing-In-Your-Rulebook#running-it-again).
 
 ## The rulebook and its art
 
@@ -95,7 +98,7 @@ The pictures need **Sequencer** and **JB2A**; the sounds need **SoundFx Library*
 ## Time and the Timeline
 
 **The Campaign Timeline is missing.**
-**Campaign Timeline** is off in the world settings. Turn it on and reload. Nothing was lost while it was off: events are still written down. See [The Campaign Timeline](The-Campaign-Timeline).
+**Campaign Timeline** is set to **Off** in the world settings, or to **Not on Player Sheets** if it's only the sheets' tab that's gone. Set it to **Everywhere** and reload. Nothing was lost while it was off: events are still written down. See [The Campaign Timeline](The-Campaign-Timeline).
 
 **A Tour keeps starting by itself.**
 Turn off **Start the Tours by Themselves** on your Settings tab. The Tours then wait in Foundry's **Tour Management** for you to play when you like.

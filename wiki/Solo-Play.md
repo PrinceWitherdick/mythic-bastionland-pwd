@@ -40,6 +40,7 @@ This is settled the first time you finish. If you take the Realm back into drawi
 - **Rumours.** Somebody who knows only roughly where a Myth lies, a Knight or Vagabond asked for Folklore or a person rolled up in a Holding, speaks of it by its number and its way: "Myth 3, three Hexes to the north-east". Its name comes with its first Omen, with its hex, or from a Seer, who knows where every Myth lies.
 - **A new Myth** that comes into the Realm, when one is resolved, is announced only by its number: it will be known by its first Omen.
 - **A Vantage point's** list of what stands in the hexes around says only that something is there.
+- **Seen from afar.** What the Company saw from afar is found once a blind drift or dire weather has settled where it really went, so it is marked from the hex the Company truly reached.
 
 ## What changes for you
 
@@ -49,6 +50,9 @@ Everything a Referee would normally see that would give a secret away keeps it i
 - **The hex readout** under the map names only what has been found.
 - **No Realm Key** is whispered when a Realm is made, and **Keep this Realm?** has no **Choose the Myths**: which Myths the Realm holds is left to the dice, unseen.
 - **The Referee Toolkit**'s Myths and Places pages show only what has been found.
+- **The Realm's Myths window** stays shut while the Realm keeps its secrets, and closes if it was open when solo play was turned on.
+- **The Season card** names no Myth the Company has never met.
+- **Roll Up This Holding** says only which way the nearest Myth lies, with no tie dice on the card. A Myth bordering the Holding is found on the map.
 - **Edit this hex** won't change what stands in a hex, so nothing still to be found is given away. Terrain and the rest still can be changed there, and Barriers with the map's brush. A Pond whose partner is still to be found keeps its **Type** and **Leads To**, and another Pond can't be paired with it.
 - **The paint palette** counts only what has been found, and its brushes leave alone a hex or edge that holds something still to be found.
 - **The Seer chooser** lists only the Sanctums you have found.
