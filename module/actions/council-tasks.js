@@ -14,7 +14,7 @@ import {
 	taskOutcome,
 	tasksDue
 } from "../rules/council-tasks.js";
-import { RETAINER_SEATS, seatHolders } from "../rules/court.js";
+import { seatHolders } from "../rules/court.js";
 import { COUNCIL_SEATS, isSameName } from "../rules/dominion.js";
 import { readRefereeTable } from "../rules/referee-rolls.js";
 import { escapeHTML } from "../rules/text.js";
@@ -35,15 +35,16 @@ import { timelineTaskSettled } from "./timeline-events.js";
  */
 
 /**
- * Who holds a seat and can still do its work: a Knight of the Circle Slain
- * since they were seated sits there no longer.
+ * Who holds a seat and can still do its work: a Knight Slain since they were
+ * seated, in the Circle or a Retainer's seat, sits there no longer. A Retainer
+ * who is no Knight, or a name written in before the Court, still does.
  * @param {Actor} domain
  * @param {string} seat One of COUNCIL_SEATS.
  * @param {object[]} [knights] The world's Knights, from knightChoices, where the caller has them already.
- * @returns {{id: string, name: string, legacy: boolean}[]}
+ * @returns {{id: string, name: string, legacy: boolean, knight: string}[]}
  */
 const livingHolders = (domain, seat, knights = knightChoices()) => seatHolders(domain?.system, seat, knights)
-	.filter((holder) => RETAINER_SEATS.includes(seat) || holder.legacy || !slainKnight(holder.id));
+	.filter((holder) => !slainKnight(holder.knight));
 
 /**
  * @param {Actor} domain
@@ -55,8 +56,9 @@ const seatHolderNames = (domain, seat, knights) => livingHolders(domain, seat, k
 
 /**
  * The actor who holds a Council seat, so that a task can be settled with their
- * own Save. A Knight of the Circle is their own sheet, unless they've been
- * Slain; a Retainer has one only where an actor goes by their name. A Circle
+ * own Save. A Knight in the seat, of the Circle or a Retainer's, is their own
+ * sheet, unless they've been Slain; a Retainer who is no Knight has one only
+ * where an actor goes by their name. A Circle
  * of several living Knights has nobody to make the Save alone.
  * @param {Actor} domain
  * @param {string} seat One of COUNCIL_SEATS.
@@ -66,9 +68,10 @@ const seatHolderNames = (domain, seat, knights) => livingHolders(domain, seat, k
 export function councilActor(domain, seat, knights) {
 	const holders = livingHolders(domain, seat, knights);
 	if (holders.length !== 1) return null;
-	const [{ id, name, legacy }] = holders;
-	// A Knight of the Circle is found by id; a Retainer's id is their place in the Court.
-	if (!RETAINER_SEATS.includes(seat) && !legacy) return game.actors.find((actor) => actor.id === id) ?? null;
+	const [{ knight, name }] = holders;
+	// A Knight in the seat is known by id, so a rename since doesn't lose them.
+	const sheet = knight && game.actors.find((actor) => actor.id === knight);
+	if (sheet) return sheet;
 	if (!name) return null;
 	return game.actors.find((actor) => actor.system?.virtues && isSameName(actor.name, name)) ?? null;
 }

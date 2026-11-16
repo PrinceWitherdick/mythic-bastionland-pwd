@@ -45,11 +45,12 @@ import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { ATTACK_FLAG, attackOf, ownsAnAttacker, targeted } from "./attack-flag.js";
-import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
+import { guardedChanges, keepsRolls, onCardClick, ownedBy, plural, rollDicePool, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, slay, spendUse } from "../actions/abilities.js";
 import { worldKnights } from "../actions/knights.js";
 import { KNIGHT_TYPES } from "../rules/knight-types.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
@@ -147,29 +148,17 @@ export function ownedAttackers(actors) {
 	});
 }
 
+const guarded = guardedChanges(CHANGE_GUARDS);
+
 const attackCard = statefulCard({
 	flag: ATTACK_FLAG,
 	query: CHANGE_QUERY,
 	notices: "attack",
 	change: changeAttack,
 	render: renderAttackCard,
-	queryable: (change) => Object.hasOwn(CHANGE_GUARDS, change.type),
-	alsoUpdate: joinedRolls
+	queryable: guarded.queryable,
+	alsoUpdate: keepsRolls(["join", "reroll"])
 });
-
-/**
- * A joiner's rolls, or the pool rolled again, kept on the card's message beside
- * its own so they have a tooltip too. A message's rolls are stored as JSON,
- * alike in v13 and v14, and Foundry takes only evaluated ones.
- * @param {ChatMessage} message
- * @param {object} change
- * @returns {{rolls?: string[]}}
- */
-function joinedRolls(message, change) {
-	const rolls = ["join", "reroll"].includes(change?.type) && Array.isArray(change.rolls) ? change.rolls.filter((roll) => roll?.evaluated) : [];
-	if (!rolls.length) return {};
-	return { rolls: [...(message._source?.rolls ?? []), ...rolls.map((roll) => JSON.stringify(roll))] };
-}
 
 // Read where the card keeps it (attack-flag.js), and offered from here too.
 export { attackOf };
@@ -222,16 +211,6 @@ function waitingTargets(attack) {
 }
 
 /**
- * @param {string} uuid
- * @param {User} user
- * @returns {Document|null} The document, when the user owns it.
- */
-function ownedBy(uuid, user) {
-	const doc = fromUuidSync(uuid);
-	return doc?.testUserPermission?.(user, "OWNER") ? doc : null;
-}
-
-/**
  * Whether the user owns the foe a mark or Greater effect is on, and the card is aimed at them.
  * @param {{type: string, actor: string}} change
  * @param {import("../rules/attack.js").AttackState} attack
@@ -252,7 +231,7 @@ function ownsMarkedFoe(change, attack, user) {
  * client does, and some, such as a forced withdraw, are the GM's alone.
  * @type {(data: {messageId?: string, change?: object}, context: {user?: User}) => Promise<boolean>}
  */
-const onChangeQuery = attackCard.answer((change, attack, user) => (Object.hasOwn(CHANGE_GUARDS, change.type) ? CHANGE_GUARDS[change.type](change, attack, user) : null));
+const onChangeQuery = attackCard.answer(guarded.judge);
 
 /**
  * The Attack cards this user can see, read for the weapons foes have shown.
@@ -944,12 +923,23 @@ async function onGreater(message, button) {
  * @returns {Actor[]}
  */
 function joinCandidates(attack) {
-	const struck = new Set(targetActors(attack).map((actor) => actor.uuid));
+	return joinersFor(attackersOf(attack), targetActors(attack));
+}
+
+/**
+ * Who this user could add to an Attack, as joinCandidates says: an Attack card,
+ * or a Pack card still gathering its dice (p56).
+ * @param {string[]} attackers UUIDs of those already in it.
+ * @param {Actor[]} struck Those it's aimed at.
+ * @returns {Actor[]}
+ */
+export function joinersFor(attackers, struck) {
+	const aimed = new Set(struck.map((actor) => actor.uuid));
 	const pool = [
 		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
 		...(game.user.isGM ? [] : [game.user.character, ...worldKnights()])
 	];
-	return ownedAttackers(pool).filter((actor) => !isAttacker(attack, actor.uuid) && !struck.has(actor.uuid));
+	return ownedAttackers(pool).filter((actor) => !attackers.includes(actor.uuid) && !aimed.has(actor.uuid));
 }
 
 /**
@@ -1004,7 +994,7 @@ async function onReroll(message) {
 	const actor = await chooseActor(able.map((entry) => entry.actor), { title: t("attack.reroll.button"), message: t("attack.reroll.who"), icon: "fa-solid fa-rotate" });
 	const { item } = able.find((entry) => entry.actor === actor) ?? {};
 	if (!item) return;
-	const roll = await new Roll(attack.dice.map((die) => `1d${die.faces}`).join(" + ")).evaluate();
+	const roll = await rollDicePool(attack.dice);
 	const change = { type: "reroll", results: roll.dice.map((die) => die.total), by: actor.name, actor: actor.uuid, rolls: [roll.toJSON()] };
 	if (!(await saveChange(message, change))) return;
 	showRolls([roll]);
@@ -1092,6 +1082,6 @@ function activateAttackCard(message, html) {
 
 /** Called during init. */
 export function registerAttackCards() {
-	CONFIG.queries[CHANGE_QUERY] = onChangeQuery;
+	registerQuery(CHANGE_QUERY, onChangeQuery);
 	Hooks.on("renderChatMessageHTML", activateAttackCard);
 }

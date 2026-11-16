@@ -17,7 +17,7 @@ vi.mock("../../module/canvas/shown-hex.js", () => ({ ringHoveredHex: vi.fn() }))
 
 const { showHexOnMap } = await import("../../module/actions/travels.js");
 const { ringHoveredHex } = await import("../../module/canvas/shown-hex.js");
-const { hexTarget, registerHexTargets } = await import("../../module/chat/hex-target.js");
+const { hexTarget, registerHexTargets, smallCapsLabel } = await import("../../module/chat/hex-target.js");
 
 /** What renderChatMessageHTML calls, one per registration. */
 let renders;
@@ -61,7 +61,14 @@ afterEach(() => {
 
 describe("hexTarget", () => {
 	it("gives a card the hex's key, its Realm and its label", () => {
-		expect(hexTarget({ col: 5, row: 7 }, realm)).toEqual({ key: "5,7", scene: "realm", label: "Column 5, Row 7" });
+		expect(hexTarget({ col: 5, row: 7 }, realm)).toEqual({ key: "5,7", scene: "realm", label: "Column 5, Row 7", smallCaps: false });
+	});
+
+	it("draws a name in small capitals, but a label with figures on its capitals", () => {
+		expect(smallCapsLabel("The Old Mill")).toBe(true);
+		expect(smallCapsLabel("Column 5, Row 7")).toBe(false);
+		expect(smallCapsLabel("MILL")).toBe(false);
+		expect(smallCapsLabel("")).toBe(false);
 	});
 });
 

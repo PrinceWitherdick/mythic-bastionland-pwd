@@ -1157,6 +1157,13 @@
 	scrollbar-gutter: auto;
 }
 
+/* The header and the tab's toolbar keep the scrollbar's room the page gave up, so they sit
+   where they do on every other page rather than spreading wider (module/sheets/timeline-tab.js). */
+.bastionland-page--tabbed:has(> .tab.active > .bastionland-timeline--tab) > .bastionland-header,
+.bastionland-timeline--tab > .bastionland-timeline__toolbar {
+	margin-right: var(--bastionland-gutter, 0px);
+}
+
 .bastionland-page > .tab.active:has(> .bastionland-timeline--tab),
 .bastionland-timeline--tab {
 	display: flex;

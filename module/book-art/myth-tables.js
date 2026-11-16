@@ -1,4 +1,5 @@
 import { ABILITY_LIST_VERSION, knightTextFromItems, knightVerseFromItems, mythTableFromItems, mythVerseFromItems, promptsFromItems, wantsList } from "../rules/book-art.js";
+import { isOwnRecord } from "../rules/knight-refs.js";
 import { routed } from "../rules/rulebook.js";
 import { rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -128,6 +129,8 @@ export const peekVerse = (page) => peek(page, "verse");
  */
 function partForEntry(part, index, entry, { page = entry?.page, versionFloor = Infinity } = {}) {
 	if (entry?.[part]) return Promise.resolve(entry[part]);
+	// A Knight the Referee wrote has no page to read: what they wrote is all there is.
+	if (isOwnRecord(entry)) return Promise.resolve(null);
 	if ((index?.version ?? 0) >= versionFloor) return Promise.resolve(null);
 	return readPage(page).then((read) => read?.[part] ?? null);
 }
@@ -180,7 +183,7 @@ export const canReadTablesFromRulebook = () => Boolean(rulebookPath());
  * @returns {Promise<object|null>} The entry, with its Ability and Passion as complete as can be had.
  */
 export async function knightWithLists(index, entry) {
-	if (!entry || (index?.version ?? 0) >= ABILITY_LIST_VERSION) return entry;
+	if (!entry || isOwnRecord(entry) || (index?.version ?? 0) >= ABILITY_LIST_VERSION) return entry;
 	const stale = ["ability", "passion"].filter((part) => wantsList(entry[part]));
 	if (!stale.length) return entry;
 	const read = await readPage(entry.page);

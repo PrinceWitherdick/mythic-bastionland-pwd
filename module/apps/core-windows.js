@@ -1,3 +1,4 @@
+import { isOwnKnightEntry } from "../actions/own-knights.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
 import { isSiteEntry } from "../actions/sites.js";
 import { HEX_JOURNAL_FLAG } from "../rules/hex-journal.js";
@@ -9,8 +10,9 @@ import { SYSTEM_ID } from "../system-id.js";
  * Foundry's own windows that come up in play with the system, dressed in its
  * parchment: Create Actor and Create Item, the confirm before deleting an
  * Actor, an Item or one of the system's Journal entries, User Configuration,
- * where a player picks their Knight, and the hex, Site and Timeline journals,
- * with the Add Page and Delete Page dialogs inside them. Each keeps Foundry's
+ * where a player picks their Knight, the hex, Site and Timeline journals,
+ * with the Add Page and Delete Page dialogs inside them, and Roll Resolution,
+ * where dice rolled by hand are typed in. Each keeps Foundry's
  * form and works as Foundry's does; only the look is the system's. Every other
  * core window, and other modules', is left as it is.
  */
@@ -31,6 +33,14 @@ export const JOURNAL_CLASS = "mythic-bastionland-journal";
 
 /** The sheets' parchment root, set on a journal's page area so it takes their controls and inks. */
 const PAGE_CLASS = "bastionland-page";
+
+/**
+ * Roll Resolution, where dice rolled by hand are typed in when Foundry's dice
+ * are set to Manual (styles/core-windows.css). Like the journals' class, it
+ * doesn't start with "bastionland", so isSystemWindow passes it by: its
+ * formula, such as "1d8 + 1d6", isn't marked to roll in place.
+ */
+export const ROLL_RESOLVER_CLASS = "mythic-bastionland-roll-resolver";
 
 /**
  * A caller's dialog options, asking for the system's look as well.
@@ -57,12 +67,12 @@ export function isKeptJournal(entry) {
 
 /**
  * Whether a Journal entry is one the system writes or draws: a hex's or a
- * Site's journal, the Timeline, a Site, or a Myth the Referee wrote.
+ * Site's journal, the Timeline, a Site, or a Myth or Knight the Referee wrote.
  * @param {JournalEntry|null|undefined} entry
  * @returns {boolean}
  */
 export function isSystemJournal(entry) {
-	return isKeptJournal(entry) || isSiteEntry(entry) || isOwnMythEntry(entry);
+	return isKeptJournal(entry) || isSiteEntry(entry) || isOwnMythEntry(entry) || isOwnKnightEntry(entry);
 }
 
 /**
@@ -100,6 +110,17 @@ export function skinJournalPage(app, element) {
 	element.querySelector(":scope > .window-content")?.classList.add(PAGE_CLASS);
 }
 
+/**
+ * Dress Roll Resolution: the window takes its class, and its contents the
+ * sheets' parchment root, so the boxes dice are typed in are the system's.
+ * @param {foundry.applications.dice.RollResolver} _app
+ * @param {HTMLElement} element
+ */
+export function skinRollResolver(_app, element) {
+	element.classList.add(ROLL_RESOLVER_CLASS);
+	element.querySelector(":scope > .window-content")?.classList.add(PAGE_CLASS);
+}
+
 /** Dress Foundry's windows that come up in play with the system. Called during init. */
 export function registerCoreWindowSkin() {
 	// On the base classes, so a module's subclass of either inherits the same.
@@ -125,4 +146,5 @@ export function registerCoreWindowSkin() {
 	Hooks.on("renderUserConfig", skinUserConfig);
 	Hooks.on("renderJournalEntrySheet", skinJournal);
 	Hooks.on("renderJournalEntryPageSheet", skinJournalPage);
+	Hooks.on("renderRollResolver", skinRollResolver);
 }

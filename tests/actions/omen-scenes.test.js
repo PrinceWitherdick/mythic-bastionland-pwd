@@ -202,7 +202,8 @@ describe("where linked Scenes are offered", () => {
 
 	it("writes a written Myth's Scenes in turn with its sheet's saves", () => {
 		const sheet = read("module/apps/OwnMythSheet.js");
-		expect(sheet).toContain("return ownMythWrites(this.document.id);");
+		expect(sheet).toContain("writes: ownMythWrites,");
+		expect(read("module/apps/OwnEntrySheet.js")).toContain("return this._kind.writes(this.document.id);");
 		expect(read("module/actions/own-myths.js")).toContain("return ownMythWrites(entry.id)(async () => {");
 	});
 

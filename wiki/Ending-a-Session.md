@@ -2,7 +2,7 @@
 
 **Ending a Session** is a Referee-only window that walks the book's end-of-session procedure (p16) in order: settle how much time passes, see what becomes of anything left hanging, catch up on Crisis Rolls and Glory, ask the players what they plan next, and write a line about the session. One press of **End the Session** at the foot of the window then moves the calendar on, keeps your notes and posts a summary card to chat.
 
-![The Ending a Session window with Months picked under How much time passes, Add a situation, the Crisis Roll still owed, the Glory buttons, and the Plans and ambitions and This session boxes filled in](images/ending-a-session-window.webp)
+![The Ending a Session window with Months picked under How much time passes, Situation 1 rolled and Situation 2 still to roll, the Crisis Roll still owed, the Glory buttons, and the Plans and ambitions and This session boxes filled in](images/ending-a-session-window.webp)
 
 ## Opening the window
 
@@ -21,7 +21,7 @@ The window is a column of sections. Some only appear when they have something to
 | Section | When it shows | What it does |
 | --- | --- | --- |
 | **How much time passes?** | Always | Pick **None**, **Weeks**, **Months** or **Years**, or roll for it. |
-| **Anything left unresolved?** | Only when **Months** or **Years** is picked | Name situations left hanging and roll for each. |
+| **Anything left unresolved?** | Only when **Months** or **Years** is picked | Number the situations left hanging and roll for each. |
 | **Crisis Rolls still owed** | Only when a Domain hasn't made this Season's Crisis Roll | A **Crisis Roll** button per Domain. |
 | **Glory** | Always | Award Glory won by other means than Rank. |
 | **Plans and ambitions** | Always | What the players mean to do next time. |
@@ -48,12 +48,12 @@ You can still click a different pill after rolling. Picking a step other than th
 
 This section only appears for **Months** and **Years**, since unresolved situations change as the Season or Age turns.
 
-- **Click Add a situation** for a new row, and type what was left hanging.
+- **Click Add a situation** for a new row. Rows are numbered, **Situation 1**, **Situation 2** and so on: say out loud what each one is, so the table knows which number is which. There is nothing to type.
 - **Click Roll** on a row to roll the Unresolved Situation table for it. The card goes to chat, and the result shows under the row.
-- **Click the ×** to take a row off the list.
+- **Click the ×** to take a row off the list. The others keep their numbers, since the table has been calling them by those.
 - **Show the players**, under the list, shares the situations. Unticked, the rolls are whispered to you, and the summary card leaves them out: they go on a card of their own for the Referee alone.
 
-Only rows you rolled make it onto the summary. A rolled row with no name is listed as "A situation left unresolved".
+Only rows you rolled make it onto the summary, each by its number with its die and result.
 
 ### Crisis Rolls still owed
 
@@ -96,7 +96,7 @@ If the time step can't be carried out, nothing else happens and the window stays
 The recap is never on the chat card. Unticking the share box keeps it off the Timeline, but the Timeline row still says how much time passed and what the players plan next.
 
 > **Did you know?**
-> - Closing the window without pressing **End the Session** throws away what you typed and the situations you listed. Anything already rolled or awarded stays done: the cards are in chat and the Glory is on the sheets.
+> - Closing the window without pressing **End the Session** throws away what you typed and the situations you numbered. Anything already rolled or awarded stays done: the cards are in chat and the Glory is on the sheets.
 > - The Timeline row is written even while the world has the Timeline turned off, so it is there if you turn the Timeline back on.
 > - The window remembers only one thing between sessions: a turn the Passage of Time die put off until next time. Ending the next session uses that promise up, whichever step you pick then.
 

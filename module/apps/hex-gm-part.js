@@ -30,6 +30,7 @@ import { mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { hexTarget, ringHexesOnHover } from "../chat/hex-target.js";
 import { isTableRoll } from "../rules/book-art.js";
+import { isOwnRecord, isSeerRecord, ownRef } from "../rules/knight-refs.js";
 import { omenStage } from "../rules/gm-toolkit.js";
 import { toldState } from "../rules/hex-shared.js";
 import { MAX_SPARK_NAME, MAX_SPARK_PROMPT, sparkBatches } from "../rules/hex-lore.js";
@@ -260,15 +261,15 @@ function mythContext(scene, myth, index) {
 }
 
 /**
- * The Seer at a Sanctum, by name and page once rolled.
- * @param {{d6: number, d12: number}|null|undefined} seer
+ * The Seer at a Sanctum, by name and page once rolled, or by name alone for one the Referee wrote.
+ * @param {{d6: number, d12: number}|{own: string}|null|undefined} seer
  * @param {object|null} index The art index.
  * @returns {{name: string|null, roll: string}}
  */
 function seerContext(seer, index) {
-	if (!seer?.d6 || !seer?.d12) return { name: null, roll: t("hexGm.seer.roll") };
+	if (!isSeerRecord(seer)) return { name: null, roll: t("hexGm.seer.roll") };
 	const { name, page, entry } = seerEntry(index, seer);
-	return { name: t("realm.panel.reference", { name, page }), roll: t("hexGm.seer.again"), make: Boolean(entry?.stats) };
+	return { name: withPage(name, page), roll: t("hexGm.seer.again"), make: Boolean(entry?.stats) };
 }
 
 /**
@@ -594,7 +595,8 @@ export const HEX_GM_ACTIONS = Object.freeze({
 	// Bring the Sanctum's Seer into the world as an NPC of their own.
 	makeSeer({ scene, hex }) {
 		const seer = featureAt(getRealm(scene).realm, hex).landmark?.seer;
-		return seer?.d6 && seer?.d12 ? makeSeer({ roll: seerReference(seer).roll }) : null;
+		if (isOwnRecord(seer)) return makeSeer({ roll: ownRef(seer.own) });
+		return isTableRoll(seer) ? makeSeer({ roll: seerReference(seer).roll }) : null;
 	},
 	// Grant the Holding here to a Knight, through their Domain (p20).
 	grantHolding: ({ scene, hex }) => grantHolding(scene, hex),

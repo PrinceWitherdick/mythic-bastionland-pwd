@@ -27,6 +27,13 @@
 			{{#each table}}{{> grantRow}}{{/each}}
 		</fieldset>
 
+		{{#if own.length}}
+		<fieldset class="bastionland-choice-list bastionland-choice-list--full" data-search-section>
+			<legend>{{localize "bastionland.hexGm.ruler.own"}}</legend>
+			{{#each own}}{{> grantRow}}{{/each}}
+		</fieldset>
+		{{/if}}
+
 		{{#if others.length}}
 		<fieldset class="bastionland-choice-list bastionland-choice-list--full" data-search-section>
 			<legend>{{localize "bastionland.hexGm.ruler.others"}}</legend>

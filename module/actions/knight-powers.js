@@ -20,6 +20,7 @@ import { updateActors } from "./actor-updates.js";
 import { loseVirtue, rollDamageOn } from "./abilities.js";
 import { keepLastingDice, placesInCombat } from "./lasting-dice.js";
 import { causedBy } from "./ledger.js";
+import { registerQuery } from "../queries.js";
 
 /** The query asking the active GM to seal arms the Knight's player can't write (p70). */
 const SEAL_QUERY = `${SYSTEM_ID}.sealArms`;
@@ -282,7 +283,7 @@ export async function onSealQuery(data = {}, context = {}) {
 
 /** Wire the cards and the query. Called during init. */
 export function registerKnightPowers() {
-	CONFIG.queries[SEAL_QUERY] = onSealQuery;
+	registerQuery(SEAL_QUERY, onSealQuery);
 	registerCardButtons({
 		selector: RALLY_SELECTOR,
 		// The Referee's, who owns every ally and knows who fights beside them.

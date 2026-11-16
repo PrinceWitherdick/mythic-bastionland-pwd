@@ -43,8 +43,13 @@ describe("rememberedChoice", () => {
 			mounted: false,
 			charge: false,
 			againstIndividuals: false,
+			wait: false,
 			turn: null
 		});
+	});
+
+	it("keeps whether they waited for allies, which they'll likely do again in the same fight (p8)", () => {
+		expect(rememberedChoice({ wait: true }).wait).toBe(true);
 	});
 });
 

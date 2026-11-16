@@ -14,6 +14,7 @@ import { askReferee } from "./ask-referee.js";
 import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
 import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
 import { lapseStances } from "./stance-lapse.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Restore one Virtue of each of them to its most, all in one write.
@@ -220,7 +221,7 @@ export async function onRemedyQuery(data = {}, context = {}) {
 
 /** Answer players' Remedies, which the Referee shares with those they don't own. Called during init. */
 export function registerRemedyQuery() {
-	CONFIG.queries[REMEDY_QUERY] = onRemedyQuery;
+	registerQuery(REMEDY_QUERY, onRemedyQuery);
 }
 
 /**

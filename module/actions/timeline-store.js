@@ -25,6 +25,7 @@ import { JOURNEY_FLAG, glimpsedBy, realmKnownToPlayers } from "./journey.js";
 import { afterBurst } from "./kept-journals.js";
 import { inCompany, worldKnights } from "./knights.js";
 import { isDrawingRealm, isRealmScene } from "./realm.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Where the Timeline is kept: one Journal entry everyone owns, so a player
@@ -592,7 +593,7 @@ function refusePlayerDelete(journal, warning) {
  * writes the active Referee's browser makes for players. Called during init.
  */
 export function registerTimelineStoreHooks() {
-	CONFIG.queries[TRACK_WRITE_QUERY] = onTrackWriteQuery;
+	registerQuery(TRACK_WRITE_QUERY, onTrackWriteQuery);
 	Hooks.on("preDeleteJournalEntry", refuseTimelineDelete);
 	Hooks.on("preDeleteJournalEntryPage", refuseTimelinePageDelete);
 	Hooks.on("createActor", (actor) => {

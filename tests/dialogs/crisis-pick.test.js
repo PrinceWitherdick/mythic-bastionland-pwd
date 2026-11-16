@@ -31,6 +31,24 @@ describe("the Crisis picker", () => {
 	});
 });
 
+describe("a pick list with a search", () => {
+	const page = handlebars.compile(read("templates/dialogs/pick-one.hbs"));
+
+	it("puts the box over the list, and each row's words on it", () => {
+		const html = page({ legend: "Which?", choices: [{ id: "0", name: "The Coin Knight", search: "the coin knight" }], search: { label: "Search the Knights…", none: "No Knight matches." } });
+		expect(html.indexOf('type="search"')).toBeLessThan(html.indexOf("<fieldset"));
+		expect(html).toContain('placeholder="Search the Knights…"');
+		expect(html).toContain('data-search="the coin knight"');
+		expect(html).toMatch(/class="bastionland-empty bastionland-pick-one__none" hidden>No Knight matches\./);
+	});
+
+	it("has no box, and no words on its rows, without one", () => {
+		const html = page({ legend: "Which?", choices });
+		expect(html).not.toContain('type="search"');
+		expect(html).not.toContain("data-search");
+	});
+});
+
 describe("a pick list with none chosen to start", () => {
 	it("checks the first choice by default, but none, and asks for one, when unchosen", () => {
 		const page = handlebars.compile(read("templates/dialogs/pick-one.hbs"));

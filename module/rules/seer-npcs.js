@@ -5,12 +5,14 @@
  * Seer that counts as a structure is one. Pure, so it can be tested without Foundry.
  */
 import { SYSTEM_ID } from "../system-id.js";
+import { refOf } from "./knight-refs.js";
 import { actorFromStatBlock } from "./stat-blocks.js";
 import { midSentence, paragraphs } from "./text.js";
 
 /**
  * The flag marking a Seer's Actor with their roll on the Knights table, such as
- * "3-07", so one brought in from the compendium is the one Make Seer finds.
+ * "3-07", or the ref of a Seer the Referee wrote (knight-refs.js), so one
+ * brought in from the compendium is the one Make Seer finds.
  */
 export const SEER_FLAG = "seer";
 
@@ -39,8 +41,8 @@ export function seerActor(seer, knight, words) {
 		...(seer.path ? { img: seer.path, prototypeToken: { texture: { src: seer.path } } } : {}),
 		system: { ...system, notes: system.notes + paragraphs(knighted) },
 		items,
-		flags: { [SYSTEM_ID]: { [SEER_FLAG]: seer.roll } },
-		sort: (seer.d6 * 100) + seer.d12
+		flags: { [SYSTEM_ID]: { [SEER_FLAG]: refOf(seer) } },
+		sort: Number.isInteger(seer.d6) && Number.isInteger(seer.d12) ? (seer.d6 * 100) + seer.d12 : 0
 	};
 }
 

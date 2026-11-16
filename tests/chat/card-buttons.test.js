@@ -519,3 +519,30 @@ describe("a stateful card's changes made at once", () => {
 		expect(message.flags[SYSTEM_ID].test.list).toEqual(["a", "b"]);
 	});
 });
+
+describe("a stateful card's change that alters nothing it draws", () => {
+	/** A card that draws its list, and keeps a note it never shows. */
+	const notedCard = (render) => statefulCard({
+		flag: "test",
+		query: `${SYSTEM_ID}.changeTest`,
+		notices: "test",
+		change: (state, delta) => ({ list: [...state.list, ...(delta.add ? [delta.add] : [])], note: delta.note ?? state.note }),
+		render,
+		shows: ({ list }) => list
+	});
+
+	it("writes only the flag, without drawing the card again, and draws it for a change it shows", async () => {
+		const render = vi.fn(async (state) => state.list.join());
+		const message = { id: "m-noted", isOwner: true, flags: { [SYSTEM_ID]: { test: { list: ["a"], note: null } } } };
+		message.update = vi.fn(async (changes) => {
+			message.flags[SYSTEM_ID].test = changes[`flags.${SYSTEM_ID}.test`];
+		});
+		game.messages.set(message.id, message);
+		const card = notedCard(render);
+		expect(await card.commit(message, { note: "posted" })).toBe(true);
+		expect(render).not.toHaveBeenCalled();
+		expect(message.update).toHaveBeenLastCalledWith({ [`flags.${SYSTEM_ID}.test`]: { list: ["a"], note: "posted" } });
+		expect(await card.commit(message, { add: "b" })).toBe(true);
+		expect(message.update).toHaveBeenLastCalledWith({ content: "a,b", [`flags.${SYSTEM_ID}.test`]: { list: ["a", "b"], note: "posted" } });
+	});
+});

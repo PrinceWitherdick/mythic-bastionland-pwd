@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 const root = join(import.meta.dirname, "..", "..");
 /** The stylesheet with its comments taken out, so only declarations are read. */
 const chat = readFileSync(join(root, "styles", "chat.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-const card = readFileSync(join(root, "templates", "chat", "attack.hbs"), "utf8").replace(/\r/g, "");
+/** A die as the Attack card and the Pack card both draw it. */
+const card = readFileSync(join(root, "templates", "chat", "parts", "die-face.hbs"), "utf8").replace(/\r/g, "");
 
 /**
  * What one rule declares.
@@ -57,6 +58,12 @@ describe("dice in chat cards", () => {
 		expect(cards.length).toBeGreaterThan(10);
 		const drawn = cards.filter((path) => /<(svg|polygon|path|canvas)[\s>/]/.test(readFileSync(path, "utf8")));
 		expect(drawn).toEqual([]);
+	});
+
+	it("draws each card's dice alike, from the one partial", () => {
+		for (const name of ["attack", "pack"]) {
+			expect(readFileSync(join(root, "templates", "chat", `${name}.hbs`), "utf8")).toMatch(/\{\{> "bastionland\.die-face"/);
+		}
 	});
 
 	it("cuts the die out of a shape the card carries", () => {

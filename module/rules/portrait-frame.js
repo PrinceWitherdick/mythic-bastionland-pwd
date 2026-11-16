@@ -16,6 +16,9 @@
  * Everything here is pure, so it can be tested without Foundry.
  */
 
+/** The flag, under the system's scope, an actor keeps its frame in. */
+export const FRAME_FLAG = "portraitFrame";
+
 /** The sheet portrait's box, width over height (144 by 204 pixels). */
 export const PORTRAIT_ASPECT = 144 / 204;
 

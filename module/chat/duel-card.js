@@ -1,6 +1,6 @@
 import { landMirrors, takeAttack } from "../actions/damage.js";
 import { DUEL_QUERY, STAKE_QUERY, duelistScores, duelOf, onDuelQuery, onStakeQuery, saveDuelChange, writtenDuelOf } from "../actions/duel.js";
-import { CALENDAR_HOOK } from "../actions/calendar.js";
+import { onCalendarWrites } from "../actions/calendar.js";
 import { adjustGlory } from "../actions/glory.js";
 import { updateActors } from "../actions/actor-updates.js";
 import { causedBy } from "../actions/ledger.js";
@@ -11,6 +11,7 @@ import { escapeHTML } from "../rules/text.js";
 import { oncePerKey } from "../rules/queue.js";
 import { attackOf, confirmApply, saveChange as saveAttackChange } from "./attack-card.js";
 import { onCardClick, postCard, t, warn } from "./cards.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * @param {import("../rules/duel.js").DuelState} duel
@@ -230,40 +231,72 @@ export async function closeFallenDuels() {
 	return closed;
 }
 
-/** The look for fallen duelists already asked for, which every deletion until it starts shares. */
-let fallenScan = null;
-
 /**
- * Close the duels a duelist has left, once for a whole batch: deleting a
- * Scene's Tokens calls the hook for each, all before the scan begins.
- * @returns {Promise<ChatMessage[]>}
+ * Work done once for a whole batch: a hook called for each document a batch
+ * deleted is called for them all before a microtask runs, so every call until
+ * the work starts shares it, handing in what it brings.
+ * @template T, R
+ * @param {(items: T[]) => Promise<R>} work
+ * @returns {(item?: T) => Promise<R>}
  */
-function closeFallenDuelsSoon() {
-	fallenScan ??= Promise.resolve().then(() => {
-		fallenScan = null;
-		return closeFallenDuels();
-	});
-	return fallenScan;
+function oncePerBatch(work) {
+	let batch = null;
+	return (item) => {
+		if (!batch) {
+			const items = [];
+			batch = { items, done: Promise.resolve().then(() => {
+				batch = null;
+				return work(items);
+			}) };
+		}
+		if (item !== undefined) batch.items.push(item);
+		return batch.done;
+	};
 }
 
 /**
- * An Attack card was deleted: a duel waiting on it forgets it, so its duelist
- * can roll again and the exchange isn't left jammed. The active GM does it.
- * @param {ChatMessage} deleted
+ * Close the duels a duelist has left, once for a whole batch, such as a
+ * Scene's Tokens deleted.
+ * @type {() => Promise<ChatMessage[]>}
  */
-async function forgetDeletedAttack(deleted) {
-	if (!game.users.activeGM?.isSelf || !deleted?.id) return;
-	for (const message of game.messages ?? []) {
+const closeFallenDuelsSoon = oncePerBatch(() => closeFallenDuels());
+
+/**
+ * A duel waiting on any of these deleted Attack cards forgets them, in one
+ * write for each duel card.
+ * @param {string[]} deleted Their ids.
+ * @returns {Promise<unknown>}
+ */
+function forgetAttacks(deleted) {
+	const ids = new Set(deleted);
+	return Promise.all([...(game.messages ?? [])].flatMap((message) => {
 		// As written: as it stands, the card's already gone from it.
 		const duel = writtenDuelOf(message);
-		if (duel && !duel.ended && duel.duelists.some(({ attack }) => attack === deleted.id)) await saveDuelChange(message, { type: "forget", message: deleted.id });
-	}
+		const messages = duel && !duel.ended ? duel.duelists.map(({ attack }) => attack).filter((attack) => ids.has(attack)) : [];
+		return messages.length ? [saveDuelChange(message, { type: "forget", messages })] : [];
+	}));
+}
+
+/** Attack cards deleted, gathered for each batch. */
+const forgetAttacksSoon = oncePerBatch(forgetAttacks);
+
+/**
+ * Attack cards were deleted: a duel waiting on one forgets it, so its duelist
+ * can roll again and the exchange isn't left jammed. The active GM does it,
+ * once for a whole batch, such as the chat log cleared: every card in it is
+ * gone before the look begins, so a duel card deleted with them is left be.
+ * @param {ChatMessage} deleted
+ * @returns {Promise<unknown>|undefined}
+ */
+function forgetDeletedAttack(deleted) {
+	if (!game.users.activeGM?.isSelf || !deleted?.id) return;
+	return forgetAttacksSoon(deleted.id);
 }
 
 /** Called during init. */
 export function registerDuelCards() {
-	CONFIG.queries[DUEL_QUERY] = onDuelQuery;
-	CONFIG.queries[STAKE_QUERY] = onStakeQuery;
+	registerQuery(DUEL_QUERY, onDuelQuery);
+	registerQuery(STAKE_QUERY, onStakeQuery);
 	Hooks.on("renderChatMessageHTML", activateDuelCard);
 	Hooks.on("deleteChatMessage", forgetDeletedAttack);
 	// A duelist deleted, an unlinked Token with its actor, or Slain: the duel is over.
@@ -274,7 +307,7 @@ export function registerDuelCards() {
 	Hooks.on("deleteCombat", onCombatGone);
 	// Next Phase, or any time passing: the bout is long over, and GD comes back with a moment's peace (p9).
 	// Time turned back, as an Undo does, ends no bout: the Undo puts back those the advance ended.
-	Hooks.on(CALENDAR_HOOK, (_after, _before, turned) => {
+	onCalendarWrites((_after, _before, turned) => {
 		if (!turned?.includes("phase")) return;
 		return shakeOffOpenSparring(null, t("duel.shaken.timePassed"));
 	});

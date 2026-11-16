@@ -1,4 +1,5 @@
 import { searchable } from "../rules/text.js";
+import { serverNow } from "../server-now.js";
 import { templatePath } from "../system-id.js";
 
 /**
@@ -101,16 +102,29 @@ async function asking(open) {
  *   but for an entry that is already a block, such as a list, which goes in as it is.
  * @param {{label: string, icon?: string}} [options.yes] A button in place of Yes, such as Accept.
  * @param {{label: string, icon?: string}} [options.no] A button in place of No.
- * @returns {Promise<boolean>} Whether the user said yes.
+ * @param {number} [options.closeBy] When to close it unanswered, by the server's clock (server-now.js),
+ *   so a deadline another client set holds here too.
+ * @returns {Promise<boolean|null>} Whether the user said yes; null when closeBy came first, so it went unanswered.
  */
-export async function confirmDialog({ title, icon, message, yes, no }) {
-	const confirmed = await asking(() => foundry.applications.api.DialogV2.confirm(parchment({
-		window: { title, icon },
-		content: messageHtml(message),
-		...(yes ? { yes: { icon: "fa-solid fa-check", ...yes } } : {}),
-		...(no ? { no: { icon: "fa-solid fa-xmark", ...no } } : {})
-	})));
-	return confirmed === true;
+export async function confirmDialog({ title, icon, message, yes, no, closeBy }) {
+	let timer = null;
+	let timedOut = false;
+	const closeUnanswered = (dialog) => {
+		timedOut = true;
+		dialog.close();
+	};
+	try {
+		const confirmed = await asking(() => foundry.applications.api.DialogV2.confirm(parchment({
+			window: { title, icon },
+			content: messageHtml(message),
+			...(yes ? { yes: { icon: "fa-solid fa-check", ...yes } } : {}),
+			...(no ? { no: { icon: "fa-solid fa-xmark", ...no } } : {}),
+			...(closeBy ? { render: (_event, dialog) => { timer ??= setTimeout(() => closeUnanswered(dialog), Math.max(0, closeBy - serverNow())); } } : {})
+		})));
+		return timedOut ? null : confirmed === true;
+	} finally {
+		clearTimeout(timer);
+	}
 }
 
 /**
@@ -419,6 +433,21 @@ export function filterBySearch(page, term, noMatch = null) {
 	const none = noMatch ? page.querySelector(noMatch) : null;
 	if (none) none.hidden = !words || found > 0;
 	return found;
+}
+
+/**
+ * A dialog's search box over its list: typing hides what it doesn't find, and
+ * Enter in it doesn't send the dialog with whatever happens to be chosen.
+ * @param {HTMLInputElement|null|undefined} box
+ * @param {HTMLElement|null|undefined} list What filterBySearch looks through.
+ * @param {string} [noMatch] The selector of the line saying nothing was found.
+ */
+export function wireSearchBox(box, list, noMatch = null) {
+	if (!box || !list) return;
+	box.addEventListener("input", () => filterBySearch(list, box.value, noMatch));
+	box.addEventListener("keydown", (event) => {
+		if (event.key === "Enter") event.preventDefault();
+	});
 }
 
 /**

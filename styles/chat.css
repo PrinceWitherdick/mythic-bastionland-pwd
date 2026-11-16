@@ -369,7 +369,8 @@
 	cursor: pointer;
 }
 
-.bastionland-die:disabled {
+.bastionland-die:disabled,
+.bastionland-die.is-waiting {
 	cursor: default;
 }
 
@@ -706,6 +707,17 @@
 	letter-spacing: 0.03em;
 }
 
+/* In a standard form Foundry makes a label's line as tall as the box beside it, which centres one line but
+   sets a label that wraps (Improvised weapon, in a fieldset) as two lines a box apart. A plain line, centred
+   on the row, puts a one-line label just where it was and keeps a wrapped one together. */
+.bastionland-dialog .standard-form .form-group > label,
+.bastionland-dialog .standard-form .form-group > span.label,
+.bastionland-dialog.standard-form .form-group > label,
+.bastionland-dialog.standard-form .form-group > span.label {
+	align-self: center;
+	line-height: 1.2;
+}
+
 .bastionland-dialog .form-footer {
 	flex: none;
 	gap: 0.5rem;
@@ -1036,6 +1048,14 @@
 	color: var(--bastionland-rubric);
 	font-size: 1.4rem;
 	text-align: center;
+}
+
+/* Beside a title alone, all in capitals, it rises from the Caps face's small
+   capitals to the capitals' middle: 0.125em of the title's size. Moved, not
+   laid out again. Beside a title and the line under it, it stays on the middle of both. */
+.bastionland-rail-dialog__banner:not(:has(.bastionland-rail-dialog__sub)) > i {
+	position: relative;
+	top: calc(-0.125 * 1.35rem);
 }
 
 .bastionland-rail-dialog__banner > div {
@@ -1559,6 +1579,19 @@
 	overflow: visible;
 }
 
+/* Take a Seat: the Domains stand up to three abreast, a row's fieldsets of one height.
+   A fieldset is as wide as its longest line unless told otherwise, so it may shrink to its column. */
+.bastionland-council-seat__domains {
+	display: grid;
+	grid-template-columns: repeat(var(--seat-columns, 1), minmax(0, 1fr));
+	gap: 0.6rem;
+}
+
+.bastionland-council-seat__domains > fieldset {
+	min-inline-size: 0;
+	margin: 0;
+}
+
 /* Granting a Holding: the Knights with Domains, the book's 72 and any others
    scroll as one list under the search, rather than each in a box of its own. */
 .bastionland-grant__search {
@@ -1574,6 +1607,23 @@
 }
 
 .bastionland-grant__none {
+	margin: 0;
+}
+
+/* A pick-one list long enough to want a search, such as Start from a book
+   Knight's 72: the box over the list, which still scrolls on its own. */
+.bastionland-pick-one__search {
+	flex: none;
+	width: 100%;
+}
+
+.bastionland-pick-one__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bastionland-pick-one__none {
 	margin: 0;
 }
 
@@ -2325,6 +2375,10 @@
 	content: "";
 	flex: 1;
 	border-bottom: 1px solid var(--bastionland-rule);
+	/* The date is all capitals, so the line rises from the small capitals' middle,
+	   where the Caps face centres, to the capitals', as a heading's does. */
+	position: relative;
+	top: -0.125em;
 }
 
 .bastionland-ledger__day ol {
@@ -2460,7 +2514,8 @@
 	border: 1px solid var(--bastionland-ink);
 	border-radius: 3px;
 	background: var(--bastionland-paper-deep);
-	font-family: var(--bastionland-font-caps);
+	/* The body face: its line box centres on figures, the Caps face's on small capitals. */
+	font-family: var(--bastionland-font-body);
 	font-variant-numeric: lining-nums tabular-nums;
 	vertical-align: middle;
 }

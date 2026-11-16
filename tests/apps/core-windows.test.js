@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	JOURNAL_CLASS,
+	ROLL_RESOLVER_CLASS,
 	USER_CONFIG_CLASS,
 	isKeptJournal,
 	isSystemJournal,
 	registerCoreWindowSkin,
 	skinJournal,
 	skinJournalPage,
+	skinRollResolver,
 	skinUserConfig,
 	withDialogSkin
 } from "../../module/apps/core-windows.js";
@@ -66,6 +68,21 @@ describe("User Configuration", () => {
 		const root = element();
 		skinUserConfig({}, root);
 		expect([...root.classes]).toEqual(["bastionland-dialog", USER_CONFIG_CLASS]);
+	});
+});
+
+describe("Roll Resolution, for dice rolled by hand", () => {
+	it("dresses the window and puts its contents on the parchment", () => {
+		const content = element();
+		const root = element({ ":scope > .window-content": content });
+		skinRollResolver({}, root);
+		expect([...root.classes]).toEqual([ROLL_RESOLVER_CLASS]);
+		expect([...content.classes]).toEqual(["bastionland-page"]);
+	});
+
+	// isSystemWindow would otherwise make the formula's "1d8" a die that rolls in place.
+	it("is a class the system's own window test passes by", () => {
+		expect(ROLL_RESOLVER_CLASS.startsWith("bastionland")).toBe(false);
 	});
 });
 
@@ -200,9 +217,10 @@ describe("registerCoreWindowSkin", () => {
 		expect(calls["JournalEntryPage.delete"]).toEqual([{ position: { top: 10 } }]);
 	});
 
-	it("listens for User Configuration and the journal windows", () => {
+	it("listens for User Configuration, the journal windows and Roll Resolution", () => {
 		expect(hooks.renderUserConfig).toBe(skinUserConfig);
 		expect(hooks.renderJournalEntrySheet).toBe(skinJournal);
 		expect(hooks.renderJournalEntryPageSheet).toBe(skinJournalPage);
+		expect(hooks.renderRollResolver).toBe(skinRollResolver);
 	});
 });

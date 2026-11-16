@@ -2,7 +2,7 @@ import { loadArtIndex } from "../book-art/art-index.js";
 import { chooseRulebookPdf, importBookArt } from "../book-art/importer.js";
 import { openReader } from "./BookReader.js";
 import { t } from "../chat/cards.js";
-import { serverNow } from "../actions/time-capture.js";
+import { serverNow } from "../server-now.js";
 import { INDEX_VERSION } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
 import {

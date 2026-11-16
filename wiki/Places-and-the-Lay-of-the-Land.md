@@ -115,7 +115,7 @@ The Omens seen, the current and next Omen, the Myth's Cast as pills (one already
 
 #### Holding
 
-The **Ruler** row names the Knight and the Domain that rule it; each opens its sheet. **Grant to a Knight** (or **Grant to Another Knight**) picks a Knight to rule it: one with a Domain has that Domain rule it, one without founds a Domain here. Any of the book's Knights can be chosen; one not yet in the world is made as an NPC Knight with a Domain. See [Domains and Courts](Domains-and-Courts).
+The **Ruler** row names the Knight and the Domain that rule it; each opens its sheet. **Grant to a Knight** (or **Grant to Another Knight**) picks a Knight to rule it: one with a Domain has that Domain rule it, one without founds a Domain here. Any of the book's Knights can be chosen, or one of the Referee's homebrew Knights from the **Homebrew Knights** group; one not yet in the world is made as an NPC Knight with a Domain. See [Domains and Courts](Domains-and-Courts).
 
 ## Roll a Person
 

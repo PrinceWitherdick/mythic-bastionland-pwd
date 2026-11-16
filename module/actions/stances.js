@@ -8,6 +8,7 @@ import { causedBy } from "./ledger.js";
 import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 import { attackOf, ownsAnAttacker } from "../chat/attack-flag.js";
 import { dieMaker } from "../rules/attack.js";
+import { registerQuery } from "../queries.js";
 
 
 /** The query asking the GM to take up, or end, a stance a Move Gambit brought, for a user who can't (p40). */
@@ -247,6 +248,6 @@ export async function blowHorn(actor, item) {
 export function registerStanceHooks() {
 	Hooks.on("combatTurnChange", onTurnChange);
 	Hooks.on("deleteCombat", onCombatEnd);
-	CONFIG.queries[STANCE_QUERY] = onStanceQuery;
+	registerQuery(STANCE_QUERY, onStanceQuery);
 }
 

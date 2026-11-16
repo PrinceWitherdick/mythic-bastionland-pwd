@@ -207,6 +207,14 @@ describe("editFeature", () => {
 		expect(featureAt(editFeature(sampleRealm(), g, hex(9, 9), { seer: { d6: 6 } }), hex(9, 9)).landmark.seer).toEqual({ d6: 6, d12: 5 });
 	});
 
+	it("gives a Sanctum a Seer the Referee wrote, keeps them, and makes them the book's again on a die", () => {
+		const own = placeFeature(sampleRealm(), g, hex(9, 9), { kind: "landmark", type: "sanctum", seer: { own: "j1" } });
+		expect(featureAt(own, hex(9, 9)).landmark.seer).toEqual({ own: "j1" });
+		expect(validateRealm(own, g).filter(({ kind }) => kind === "landmark")).toEqual([]);
+		expect(featureAt(editFeature(own, g, hex(9, 9), { name: "Reed Hut" }), hex(9, 9)).landmark.seer).toEqual({ own: "j1" });
+		expect(featureAt(editFeature(own, g, hex(9, 9), { seer: { d6: 6 } }), hex(9, 9)).landmark.seer).toEqual({ d6: 6, d12: 1 });
+	});
+
 	it("keeps half a Seer roll typed for a Sanctum that has no Seer yet", () => {
 		const sanctum = editFeature(placeFeature(sampleRealm(), g, hex(3, 3), { kind: "landmark", type: "sanctum" }), g, hex(3, 3), { seer: { d6: 3 } });
 		expect(featureAt(sanctum, hex(3, 3)).landmark.seer).toEqual({ d6: 3, d12: 1 });

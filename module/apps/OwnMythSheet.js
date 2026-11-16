@@ -1,13 +1,10 @@
 import { droppedScene, linkOmenScene, omenSceneChips, unlinkOmenScene, viewOmenScene } from "../actions/omen-scenes.js";
 import { OWN_MYTH_FLAG, isUntouchedOwnMyth, ownMythWrites, readOwnMyth } from "../actions/own-myths.js";
 import { getRealm, isRealmScene } from "../actions/realm.js";
-import { filePicker } from "../book-art/files.js";
-import { KeepDraftMixin } from "./keep-draft.js";
 import { t } from "../chat/cards.js";
 import { VERSE_LINES, mythWithOwn, normaliseOwnMyth, ownMythChanged, tableWritten } from "../rules/own-myths.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-
-const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api;
+import { OwnEntrySheet } from "./OwnEntrySheet.js";
 
 /**
  * @param {string} id A written Myth's entry.
@@ -15,27 +12,20 @@ const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api
  */
 const heldByARealm = (id) => game.scenes.some((scene) => isRealmScene(scene) && Boolean(mythWithOwn(getRealm(scene)?.realm.myths ?? [], id)));
 
-/** The path every part of a written Myth is kept under on its entry. */
-const FLAG_PATH = `flags.${SYSTEM_ID}.${OWN_MYTH_FLAG}`;
-
 /**
  * A Myth the Referee writes for themselves, as its Journal entry opens: what
  * a Myth's page in the book has, to be filled in. It stands among a Realm's
  * six once it's chosen in The Realm's Myths, and the GM Toolkit, the Omen
  * cards and the picture's window read it there as they read the book's.
  */
-// Each change saves the Myth and draws the sheet again, so what's typed meanwhile
-// in the next field, and the table's fold as it was left, are kept.
-export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(DocumentSheetV2)) {
+// The table's fold is kept as it was left across each save's redraw (OwnEntrySheet).
+export class OwnMythSheet extends OwnEntrySheet {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-own-myth-window"],
 		position: { width: 620, height: 760 },
 		window: { icon: "fa-solid fa-dragon", resizable: true },
-		sheetConfig: false,
-		form: { handler: OwnMythSheet.#onSubmit, submitOnChange: true, closeOnSubmit: false },
+		form: { handler: OwnMythSheet.#onSubmit },
 		actions: {
-			pickPicture: OwnMythSheet.#onPickPicture,
-			clearPicture: OwnMythSheet.#onClearPicture,
 			viewOmenScene: OwnMythSheet.#onViewScene,
 			unlinkOmenScene: OwnMythSheet.#onUnlinkScene
 		}
@@ -45,21 +35,23 @@ export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(Docu
 		myth: { template: templatePath("apps/own-myth.hbs"), scrollable: [""] }
 	};
 
-	/** Set by New Myth: close this with nothing written and the entry is deleted. */
-	discardIfBlank = false;
-
 	/**
-	 * Each change waits for the one before, so it works from the Myth as that
-	 * one left it, a Scene linked from the GM Toolkit among them.
+	 * Each change waits for the one before (ownMythWrites), so it works from the
+	 * Myth as that one left it, a Scene linked from the GM Toolkit among them.
+	 * One made with New Myth and closed untouched is deleted, unless a Realm took
+	 * it in the meantime.
+	 * @type {import("./OwnEntrySheet.js").OwnEntryKind}
 	 */
-	get #writing() {
-		return ownMythWrites(this.document.id);
-	}
-
-	/** @override */
-	get title() {
-		return this.document.name;
-	}
+	static KIND = {
+		noun: "Myth",
+		flag: OWN_MYTH_FLAG,
+		read: readOwnMyth,
+		normalise: normaliseOwnMyth,
+		changed: ownMythChanged,
+		writes: ownMythWrites,
+		discardable: (entry) => isUntouchedOwnMyth(entry) && !heldByARealm(entry.id),
+		pictures: { img: { get: (myth) => myth.img, set: (myth, path) => ({ ...myth, img: path }) } }
+	};
 
 	/** @override */
 	async _prepareContext(options) {
@@ -118,36 +110,6 @@ export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(Docu
 		}
 	}
 
-	/** @override */
-	_onClose(options) {
-		super._onClose(options);
-		const entry = this.document;
-		const discard = this.discardIfBlank && game.user.isGM;
-		this.discardIfBlank = false;
-		// A Myth made with New Myth and closed untouched leaves no empty entry behind,
-		// unless a Realm took it in the meantime.
-		if (discard) {
-			this.#writing.settled().then(() => {
-				if (game.journal.has(entry.id) && isUntouchedOwnMyth(entry) && !heldByARealm(entry.id)) return entry.delete();
-			}).catch((error) => console.error(`${SYSTEM_ID} | Couldn't discard the empty Myth ${entry.name}`, error));
-		}
-	}
-
-	/**
-	 * Write the Myth as it is now changed, and its name, where either changed.
-	 * @param {(myth: import("../rules/own-myths.js").OwnMyth) => object} change Gives the Myth as it should be.
-	 * @param {object} [update] Anything else to write with it, such as the entry's name.
-	 * @returns {Promise<void>}
-	 */
-	#write(change, update = {}) {
-		return this.#writing(async () => {
-			const before = readOwnMyth(this.document);
-			const after = normaliseOwnMyth(change(before));
-			const changes = { ...update, ...(ownMythChanged(before, after) ? { [FLAG_PATH]: after } : {}) };
-			if (Object.keys(changes).length) await this.document.update(changes);
-		}).catch((error) => console.error(`${SYSTEM_ID} | Couldn't write the Myth ${this.document.name}`, error));
-	}
-
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
@@ -162,27 +124,7 @@ export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(Docu
 		const name = String(data.name ?? "").trim();
 		const update = name && name !== this.document.name ? { name } : {};
 		// What isn't a field of the form, such as the picture and the linked Scenes, is kept as it is.
-		return this.#write((myth) => ({ ...myth, ...data }), update);
-	}
-
-	/**
-	 * Choose the Myth's picture, starting where the one it has now is kept.
-	 * @this {OwnMythSheet}
-	 */
-	static #onPickPicture() {
-		if (!this.isEditable) return;
-		const picker = new (filePicker())({
-			type: "image",
-			current: readOwnMyth(this.document).img,
-			callback: (path) => this.#write((myth) => ({ ...myth, img: path }))
-		});
-		return picker.render({ force: true });
-	}
-
-	/** @this {OwnMythSheet} */
-	static #onClearPicture() {
-		if (!this.isEditable) return;
-		return this.#write((myth) => ({ ...myth, img: "" }));
+		return this._writeOwn((myth) => ({ ...myth, ...data }), update);
 	}
 
 	/**

@@ -8,6 +8,9 @@ const root = join(import.meta.dirname, "..", "..");
 const read = (path) => readFileSync(join(root, path), "utf8");
 
 const sheet = read("module/apps/OwnMythSheet.js");
+// What it shares with a written Knight's sheet, and New Myth with New Knight.
+const base = read("module/apps/OwnEntrySheet.js");
+const newEntry = read("module/actions/own-entries.js");
 const template = read("templates/apps/own-myth.hbs");
 const actions = read("module/actions/own-myths.js");
 const artIndex = read("module/book-art/art-index.js");
@@ -21,7 +24,7 @@ describe("the sheet a written Myth opens with", () => {
 		// The form's fields are numbered as the Myth's lists are, so expandObject gives back what normaliseOwnMyth reads.
 		expect(sheet).toContain("const data = foundry.utils.expandObject(formData.object);");
 		// The picture and the linked Scenes aren't fields, so a keystroke must keep them.
-		expect(sheet).toContain("return this.#write((myth) => ({ ...myth, ...data }), update);");
+		expect(sheet).toContain("return this._writeOwn((myth) => ({ ...myth, ...data }), update);");
 		const form = {
 			verse: Object.fromEntries(Array.from({ length: VERSE_LINES }, (_, index) => [index, `Line ${index}`])),
 			omens: Object.fromEntries(Array.from({ length: OMEN_COUNT }, (_, index) => [index, `Omen ${index}`])),
@@ -40,24 +43,32 @@ describe("the sheet a written Myth opens with", () => {
 	it("chooses the picture with Foundry's file picker, and can take it away", () => {
 		expect(template).toContain('data-action="pickPicture"');
 		expect(template).toContain('data-action="clearPicture"');
-		expect(sheet).toContain("new (filePicker())({");
+		expect(base).toContain("new (filePicker())({");
+		// The Myth's one picture, which its buttons name by no data-picture.
+		expect(sheet).toContain("pictures: { img: { get: (myth) => myth.img, set: (myth, path) => ({ ...myth, img: path }) } }");
+		expect(base).toContain('const which = target?.dataset?.picture ?? "img";');
 	});
 
 	it("writes only what changed, one change after another", () => {
-		expect(sheet).toContain("ownMythChanged(before, after) ? { [FLAG_PATH]: after } : {}");
-		expect(sheet).toContain("return ownMythWrites(this.document.id);");
+		expect(sheet).toContain("changed: ownMythChanged,");
+		expect(base).toContain("...(changed(before, after) ? { [`flags.${SYSTEM_ID}.${flag}`]: after } : {})");
+		expect(sheet).toContain("writes: ownMythWrites,");
+		expect(base).toContain("return this._kind.writes(this.document.id);");
 	});
 
 	it("keeps what's typed in the next field while the last change saves, and the table's fold as left", () => {
 		// Each change saves and so draws the sheet again, which would put back the saved value.
-		expect(sheet).toContain("export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(DocumentSheetV2)) {");
+		expect(sheet).toContain("export class OwnMythSheet extends OwnEntrySheet {");
+		expect(base).toContain("export class OwnEntrySheet extends KeepDraftMixin(HandlebarsApplicationMixin(DocumentSheetV2)) {");
 		const [fold] = template.match(/<details class="[^"]*__table-fold"[^>]*>/);
 		expect(fold).toContain('data-sync="table"');
 	});
 
 	it("leaves no empty entry behind when New Myth is closed untouched", () => {
-		expect(actions).toContain("entry.sheet.discardIfBlank = true;");
-		expect(sheet).toContain("if (game.journal.has(entry.id) && isUntouchedOwnMyth(entry) && !heldByARealm(entry.id)) return entry.delete();");
+		expect(actions).toContain("return newOwnEntry({");
+		expect(newEntry).toContain("entry.sheet.discardIfBlank = true;");
+		expect(sheet).toContain("discardable: (entry) => isUntouchedOwnMyth(entry) && !heldByARealm(entry.id),");
+		expect(base).toContain("if (game.journal.has(entry.id) && this._kind.discardable(entry)) return entry.delete();");
 	});
 
 	it("is the Referee's: made by GMs only, and read-only to anyone else who can open it", () => {

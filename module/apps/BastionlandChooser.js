@@ -8,6 +8,9 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const D6_RESULTS = Object.freeze([1, 2, 3, 4, 5, 6]);
 
+/** The group of a chooser's cards that holds what the Referee wrote, the Myths or Knights, beside the d6 results. */
+export const OWN_GROUP = "own";
+
 /**
  * @param {string|undefined} value A group's `data-d6`.
  * @returns {number|string} A d6 result as a number, or a group of a chooser's own by its name.

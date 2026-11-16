@@ -34,7 +34,11 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 				name: textField(),
 				columns: new fields.ArrayField(new fields.StringField()),
 				rows: new fields.ArrayField(new fields.ArrayField(new fields.StringField())),
-				rolls: new fields.ArrayField(countField({ max: 6 }))
+				rolls: new fields.ArrayField(countField({ max: 6 })),
+				// For a Knight the Referee wrote, the sentence each column tells its result in.
+				sentences: new fields.ArrayField(new fields.StringField()),
+				// And how a column's sentence reads joined onto the one before, where it has a way (rules/knight-table-sentences.js).
+				joins: new fields.ArrayField(new fields.StringField())
 			}),
 			// The verse under their name on their page, and the Knight it was taken for; see rules/knight-tables.js.
 			bookVerse: new fields.SchemaField({

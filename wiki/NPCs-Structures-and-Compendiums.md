@@ -106,7 +106,8 @@ An **NPC Knight** is a Knight the Referee plays: a Holding's ruler, a rival to d
 - **Left out of the Company.** Mornings, the Season's pursuits, the end of a Phase, Search, and the Company's size leave NPC Knights out, even when their Tokens are selected. In a fight they make Morale Saves as NPCs do.
 - **No Squire, no Travels.** An NPC Knight takes no Squire, and a Knight a Squire serves can't be made one until the Squire is unlinked or Knighted. The sheet has no Travels page.
 - **Where they're kept.** NPC Knights are filed in the Actors sidebar's NPCs folder, and their Tokens keep Foundry's usual name display.
-- **Made for you.** **Grant to a Knight** on a Holding, picking a Knight not yet in the world, makes them as an NPC Knight rolled as a Ruler. See [Domains and Courts](Domains-and-Courts).
+- **Made for you.** **Grant to a Knight** on a Holding, picking a Knight not yet in the world, makes them as an NPC Knight rolled as a Ruler. Its list has a **Homebrew Knights** group for the Knights the Referee wrote; one picked there is made the same way. See [Domains and Courts](Domains-and-Courts).
+- **Homebrew.** An NPC Knight can be any of the Referee's [homebrew Knights](Choosing-a-Knight#homebrew-knights): open **Choose a Knight** on their sheet and pick them on the **Homebrew** page.
 - **Taken up.** An NPC Knight a player takes up as a successor becomes a Knight of the Company. See [Scars, Death and Successors](Scars-Death-and-Successors).
 
 In a world made before NPC Knights, the Knights in the NPCs folder that no player held became NPC Knights, as did any a solo Referee had marked as not riding with the Company. So does a Knight brought in from an older compendium.
@@ -174,6 +175,8 @@ The book's NPCs, sorted the way the book rolls for them:
 - **The City Quest**, its Cast in the order printed.
 
 A few Seers and Cast members that are things rather than people come in as Structures.
+
+The stat blocks are read as the book means them. Bows and slings are ranged weapons, and a die in a Seer's description isn't taken for a weapon. A line under a group about its leader (a leader who carries a longbow, say) is a note for the leader, not a weapon the whole Warband wields: the book gives such leaders no stat block, so make one yourself if they fight on their own. Cast already in a world is mended to match when it loads.
 
 This compendium is the Referee's: players can't open it, and nothing copies it into the world. **Drag in whoever the Company meets.** One of a Myth's Cast dragged into the world joins that Myth's Cast on the Referee Toolkit's Myths page. See [Myths and Omens](Myths-and-Omens).
 

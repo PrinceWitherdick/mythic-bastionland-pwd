@@ -33,6 +33,8 @@ import {
 	handCount,
 	knownWeakness,
 	parseDice,
+	unreadDiceTerms,
+	readImprovised,
 	sortDice,
 	SAVE_VIRTUES,
 	gambitSaveVirtue,
@@ -210,6 +212,44 @@ describe("parseDice", () => {
 
 	it("caps runaway dice counts", () => {
 		expect(parseDice("99d6")).toHaveLength(10);
+	});
+});
+
+describe("unreadDiceTerms", () => {
+	it.each([
+		["d8", []],
+		["d6, d12", []],
+		["+2d10", []],
+		[" 2d8 ", []],
+		["", []],
+		[undefined, []],
+		["8", ["8"]],
+		["barrel", ["barrel"]],
+		["d 8", ["d", "8"]],
+		["d8+2", ["2"]],
+		["d6, x", ["x"]],
+		["d0", ["d0"]]
+	])("reads %j with %j left unread", (notation, expected) => {
+		expect(unreadDiceTerms(notation)).toEqual(expected);
+	});
+});
+
+describe("readImprovised (p194)", () => {
+	it.each([
+		["d8", { dice: [8], name: "", unread: [] }],
+		["barrel d8", { dice: [8], name: "Barrel", unread: [] }],
+		["d8 barrel", { dice: [8], name: "Barrel", unread: [] }],
+		["broken bench, 2d6", { dice: [6, 6], name: "Broken bench", unread: [] }],
+		["Éclat d6", { dice: [6], name: "Éclat", unread: [] }],
+		["barrel", { dice: [], name: "Barrel", unread: [] }],
+		["barrel d8+2", { dice: [8], name: "Barrel", unread: ["2"] }],
+		["d 8", { dice: [], name: "", unread: ["d", "8"] }],
+		["stool d0", { dice: [], name: "Stool", unread: ["d0"] }],
+		["rock 2d", { dice: [], name: "Rock", unread: ["2d"] }],
+		["", { dice: [], name: "", unread: [] }],
+		[undefined, { dice: [], name: "", unread: [] }]
+	])("reads %j as %j", (text, expected) => {
+		expect(readImprovised(text)).toEqual(expected);
 	});
 });
 

@@ -7,6 +7,7 @@ import { serialWrites } from "../rules/queue.js";
 import { parseDice } from "../rules/attack.js";
 import { lastingOf, withLasting, withoutLasting } from "../rules/lasting-dice.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { registerQuery } from "../queries.js";
 
 /** The Combatant flag holding somebody's lasting dice. Ending the Combat ends them. */
 const LASTING_FLAG = "lastingDice";
@@ -204,5 +205,5 @@ export async function onTemperQuery(data = {}, context = {}) {
 
 /** Answer users asking for a weapon to be tempered. Called during init. */
 export function registerLastingQueries() {
-	CONFIG.queries[TEMPER_QUERY] = onTemperQuery;
+	registerQuery(TEMPER_QUERY, onTemperQuery);
 }

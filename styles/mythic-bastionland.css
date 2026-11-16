@@ -39,6 +39,12 @@
  * the capitals: 0.978em above and 0.29em below. Each IM Fell face carries
  * the pair here and in module/fonts.js, whose faces Foundry adds after these
  * and so are the ones drawn (tests/styles/icon-centre.test.js).
+ *
+ * IM Fell SC, the Caps face of every button, draws its lowercase as small
+ * capitals only 0.4375em tall, and a label such as "Start from a book Knight"
+ * is mostly those. Its line box is centred on them instead: 0.853em above and
+ * 0.415em below, the same height again. A label all in capitals then sits
+ * 0.125em high, which is why none should be (2026-11-15, the user's call).
  */
 @font-face {
 	font-family: "Bastionland Body";
@@ -62,8 +68,8 @@
 	font-family: "Bastionland Caps";
 	src: url("../assets/fonts/IMFellEnglishSC-Regular.ttf") format("truetype");
 	font-display: swap;
-	ascent-override: 97.8%;
-	descent-override: 29%;
+	ascent-override: 85.3%;
+	descent-override: 41.5%;
 }
 
 /*
@@ -497,6 +503,15 @@ a.button:focus:not(:focus-visible) {
 	height: 1px;
 	background: var(--bastionland-rubric);
 	opacity: 0.4;
+}
+
+/* A heading is all capitals, but the Caps face's line box centres on its small
+   capitals, so the line beside it rises to the capitals' middle: half of
+   0.6875em less 0.4375em. Moved, not laid out again, so the heading keeps its height. */
+.bastionland-heading::after,
+.bastionland-oath .bastionland-heading::before {
+	position: relative;
+	top: -0.125em;
 }
 
 .bastionland-heading--small {
@@ -1734,10 +1749,11 @@ a.button:focus:not(:focus-visible) {
 	margin-left: 0.25rem;
 }
 
+/* The Glory a rank needs sits back in the softer ink, not faded: faded, it fell below the contrast floor on parchment. */
 .bastionland-choice__glory {
+	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
 	font-style: normal;
-	opacity: 0.7;
 }
 
 /* ---------------------------------------------------------------- */
@@ -1853,6 +1869,15 @@ a.button:focus:not(:focus-visible) {
 	.bastionland-pill--small-caps {
 		--pill-edge: 1ex;
 		text-box: trim-both ex alphabetic;
+	}
+
+	/* An icon on the line stands where a capital's middle would be, so in a
+	   small-caps pill it drops to the small capitals': half of IM Fell SC's
+	   capital less its small capital (0.6875em − 0.4375em). Moved, not laid
+	   out again, so the trimmed pill keeps its height. */
+	.bastionland-pill--small-caps > i {
+		position: relative;
+		top: 0.125em;
 	}
 
 	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
@@ -3476,6 +3501,11 @@ a.button:focus:not(:focus-visible) {
 	content: " · ";
 }
 
+/* A tool pushed to the row's far right, where a Domain Posts row keeps its ×, such as the Successor's ×. */
+.bastionland-steed__end {
+	margin-inline-start: auto;
+}
+
 .bastionland-steed__img {
 	flex: none;
 	width: 2.5rem;
@@ -4695,8 +4725,11 @@ a.button:focus:not(:focus-visible) {
 	border-radius: 6px;
 }
 
+/* A die's number is drawn from the body face, whose line box centres on figures
+   as tall as capitals; both faces take their figures from EB Garamond, so it
+   looks the same. The Caps face centres on its small capitals instead. */
 .bastionland-page .bastionland-chooser__group {
-	font-family: var(--bastionland-font-caps);
+	font-family: var(--bastionland-font-body);
 	font-size: 1.25rem;
 	text-align: center;
 }
@@ -8096,6 +8129,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-page .bastionland-chooser__group.bastionland-myth-chooser__own-group {
 	width: auto;
 	padding: 0 0.6rem;
+	font-family: var(--bastionland-font-caps);
 }
 
 /* ---------------------------------------------------------------- */
@@ -8352,6 +8386,136 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-page .bastionland-own-myth__table thead input {
 	font-weight: bold;
+}
+
+/* ---------------------------------------------------------------- */
+/* A Knight the Referee writes (module/apps/OwnKnightSheet.js)      */
+/* ---------------------------------------------------------------- */
+
+.bastionland-own-knight-window .window-content {
+	padding: 0;
+}
+
+/* The written Knight shares the written Myth's page; these are what a Knight's page has besides. */
+.bastionland-own-knight {
+	gap: 0.9rem;
+}
+
+/* Ready for players and Start from a book Knight, a row above the page. */
+.bastionland-own-knight__bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem 1rem;
+}
+
+.bastionland-page .bastionland-own-knight__bar > .bastionland-button {
+	width: auto;
+	flex: none;
+}
+
+/* The portrait is the shape a Knight sheet's is (PORTRAIT_ASPECT), held to its
+   top as that sheet holds it, so the frame chosen here is the one it shows. A
+   frame places the picture itself (frameStyle). */
+.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--img {
+	position: relative;
+	aspect-ratio: 144 / 204;
+}
+
+.bastionland-own-knight__art--img img {
+	object-position: top;
+}
+
+/* The Seer's picture is shown whole, as a Knight sheet's Seer page shows it. An empty
+   box stands as a portrait does. */
+.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--seer {
+	aspect-ratio: 3 / 4;
+}
+
+.bastionland-page .bastionland-own-myth__art.bastionland-own-knight__art--seer:not(.is-empty) {
+	aspect-ratio: auto;
+}
+
+.bastionland-own-knight__art--seer img {
+	height: auto;
+	object-fit: contain;
+}
+
+/* "The ___ Knight", the name typed between the words that frame it. */
+.bastionland-own-knight__name {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	font-family: var(--bastionland-font-display);
+	font-size: 1.9rem;
+}
+
+.bastionland-page .bastionland-own-knight__name .bastionland-own-myth__name {
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.bastionland-page textarea.bastionland-own-knight__verse {
+	font-style: italic;
+}
+
+/* Ability and Passion side by side, as the book sets them. */
+.bastionland-own-knight__parts {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+@container (max-width: 480px) {
+	.bastionland-own-knight__parts {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.bastionland-own-knight__part,
+.bastionland-own-knight__sentences,
+.bastionland-own-knight__scores {
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.bastionland-own-knight__part legend,
+.bastionland-own-knight__sentences legend,
+.bastionland-own-knight__scores legend {
+	padding: 0;
+}
+
+/* What the written lines give, a quiet list under the box they're written in. */
+.bastionland-own-knight__preview {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin: 0;
+	padding: 0.4rem 0.6rem;
+	border-left: 2px solid var(--bastionland-rule);
+	list-style: none;
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-own-knight__preview > li {
+	margin: 0;
+}
+
+.bastionland-own-knight__kind {
+	font-family: var(--bastionland-font-caps);
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-own-knight__detail {
+	color: var(--bastionland-ink-soft);
+}
+
+/* The Seer's four scores sit in Choose a Knight's score boxes, no wider than there. */
+.bastionland-own-knight__scores .bastionland-chooser__scores {
+	max-width: 18rem;
+	margin-bottom: 0;
 }
 
 /* The Seer chooser (module/apps/SeerChooser.js): the Seers of the players'
@@ -9102,7 +9266,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-welcome__where dt {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	gap: 0.4rem;
 	font-family: var(--bastionland-font-caps);
 	font-weight: normal;

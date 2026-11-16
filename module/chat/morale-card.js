@@ -11,6 +11,7 @@ import { keyedSerialWrites } from "../rules/queue.js";
 import { outOfFight } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { onCardClick, postCard, t, warn } from "./cards.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Wavering Morale prompts (p10). A Damage card asks a Wounded NPC for its
@@ -346,7 +347,7 @@ export function registerMoraleCards() {
 	Hooks.on("updateActor", (actor, changed) => {
 		onDownChange(actor, changed).catch((error) => console.error(`${SYSTEM_ID} | Couldn't follow ${actor.name} going down`, error));
 	});
-	CONFIG.queries[GROUP_MORALE_QUERY] = onGroupMoraleQuery;
+	registerQuery(GROUP_MORALE_QUERY, onGroupMoraleQuery);
 }
 
 /**

@@ -129,7 +129,7 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
 			pairLocked: unfound,
 			sanctum: kind === "sanctum",
 			seer,
-			reference: reference ? t("realm.panel.reference", { name: reference.name, page: reference.page }) : null,
+			reference: reference ? withPage(reference.name, reference.page) : null,
 			revealed: here.landmark.revealed
 		};
 	}

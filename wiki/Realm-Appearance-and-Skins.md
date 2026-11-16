@@ -1,6 +1,6 @@
 # Realm Appearance and Skins
 
-How a Realm is drawn is up to you: a **skin** (the pictures for terrain, rivers, Holdings, Landmarks and Myths) and a set of **colours** (the paper, ink, hex lines and Barriers). Each Realm Scene keeps its own look, and changing it never changes the Realm itself. You can also make a skin of your own pictures.
+How a Realm is drawn is up to you: a **skin** (the pictures for terrain, rivers, Holdings, Landmarks and Myths) and a set of **colours** (the paper, ink, hex lines and Barriers). Each Realm Scene keeps its own look, and changing it never changes the Realm itself. You can also make a homebrew skin from pictures you supply.
 
 ## Opening Realm Appearance
 
@@ -12,7 +12,7 @@ Any of these opens the **Realm Appearance** window (Referees only):
 
 A line at the top says which Realm you are changing: the Realm Scene in view, or, with no Realm on screen, the look new Realms start with.
 
-![The Realm Appearance window, with the Skin cards (Blank Realm, Roundels, Woodcut, Surveyor's Atlas, Wax Seal, Armorial and Your own pictures), the Colours row, the Icons and Hex Lines sliders and the Preview](images/realm-appearance-and-skins-window.webp)
+![The Realm Appearance window, with the Skin cards (Blank Realm, Roundels, Woodcut, Surveyor's Atlas, Wax Seal, Armorial and Homebrew pictures), the Colours, the Icons and Hex Lines sliders and the arms tick on the left, and the Preview on the right](images/realm-appearance-and-skins-window.webp)
 
 ## Trying a look
 
@@ -54,9 +54,9 @@ Two things only the **Blank Realm** skin does:
 
 **Parchment** (the default), **Ink on White**, **Verdigris & Brass**, **Azure & Gules**, **Ochre & Oxblood**, **Ash & Iron** and **Candlelit Night**. Every skin comes in every set.
 
-## A Skin of Your Own
+## Homebrew skins
 
-The **Your own pictures** card opens **A Skin of Your Own**, for making a skin from pictures you supply. A saved skin can be chosen in every world on this Foundry server.
+The **Homebrew pictures** card opens **A Homebrew Skin**, for making a skin from pictures you supply. A saved skin can be chosen in every world on this Foundry server.
 
 1. Give it a **Name**.
 2. Under **Pictures you don't give**, choose the shipped skin that fills in whatever you leave out.
@@ -67,7 +67,7 @@ The **Your own pictures** card opens **A Skin of Your Own**, for making a skin f
 
 **Start again** clears the pictures you have added.
 
-Your skin appears among the others in Realm Appearance, tagged **Yours**. Its card has a **pencil** to change it and a **bin** to take it off the list in every world. Realms already drawn with it keep their pictures.
+Your skin appears among the others in Realm Appearance, tagged **Homebrew**. Its card has a **pencil** to change it and a **bin** to take it off the list in every world. Realms already drawn with it keep their pictures.
 
 Your skins and their pictures are kept in `mythic-bastionland-art/realm-skins/` in your Foundry data folder, outside any world, which is why every world sees them.
 

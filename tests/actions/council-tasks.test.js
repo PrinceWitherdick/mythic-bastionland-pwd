@@ -104,6 +104,13 @@ describe("councilActor", () => {
 		expect(councilActor(fakeDomain({ council: { steward: "r1" }, court }), "steward")).toBe(alda);
 	});
 
+	it("finds a Knight seated from their own sheet by id, though renamed since", () => {
+		const moss = { id: "k1", type: "knight", name: "Moss the Bold", system: { virtues: { cla: { value: 12 } } } };
+		game.actors = [{ id: "k2", name: "Moss", system: { virtues: {} } }, moss];
+		const court = { r1: { role: "retainer", name: "Moss", seat: "", leverage: "", note: "", at: 1, knight: "k1" } };
+		expect(councilActor(fakeDomain({ council: { steward: "r1" }, court }), "steward")).toBe(moss);
+	});
+
 	it("finds the one Knight sitting in the Circle, and nobody to Save alone for several", () => {
 		const moss = { id: "k1", type: "knight", name: "Moss", system: { virtues: {} } };
 		const brand = { id: "k2", type: "knight", name: "Brand", system: { virtues: {} } };
@@ -118,6 +125,18 @@ describe("councilActor", () => {
 		game.actors = [moss, brand];
 		expect(councilActor(fakeDomain({ council: { circle: ["k1", "k2"] } }), "circle")).toBe(moss);
 		expect(councilActor(fakeDomain({ council: { circle: ["k2"] } }), "circle")).toBeNull();
+	});
+
+	it("passes over a Knight Slain since they took a Retainer's seat, but not a Retainer who is no Knight", () => {
+		const brand = { id: "k2", type: "knight", name: "Brand", system: { virtues: {}, slain: true } };
+		const coll = { id: "n1", type: "npc", name: "Coll", system: { virtues: {} } };
+		game.actors = [brand, coll];
+		const court = {
+			r1: { role: "retainer", name: "Brand", seat: "", leverage: "", note: "", at: 1, knight: "k2" },
+			r2: { role: "retainer", name: "Coll", seat: "", leverage: "", note: "", at: 2 }
+		};
+		expect(councilActor(fakeDomain({ council: { marshal: "r1" }, court }), "marshal")).toBeNull();
+		expect(councilActor(fakeDomain({ council: { marshal: "r2" }, court }), "marshal")).toBe(coll);
 	});
 });
 

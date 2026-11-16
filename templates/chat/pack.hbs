@@ -1,0 +1,44 @@
+<section class="bastionland-card bastionland-card--pack{{#unless open}} is-settled{{/unless}}">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{localize "bastionland.attack.pack.title"}}</h3>
+		{{#if targets}}
+		<p class="bastionland-card__tagline">{{targets}}</p>
+		{{/if}}
+	</header>
+
+	{{!-- Each who attacks brings their dice unrolled, so the Knight can join anybody's into bigger ones (p56). --}}
+	{{#each shares}}
+	<p class="bastionland-card__tagline">{{name}}</p>
+	{{#if smite}}
+	<p class="bastionland-card__hint">{{smite.name}}: {{smite.tagline}}</p>
+	{{> "bastionland.save-result" save=smite.save}}
+	<p class="bastionland-card__outcome">{{smite.outcome}}</p>
+	{{/if}}
+	<ol class="bastionland-dice">
+		{{#each dice}}
+		<li>
+			<span class="bastionland-die is-waiting" title="d{{faces}} {{label}}">
+				{{> "bastionland.die-face" waiting=true}}
+			</span>
+		</li>
+		{{/each}}
+	</ol>
+	{{/each}}
+
+	{{#if open}}
+	<p class="bastionland-card__prompt">{{waiting}}</p>
+	<div class="bastionland-card__actions">
+		<button type="button" data-pack-action="join" data-tooltip="{{localize 'bastionland.attack.pack.joinHint'}}"><i class="fa-solid fa-user-plus"></i> {{localize "bastionland.attack.join"}}</button>
+		<button type="button" data-pack-action="roll" data-tooltip="{{rollHint}}"><i class="fa-solid fa-dice"></i> {{rollLabel}}</button>
+		<button type="button" data-pack-action="call-off" data-tooltip="{{localize 'bastionland.attack.pack.callOffHint'}}"><i class="fa-solid fa-ban"></i> {{localize "bastionland.attack.pack.callOff"}}</button>
+	</div>
+	{{else}}
+	<p class="bastionland-card__outcome">{{closed}}</p>
+	{{#if stalled}}
+	{{!-- Shown only once the roll has stood too long with no Attack card (pack-card.js, watchStalled). --}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-pack-action="recover" data-tooltip="{{localize 'bastionland.attack.pack.recoverHint'}}" hidden><i class="fa-solid fa-rotate-left"></i> {{localize "bastionland.attack.pack.recover"}}</button>
+	</div>
+	{{/if}}
+	{{/if}}
+</section>

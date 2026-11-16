@@ -124,6 +124,13 @@ export const KIT_WEAPON_KEYS = Object.freeze([...new Set(Object.values(ABILITY_K
 export const kitForPage = (page) => ABILITY_KITS[page] ?? null;
 
 /**
+ * @param {{page?: number|null, kitPage?: number|null}|null|undefined} knight A Knight from the art index, or one the Referee wrote.
+ * @returns {number|null} The page whose kit their Ability takes: a written Knight's
+ *   borrows the kit of the book Knight it works like.
+ */
+export const kitPageOf = (knight) => knight?.kitPage ?? knight?.page ?? null;
+
+/**
  * The Ability data a kit lays over what the book's words gave it.
  * @param {object} system The Ability's system data as made so far.
  * @param {AbilityKit|null} kit

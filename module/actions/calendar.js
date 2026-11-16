@@ -8,11 +8,69 @@ const CALENDAR_SETTING = "calendar";
 /**
  * Called on every client whenever the calendar changes, with the new calendar,
  * the one before it, and which cadences came round between them (see cadencesTurned).
+ * A listener that writes to the world listens with onCalendarWrites instead, so
+ * whoever moved time on can count its writes as theirs (setTurningScope).
  */
 export const CALENDAR_HOOK = `${SYSTEM_ID}.calendarChanged`;
 
 /** @type {import("../rules/time.js").Calendar|null} The calendar as it stood, from when the world is ready, so each change knows what came round. */
 let previous = null;
+
+/**
+ * @typedef {(userId: string|null, work: () => Promise<void>) => Promise<void>} TurningScope
+ * Runs the calendar's turning, what it writes counted as answering the user who turned it.
+ */
+
+/** @type {TurningScope} */
+const noScope = (_userId, work) => work();
+let turningScope = noScope;
+
+/**
+ * Have the calendar's turning run inside a scope, as a time advance does to
+ * count what answers it as its own (time-capture.js).
+ * @param {TurningScope|null} scope
+ */
+export function setTurningScope(scope) {
+	turningScope = scope ?? noScope;
+}
+
+/**
+ * @typedef {(after: import("../rules/time.js").Calendar, before: import("../rules/time.js").Calendar,
+ *   turned: string[]) => Promise<unknown>|unknown} CalendarWriter
+ */
+
+/** @type {CalendarWriter[]} Listeners that write as the calendar turns, whose writes the turning waits on. */
+const writers = [];
+
+/**
+ * Listen to the calendar turning, on every client, with a listener that writes
+ * to the world and returns the promise of its writes. They're waited on, so a
+ * time advance counts them as its own (time-capture.js); CALENDAR_HOOK is for
+ * those that only redraw.
+ * @param {CalendarWriter} fn
+ */
+export function onCalendarWrites(fn) {
+	writers.push(fn);
+}
+
+/**
+ * Tell CALENDAR_HOOK's listeners, then every writer, waiting on what each writes.
+ * @param {...unknown} args
+ * @returns {Promise<void>} Once every writer's writes are done, whether they worked or not.
+ */
+async function callTurning(...args) {
+	Hooks.callAll(CALENDAR_HOOK, ...args);
+	const failed = (error) => console.error(`${SYSTEM_ID} | A listener to the calendar failed`, error);
+	const results = writers.map((fn) => {
+		try {
+			return fn(...args);
+		} catch (error) {
+			failed(error);
+			return null;
+		}
+	});
+	for (const result of await Promise.allSettled(results)) if (result.status === "rejected") failed(result.reason);
+}
 
 /** Register the calendar. Called during init. */
 export function registerCalendarSetting() {
@@ -21,11 +79,11 @@ export function registerCalendarSetting() {
 		config: false,
 		type: Object,
 		default: { ...DEFAULT_CALENDAR },
-		onChange: (value) => {
+		onChange: (value, _options, userId) => {
 			const after = normalizeCalendar(value);
 			const before = previous ?? after;
 			previous = after;
-			Hooks.callAll(CALENDAR_HOOK, after, before, cadencesTurned(before, after));
+			return turningScope(userId ?? null, () => callTurning(after, before, cadencesTurned(before, after)));
 		}
 	});
 }

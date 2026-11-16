@@ -10,21 +10,23 @@ A fight in Mythic Bastionland is a run of Attacks, and in this system each one i
 
 A Slain or Mortally Wounded Knight can't Attack; you're told why. Nobody can Attack themself, and a target who is already Slain, destroyed or wiped out is named as such in the dialog.
 
-![The Attack dialog for Dame Isolde Marrow against Old Gullet, with her mace, kite shield and dagger under Weapons and shields, the This turn ticks, Old Gullet's weakness ticked for +d8, the Bonus dice box, the Smite menu, the folded More for](images/combat-for-players-attack-dialog.webp)
+![The Attack dialog for Dame Isolde Marrow against Old Gullet, with her weapons ticked, the Improvised weapon box, the This turn ticks, Old Gullet's weakness ticked for +d8, Bonus dice, Smite, and Wait for allies to join before rolling ticked](images/combat-for-players-attack-dialog.webp)
 
 ### The Attack dialog
 
 - **Weapons and shields** lists everything you wear or wield, each with its dice and tags. Tick the ones this blow uses. Broken or used-up weapons are left out and named under the list. The dialog refuses an impossible grip (two Hefty items, a Long weapon with anything else, more than two hands' worth) and says why. A Knight who has lost an arm to a Scar holds fewer items, and no Long weapon, until the next Season.
+- **Improvised weapon**, under the list: for a barrel, a stool or anything else grabbed and swung or thrown. Type what it is and the die the Referee rules for it, such as `barrel d8`. It counts as a weapon, so the blow isn't unarmed, and its name shows on the card. Clear the box to fight with nothing.
 - A **specialist** weapon has a second tick under it: tick it when the situation it's made for comes up, to add its die.
 - **This turn**: **Moved this turn** (ticked for you when your Token has moved this turn in a Combat), **Began the turn engaged in melee**, and **Mounted**. Hover each for what it changes.
 - **Charging on (your steed) at enemies on foot** appears when you ride a steed: tick it to add its trample. It is greyed out when nobody targeted is on foot.
 - **Bonus dice**: type extra dice the Referee gives you, such as `d8`, or several as `d6, d12`. In a Combat you can tick **Keep the bonus dice for the rest of the fight**.
 - **Smite**: pick **Smite for +d12**, **Blast**, or **Smite for a lasting mark**. The VIG Save is made when you roll. The menu is greyed out while you're Fatigued or Impaired.
 - **Declared for this blow** lists what your Ability can lend this one blow. One with limited uses comes unticked and spends a use when you tick it. One that fits only some blows comes unticked too: tick it for the blows it fits. One made only for a ranged Attack, a melee Attack with a shield, or a melee Attack without moving is refused for any other blow.
+- **Wait for allies to join before rolling**: nothing is rolled yet. A card waits for the others attacking the same target to bring their dice, and then they all roll together. See [Gathering before the roll](#gathering-before-the-roll).
 - **More for this blow** (folded): **In a confined space**, **Charged a spearwall this turn**, and anything else to declare.
 - A foe's known weakness, a die you keep for the fight, and a Gambit that has Impaired you show as their own lines.
 
-The dialog remembers, per character, the weapons you ticked, your specialist ticks and the situation boxes, and opens on them next time. Bonus dice and Smite are never remembered: each is for one blow.
+The dialog remembers, per character, the weapons you ticked, your specialist ticks, the situation boxes and **Wait for allies**, and opens on them next time. Bonus dice and Smite are never remembered: each is for one blow.
 
 If you target several Tokens with a **Blast**, one card is rolled for each target. Only a Blast strikes more than one, so an Attack at several Tokens that isn't one is refused: target just one, or make it a Blast. Smite for +d12 against a swarm is refused too, since a swarm Impairs any blow that isn't a Blast; Smite for a Blast instead.
 
@@ -42,7 +44,7 @@ The card shows every die rolled, the highest marked, and the **Damage** (the hig
 - **Deny comes before any Gambit.** If somebody could still Deny when you spend your first die or Focus, you're told who and asked **Declare a Gambit now?** If they Deny after that, any Gambit spent on a die can be taken back and chosen again, even one already Saved against. A Greater effect already carried out stays.
 - **Dismount** is offered only when a target rides. Against a Warband, only a Blast unseats anyone. It rolls its d6 as you declare it.
 
-Each declared Gambit is listed on the card. Where the foe gets a Save, a **VIG Save** button (or whichever Save was picked) sits beside it for the foe's owner or the Referee to roll; a pass strikes the Gambit through. Only a foe the Attack was aimed at can make that Save. A **Greater effect** has a **Disarm, unhelm or break** button once the Save is settled: pick the foe's weapon to knock away, helm to take off, or wooden thing to break, or write in something else.
+Each declared Gambit is listed on the card. Where the foe gets a Save, a **VIG Save** button (or whichever Save was picked) sits beside it for the foe's owner or the Referee to roll; a pass strikes the Gambit through. Only a foe the Attack was aimed at can make that Save. A **Greater effect** has a **Disarm, unhelm or break** button once the Save is settled: pick the foe's weapon to knock away, helm to take off, or wooden thing to break, or pick **Something else** and say at the table what it is (the card says it was told at the table).
 
 Only the attacker (and anyone who joined) can spend dice and Focus. Clicking any Gambit on your sheet just posts its rule to chat.
 
@@ -60,10 +62,27 @@ A failed Feat Save leaves the Knight Fatigued, and a Fatigued Knight can't use a
 
 ### Joining an Attack
 
-Everyone attacking the same target rolls together as one Attack.
+Everyone attacking the same target rolls together as one Attack. You can join a card that has already rolled, or gather everybody's dice first and roll them at once.
+
+**Joining after the roll.**
 
 - **Click Join this Attack**, pick who joins from the characters you play, and answer your own Attack dialog. Your dice are added to the card's pool. (The Referee selects the Token of whoever joins first.) The button only shows while you have someone who could join.
 - Joining closes once a Deny, Gambit or Focus has been declared.
+
+#### Gathering before the roll
+
+Tick **Wait for allies to join before rolling** in the Attack dialog, and a card titled **An Attack Gathers** goes to chat in place of the Attack card. Nothing is rolled yet: each who joins shows their dice on it, waiting.
+
+![An Attack Gathers card against Old Gullet, with Dame Isolde Marrow's d8, d6 and d8 waiting unrolled under their names, the line saying she waits for allies, and Roll and Call Off](images/combat-for-players-pack-card.webp)
+
+- **Click Join this Attack** on that card to bring your dice. Answer your Attack dialog as usual; your dice wait with the rest, unrolled.
+- Whoever started it (or the Referee) presses **Roll** when everyone is in, and the Attack card follows with all the dice rolled together. What your Ability or possessions would use up is spent then, not before.
+- **Call Off** closes the card with nothing rolled and nothing spent. A Smite already made stays paid for.
+- If the roll was made but no Attack card came, the card offers **Open Again** after a short while, to find that card or open the dice to be rolled again.
+- A blow in a duel, a blow made alone and a Blast at several targets never wait: they roll at once, and you're told so.
+- Another player's dice can only be rolled in while a Referee is logged in.
+
+A Knight whose Ability joins dice into bigger ones (with at least one ally attacking too) always gets this card, ticked or not, and the button reads **Join and Roll**. It opens **Join Dice** with **Everybody's dice**: put dice in the same group to join them into one die as big as their faces together, or leave a die alone. A joined die belongs to whoever brought the most of it, and strikes as their dice do; between equals, it's whoever came to the card first. Each die is named with its owner, and the window warns you when a joined die can't harm the target (a Warband or a structure, say).
 
 Some Abilities add more buttons here, shown only to the Knight who has them: **Roll the Pool Again** (once, on a joint Attack, before anything is spent) and **Turn a Die** (for a Knight with a rune etched for a number a die shows).
 
@@ -88,21 +107,35 @@ If the blow leaves the target at exactly 0 GD, the Scar is rolled for you on the
 
 Press **Apply**. A Damage card shows GD and VIG before and after, and the outcome: turned aside, Wounded, left at 0 GD for a Scar, Mortally Wounded, or Slain. The condition pills on the sheet follow. Damage taken from the sheet this way doesn't roll a Scar for you; use **Roll Scar** if the card says one is due.
 
-Some Abilities step in here: a Knight who can take an ally's Mortal Wound is asked whether to, when one nearby would be Mortally Wounded or Slain.
+Some Abilities step in here:
+
+- A Knight who can take an ally's Mortal Wound is asked whether to, when one nearby would be Mortally Wounded or Slain.
+- A Knight whose Mortal Wound rallies their allies gets a card with **Rally the Allies**: each ally fighting beside them regains d6 GD and keeps +d12 against the foe who dealt it until the Combat ends.
+- A Knight who makes foes pay for striking others: while their stance holds, an Attack by the other side at somebody else posts a card with **Take d10 SPI**, for the attacker's Virtue Loss once the Attack is resolved.
+- **Break through** on a Knight's Ability takes d12 Damage for breaking through a wall or something solid.
+- **Seal somebody's arms** puts a seal on a weapon, shield or armour of the Token you target, someone who isn't a Knight. While they wear or wield it they can Smite or Deny once, as a Knight does, and using it spends the seal.
 
 ## Duels
 
 Two combatants who agree to fight can do it as a duel, where both Attacks are rolled and settled at once.
 
 - **Target the one Token** you've agreed to duel, then **click Duel** on your sheet.
-- Pick **Duel** or **Joust** (fought mounted), and tick any of **Stake Glory** (two Knights only: the winner gains 1, the loser loses 1), **Bloodless** (leaves no Scars) or **Sparring** (a practice bout: nobody is left dying or Scarred, and GD and VIG are put back when it ends). Press **Begin**.
+- Pick **Duel** or **Joust** (fought mounted), and tick any of **Bloodless** (leaves no Scars), **Sparring** (a practice bout: nobody is left dying or Scarred, and GD and VIG are put back when it ends) or **Stake Glory**. Press **Begin**.
+- A Warband, a structure, or someone Slain or Mortally Wounded can't be challenged; you're told why.
+
+**Staking Glory.** The winner gains 1 Glory and the loser loses 1, but only a Knight's Glory moves: a Knight can stake against somebody who isn't one, such as a Squire or an NPC, and only the Knight's Glory is at risk. At least one duelist must be a Knight, and a sparring bout stakes nothing.
+
+The other side has to agree. Whoever plays your opponent gets a **Stake Glory?** window with **Agree** and **Refuse** (the Referee answers for their own people and for players who aren't here). Refused, or left unanswered for a minute, the duel goes ahead with nothing staked, and you're told which.
 
 A duel card follows the two duelists, showing who has rolled and who is yet to Attack.
 
 - **Each duelist presses Attack** on their own sheet. The Attack dialog ticks the duel for you and aims at the other duelist; the card's Damage is held back.
 - Use Feats and declare Gambits on your Attack cards as usual.
-- **Resolve Both Attacks** applies both blows together. Only the Referee, or someone who owns both duelists, can press it.
+- In a joust both riders count as mounted, unless one was thrown in an earlier exchange.
+- **Resolve Both Attacks** applies both blows together. Only the Referee, or someone who owns both duelists, can press it. Each blow lands once, however often it's pressed.
+- In a sparring bout, a duelist who is knocked down is out of it, and can't Attack until the bout ends.
 - **(Name) wins** or **No victor** ends the duel, after a confirmation, moving any Glory staked. A sparring bout is shaken off then too, or when the Combat ends or time passes.
+- If a duelist is deleted or Slain, the duel closes by itself with no victor, and no staked Glory moves. The Referee can give any that's due by hand.
 
 ## On the map
 

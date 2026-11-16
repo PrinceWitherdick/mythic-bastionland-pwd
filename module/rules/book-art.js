@@ -131,10 +131,14 @@ export const isTableRoll = (dice) => Boolean(dice) && isDie(dice.d6, 6) && isDie
 
 /**
  * Kept here beside isTableRoll, as realm.js asks both, so it needn't import own-myths.js, which imports it.
- * @param {{own?: unknown}|null|undefined} myth
- * @returns {boolean} Whether a Myth of the Realm is one the Referee wrote (own-myths.js), in place of a roll.
+ * A written Myth and a written Knight or Seer are each told by their Journal entry's id, as `own`.
+ * @param {{own?: unknown}|null|undefined} record
+ * @returns {boolean} Whether it is one the Referee wrote (own-myths.js, own-knights.js), in place of a roll.
  */
-export const isOwnMyth = (myth) => typeof myth?.own === "string" && myth.own !== "";
+export const isOwnRecord = (record) => typeof record?.own === "string" && record.own !== "";
+
+/** Whether a Myth of the Realm is one the Referee wrote, in place of a roll. */
+export const isOwnMyth = isOwnRecord;
 
 /**
  * @param {number} d6

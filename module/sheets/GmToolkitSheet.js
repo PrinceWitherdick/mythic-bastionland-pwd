@@ -40,7 +40,8 @@ import { scrollBehavior } from "../client-settings.js";
 import { openRulebook } from "../rulebook/BookReader.js";
 import { openRulebookSetup } from "../rulebook/RulebookSetup.js";
 import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
-import { isTableRoll, MYTH_VERSE_VERSION } from "../rules/book-art.js";
+import { MYTH_VERSE_VERSION } from "../rules/book-art.js";
+import { isSeerRecord } from "../rules/knight-refs.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, CITY_QUEST_WORTHINESS, cityQuestOver, worthyOfCityQuest } from "../rules/city-quest.js";
 import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { rulingKnightOf } from "../rules/dominion.js";
@@ -789,7 +790,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			return { title, kind: [kind, holding.seat ? t("gmToolkit.places.seat") : null].filter(Boolean).join(", ") || null, self: "holding", status: [] };
 		}
 		if (landmark) {
-			const seer = isTableRoll(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
+			const seer = isSeerRecord(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
 			return {
 				...named(landmark.name, t(landmarkLabelKey(landmark))),
 				self: "landmark",
@@ -825,7 +826,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		}
 		if (landmark) {
 			const named = landmarkName(landmark, t);
-			const seer = isTableRoll(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
+			const seer = isSeerRecord(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
 			features.push({ text: seer ? `${named}: ${seer.name}` : named, hidden: !landmark.revealed });
 		}
 		return features;

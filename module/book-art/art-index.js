@@ -1,6 +1,8 @@
+import { ownSeerLookup } from "../actions/own-knights.js";
 import { ownMythLookup } from "../actions/own-myths.js";
 import { t } from "../chat/cards.js";
 import { ART_ROOT, INDEX_FILE, isTableRoll } from "../rules/book-art.js";
+import { isOwnRecord } from "../rules/knight-refs.js";
 import { isOwnMyth } from "../rules/own-myths.js";
 import { mythReference, seerReference } from "../rules/realm.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -160,11 +162,14 @@ export const pageNote = (page) => (page ? t("realm.key.page", { page }) : null);
 
 /**
  * A Seer's entry in the art index, with a name to show whether or not the book has been imported.
+ * A Seer the Referee wrote has an entry of the same shape, read from their Knight's Journal entry,
+ * and no roll or page.
  * @param {object|null} index
- * @param {{d6: number, d12: number}} seer
- * @returns {{roll: string, page: number, entry: object|null, name: string}}
+ * @param {{d6: number, d12: number}|{own: string}} seer
+ * @returns {{roll: string|null, page: number|null, entry: object|null, name: string}}
  */
 export function seerEntry(index, seer) {
+	if (isOwnRecord(seer)) return ownSeerLookup(seer);
 	const { roll, page } = seerReference(seer);
 	const entry = findByRoll(index?.seers, roll);
 	return { roll, page, entry, name: entry?.name ?? t("realm.key.unnamedSeer", { roll }) };

@@ -6,14 +6,14 @@ A brand new Knight opens on an empty page until they're chosen. See [Choosing a 
 
 ## The pages
 
-![Dame Isolde Marrow's sheet on the Knight page, with the portrait, name lines, verse and painted shield across the top, the Attack, Duel, Take Damage and Luck Roll bar, Virtues with current and maximum boxes, Conditions, Rank and Age pills o](images/the-knight-sheet-knight-tab.webp)
+![Dame Isolde Marrow's sheet on the Knight page: portrait, name lines, verse and shield across the top, the Attack bar, Virtues, Conditions, Recovery, Age and Rank, her Successor and Posts on the left, and Ability, Passion, Feats, Gambits and Scars](images/the-knight-sheet-knight-tab.webp)
 
 The pages are an icon rail hanging off the window's right edge (it moves to the left edge when the window is too close to the right of your screen). Hover an icon to see its name.
 
 | Page | What it is for |
 | --- | --- |
-| **Knight** | Virtues, Guard, Glory, Conditions, Recovery, Age, Rank, Successor, Ability, Passion, Feats, Gambits, Scars and the Oath. The sheet opens here. |
-| **Property, Steed and Squire** | Your steed, your Squire and everything you carry. Its icon shows what carries your things: a horse while you ride a steed, your Squire while one serves you, a backpack otherwise. See [Property, Steeds and Squires](Property-Steeds-and-Squires). |
+| **Knight** | Virtues, Guard, Glory, Conditions, Recovery, Age, Rank, Domain Posts, Successor, Ability, Passion, Feats, Gambits, Scars and the Oath. The sheet opens here. |
+| **Property, Steed and Squire** | Your steed, your Squire, your followers and everything you carry. Its icon shows what carries your things: a horse while you ride a steed, your Squire while one serves you, a backpack otherwise. See [Property, Steeds and Squires](Property-Steeds-and-Squires). |
 | **Seer** | Who knighted you, their picture and description, and your notes on them. See [The Seer](The-Seer). |
 | **Travels** | Where the Company has been on the Realm map. See [Travels and Places](Travels-and-Places). |
 | **Timeline** | This Knight's thread of the campaign Timeline. See [The Campaign Timeline](The-Campaign-Timeline). |
@@ -66,13 +66,34 @@ The window's title bar carries a few buttons left of Foundry's own:
 - **Click an Age** (Young, Mature, Old) to change it. Growing older opens **Growing Older**, which offers **Roll Virtues** (each Virtue rolled again on d12+d6, the higher kept on turning Mature, the lower on turning Old) or **Just change Age**.
 - **Rank** shows the five ranks with the Glory each needs, your own lit. Under it, your rank's "Worthy of..." line and how much more Glory reaches the next. Hover a rank to read what it is worthy of.
 
+### Domain Posts
+
+**Domain Posts** lists what the Knight holds in any Domain, one line each: the Domain's name, then the post. That is **Ruler**, a Council seat (Steward, Marshal, Sheriff or Envoy), **In the Circle**, or a place in its Court (Courtier, say, or a Retainer and the seat they serve). The highest post comes first: whoever rules a Seat of Power, next whoever rules a Holding, then Steward, Marshal, Sheriff, Envoy and the Circle, then the Court. Posts of the same rank keep their usual order. With none, it says so. Squires have no Domain Posts block.
+
+- **Click the Domain's name** to open its sheet.
+- **Hover a post** (Steward, In the Circle, Retainer and the rest) to read what it is, in the rulebook's words once it's imported. Ruler has no such line.
+- **Unproven** follows a post the Knight's Rank isn't worthy of yet. Hover it for why. It goes once their Rank rises, or once the Referee ticks **Worthiness proven** on the Domain's sheet.
+- **The ×**, shown to whoever holds that Domain, gives up that one post after a confirmation. Leaving a seat keeps the Knight's place in the Court; the × on a Court place leaves the Court. Ruling passes on by Succession, not from here.
+
+**Take a Seat** gives the Knight a seat on a Council. It opens one list, a group per Domain, with every seat and who holds it now (**Empty**, **Held by** a name, or **Theirs now**). Pick one and press **Take a Seat**.
+
+![The Seat Sir Corvin Ashby on a Council window, with the Merrow Tower group listing Steward, Marshal, Sheriff and Envoy each held by a Retainer and The Circle with Sir Oswin Hale sitting, Envoy picked, and Take a Seat at the foot](images/the-knight-sheet-take-a-seat.webp)
+
+- Only Domains you hold are offered (the Referee sees them all), and never one the Knight rules: a ruler doesn't sit on their own Council.
+- A Knight holds one seat in a Domain. Taking another leaves the first, the Circle included.
+- Every seat but the Circle is a Retainer's, so the Knight joins that Court as a Retainer if they aren't in it already. Whoever held the seat before stays in the Court, and you're told who gave it up.
+- With no Domain to offer, the button doesn't show.
+
+See [Domains and Courts](Domains-and-Courts#the-council).
+
 ### Successor
 
 The Knight or Squire named to follow this Knight.
 
 - **Click Name a Successor** to pick from every other Knight and Squire in the world. Your own Squire is picked to start with.
 - **Drag another Knight** from the Actors tab onto the sheet to name them. (A Squire dropped on a Knight is taken as their Squire instead; see [Property, Steeds and Squires](Property-Steeds-and-Squires#squires).)
-- **Click the successor's name** to open their sheet, or the × to unname them.
+- **Click the successor's name** to open their sheet.
+- **Hover the successor's row** for the × at its far right, and click it to unname them.
 
 See [Scars, Death and Successors](Scars-Death-and-Successors#successors).
 

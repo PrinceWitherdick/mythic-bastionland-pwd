@@ -10,7 +10,7 @@ vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () =>
 vi.mock("../../module/book-art/myth-tables.js", () => ({ tableForEntry: () => null, verseForEntry: () => null }));
 vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(), t: (key) => key }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollMythTable: vi.fn() }));
-vi.mock("../../module/actions/calendar.js", () => ({ CALENDAR_HOOK: "calendarChanged", getCalendar: () => ({}) }));
+vi.mock("../../module/actions/calendar.js", () => ({ CALENDAR_HOOK: "calendarChanged", getCalendar: () => ({}), onCalendarWrites: (fn) => globalThis.Hooks.on("calendarChanged", fn) }));
 vi.mock("../../module/actions/ledger.js", () => ({ causedBy: () => ({}) }));
 vi.mock("../../module/actions/table-stats.js", () => ({ applyTableStats: vi.fn() }));
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));

@@ -12,7 +12,7 @@ import { counted } from "../rules/afflictions.js";
 import { isVirtue, USED_EFFECTS } from "../rules/possession-effects.js";
 import { isAtHand, isWorn } from "../rules/restock.js";
 import { escapeHTML } from "../rules/text.js";
-import { VIRTUES } from "../rules/virtues.js";
+import { lowVirtues } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { loseVirtue, rollDamageOn, shortName, spendUse } from "./abilities.js";
 import { afflictionLabel } from "./afflictions.js";
@@ -29,8 +29,8 @@ const HARMS_SELECTOR = "[data-harms-other]";
 const ROW_EFFECTS = Object.freeze({
 	easesMortal: { ready: (actor) => actor.system.mortalWound, use: easeMortal },
 	absorbsAffliction: { ready: (actor) => actor.system.afflictions?.length, use: absorbAffliction },
-	restoresOne: { ready: (actor) => actor.system.virtues, use: (actor, item, name) => restoreVirtues(actor, item, name, false) },
-	restoresAll: { ready: (actor) => actor.system.virtues, use: (actor, item, name) => restoreVirtues(actor, item, name, true) },
+	restoresOne: { ready: (actor) => lowVirtues(actor.system).length, use: (actor, item, name) => restoreVirtues(actor, item, name, false) },
+	restoresAll: { ready: (actor) => lowVirtues(actor.system).length, use: (actor, item, name) => restoreVirtues(actor, item, name, true) },
 	saveOnUse: { ready: (actor, virtue) => virtue && actor.system.virtues, label: (virtue) => t("possessionEffects.saveOnUse.use", { virtue }), use: saveOnUse },
 	harmsOther: { ready: () => true, label: (virtue, dice) => t(virtue ? "possessionEffects.harmsOther.useVirtue" : "possessionEffects.harmsOther.useDamage", { dice, virtue }), use: harmOther }
 });
@@ -104,9 +104,11 @@ async function absorbAffliction(actor, item, name) {
 
 /** One Virtue, picked, or every Virtue back to its most (p68). */
 async function restoreVirtues(actor, item, name, all) {
-	let virtues = VIRTUES;
+	// With every Virtue at its most there is nothing to restore, and the possession isn't spent.
+	let virtues = lowVirtues(actor.system);
+	if (!virtues.length) return false;
 	if (!all) {
-		const choices = VIRTUES.map((key) => ({ id: key, name: t(`virtues.${key}.label`), detail: t("possessionEffects.restoresOne.now", { value: actor.system.virtues[key].value, max: actor.system.virtues[key].max }) }));
+		const choices = virtues.map((key) => ({ id: key, name: t(`virtues.${key}.label`), detail: t("possessionEffects.restoresOne.now", { value: actor.system.virtues[key].value, max: actor.system.virtues[key].max }) }));
 		const picked = await chooseOne(choices, {
 			title: name,
 			icon: "fa-solid fa-leaf",

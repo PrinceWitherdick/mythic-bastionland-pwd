@@ -94,14 +94,48 @@
 					</section>
 				</div>
 
-				<section class="bastionland-block" data-block="squire" style="--bastionland-narrow-order: 10">
+				{{!-- What they hold in any Domain (p20), one line each: the Domain, then the post. --}}
+				<section class="bastionland-block" data-block="posts" style="--bastionland-narrow-order: 10">
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.posts.hint'}}">{{localize "bastionland.posts.label"}}</h2>
+					<ul class="bastionland-items bastionland-court">
+						{{#each posts.rows}}
+						<li class="bastionland-item" data-domain-id="{{domainId}}" data-member="{{member}}" data-seat="{{seat}}">
+							<div class="bastionland-item__line">
+								{{#if opens}}
+								<button type="button" class="bastionland-item__name bastionland-name-button" data-action="openPostDomain">{{domain}}</button>
+								{{else}}
+								<span class="bastionland-item__name">{{domain}}</span>
+								{{/if}}
+								<span class="bastionland-item__tags"><strong{{#if postHint}} data-tooltip="{{postHint}}"{{/if}}>{{post}}</strong>{{#if unproven}} · <span data-tooltip="{{unproven}}">{{localize "bastionland.posts.unproven"}}</span>{{/if}}</span>
+								{{#if leave}}
+								<span class="bastionland-item__controls">
+									<button type="button" class="bastionland-icon" data-action="{{leave.action}}" data-tooltip="{{leave.label}}" aria-label="{{leave.label}}">
+										<i class="fa-solid fa-xmark" inert></i>
+									</button>
+								</span>
+								{{/if}}
+							</div>
+						</li>
+						{{else}}
+						<li class="bastionland-empty">{{localize "bastionland.posts.empty"}}</li>
+						{{/each}}
+					</ul>
+					{{#if posts.canTake}}
+					<div class="bastionland-adds">
+						<button type="button" class="bastionland-button" data-action="takeSeat" data-tooltip="{{localize 'bastionland.posts.takeHint'}}"><i class="fa-solid fa-chair" inert></i> {{localize "bastionland.posts.take"}}</button>
+					</div>
+					{{/if}}
+				</section>
+
+				<section class="bastionland-block" data-block="squire" style="--bastionland-narrow-order: 11">
 					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.successor.hint'}}">{{localize "bastionland.successor.label"}}</h2>
 					{{#if successor}}
-					<div class="bastionland-steed">
+					{{!-- The × shows only while the row is hovered or holds the focus. --}}
+					<div class="bastionland-steed bastionland-reveal-host">
 						<img class="bastionland-steed__img" src="{{successor.img}}" alt="">
 						<button type="button" class="bastionland-item__name" data-action="openSuccessor">{{successor.name}}</button>
 						{{#if editable}}
-						<button type="button" class="bastionland-icon" data-action="clearSuccessor" data-tooltip="{{localize 'bastionland.successor.clear'}}" aria-label="{{localize 'bastionland.successor.clear'}}">
+						<button type="button" class="bastionland-icon bastionland-reveal bastionland-steed__end" data-action="clearSuccessor" data-tooltip="{{localize 'bastionland.successor.clear'}}" aria-label="{{localize 'bastionland.successor.clear'}}">
 							<i class="fa-solid fa-xmark" inert></i>
 						</button>
 						{{/if}}
@@ -165,7 +199,7 @@
 				</section>
 			</div>
 
-			<section class="bastionland-oath" data-block="oath" style="--bastionland-narrow-order: 11">
+			<section class="bastionland-oath" data-block="oath" style="--bastionland-narrow-order: 12">
 				<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.oath.hint'}}">{{localize "bastionland.oath.label"}}</h2>
 				<p>{{localize "bastionland.oath.line1"}}</p>
 				<p>{{localize "bastionland.oath.line2"}}</p>

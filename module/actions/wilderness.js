@@ -296,7 +296,10 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 		let seerLine = null;
 		if (seer) {
 			const reference = seerEntry(index, seer);
-			seerLine = t("realm.wilderness.seer", { seer: reference.name, page: reference.page });
+			// A Seer the Referee wrote has no page in the book.
+			seerLine = reference.page
+				? t("realm.wilderness.seer", { seer: reference.name, page: reference.page })
+				: t("realm.wilderness.seerOwn", { seer: reference.name });
 		}
 		landmark = {
 			type: t(landmarkLabelKey(outcome.landmark)),

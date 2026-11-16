@@ -161,7 +161,8 @@ describe("the Referee's own Myths in the window", () => {
 		expect(template).toContain('data-action="writeMyth"');
 		expect(template).toContain('data-action="pickOwn" data-own="{{own}}"');
 		expect(app).toContain("writeMyth: () => newOwnMyth(),");
-		expect(app).toContain('const OWN_GROUP = "own";');
+		expect(chooserBase).toContain('export const OWN_GROUP = "own";');
+		expect(app).toContain('import { BastionlandChooser, OWN_GROUP } from "./BastionlandChooser.js";');
 		// The group isn't a d6 result, so cards and buttons are matched by their text.
 		expect(chooserBase).toContain("card.dataset.d6 === String(this.group)");
 		expect(chooserBase).toContain("group.dataset.d6 === String(this.group)");

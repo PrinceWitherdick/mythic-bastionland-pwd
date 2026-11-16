@@ -7,7 +7,7 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 }));
 vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(async () => null) }));
 vi.mock("../../module/actions/damage.js", () => ({ takeDamage: vi.fn(async () => ({ outcome: "wounded" })) }));
-vi.mock("../../module/actions/calendar.js", () => ({ CALENDAR_HOOK: "calendarChanged", getCalendar: () => ({}), calendarLabel: () => "" }));
+vi.mock("../../module/actions/calendar.js", () => ({ CALENDAR_HOOK: "calendarChanged", getCalendar: () => ({}), calendarLabel: () => "", onCalendarWrites: (fn) => globalThis.Hooks.on("calendarChanged", fn) }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: vi.fn(async () => null) }));
 
 const { confirmDialog, inputDialog } = await import("../../module/apps/ui.js");

@@ -12,6 +12,7 @@ import { setBarrier } from "../rules/realm-edits.js";
 import { barrierEdges, hexAt, hexKey, inRealm, parseEdgeKey, sameHex } from "../rules/realm-geometry.js";
 import { barriersMet, realmMoveProblem } from "../rules/realm-movement.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { registerQuery } from "../queries.js";
 
 /** A player's Token turned back by a Barrier, told to the active GM. */
 const TURNED_BACK_QUERY = `${SYSTEM_ID}.turnedBack`;
@@ -228,6 +229,6 @@ export async function offerWastedPhase(scene, { from, to }) {
  * revealed. Called during init: Foundry hands the game its socket before init runs.
  */
 export function registerTurnedBackQuery() {
-	CONFIG.queries[TURNED_BACK_QUERY] = onTurnedBackQuery;
+	registerQuery(TURNED_BACK_QUERY, onTurnedBackQuery);
 	game.socket?.on(SOCKET, onBarrierFound);
 }

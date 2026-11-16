@@ -1,4 +1,3 @@
-import { findByRoll } from "../book-art/art-index.js";
 import { gmAsker } from "../gm-asker.js";
 import { knightWithLists } from "../book-art/myth-tables.js";
 import { askActiveGMOrWarn } from "../ask-gm-warn.js";
@@ -7,6 +6,7 @@ import { deletionEntry, replacementEntry } from "../compat.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
 import { KNIGHT_TYPE, NPC_KNIGHT_START, NPC_KNIGHT_TYPE, becomesNpcKnight, isKnight, isNpcKnight, kindStamp } from "../rules/knight-types.js";
 import { rollKnightName } from "../rules/knight-names.js";
+import { findByRef } from "../rules/knight-refs.js";
 import { escapeHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { kitWeaponNames } from "./abilities.js";
@@ -14,6 +14,7 @@ import { findFlaggedFolder, flaggedFolder } from "./folders.js";
 import { COMPANY_KNIGHT_FLAG, worldKnights } from "./knights.js";
 import { withoutLedger } from "./ledger.js";
 import { createKnightWithCompanions, rollStartScores } from "./new-knight.js";
+import { registerQuery } from "../queries.js";
 
 /**
  * Knights the Referee plays: NPC Knights, an Actor type of their own. One of
@@ -36,11 +37,11 @@ export const NPC_KNIGHTS_STEP = "npcKnightActors";
 export const npcFolder = () => flaggedFolder("Actor", NPC_FOLDER_FLAG, true, { name: t("npcFolder.name") });
 
 /**
- * Make one of the book's Knights into an NPC Knight: a name of their own,
- * Virtues and GD rolled as a Ruler's, and their Property, Ability, Passion,
- * Seer and steed as the book gives them. GMs only.
- * @param {string} roll Their roll on the Knights table, such as "3-07".
- * @param {object|null} index The art index.
+ * Make one of the book's Knights, or one the Referee wrote, into an NPC
+ * Knight: a name of their own, Virtues and GD rolled as a Ruler's, and their
+ * Property, Ability, Passion, Seer and steed as their page gives them. GMs only.
+ * @param {string} roll Their roll on the Knights table, such as "3-07", or a written Knight's ref (knight-refs.js).
+ * @param {object|null} index The art index, with the written Knights where one of theirs is made (knightIndex).
  * @param {object} [options]
  * @param {number} [options.glory] The Glory the part they're made for asks, where it's more than a
  *   Ruler's: a Knight made to rule a Seat of Power is a Knight-Dominant, worthy of it (p6).
@@ -48,8 +49,8 @@ export const npcFolder = () => flaggedFolder("Actor", NPC_FOLDER_FLAG, true, { n
  */
 export async function makeNpcKnight(roll, index, { glory } = {}) {
 	if (!game.user.isGM) return null;
-	const knight = findByRoll(index?.knights, roll);
-	const seer = knight ? findByRoll(index?.seers, roll) : null;
+	const knight = findByRef(index?.knights, roll);
+	const seer = knight ? findByRef(index?.seers, roll) : null;
 	const ruler = startFor(NPC_KNIGHT_START);
 	const start = Number.isInteger(glory) && glory > ruler.glory ? { ...ruler, glory } : ruler;
 	const { scores } = await rollStartScores(start);
@@ -140,7 +141,7 @@ export async function onJoinQuery(data = {}, context = {}) {
 
 /** Answer players taking up their NPC Knights. Called during init. */
 export function registerNpcKnightQueries() {
-	CONFIG.queries[JOIN_QUERY] = onJoinQuery;
+	registerQuery(JOIN_QUERY, onJoinQuery);
 }
 
 /**

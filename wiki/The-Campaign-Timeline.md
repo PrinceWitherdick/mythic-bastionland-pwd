@@ -115,7 +115,13 @@ Saves, Luck, weather, Spark Table and People rolls, and the Chronicle are not wr
 
 ## Turning it off
 
-The world setting **Campaign Timeline** (in Configure Settings, or the Settings page of the Referee Toolkit) turns the whole feature off: after a reload the sheet tabs and the Toolkit page go, no new hotbar macros are handed out, and opening the window only says "The Timeline is turned off for this world." The game keeps writing in the background, so nothing is lost when you turn it back on. See [World Settings Reference](World-Settings-Reference).
+The world setting **Campaign Timeline** (in Configure Settings, or the Settings page of the Referee Toolkit) says where the Timeline shows, and takes a reload:
+
+- **Everywhere** (the default): the sheet tabs, the Toolkit page, the window and the journal.
+- **Not on Player Sheets**: Knight, Squire and Domain sheets lose their Timeline tab. The Toolkit page, the window and the journal stay.
+- **Off**: none of them. No new hotbar macros are handed out, and opening the window only says "The Timeline is turned off for this world."
+
+Whichever you pick, the game keeps writing in the background, so nothing is lost when you show it again. See [World Settings Reference](World-Settings-Reference).
 
 > **Did you know?**
 > - When a Knight is renamed, their thread is renamed too. A fallen Knight's thread keeps their name after the actor is deleted.

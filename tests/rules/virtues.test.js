@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampVirtue, conditionsFor, downBy, endsMortalWound, healsWound, isDying, isSavePassed, outOfFight, revives, typedD20, VIRTUE_MAX } from "../../module/rules/virtues.js";
+import { clampVirtue, conditionsFor, downBy, endsMortalWound, fullVirtues, healsWound, isDying, isSavePassed, lowVirtues, outOfFight, revives, typedD20, VIRTUE_MAX } from "../../module/rules/virtues.js";
 
 describe("isSavePassed", () => {
 	it("passes on a roll equal to the Virtue", () => {
@@ -143,5 +143,19 @@ describe("endsMortalWound", () => {
 		expect(endsMortalWound({ mortalWound: true }, { system: { slain: false } })).toBe(false);
 		expect(endsMortalWound({ mortalWound: false }, { system: { slain: true } })).toBe(false);
 		expect(endsMortalWound({ mortalWound: true }, { name: "Eve" })).toBe(false);
+	});
+});
+
+describe("lowVirtues", () => {
+	it("names each Virtue below its most, which fullVirtues restores", () => {
+		const system = { virtues: { vig: { value: 4, max: 12 }, cla: { value: 9, max: 9 }, spi: { value: 0, max: 7 } } };
+		expect(lowVirtues(system)).toEqual(["vig", "spi"]);
+		expect(fullVirtues(system)).toMatchObject({ "system.virtues.vig.value": 12, "system.virtues.spi.value": 7 });
+	});
+
+	it("names none for somebody whole, or with no Virtues", () => {
+		expect(lowVirtues({ virtues: { vig: { value: 12, max: 12 }, cla: { value: 9, max: 9 }, spi: { value: 7, max: 7 } } })).toEqual([]);
+		expect(lowVirtues({})).toEqual([]);
+		expect(lowVirtues(undefined)).toEqual([]);
 	});
 });

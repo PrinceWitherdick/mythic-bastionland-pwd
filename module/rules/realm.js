@@ -4,6 +4,7 @@
  * Names for each key live under `bastionland.realm`.
  */
 import { isDie, isOwnMyth, isTableRoll, rollLabel, spreadPages } from "./book-art.js";
+import { isSeerRecord } from "./knight-refs.js";
 import { directionNames, edgeDirection, hexDistance, hexIndex, hexKey, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 import { SEASONS } from "./time.js";
 
@@ -423,7 +424,7 @@ export function validateRealm(realm, g) {
 		const key = hexKey(landmark.hex);
 		place("landmark", landmark.hex);
 		if (!LANDMARK_TYPES.includes(landmark.type)) report("landmark", "type", key);
-		if (landmark.seer && !isTableRoll(landmark.seer)) report("landmark", "roll", key);
+		if (landmark.seer && !isSeerRecord(landmark.seer)) report("landmark", "roll", key);
 		if (LANDMARK_VARIANTS[landmark.type] && !isLandmarkVariant(landmark.type, landmark.variant)) report("landmark", "variant", key);
 		if (landmark.type === PAIRED_LANDMARK && isPairNumber(landmark.pair)) {
 			const count = (pairs.get(landmark.pair) ?? 0) + 1;

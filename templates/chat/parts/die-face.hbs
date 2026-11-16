@@ -1,0 +1,8 @@
+{{!-- A die inside its button or box: its profile, its size and what rolls it, alike on the Attack card's rolled dice and the Pack card's dice still to roll. `waiting` leaves the profile empty, with no result in it. --}}
+<span class="bastionland-die__face" data-faces="{{faces}}" style="--bastionland-die-mask: {{shape}}">
+{{~#unless waiting}}
+	<span class="bastionland-die__result">{{result}}</span>
+{{/unless~}}
+</span>
+<span class="bastionland-die__faces">d{{faces}}</span>
+<span class="bastionland-die__label">{{label}}</span>

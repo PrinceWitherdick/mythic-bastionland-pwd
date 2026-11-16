@@ -40,6 +40,16 @@ describe("what the Attack dialog shows", () => {
 		expect(render({ smiteKnown: true, smiteDisabled: true })).toMatch(/name="smite" disabled/);
 	});
 
+	it("offers an improvised weapon among the weapons, whether or not any are on the sheet", () => {
+		for (const sources of [[], [{ id: "mace", name: "Mace", tags: "d8" }]]) {
+			const html = render({ sources });
+			const weapons = html.slice(html.indexOf("bastionland.attack.weapons"), html.indexOf("</fieldset>"));
+			expect(weapons).toContain('name="improvised"');
+			// It opens empty, so a barrel isn't swung again next time.
+			expect(weapons).not.toMatch(/name="improvised"[^>]*value=/);
+		}
+	});
+
 	it("leaves out the Abilities' fieldset where no Ability lends the blow anything", () => {
 		expect(render({})).not.toContain("bastionland.attack.declared");
 		expect(render({ abilityOffers: [{ id: "a", label: "Thunder Strike: Blast", hint: "", effects: [] }] })).toContain("bastionland.attack.declared");

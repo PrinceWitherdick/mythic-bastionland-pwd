@@ -2,7 +2,7 @@
 
 A **Domain** is an actor for a Holding someone rules (the book's p20 to p21). Its sheet keeps the ruler and their successor, the Holding on the Realm map, the Council and the tasks it has in hand, the Court, the Crises the Domain faces, its Grand Designs and the Warbands it has raised. The buttons along its top make the Domain's rolls: the Crisis Roll, Increased Collections and Drama in Court. A Knight who rules a Domain gets a button for it on their own sheet.
 
-![The demo world's Domain sheet on its Rule page, with Dame Isolde Marrow's arms in the header, the toolbar of four buttons, Lordship with the Landmarks its rule reaches, Authority with a mustered Warband, the Council, and Pass On beside Seize by Force at the foot](images/domains-and-courts-rule.webp)
+![The demo world's Domain sheet on its Rule page, with Dame Isolde Marrow's arms in the header, the toolbar of four buttons, Lordship, Authority with a mustered Warband, the Council with Sir Corvin Ashby as Envoy, and Pass On beside Seize by Force](images/domains-and-courts-rule.webp)
 
 ## Getting a Domain
 
@@ -11,7 +11,7 @@ There are several ways a Domain comes about. Whichever you use, the Domain is an
 - **From a Knight's sheet.** Every Knight (not a Squire) has a **Domain** button in the sheet's title bar, drawn dimmed while they rule nothing. Click it to found one. If a Domain already names that Knight as its **Ruler** and no other Knight rules it, you are asked first whether to **Rule** that Domain or **Found a New Domain**.
 - **The Found a Domain window** asks for the **Holding** it rules (any Holding on any Realm map, or **None on the map yet**), a **Name** (left blank, it takes the Holding's name, or "*Knight*'s Domain" with no Holding), and which other Knights sit **In the Circle**. Press **Found It**. The Domain is made in the Knight's folder, the Knight is written in as its ruler, and a Referee founding it gives it the same owners as the Knight. Founding needs permission to create actors; a player without it is told to ask the Referee.
 - **Drag a Domain onto a Knight's sheet** from the Actors tab to make it the one they rule. A Domain with no ruler written in takes the Knight's name. Dragging from a compendium is refused.
-- **From the map.** On a Holding's hex, the Referee's part of the Places window has a **Ruler** line with **Grant to a Knight**. See [Places and the Lay of the Land](Places-and-the-Lay-of-the-Land). A Knight of the book's table who isn't in the world yet is made as an NPC Knight with a Domain ruling the Holding.
+- **From the map.** On a Holding's hex, the Referee's part of the Places window has a **Ruler** line with **Grant to a Knight**. See [Places and the Lay of the Land](Places-and-the-Lay-of-the-Land). A Knight of the book's table who isn't in the world yet is made as an NPC Knight with a Domain ruling the Holding. Made to rule the Seat of Power, they start with 9 Glory, as a Knight-Dominant worthy of it.
 - **From the Company's Start.** When a Realm is made for a **Ruler** Start, the Referee is asked **Who Rules?** and the Found a Domain window opens with the rest of the Company ticked into the Circle. A **Courtier** Start seats the Knights as Courtiers in the Court of the Domain ruling the Seat of Power, making that Domain if none rules it. If the Knights aren't made yet, the Referee gets a whispered card with **Seat the Knights at Court** for later. See [Making a Realm](Making-a-Realm).
 - **By hand.** Create an actor of type **Domain** in the Actors tab.
 
@@ -26,7 +26,7 @@ The title is the Domain's name, with "Domain" added if the name doesn't already 
 | **Timeline** | The Domain's own thread of the campaign Timeline. Gone when the world has the Timeline turned off. See [The Campaign Timeline](The-Campaign-Timeline). |
 | **Notes** | A rich-text page that fills the window. |
 
-The header and toolbar stay above every page. The header holds the Domain's arms, its name, and a **Seat of Power** tick box. Tick it for the Holding the whole Realm is ruled from: it raises the Warband limit from 2 to 3 and changes what Seize by Force asks. Picking the Seat of Power in the **Holding** list ticks it for you.
+The header and toolbar stay above every page. The header holds the Domain's arms, its name, and a **Seat of Power** tick box. Tick it for the Holding the whole Realm is ruled from: it raises the Warband limit from 2 to 3 and changes what Seize by Force asks. Picking the Seat of Power in the **Holding** list ticks it for you. The tick follows the crown on the map too: crown another Holding the Seat (with **Edit this hex** or the Seat of Power tick in the palette), and the Domain ruling it is ticked while the one ruling the old Seat is unticked.
 
 The toolbar only shows to someone who can edit the Domain:
 
@@ -84,6 +84,8 @@ The Council has five seats: **Steward**, **Marshal**, **Sheriff**, **Envoy** and
 - **The four great seats** each have a drop-down listing the Court's Retainers who don't already hold a seat. You can't type a name in: take somebody into the Court as a Retainer first, then grant them the seat here. With no Retainer free, the list reads **No Retainers Available**.
 - **The Circle** holds Knights, not Retainers. Its Knights' names are links to their sheets. **Click the person-plus icon** to tick which of the world's Knights (other than the ruler) sit in it, then **Seat Them**. Slain Knights and Squires aren't offered; a Circle Knight who has since been Slain shows "(Slain)" and leaves when you next seat the Circle.
 - Any of the four great seats left empty gets a warning under the Council heading, and each Season card lists Domains with empty seats.
+
+**To seat a Knight**, use **Take a Seat** in the Domain Posts block on the Knight's own sheet. It makes them a Retainer of this Court if they aren't one, then gives them the seat; whoever held it before stays in the Court. The Domain Posts block lists every post a Knight holds, in every Domain, and its × gives one up. See [The Knight Sheet](The-Knight-Sheet#domain-posts).
 
 ### Council tasks
 
@@ -149,7 +151,7 @@ The **Court** block lists everyone serving the ruler, grouped as **Retainer**, *
 
 ### Drama in Court
 
-**Drama in Court** rolls a d6 for how the ruler is drawn in: on a 1 directly, on 2 to 3 through someone close, on 4 to 6 not at all. It picks a named Courtier at random to be at the heart of it (anyone named in the Court if there are no Courtiers) and shows their role and note. Their leverage is whispered to the Referee, even when a player rolls. With the rulebook imported, it also rolls a prompt from the Drama Spark Table. The roll marks this Season's drama done, so the Season card stops listing it, and rolling again that Season asks first.
+**Drama in Court** rolls a d6 for how the ruler is drawn in: on a 1 directly, on 2 to 3 through someone close, on 4 to 6 not at all. It picks a named Courtier at random to be at the heart of it (anyone named in the Court if there are no Courtiers) and shows their role and note. It never picks one of the Company's Knights, even one seated as a Courtier, since their players play them. Their leverage is whispered to the Referee, even when a player rolls. With the rulebook imported, it also rolls a prompt from the Drama Spark Table. The roll marks this Season's drama done, so the Season card stops listing it, and rolling again that Season asks first.
 
 ## Grand Designs
 

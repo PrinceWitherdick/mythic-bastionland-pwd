@@ -3,7 +3,8 @@ import { t } from "../chat/cards.js";
 import { isBlankOwnMyth, isOwnMyth, normaliseOwnMyth, ownMythEntry } from "../rules/own-myths.js";
 import { keyedSerialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder } from "./folders.js";
+import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder, renameOldFlaggedFolder } from "./folders.js";
+import { newOwnEntry } from "./own-entries.js";
 
 /** The flag a written Myth's Journal entry keeps the Myth under. */
 export const OWN_MYTH_FLAG = "ownMyth";
@@ -98,6 +99,16 @@ export const findOwnMythsFolder = () => findFlaggedFolder("JournalEntry", FOLDER
  */
 export const ownMythsFolder = () => flaggedFolder("JournalEntry", FOLDER_FLAG, true, { name: t("ownMyth.folder"), color: JOURNAL_FOLDER_COLOR });
 
+/** What the folder was first named, before "Homebrew Myths" (2026-11-15). */
+const OLD_FOLDER_NAME = "Your Myths";
+
+/**
+ * The folder made under its old name takes the new one, once, by the active
+ * GM. One the Referee has named for themselves is left as they named it.
+ * @returns {Promise<Folder|null>} The folder renamed, if it was.
+ */
+export const renameOldOwnMythsFolder = () => renameOldFlaggedFolder("JournalEntry", FOLDER_FLAG, OLD_FOLDER_NAME, t("ownMyth.folder"));
+
 /**
  * Make a Journal entry for a new Myth and open it to be written. GMs only.
  * If it's closed with nothing written, the entry is deleted again.
@@ -105,19 +116,13 @@ export const ownMythsFolder = () => flaggedFolder("JournalEntry", FOLDER_FLAG, t
  */
 export async function newOwnMyth() {
 	if (!game.user.isGM) return null;
-	const folder = await ownMythsFolder();
-	const entry = await foundry.utils.getDocumentClass("JournalEntry").create({
+	return newOwnEntry({
 		name: t("ownMyth.defaultName"),
-		folder: folder?.id ?? null,
-		flags: {
-			core: { sheetClass: OWN_MYTH_SHEET_CLASS },
-			[SYSTEM_ID]: { [OWN_MYTH_FLAG]: normaliseOwnMyth(null) }
-		}
+		folder: await ownMythsFolder(),
+		sheetClass: OWN_MYTH_SHEET_CLASS,
+		flag: OWN_MYTH_FLAG,
+		data: normaliseOwnMyth(null)
 	});
-	if (!entry) return null;
-	entry.sheet.discardIfBlank = true;
-	await entry.sheet.render({ force: true });
-	return entry;
 }
 
 /**

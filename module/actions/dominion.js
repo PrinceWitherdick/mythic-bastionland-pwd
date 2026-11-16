@@ -32,6 +32,7 @@ import { namedHeirOf } from "./succession.js";
 import { seenOrChosen, worldKnights } from "./knights.js";
 import { timelineCollections, timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
 import { isKnight } from "../rules/knight-types.js";
+import { registerQuery } from "../queries.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -725,8 +726,8 @@ export function registerRulerDeaths() {
 	Hooks.on("deleteActor", (actor) => {
 		noticeRulerDeleted(actor).catch((error) => console.error(`${SYSTEM_ID} | Couldn't tell of a ruler's leaving`, error));
 	});
-	CONFIG.queries[RULER_QUERY] = onRulerQuery;
-	CONFIG.queries[LEVERAGE_QUERY] = onLeverageQuery;
+	registerQuery(RULER_QUERY, onRulerQuery);
+	registerQuery(LEVERAGE_QUERY, onLeverageQuery);
 	registerCardButtons({
 		selector: "[data-pass-on]",
 		gmOnly: true,
