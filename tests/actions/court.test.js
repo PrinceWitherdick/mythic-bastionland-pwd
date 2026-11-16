@@ -49,6 +49,7 @@ const {
 	editCourtMember,
 	knightsBesidesRuler,
 	leaveCouncilSeat,
+	postHint,
 	postsOfKnight,
 	realmSeerNames,
 	removeCourtMember,
@@ -520,5 +521,21 @@ describe("a Council seat from the Knight's own sheet", () => {
 		bramblewatch.system.court.c1.name = "Moss";
 		expect(postsOfKnight(moss)).toEqual([{ domain: bramblewatch, posts: [expect.objectContaining({ post: "court", role: "courtier", member: "c1" })] }]);
 		expect(postsOfKnight({ ...moss, id: "k9", name: "Nobody" })).toEqual([]);
+	});
+});
+
+describe("what a post is, on hover", () => {
+	it("reads a Council seat's or the Circle's line from the Domain sheet's keys", () => {
+		expect(postHint({ post: "steward" })).toBe("domain.council.steward.hint");
+		expect(postHint({ post: "circle" })).toBe("domain.council.circle.hint");
+	});
+
+	it("reads a Court place's line from its role", () => {
+		expect(postHint({ post: "court", role: "retainer" })).toBe("domain.court.roles.retainer.hint");
+		expect(postHint({ post: "court", role: "" })).toBe("");
+	});
+
+	it("has no line for ruling", () => {
+		expect(postHint({ post: "ruler", worth: "seat" })).toBe("");
 	});
 });

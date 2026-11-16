@@ -3501,6 +3501,11 @@ a.button:focus:not(:focus-visible) {
 	content: " · ";
 }
 
+/* A tool pushed to the row's far right, where a Domain Posts row keeps its ×, such as the Successor's ×. */
+.bastionland-steed__end {
+	margin-inline-start: auto;
+}
+
 .bastionland-steed__img {
 	flex: none;
 	width: 2.5rem;

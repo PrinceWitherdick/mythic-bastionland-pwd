@@ -85,7 +85,7 @@ The Council has five seats: **Steward**, **Marshal**, **Sheriff**, **Envoy** and
 - **The Circle** holds Knights, not Retainers. Its Knights' names are links to their sheets. **Click the person-plus icon** to tick which of the world's Knights (other than the ruler) sit in it, then **Seat Them**. Slain Knights and Squires aren't offered; a Circle Knight who has since been Slain shows "(Slain)" and leaves when you next seat the Circle.
 - Any of the four great seats left empty gets a warning under the Council heading, and each Season card lists Domains with empty seats.
 
-**To seat a Knight**, use **Take a Seat** in the Posts block on the Knight's own sheet. It makes them a Retainer of this Court if they aren't one, then gives them the seat; whoever held it before stays in the Court. The Posts block lists every post a Knight holds, in every Domain, and its × gives one up. See [The Knight Sheet](The-Knight-Sheet#posts).
+**To seat a Knight**, use **Take a Seat** in the Domain Posts block on the Knight's own sheet. It makes them a Retainer of this Court if they aren't one, then gives them the seat; whoever held it before stays in the Court. The Domain Posts block lists every post a Knight holds, in every Domain, and its × gives one up. See [The Knight Sheet](The-Knight-Sheet#domain-posts).
 
 ### Council tasks
 

@@ -479,6 +479,32 @@ export function domainPosts(domain, knights, only = null) {
 export const knightPosts = (domain, knight, knights) => domainPosts(domain, knights, knight).map(({ knight: _held, ...post }) => post);
 
 /**
+ * How high a post stands (p20), 0 the highest, so an ascending sort puts the
+ * highest first: the ruler of a Seat of Power, then of a Holding, then the Council in
+ * the book's order, the Circle last of it, then the Court by its roles' order.
+ * A Court member's role is always one of COURT_ROLES (normalizeCourtMember).
+ * @param {{post: string, worth?: string, role?: string}} post A DomainPost or KnightPost.
+ * @returns {number}
+ */
+export function postStanding({ post, worth, role }) {
+	if (post === "ruler") return worth === "seat" ? 0 : 1;
+	const seat = COUNCIL_SEATS.indexOf(post);
+	if (seat >= 0) return 2 + seat;
+	return 2 + COUNCIL_SEATS.length + COURT_ROLES.indexOf(role);
+}
+
+/**
+ * Every post a Knight holds, across every Domain, one entry each, highest
+ * first; equal posts keep the order they came in.
+ * @template D
+ * @param {{domain: D, posts: KnightPost[]}[]} held Each Domain and the Knight's posts in it.
+ * @returns {{domain: D, post: KnightPost}[]}
+ */
+export const postsByStanding = (held) => held
+	.flatMap(({ domain, posts }) => posts.map((post) => ({ domain, post })))
+	.sort((a, b) => postStanding(a.post) - postStanding(b.post));
+
+/**
  * What gives a Knight one seat on a Domain's Council. A seat granted to a
  * Retainer goes to the Knight's place in the Court, which becomes a Retainer's
  * if it wasn't, or to a new one made for them. They hold one seat at a time,

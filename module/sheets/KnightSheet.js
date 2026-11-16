@@ -1,8 +1,8 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
-import { leaveCouncilSeat, postsOfKnight, removeCourtMember, seatDomains, seatLabel, takeCouncilSeat } from "../actions/court.js";
+import { leaveCouncilSeat, postHint, postsOfKnight, removeCourtMember, seatDomains, seatLabel, takeCouncilSeat } from "../actions/court.js";
 import { knightDomain, linkKnightDomain, openKnightDomain, worldDomains } from "../actions/dominion.js";
 import { allowsDuplicateKnights, knightRows, worldKnights } from "../actions/knights.js";
-import { knightPosts } from "../rules/court.js";
+import { knightPosts, postsByStanding } from "../rules/court.js";
 import { fillKnightFromBook, knightTableRenewal, withTableSentences } from "../actions/knight-tables.js";
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
@@ -297,7 +297,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		const knights = worldKnights();
 		const held = postsOfKnight(this.actor, domains, knights);
 		this.#postDomains = new Set(held.map(({ domain }) => domain.id));
-		const rows = held.flatMap(({ domain, posts }) => posts.map((post) => ({
+		// Highest post first across every Domain; equal posts keep the order they came in.
+		const rows = postsByStanding(held).map(({ domain, post }) => ({
 			domainId: domain.id,
 			domain: domain.name,
 			opens: domain.visible,
@@ -305,6 +306,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			// The seat or the Circle the row is of, which its × leaves alone.
 			seat: post.post === "ruler" || post.post === "court" ? "" : post.post,
 			post: this.#postLabel(post),
+			postHint: postHint(post),
 			unproven: post.rank && !post.proven
 				? t("domain.unworthy.line", { name: this.actor.name, post: t(`domain.unworthy.posts.${post.worth}`), rank: t(`rank.${post.rank}`) })
 				: "",
@@ -312,7 +314,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			leave: !domain.isOwner || post.post === "ruler" ? null
 				: post.post === "court" ? { action: "leaveCourt", label: t("posts.leaveCourt") }
 					: { action: "leaveSeat", label: t("posts.leave") }
-		})));
+		}));
 		return { rows, canTake: this.isEditable && canHoldPost(this.actor) && seatDomains(this.actor, domains, knights).length > 0 };
 	}
 

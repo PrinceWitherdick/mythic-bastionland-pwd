@@ -454,6 +454,29 @@ describe("centring the letters", () => {
 		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
 	});
 
+	/*
+	 * Take a Seat stands its Domains' radio lists up to three abreast in a grid, each
+	 * row the shared tick row: probe-radio-rows.mjs on fixture/council-seat (four
+	 * Domains, three columns) measured every radio ≤0.8px off its capitals' middle
+	 * at 1×, 1.25× and 1.5× (2026-11-15). The Successor's × moved to the row's far
+	 * right and shows on hover, the shared icon button still: probe-mark-row.mjs on
+	 * fixture/knight-successor puts its box's middle 0.01px from the name's, the
+	 * ink within the row limit (≤1.5px, as it measured before the move), and a
+	 * planted 3px nudge was caught. The grid and the × may only lay out across.
+	 */
+	it("leaves Take a Seat's grid of radio rows and the Successor's × centred by the shared rules", () => {
+		const seat = readFileSync(join(root, "templates/dialogs/council-seat.hbs"), "utf8");
+		expect(seat).toContain('<div class="bastionland-council-seat__domains" style="--seat-columns: {{columns}}">');
+		expect(seat).toContain('<label class="bastionland-check">');
+		const sheet = readFileSync(join(root, "templates/actor/knight-sheet.hbs"), "utf8");
+		expect(sheet).toMatch(/<button type="button" class="bastionland-icon bastionland-reveal bastionland-steed__end" data-action="clearSuccessor"/);
+		expect(rule("mythic-bastionland.css", ".bastionland-steed")["align-items"]).toBe("center");
+		expect(rule("mythic-bastionland.css", ".bastionland-steed__end")).toEqual({ "margin-inline-start": "auto" });
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => selector.includes("bastionland-council-seat__domains") || endsWith(selector, "bastionland-steed__end")));
+		const moved = own.filter(({ body }) => /(^|;|\s)(line-height|padding|padding-(top|bottom|block)|vertical-align|margin-block-start|align-items|align-self|top|translate|transform):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

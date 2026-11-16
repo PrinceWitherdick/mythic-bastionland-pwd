@@ -391,7 +391,7 @@
       "legacyLost": "Legacy: {name} is still a Squire, so the {amount} Glory is lost."
     },
     "posts": {
-      "label": "Posts",
+      "label": "Domain Posts",
       "hint": "What this Knight holds in any Domain: its rule, a seat on its Council, or a place in its Court.",
       "empty": "Holds no post in any Domain.",
       "circle": "In the Circle",

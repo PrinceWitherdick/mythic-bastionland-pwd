@@ -76,4 +76,17 @@ describe("the Knight's page", () => {
 	it("no longer branches on a Squire, who has a page of their own", () => {
 		expect(knight).not.toContain("isSquire");
 	});
+
+	// The user's call: the Successor's × shows only on hover or focus, by the shared reveal rule.
+	it("hides the Successor's × till its row is hovered or focused", () => {
+		expect(knight).toMatch(/<div class="bastionland-steed bastionland-reveal-host">\s*<img class="bastionland-steed__img" src="\{\{successor\.img\}\}"/);
+		expect(knight).toMatch(/<button type="button" class="bastionland-icon bastionland-reveal bastionland-steed__end" data-action="clearSuccessor"/);
+	});
+
+	// And at the row's far right, where a Domain Posts row keeps its ×.
+	it("puts the Successor's × at the far right, as the Domain Posts rows do", () => {
+		const css = readFileSync(join(root, "styles/mythic-bastionland.css"), "utf8");
+		expect(css).toMatch(/\.bastionland-steed__end \{\s*margin-inline-start: auto;\s*\}/);
+		expect(css).toMatch(/\.bastionland-item__controls \{[^}]*margin-left: auto;/);
+	});
 });

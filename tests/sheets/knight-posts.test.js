@@ -35,6 +35,22 @@ describe("the Posts block on the Knight's page", () => {
 		expect(block({ posts: { rows: [row({ opens: false })] } })).not.toContain("openPostDomain");
 	});
 
+	// The user's call: hovering a post says what it is, in the book's words once the PDF is imported.
+	it("says what the post is on hover, and nothing where there's no line for it", () => {
+		expect(block({ posts: { rows: [row({ postHint: "Rules in your absence" })] } })).toContain('<strong data-tooltip="Rules in your absence">Steward</strong>');
+		expect(block({ posts: { rows: [row({ postHint: "" })] } })).toContain("<strong>Steward</strong>");
+	});
+
+	// postHint's own lines and postsByStanding's order are tested in tests/actions and tests/rules court.test.js.
+	it("takes each post's line from the Domain sheet's own keys, every one of them read from the book", () => {
+		const code = read("module/sheets/KnightSheet.js");
+		expect(code).toMatch(/import \{[^}]*\bpostHint\b[^}]*\} from "\.\.\/actions\/court\.js"/);
+		expect(code).toMatch(/import \{[^}]*\bpostsByStanding\b[^}]*\} from "\.\.\/rules\/court\.js"/);
+		const prints = read("module/rules/book-prints.js");
+		for (const key of ["steward", "marshal", "sheriff", "envoy", "circle"]) expect(prints).toContain(`"domain.council.${key}.hint"`);
+		for (const role of ["retainer", "courtier", "petitioner", "seer"]) expect(prints).toContain(`"domain.court.roles.${role}.hint"`);
+	});
+
 	it("marks a post the Knight's Rank isn't worthy of yet, and lets whoever holds the Domain give it up", () => {
 		const html = block({ posts: { rows: [row({ unproven: "Holds it too soon", leave: { action: "leaveSeat", label: "Leave the Seat" } })] } });
 		expect(html).toContain('data-tooltip="Holds it too soon"');

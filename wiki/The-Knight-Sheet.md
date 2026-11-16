@@ -12,7 +12,7 @@ The pages are an icon rail hanging off the window's right edge (it moves to the 
 
 | Page | What it is for |
 | --- | --- |
-| **Knight** | Virtues, Guard, Glory, Conditions, Recovery, Age, Rank, Successor, Posts, Ability, Passion, Feats, Gambits, Scars and the Oath. The sheet opens here. |
+| **Knight** | Virtues, Guard, Glory, Conditions, Recovery, Age, Rank, Domain Posts, Successor, Ability, Passion, Feats, Gambits, Scars and the Oath. The sheet opens here. |
 | **Property, Steed and Squire** | Your steed, your Squire, your followers and everything you carry. Its icon shows what carries your things: a horse while you ride a steed, your Squire while one serves you, a backpack otherwise. See [Property, Steeds and Squires](Property-Steeds-and-Squires). |
 | **Seer** | Who knighted you, their picture and description, and your notes on them. See [The Seer](The-Seer). |
 | **Travels** | Where the Company has been on the Realm map. See [Travels and Places](Travels-and-Places). |
@@ -66,21 +66,12 @@ The window's title bar carries a few buttons left of Foundry's own:
 - **Click an Age** (Young, Mature, Old) to change it. Growing older opens **Growing Older**, which offers **Roll Virtues** (each Virtue rolled again on d12+d6, the higher kept on turning Mature, the lower on turning Old) or **Just change Age**.
 - **Rank** shows the five ranks with the Glory each needs, your own lit. Under it, your rank's "Worthy of..." line and how much more Glory reaches the next. Hover a rank to read what it is worthy of.
 
-### Successor
+### Domain Posts
 
-The Knight or Squire named to follow this Knight.
-
-- **Click Name a Successor** to pick from every other Knight and Squire in the world. Your own Squire is picked to start with.
-- **Drag another Knight** from the Actors tab onto the sheet to name them. (A Squire dropped on a Knight is taken as their Squire instead; see [Property, Steeds and Squires](Property-Steeds-and-Squires#squires).)
-- **Click the successor's name** to open their sheet, or the × to unname them.
-
-See [Scars, Death and Successors](Scars-Death-and-Successors#successors).
-
-### Posts
-
-**Posts** lists what the Knight holds in any Domain, one line each: the Domain's name, then the post. That is **Ruler**, a Council seat (Steward, Marshal, Sheriff or Envoy), **In the Circle**, or a place in its Court (Courtier, say, or a Retainer and the seat they serve). With none, it says so. Squires have no Posts block.
+**Domain Posts** lists what the Knight holds in any Domain, one line each: the Domain's name, then the post. That is **Ruler**, a Council seat (Steward, Marshal, Sheriff or Envoy), **In the Circle**, or a place in its Court (Courtier, say, or a Retainer and the seat they serve). The highest post comes first: whoever rules a Seat of Power, next whoever rules a Holding, then Steward, Marshal, Sheriff, Envoy and the Circle, then the Court. Posts of the same rank keep their usual order. With none, it says so. Squires have no Domain Posts block.
 
 - **Click the Domain's name** to open its sheet.
+- **Hover a post** (Steward, In the Circle, Retainer and the rest) to read what it is, in the rulebook's words once it's imported. Ruler has no such line.
 - **Unproven** follows a post the Knight's Rank isn't worthy of yet. Hover it for why. It goes once their Rank rises, or once the Referee ticks **Worthiness proven** on the Domain's sheet.
 - **The ×**, shown to whoever holds that Domain, gives up that one post after a confirmation. Leaving a seat keeps the Knight's place in the Court; the × on a Court place leaves the Court. Ruling passes on by Succession, not from here.
 
@@ -94,6 +85,17 @@ See [Scars, Death and Successors](Scars-Death-and-Successors#successors).
 - With no Domain to offer, the button doesn't show.
 
 See [Domains and Courts](Domains-and-Courts#the-council).
+
+### Successor
+
+The Knight or Squire named to follow this Knight.
+
+- **Click Name a Successor** to pick from every other Knight and Squire in the world. Your own Squire is picked to start with.
+- **Drag another Knight** from the Actors tab onto the sheet to name them. (A Squire dropped on a Knight is taken as their Squire instead; see [Property, Steeds and Squires](Property-Steeds-and-Squires#squires).)
+- **Click the successor's name** to open their sheet.
+- **Hover the successor's row** for the × at its far right, and click it to unname them.
+
+See [Scars, Death and Successors](Scars-Death-and-Successors#successors).
 
 ### Ability, Passion, Feats and Gambits
 

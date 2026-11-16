@@ -19,6 +19,8 @@ import {
 	newCourtMember,
 	normalizeCourt,
 	normalizeCourtMember,
+	postStanding,
+	postsByStanding,
 	retainerChoices,
 	seatHolder,
 	seatOf,
@@ -552,5 +554,52 @@ describe("a Knight's own posts", () => {
 		it("has nothing to leave where they hold no seat", () => {
 			expect(leavePlan(domain({ court: { c1: member("courtier", "Eve") } }).system, eve, knights).seats).toEqual([]);
 		});
+	});
+});
+
+describe("postStanding", () => {
+	const post = (name, more = {}) => ({ post: name, worth: "", role: "", ...more });
+
+	it("ranks the ruler of a Seat of Power, then of a Holding, then the Council in the book's order, then the Court by role", () => {
+		const ranked = [
+			post("ruler", { worth: "seat" }),
+			post("ruler", { worth: "holding" }),
+			...COUNCIL_SEATS.map((seat) => post(seat)),
+			...COURT_ROLES.map((role) => post("court", { role }))
+		];
+		const standings = ranked.map(postStanding);
+		expect(standings).toEqual([...standings].sort((a, b) => a - b));
+		expect(new Set(standings).size).toBe(standings.length);
+	});
+
+	it("gives 0 to the highest post", () => {
+		expect(postStanding(post("ruler", { worth: "seat" }))).toBe(0);
+		expect(postStanding(post("court", { role: COURT_ROLES.at(-1) }))).toBeGreaterThan(postStanding(post("circle")));
+	});
+});
+
+describe("postsByStanding", () => {
+	const post = (name, more = {}) => ({ post: name, worth: "", role: "", ...more });
+	const order = (held) => postsByStanding(held).map(({ domain, post: { member } }) => `${domain.id}:${member}`);
+
+	it("lists every Domain's posts as one list, highest first across them all", () => {
+		const held = [
+			{ domain: { id: "d1" }, posts: [post("court", { role: "retainer", member: "r" }), post("envoy", { member: "e" })] },
+			{ domain: { id: "d2" }, posts: [post("ruler", { worth: "holding", member: "h" }), post("steward", { member: "s" })] },
+			{ domain: { id: "d3" }, posts: [post("ruler", { worth: "seat", member: "p" })] }
+		];
+		expect(order(held)).toEqual(["d3:p", "d2:h", "d2:s", "d1:e", "d1:r"]);
+	});
+
+	it("keeps equal posts in the order the Domains and their posts came", () => {
+		const held = [
+			{ domain: { id: "d1" }, posts: [post("court", { role: "retainer", member: "a" }), post("steward", { member: "b" })] },
+			{ domain: { id: "d2" }, posts: [post("court", { role: "retainer", member: "c" }), post("steward", { member: "d" })] }
+		];
+		expect(order(held)).toEqual(["d1:b", "d2:d", "d1:a", "d2:c"]);
+	});
+
+	it("lists nothing for a Knight with no posts", () => {
+		expect(postsByStanding([])).toEqual([]);
 	});
 });

@@ -90,6 +90,19 @@ export function postsOfKnight(knight, domains = worldDomains(), knights = worldK
 }
 
 /**
+ * What a post is, as the book says it (p20) where the Referee's PDF is
+ * imported: a Council seat, the Circle, or a role in the Court. Ruling has no
+ * line of its own, and nothing shows before the import.
+ * @param {import("../rules/court.js").KnightPost} post
+ * @returns {string}
+ */
+export function postHint(post) {
+	if (post.post === "ruler") return "";
+	if (post.post === "court") return post.role ? t(`domain.court.roles.${post.role}.hint`) : "";
+	return t(`domain.council.${post.post}.hint`);
+}
+
+/**
  * Who holds a seat now, as the window offering it says: nobody, this Knight,
  * or whoever does.
  * @param {Actor} domain
