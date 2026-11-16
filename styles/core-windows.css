@@ -241,3 +241,93 @@
 	border-top-color: var(--bastionland-rule);
 	color: var(--bastionland-ink);
 }
+
+/* ---------------------------------------------------------------- */
+/* Roll Resolution, where dice rolled by hand are typed in          */
+/* ---------------------------------------------------------------- */
+
+/* A `bastionland-page`, so it takes the sheets' paper, ink and controls, laid out as a dialog is. */
+.mythic-bastionland-roll-resolver > .window-content.bastionland-page {
+	gap: 0;
+	padding: 0.9rem 1rem 0.8rem;
+	--flash-color: color-mix(in srgb, var(--bastionland-rubric) 22%, transparent);
+}
+
+.mythic-bastionland-roll-resolver section[data-application-part] {
+	gap: 0.7rem;
+}
+
+/* The whole roll, in the page's own hand; dice are written "d8", so not in the capitals. */
+.mythic-bastionland-roll-resolver .formula {
+	margin: 0;
+	padding: 0;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 1.25rem;
+	text-align: center;
+}
+
+/* A box for each term, ruled as a dialog's are. */
+.mythic-bastionland-roll-resolver fieldset {
+	margin: 0;
+	padding: 0.45rem 0.7rem 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(var(--bastionland-sheen-rgb) / calc(0.25 * var(--bastionland-sheen)));
+}
+
+.mythic-bastionland-roll-resolver legend {
+	padding: 0 0.3rem;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 1rem;
+	font-weight: normal;
+}
+
+/* How the die is rolled, such as by hand, a glyph after the term in soft ink. */
+.mythic-bastionland-roll-resolver legend > span {
+	margin-inline-start: 0.2rem;
+	color: var(--bastionland-ink-soft);
+}
+
+/* The box a die is typed in, with its die drawn at the end. Foundry colours it from the label. */
+.mythic-bastionland-roll-resolver label.die-input {
+	--input-background-color: var(--bastionland-paper);
+	--input-border-color: var(--bastionland-rule);
+	--input-text-color: var(--bastionland-ink);
+	--input-placeholder-color: var(--bastionland-ink-faint);
+	--input-focus-outline-color: var(--bastionland-verdigris);
+	color: var(--bastionland-ink-soft);
+}
+
+/* A die already in, which can't be typed over. */
+.mythic-bastionland-roll-resolver label.die-input:has(> input:disabled) {
+	--input-background-color: var(--bastionland-paper-deep);
+	--input-border-color: transparent;
+	--input-text-color: var(--bastionland-ink-soft);
+}
+
+.mythic-bastionland-roll-resolver label.die-input > input {
+	font-family: var(--bastionland-font-body);
+	font-size: 1rem;
+	font-variant-numeric: lining-nums;
+}
+
+/* Submit at the foot, ruled off, in the small capitals as a dialog's buttons are. */
+.mythic-bastionland-roll-resolver .form-footer {
+	margin: 0;
+	padding-top: 0.6rem;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.mythic-bastionland-roll-resolver .form-footer button {
+	--button-size: 2.1rem;
+	height: auto;
+	min-height: var(--button-size);
+	padding-block: 0.25rem;
+	line-height: 1.15;
+	border-radius: 3px;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.03em;
+}
