@@ -55,6 +55,7 @@ describe("the window to take a seat", () => {
 	it("is one radio list across every Domain, a fieldset each, and one choice made", () => {
 		const html = page({
 			intro: "Which seat?",
+			columns: 2,
 			domains: [
 				{ name: "Bramblewatch", seats: [seat("d1:steward", { checked: true, detail: "Held by Coll" }), seat("d1:circle")] },
 				{ name: "Hollin", seats: [seat("d2:steward")] }
@@ -65,5 +66,10 @@ describe("the window to take a seat", () => {
 		expect(html.match(/checked/g)).toHaveLength(1);
 		expect(html).toContain("<legend>Hollin</legend>");
 		expect(html).toContain("Held by Coll");
+		// The fieldsets stand in a grid, as many columns as it's told.
+		expect(html).toContain('<div class="bastionland-council-seat__domains" style="--seat-columns: 2">');
+		// The window's width counts the same gap the grid has (seatWindow).
+		expect(read("styles/chat.css")).toMatch(/\.bastionland-council-seat__domains \{[^}]*gap: 0\.6rem;/);
+		expect(read("module/actions/court.js")).toContain("const SEAT_GAP_REM = 0.6;");
 	});
 });

@@ -1,7 +1,8 @@
 <div class="bastionland-dialog__body bastionland-council-seat">
 	{{!-- Which seat a Knight takes on a Domain's Council: one radio list across every Domain they may sit in,
-	      a fieldset each, saying who holds each seat now, and one button. --}}
+	      a fieldset each, up to three abreast, saying who holds each seat now, and one button. --}}
 	<p>{{intro}}</p>
+	<div class="bastionland-council-seat__domains" style="--seat-columns: {{columns}}">
 	{{#each domains}}
 	<fieldset class="bastionland-choice-list bastionland-choice-list--full">
 		<legend>{{name}}</legend>
@@ -16,4 +17,5 @@
 		{{/each}}
 	</fieldset>
 	{{/each}}
+	</div>
 </div>

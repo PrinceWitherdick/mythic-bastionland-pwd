@@ -56,6 +56,7 @@ const {
 	seatCircle,
 	seatCouncilRetainers,
 	seatDomains,
+	seatWindow,
 	setWorthinessProven,
 	sitsAtCourt,
 	takeCouncilSeat,
@@ -422,6 +423,40 @@ describe("a Council seat from the Knight's own sheet", () => {
 		expect(seats.map((seat) => seat.value)).toEqual(["d1:steward", "d1:marshal", "d1:sheriff", "d1:envoy", "d1:circle"]);
 		expect(seats[0]).toMatchObject({ detail: 'posts.seatHeld {"name":"Coll"}', checked: true });
 		expect(seats[1]).toMatchObject({ detail: "posts.seatEmpty", checked: false });
+		// One Domain stands alone in a window of the usual width.
+		expect(context.columns).toBe(1);
+		expect(asked[0].position).toBeUndefined();
+	});
+
+	it("stands the Domains up to three abreast, the window widened to hold them", async () => {
+		const more = ["d2", "d3", "d4"].map((id) => ({ ...fakeDomain(), id, uuid: `Actor.${id}` }));
+		game.actors = actors(moss, bramblewatch, more[0]);
+		await takeCouncilSeat(moss);
+		expect(asked[0].context.columns).toBe(2);
+		game.actors = actors(moss, bramblewatch, ...more);
+		await takeCouncilSeat(moss);
+		expect(asked[1].context.domains).toHaveLength(4);
+		expect(asked[1].context.columns).toBe(3);
+		expect(asked[1].position.width).toBeGreaterThan(asked[0].position.width);
+	});
+
+	it("makes the window wide enough for its columns, their gaps and its own padding", () => {
+		// At 16px to the rem: 240px a column, 9.6px gaps, 32px of padding, 2px of border, 12px for a scrollbar.
+		expect(seatWindow(1)).toEqual({ columns: 1, width: 286 });
+		expect(seatWindow(2)).toEqual({ columns: 2, width: 536 });
+		expect(seatWindow(7)).toEqual({ columns: 3, width: 785 });
+	});
+
+	it("stands fewer Domains abreast on a screen too narrow for three", () => {
+		const was = globalThis.innerWidth;
+		try {
+			globalThis.innerWidth = 700;
+			expect(seatWindow(4)).toEqual({ columns: 2, width: 536 });
+			globalThis.innerWidth = 400;
+			expect(seatWindow(4).columns).toBe(1);
+		} finally {
+			globalThis.innerWidth = was;
+		}
 	});
 
 	it("starts on the seat the Knight holds already", async () => {

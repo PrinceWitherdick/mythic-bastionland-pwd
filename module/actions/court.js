@@ -109,6 +109,33 @@ function seatDetail(domain, seat, yours, knights) {
 	return holder ? t("posts.seatHeld", { name: holder.name }) : t("posts.seatEmpty");
 }
 
+/** Take a Seat's Domains stand this many abreast at most, each column this many pixels wide. */
+const SEAT_COLUMNS = 3;
+const SEAT_COLUMN_WIDTH = 240;
+/** The gap between its columns, in rem, as styles/chat.css sets it. */
+const SEAT_GAP_REM = 0.6;
+/** Pixels kept clear of the screen's edges, and kept for a scrollbar in the window. */
+const SEAT_SCREEN_MARGIN = 40;
+const SEAT_SCROLLBAR = 12;
+
+/**
+ * How many Domains Take a Seat stands abreast, and how wide its window is to
+ * hold them: their columns, the gaps between, the window's padding (1rem a
+ * side) and border, and room for a scrollbar. Fewer columns where the screen
+ * is too narrow for them.
+ * @param {number} count How many Domains it lists.
+ * @returns {{columns: number, width: number}}
+ */
+export function seatWindow(count) {
+	const rem = parseFloat(globalThis.getComputedStyle?.(document.documentElement).fontSize) || 16;
+	const frame = 2 * rem + 2 + SEAT_SCROLLBAR;
+	const gap = SEAT_GAP_REM * rem;
+	const room = (globalThis.innerWidth || Infinity) - SEAT_SCREEN_MARGIN;
+	const fits = Math.max(1, Math.floor((room - frame + gap) / (SEAT_COLUMN_WIDTH + gap)));
+	const columns = Math.max(1, Math.min(count, SEAT_COLUMNS, fits));
+	return { columns, width: Math.round(frame + columns * SEAT_COLUMN_WIDTH + (columns - 1) * gap) };
+}
+
 /**
  * Give a Knight a seat on a Domain's Council from their own sheet (p20). One
  * window lists every Domain they may sit in, each with its five seats and who
@@ -140,11 +167,14 @@ export async function takeCouncilSeat(knight) {
 	});
 	// Their seat starts chosen, or else the first on offer.
 	if (!groups.some((group) => group.seats.some((seat) => seat.checked))) groups[0].seats[0].checked = true;
+	// The Domains stand up to three abreast, the window widened to hold them.
+	const { columns, width } = seatWindow(groups.length);
 	const data = await inputDialog({
 		title: t("posts.takeTitle", { name: knight.name }),
 		icon: "fa-solid fa-chair",
 		template: "council-seat",
-		context: { intro: t("posts.takeIntro", { name: knight.name }), domains: groups },
+		context: { intro: t("posts.takeIntro", { name: knight.name }), domains: groups, columns },
+		...(columns > 1 ? { position: { width } } : {}),
 		ok: { label: t("posts.take"), icon: "fa-solid fa-chair" }
 	});
 	const [domainId, seat] = String(data?.seat ?? "").split(":");

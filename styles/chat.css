@@ -1579,6 +1579,19 @@
 	overflow: visible;
 }
 
+/* Take a Seat: the Domains stand up to three abreast, a row's fieldsets of one height.
+   A fieldset is as wide as its longest line unless told otherwise, so it may shrink to its column. */
+.bastionland-council-seat__domains {
+	display: grid;
+	grid-template-columns: repeat(var(--seat-columns, 1), minmax(0, 1fr));
+	gap: 0.6rem;
+}
+
+.bastionland-council-seat__domains > fieldset {
+	min-inline-size: 0;
+	margin: 0;
+}
+
 /* Granting a Holding: the Knights with Domains, the book's 72 and any others
    scroll as one list under the search, rather than each in a box of its own. */
 .bastionland-grant__search {
