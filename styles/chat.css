@@ -707,6 +707,17 @@
 	letter-spacing: 0.03em;
 }
 
+/* In a standard form Foundry makes a label's line as tall as the box beside it, which centres one line but
+   sets a label that wraps (Improvised weapon, in a fieldset) as two lines a box apart. A plain line, centred
+   on the row, puts a one-line label just where it was and keeps a wrapped one together. */
+.bastionland-dialog .standard-form .form-group > label,
+.bastionland-dialog .standard-form .form-group > span.label,
+.bastionland-dialog.standard-form .form-group > label,
+.bastionland-dialog.standard-form .form-group > span.label {
+	align-self: center;
+	line-height: 1.2;
+}
+
 .bastionland-dialog .form-footer {
 	flex: none;
 	gap: 0.5rem;
