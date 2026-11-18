@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { awaitsRevengeOn, isDoomed, isScarPending, scarForRoll, scarRaisesGuardLater } from "../../module/rules/scars.js";
+import { awaitsRevengeOn, doomedBy, isDoomed, isScarPending, scarForRoll, scarRaisesGuardLater } from "../../module/rules/scars.js";
 
 describe("Scars that settle later", () => {
 	it("wait on Gouge, Tear, Mutilation and Humiliation until settled", () => {
@@ -51,5 +51,18 @@ describe("isDoomed", () => {
 		expect(isDoomed([{ roll: 11, season: "" }], winter)).toBe(false);
 		expect(isDoomed([{ roll: 10, season: "2-winter" }], winter)).toBe(false);
 		expect(isDoomed([], winter)).toBe(false);
+	});
+});
+
+describe("doomedBy", () => {
+	const winter = { age: 2, season: "winter", day: 3, phase: "night" };
+
+	it("reads Doom from somebody's Scar items alone", () => {
+		const doom = { type: "scar", system: { roll: 11, season: "2-winter" } };
+		expect(doomedBy([{ type: "ability", system: {} }, doom], winter)).toBe(true);
+		// Something else that happens to look like a Doom Scar isn't one.
+		expect(doomedBy([{ type: "item", system: { roll: 11, season: "2-winter" } }], winter)).toBe(false);
+		expect(doomedBy([{ type: "scar", system: { roll: 11, season: "1-winter" } }], winter)).toBe(false);
+		expect(doomedBy([], winter)).toBe(false);
 	});
 });

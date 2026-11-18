@@ -131,6 +131,26 @@ export function gambitPayer(attack, gambit) {
 }
 
 /**
+ * Whether whoever paid for a Gambit can cut with it as an Ability lets them
+ * (p114): they have it, and a die of theirs on the card came from a blade.
+ * What they have and what a blade is are asked of the caller, so nothing
+ * here looks up a sheet.
+ * @param {import("./attack.js").AttackState} attack
+ * @param {import("./attack.js").Gambit} gambit
+ * @param {object} ask
+ * @param {(uuid: string) => boolean} ask.severs Whether this actor has an Ability that severs.
+ * @param {(label: string) => boolean} ask.bladed Whether a die so labelled came from a blade.
+ * @returns {{severs: boolean, bladed: boolean}} As severEffects takes them.
+ */
+export function cutsFor(attack, gambit, { severs, bladed }) {
+	const payer = gambitPayer(attack, gambit).uuid;
+	return {
+		severs: Boolean(payer && severs(payer)),
+		bladed: attack.dice.some((die) => dieMaker(attack, die) === payer && bladed(die.label))
+	};
+}
+
+/**
  * The marks one Attack card still holds over whoever it targeted. A Gambit the
  * foe Saved against, one taken back, and one already cleared leave nothing.
  * Each mark is its payer's, named for them and, for a Trap, timed by their turn.

@@ -41,7 +41,7 @@ import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
 import { MYTH_VERSE_VERSION } from "../rules/book-art.js";
 import { isSeerRecord } from "../rules/knight-refs.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, CITY_QUEST_WORTHINESS, cityQuestOver, worthyOfCityQuest } from "../rules/city-quest.js";
-import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
+import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenRows, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { rulingKnightOf } from "../rules/dominion.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythGloryFor, mythNoteFor, mythRoll } from "../rules/myth-notes.js";
@@ -494,33 +494,21 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 */
 	#mythContext(myth, data, forCast) {
 		const { name, page, entry } = mythLookup(this.#index, myth);
-		const { current, next } = omenStage(myth.omen);
+		const { current } = omenStage(myth.omen);
 		const text = (number) => entry?.omens?.[number - 1] ?? null;
 		const kept = mythNoteFor(data.notes, myth);
 		const fold = `myth:${myth.number}`;
 		// Played alone, only the Omens met are read, and a Myth's hex only once the Company has found it.
 		const solo = secretsKeptOn(data.scene);
 		const linked = omenSceneIds(data.scene, myth, { entry, notes: data.notes });
-		const omens = Array.from({ length: OMEN_COUNT }, (_, index) => {
-			const number = index + 1;
-			const label = number === current ? t("gmToolkit.myths.current") : number === next ? t("gmToolkit.myths.next") : null;
-			const written = text(number) ?? t("myths.omenNumber", { number });
-			const cut = number !== current && number !== next;
-			const mark = number === current ? t("gmToolkit.myths.unmarkOmen") : t("gmToolkit.myths.markOmen", { number });
-			return {
-				number,
-				parts: omenParts(written),
-				met: number <= myth.omen,
-				past: number < myth.omen,
-				current: number === current,
-				next: number === next,
-				label,
-				cut,
-				mark,
-				// The Scenes linked to it, to be activated when it comes.
-				scenes: omenSceneChips(linked[index])
-			};
-		});
+		const omens = omenRows(myth.omen).map((row, index) => ({
+			...row,
+			parts: omenParts(text(row.number) ?? t("myths.omenNumber", { number: row.number })),
+			label: row.current ? t("gmToolkit.myths.current") : row.next ? t("gmToolkit.myths.next") : null,
+			mark: row.current ? t("gmToolkit.myths.unmarkOmen") : t("gmToolkit.myths.markOmen", { number: row.number }),
+			// The Scenes linked to it, to be activated when it comes.
+			scenes: omenSceneChips(linked[index])
+		}));
 		return {
 			number: myth.number,
 			name,

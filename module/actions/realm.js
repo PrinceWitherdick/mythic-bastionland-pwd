@@ -26,8 +26,10 @@ import {
 	realmFlag,
 	realmFlagChanges,
 	realmFromDocuments,
+	realmGridChanges,
 	realmSceneData,
 	realmTextures,
+	relaidTileMoves,
 	tilesSettled
 } from "../rules/realm-documents.js";
 import { defaultRealmLook, lookForNewRealms, normaliseRealmLook, refadedIcons } from "../rules/realm-skins.js";
@@ -36,7 +38,7 @@ import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wire
 import { generateRealm, keepMythPicks } from "../rules/realm-generator.js";
 import { mythRollKey } from "../rules/realm-myths.js";
 import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
-import { barrierEdges, BOOK_LAYOUT, hexAt, hexCentre, realmGeometry, sameHex } from "../rules/realm-geometry.js";
+import { barrierEdges, BOOK_LAYOUT, realmGeometry, sameHex } from "../rules/realm-geometry.js";
 import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
@@ -280,6 +282,15 @@ async function settleRealmTiles(scene) {
 	await scene.update({ [`flags.${SYSTEM_ID}.${TILE_CORNERS_FLAG}`]: true });
 }
 
+/**
+ * @param {{set?: object, drop?: string[]}} changes Fields of a Scene's Realm flag to write, and fields to remove.
+ * @returns {[string, unknown][]} Entries of a Scene update making them: each field set, then each removed.
+ */
+function realmFlagEntries({ set = {}, drop = [] }) {
+	const path = (key) => `flags.${SYSTEM_ID}.${REALM_FLAG}.${key}`;
+	return [...Object.entries(set).map(([key, value]) => [path(key), value]), ...drop.map((key) => deletionEntry(path(key)))];
+}
+
 /** Realm writes, taken one at a time. */
 const queueRealmWrite = serialWrites();
 
@@ -304,13 +315,7 @@ async function writeRealm(scene, realm, g, textures, { replacing = false, refade
 	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), { replacing, refade });
 	const flag = realmFlagChanges(realmFlag(scene), realm, g);
 	if (!planChanges(plan) && !flag) return false;
-	if (flag) {
-		const path = (key) => `flags.${SYSTEM_ID}.${REALM_FLAG}.${key}`;
-		await scene.update(Object.fromEntries([
-			...Object.entries(flag.set).map(([key, value]) => [path(key), value]),
-			...flag.drop.map((key) => deletionEntry(path(key)))
-		]));
-	}
+	if (flag) await scene.update(Object.fromEntries(realmFlagEntries(flag)));
 	for (const step of ["delete", "update", "create"]) {
 		await Promise.all(Object.entries(plan)
 			.filter(([, writes]) => writes[step].length)
@@ -1141,23 +1146,13 @@ export async function setRealmLayout(scene, layout) {
 
 		// The layout goes into the Scene's flag with its grid and size in one write,
 		// so a Realm read from here on is read the new way, even by a sync the redraw sets off.
-		const flag = `flags.${SYSTEM_ID}.${REALM_FLAG}.layout`;
 		await scene.update(Object.fromEntries([
-			["grid.type", to.gridType],
-			["width", to.width],
-			["height", to.height],
-			to.layout === BOOK_LAYOUT ? deletionEntry(flag) : [flag, to.layout]
+			...Object.entries(foundry.utils.flattenObject(realmGridChanges(to))),
+			...realmFlagEntries(to.layout === BOOK_LAYOUT ? { drop: ["layout"] } : { set: { layout: to.layout } })
 		]));
 		// Each of the Realm's Tiles moves with its hex, so the sync that follows finds each where the new layout looks for it.
 		const centre = tileCentreOn(scene);
-		const moves = scene.tiles.contents.flatMap((tile) => {
-			const kind = realmFlag(tile)?.kind;
-			const hex = kind && kind !== "map" ? hexAt(from, centre(tile)) : null;
-			if (!hex) return [];
-			const was = hexCentre(from, hex);
-			const now = hexCentre(to, hex);
-			return [{ _id: tile.id, x: Math.round(tile._source.x + now.x - was.x), y: Math.round(tile._source.y + now.y - was.y) }];
-		});
+		const moves = relaidTileMoves(scene.tiles.contents.map((tile) => ({ source: tile._source, centre: centre(tile) })), from, to);
 		if (moves.length) await scene.updateEmbeddedDocuments("Tile", moves);
 		await writeRealm(scene, next, to, currentRealmTextures(scene));
 		// Undo would lay pieces down where the old hexes were.

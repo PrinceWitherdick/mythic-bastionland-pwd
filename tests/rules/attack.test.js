@@ -26,6 +26,8 @@ import {
 	withdrawLocked,
 	hasDeniableDie,
 	heldAs,
+	impairment,
+	IMPAIRMENT_CAUSES,
 	isDieSpent,
 	isSettled,
 	isShieldItem,
@@ -591,6 +593,40 @@ describe("swarmImpairs", () => {
 
 	it("leaves a Warband's Attack alone, since it's no individual's", () => {
 		expect(swarmImpairs({ largeScale: true }, [{ swarm: true }])).toBe(false);
+	});
+});
+
+describe("impairment", () => {
+	it("isn't Impaired with no cause, and names none", () => {
+		expect(impairment()).toEqual({ impaired: false, cause: null });
+		expect(impairment({ confined: false, swarm: false, condition: false, weapon: null, unarmed: false })).toEqual({ impaired: false, cause: null });
+		expect(impairment({ weapon: "" })).toEqual({ impaired: false, cause: null });
+	});
+
+	it("is Impaired by any one cause, and names it", () => {
+		for (const cause of IMPAIRMENT_CAUSES) {
+			expect(impairment({ [cause]: cause === "weapon" ? "Spear" : true })).toEqual({ impaired: true, cause });
+		}
+	});
+
+	it("names a confined Long weapon before a swarm, a swarm before a condition, a condition before a held weapon, and that before being unarmed", () => {
+		const all = { confined: true, swarm: true, condition: true, weapon: "Spear", unarmed: true };
+		expect(impairment(all).cause).toBe("confined");
+		expect(impairment({ ...all, confined: false }).cause).toBe("swarm");
+		expect(impairment({ ...all, confined: false, swarm: false }).cause).toBe("condition");
+		expect(impairment({ ...all, confined: false, swarm: false, condition: false }).cause).toBe("weapon");
+		expect(impairment({ unarmed: true, condition: false, weapon: null }).cause).toBe("unarmed");
+	});
+
+	it("names a held weapon only where nothing before it Impairs the Attack (p186)", () => {
+		expect(impairment({ condition: true, weapon: "Spear" }).cause).toBe("condition");
+		expect(impairment({ confined: true, weapon: "Spear" }).cause).toBe("confined");
+		expect(impairment({ weapon: "Spear", unarmed: true }).cause).toBe("weapon");
+	});
+
+	it("reads causes by whether they hold, not by their type", () => {
+		expect(impairment({ condition: 1 })).toEqual({ impaired: true, cause: "condition" });
+		expect(impairment({ confined: undefined, swarm: 0 })).toEqual({ impaired: false, cause: null });
 	});
 });
 

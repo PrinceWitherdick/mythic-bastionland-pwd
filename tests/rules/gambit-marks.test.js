@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	attackMarks,
 	comparePlaces,
+	cutsFor,
 	gambitPayer,
 	impairedItem,
 	impairsWhole,
@@ -227,5 +228,38 @@ describe("Impairing one weapon (p186)", () => {
 		expect(impairsWhole([{ key: "impair", weapon: null }])).toBe(true);
 		expect(impairsWhole([{ key: "trap", weapon: null }])).toBe(false);
 		expect(impairedItem([{ key: "impair", weapon: null }], [tail])).toBeNull();
+	});
+});
+
+describe("cutsFor", () => {
+	// Moss rolled the Attack with a sword and Tal joined it with a club.
+	const attack = {
+		attacker: "Actor.moss",
+		attackerName: "Moss",
+		dice: [{ result: 8, label: "Sword" }, { result: 5, label: "Club", actor: "Actor.tal" }],
+		joined: [{ actor: "Actor.tal", name: "Tal" }],
+		gambits: []
+	};
+	const bladed = (label) => label === "Sword";
+	const everyone = () => true;
+
+	it("cuts for a payer with the Ability and a bladed die of their own (p114)", () => {
+		expect(cutsFor(attack, gambit("repel", { die: 0 }), { severs: everyone, bladed })).toEqual({ severs: true, bladed: true });
+	});
+
+	it("asks after whoever paid, and reads only their own dice", () => {
+		const asked = [];
+		const severs = (uuid) => asked.push(uuid) && uuid === "Actor.tal";
+		expect(cutsFor(attack, gambit("repel", { die: 1 }), { severs, bladed })).toEqual({ severs: true, bladed: false });
+		expect(cutsFor(attack, gambit("repel", { die: null, payer: "Actor.moss" }), { severs, bladed })).toEqual({ severs: false, bladed: true });
+		expect(asked).toEqual(["Actor.tal", "Actor.moss"]);
+	});
+
+	it("asks nothing of a card with nobody to have paid", () => {
+		const nobody = { attacker: null, dice: [{ result: 6, label: "Sword" }], gambits: [] };
+		const severs = () => {
+			throw new Error("asked");
+		};
+		expect(cutsFor(nobody, gambit("repel"), { severs, bladed })).toEqual({ severs: false, bladed: true });
 	});
 });

@@ -1,3 +1,4 @@
+import { targeted } from "../chat/attack-flag.js";
 import { postCard, t } from "../chat/cards.js";
 import { FEATS } from "../config.js";
 import { canDeny } from "../rules/attack.js";
@@ -68,6 +69,38 @@ export async function payFeat(actor, save, key = null) {
 export function canDenyAttack(attack, actor) {
 	if (!actor?.system?.virtues || !actor.system.knowsFeat?.("deny")) return false;
 	return canDeny(attack, { uuid: actor.uuid, fatigued: actor.system.fatigued, down: Boolean(downBy(actor.system)) });
+}
+
+/**
+ * Whether somebody may Deny a blow in a duel: only the duellist it's aimed at,
+ * since a duel is fought between the two of them (p10). Any Attack else lets
+ * anybody the Feat allows.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+export function duelDenier(attack, actor) {
+	return !attack.duel || targeted(attack, actor);
+}
+
+/**
+ * Why somebody can't Deny a die on an Attack (p10), if they can't: the Feat
+ * and the Attack don't allow them (canDenyAttack), it's a duel they aren't
+ * the one struck in (duelDenier), or they stand out of reach of its targets.
+ * Each check runs in that order, and only those asked for.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {Actor} actor
+ * @param {object} [checks]
+ * @param {boolean} [checks.feat] Weigh the Feat too; left off where changeAttack weighs what the card can tell.
+ * @param {((actor: Actor) => boolean)|null} [checks.inReach] Whether they stand where they could Deny,
+ *   which the card's map reckons; left out, wherever they stand.
+ * @returns {"attack.cantDeny"|"attack.denyOutOfReach"|null} The refusal's path below `bastionland.`, or null if they may.
+ */
+export function denyStanding(attack, actor, { feat = true, inReach = null } = {}) {
+	if (feat && !canDenyAttack(attack, actor)) return "attack.cantDeny";
+	if (!duelDenier(attack, actor)) return "attack.cantDeny";
+	if (inReach && !inReach(actor)) return "attack.denyOutOfReach";
+	return null;
 }
 
 /**

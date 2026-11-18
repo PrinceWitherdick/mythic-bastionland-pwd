@@ -31,7 +31,7 @@ import { t } from "../chat/cards.js";
 import { hexTarget, ringHexesOnHover } from "../chat/hex-target.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { isOwnRecord, isSeerRecord, ownRef } from "../rules/knight-refs.js";
-import { omenStage } from "../rules/gm-toolkit.js";
+import { omenRows } from "../rules/gm-toolkit.js";
 import { toldState } from "../rules/hex-shared.js";
 import { MAX_SPARK_NAME, MAX_SPARK_PROMPT, sparkBatches } from "../rules/hex-lore.js";
 import { gatherCast } from "../rules/myth-cast.js";
@@ -239,8 +239,11 @@ function toldContext(note, told) {
 function mythContext(scene, myth, index) {
 	const { name, page, entry } = mythLookup(index, myth);
 	const solo = secretsKeptOn(scene);
-	const { current, next } = omenStage(myth.omen);
-	const omen = (number, label) => number && { label: t(`gmToolkit.myths.${label}`), text: entry?.omens?.[number - 1] ?? t("myths.omenNumber", { number }) };
+	// The one playing out and, unless played alone, the one to come.
+	const omens = omenRows(myth.omen).filter((row) => row.current || (row.next && !solo)).map(({ number, current }) => ({
+		label: current ? t("gmToolkit.myths.current") : t("gmToolkit.myths.next"),
+		text: entry?.omens?.[number - 1] ?? t("myths.omenNumber", { number })
+	}));
 	const { members, extras } = gatherCast(entry?.cast, castActors(), castKey(scene, myth));
 	return {
 		number: myth.number,
@@ -248,7 +251,7 @@ function mythContext(scene, myth, index) {
 		seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
 		none: myth.omen <= 0,
 		all: myth.omen >= OMEN_COUNT,
-		omens: [omen(current, "current"), solo ? null : omen(next, "next")].filter(Boolean),
+		omens,
 		// Each of the Cast by name, opening the first actor made of them; anyone dropped in by hand after them.
 		cast: [
 			...members.map((member) => ({ name: member.name, uuid: member.actors[0]?.uuid ?? null })),

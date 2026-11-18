@@ -3,7 +3,7 @@ import { chooseActor } from "../apps/actor-pick.js";
 import { postCard, t } from "../chat/cards.js";
 import { AGES } from "../config.js";
 import { changeGlory } from "../rules/glory.js";
-import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
+import { doomedBy, isScarPending, scarForRoll } from "../rules/scars.js";
 import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
 import { resolvedMyths } from "../rules/gm-toolkit.js";
 import { crisisRollsDue, dramaRollsDue } from "../rules/season-log.js";
@@ -308,7 +308,7 @@ export async function passTime(company, { newAge, before }) {
 		const update = { ...seasonRest(actor), ...(system.mortalWound ? { "system.mortalWound": false } : {}) };
 		const lines = [];
 		// Doom lasts the Season it was taken in.
-		if (isDoomed(actor.items.filter((item) => item.type === "scar").map((item) => item.system), before)) lines.push(t("time.doomLifts"));
+		if (doomedBy(actor.items, before)) lines.push(t("time.doomLifts"));
 
 		if (newAge && gainsAgeGlory(actor)) ranks.push([actor, takeAgeGlory(actor, update, lines)]);
 		if (newAge && system.age === "old") {

@@ -132,3 +132,11 @@ export function isDoomed(scars, calendar) {
 	const now = seasonKey(calendar);
 	return scars.some((scar) => scarForRoll(scar?.roll)?.key === "doom" && scar.season === now);
 }
+
+/**
+ * isDoomed, read from somebody's items: whether a Doom Scar among them was taken this Season.
+ * @param {{filter: Function}} items An actor's items, as an array or Collection of `{type, system}`.
+ * @param {import("./time.js").Calendar} calendar
+ * @returns {boolean}
+ */
+export const doomedBy = (items, calendar) => isDoomed(items.filter((item) => item.type === "scar").map((item) => item.system), calendar);

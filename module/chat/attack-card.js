@@ -8,12 +8,12 @@ import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
 import { duelOf } from "../actions/duel.js";
 import { mountedNow } from "../rules/duel.js";
 import { singleArmour, takeAttack } from "../actions/damage.js";
-import { canDenyAttack, featRefusal, payFeat, postFeat, rollFeat } from "../actions/feats.js";
+import { canDenyAttack, denyStanding, featRefusal, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
 import { chooseActor } from "../apps/actor-pick.js";
 import { confirmDialog, inputDialog, selectedActors } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
-import { greaterEffects, npcArmourWithout, severEffects, tokenDocBox, withinArmsReach } from "../rules/armour.js";
+import { greaterEffectUpdate, greaterEffects, severEffects, tokenDocBox, withinArmsReach } from "../rules/armour.js";
 import {
 	DISMOUNT_FACES,
 	SAVE_VIRTUES,
@@ -39,7 +39,7 @@ import {
 	unappliedTargets,
 	withdrawLocked
 } from "../rules/attack.js";
-import { gambitPayer, shownWeapons, weaponShown } from "../rules/gambit-marks.js";
+import { cutsFor, shownWeapons, weaponShown } from "../rules/gambit-marks.js";
 import { damageReach } from "../rules/property-tab.js";
 import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
@@ -73,7 +73,8 @@ const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 const CHANGE_GUARDS = Object.freeze({
 	deny: (change, attack, user) => {
 		const roller = ownedBy(change.actor, user);
-		return roller && duelDenier(attack, roller) ? { ...change, name: roller.name } : null;
+		// Only who may Deny in a duel is weighed here; changeAttack weighs the die and the Feat's one use.
+		return roller && !denyStanding(attack, roller, { feat: false }) ? { ...change, name: roller.name } : null;
 	},
 	// Damage is taken only on those the player owns, as their own client takes it, named as the GM sees them.
 	// A settled card's targets whose Tokens are gone are closed out by whoever presses Apply.
@@ -99,14 +100,14 @@ const CHANGE_GUARDS = Object.freeze({
 		return { ...change, by: roller.name };
 	},
 	// Clearing a mark, or carrying out a Greater effect, is the business of whoever owns the foe.
-	dismissMark: (change, attack, user) => (ownsMarkedFoe(change, attack, user) ? change : null),
+	// A mark is only ever laid on a foe the card was aimed at, so a card at nobody has none to clear.
+	dismissMark: (change, attack, user) => (attack.targets.length && ownsLandingFoe(attack, user, change.actor) ? change : null),
 	greater: (change, attack, user) => {
-		if (!change.other) return ownsMarkedFoe(change, attack, user) ? change : null;
+		if (!change.other) return ownsLandingFoe(attack, user, change.actor) ? change : null;
 		// Marking some other Greater effect changes nobody's sheet, so the attackers may do it too.
-		// A card rolled with no targets lands on whichever foe of theirs its reader targets, as targetActors has it.
 		const foe = attack.targets.length
 			? attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.testUserPermission(user, "OWNER"))
-			: Boolean(change.actor && ownedBy(change.actor, user));
+			: ownsLandingFoe(attack, user, change.actor);
 		if (!foe && !ownsAnAttacker(attack, user)) return null;
 		return { type: "greater", index: change.index, text: t("attack.greater.otherDone") };
 	},
@@ -235,18 +236,18 @@ function waitingTargets(attack) {
 }
 
 /**
- * Whether the user owns the foe a mark or Greater effect is on, and the card is aimed at them.
- * @param {{type: string, actor: string}} change
+ * Whether the user owns the foe a change names, and the card lands on them:
+ * one it was aimed at or, since a card rolled with no targets lands on whoever
+ * its reader targets (targetActors), whichever foe of theirs they name.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {User} user
+ * @param {string|undefined} actorUuid The foe the change names.
  * @returns {boolean}
  */
-function ownsMarkedFoe(change, attack, user) {
-	const marked = ownedBy(change.actor, user);
-	if (!marked) return false;
-	// A card rolled with no targets lands on whoever its reader targets, as targetActors has it.
-	if (change.type === "greater" && !attack.targets.length) return true;
-	return targeted(attack, marked);
+function ownsLandingFoe(attack, user, actorUuid) {
+	const foe = actorUuid ? ownedBy(actorUuid, user) : null;
+	if (!foe) return false;
+	return !attack.targets.length || targeted(attack, foe);
 }
 
 /**
@@ -591,7 +592,8 @@ async function onGambitSave(message, button) {
  * character, the GM Toolkit, never does.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {Actor[]} [foes] Its targets' actors, as targetActors has them.
- * @returns {{pool: Actor[], able: Actor[]}} `able` are those the Attack still allows to Deny.
+ * @returns {{pool: Actor[], able: Actor[], refusal: string|null}} `able` are those the Attack still
+ *   allows to Deny, where they stand (denyStanding); `refusal`, when nobody is, why, as a path below `bastionland.`
  */
 function denyOptions(attack, foes = targetActors(attack)) {
 	const pool = answerers([
@@ -599,22 +601,15 @@ function denyOptions(attack, foes = targetActors(attack)) {
 		...foes,
 		game.user.character
 	], attack, (actor) => Boolean(actor.system.knowsFeat?.("deny")));
-	const allowed = pool.filter((actor) => canDenyAttack(attack, actor) && duelDenier(attack, actor));
-	if (!allowed.length) return { pool, allowed, able: allowed };
-	const targets = attack.targets.map((target) => fromUuidSync(target.uuid)).filter(Boolean);
-	return { pool, allowed, able: allowed.filter((actor) => inDenyReach(targets, actor)) };
-}
-
-/**
- * Whether somebody may Deny a blow in a duel: only the duellist it's aimed at,
- * since a duel is fought between the two of them (p10). Any Attack else lets
- * anybody the Feat allows.
- * @param {import("../rules/attack.js").AttackState} attack
- * @param {Actor} actor
- * @returns {boolean}
- */
-function duelDenier(attack, actor) {
-	return !attack.duel || targeted(attack, actor);
+	// The targets' Tokens are read once, and only when somebody is let Deny wherever they stand.
+	let targets = null;
+	const inReach = (actor) => inDenyReach((targets ??= attack.targets.map((target) => fromUuidSync(target.uuid)).filter(Boolean)), actor);
+	const standings = pool.map((actor) => denyStanding(attack, actor, { inReach }));
+	const able = pool.filter((_actor, index) => !standings[index]);
+	if (able.length) return { pool, able, refusal: null };
+	if (!pool.length) return { pool, able, refusal: "attack.noDenier" };
+	// Of those who know the Feat, whoever came nearest says why: out of reach, before not let at all.
+	return { pool, able, refusal: standings.find((reason) => reason === "attack.denyOutOfReach") ?? standings[0] };
 }
 
 /**
@@ -649,30 +644,19 @@ function inDenyReach(targets, actor) {
  * @param {Actor[]} [foes] Its targets' actors, as targetActors has them.
  */
 function refreshDeny(button, attack, foes) {
-	const { pool, allowed, able } = denyOptions(attack, foes);
+	const { pool, able, refusal } = denyOptions(attack, foes);
 	// A player with nobody who knows the Feat isn't shown it; a Referee is, to be told to select whoever Denies.
 	button.hidden = !pool.length && !game.user.isGM;
 	button.disabled = !able.length;
 	if (able.length) delete button.dataset.tooltip;
-	else button.dataset.tooltip = t(denyRefusal(pool, allowed));
-}
-
-/**
- * Why nobody this user controls can Deny.
- * @param {Actor[]} pool Those who know the Feat.
- * @param {Actor[]} allowed Those the Attack still allows to Deny, wherever they stand.
- * @returns {string} Path below `bastionland.`
- */
-function denyRefusal(pool, allowed) {
-	if (!pool.length) return "attack.noDenier";
-	return allowed.length ? "attack.denyOutOfReach" : "attack.cantDeny";
+	else button.dataset.tooltip = t(refusal);
 }
 
 /** The target, or an ally close enough to touch, discards one die, paying with a SPI Save. */
 async function onDeny(message) {
 	const attack = attackOf(message);
-	const { pool, allowed, able: deniers } = denyOptions(attack);
-	if (!deniers.length) return warn(denyRefusal(pool, allowed));
+	const { able: deniers, refusal } = denyOptions(attack);
+	if (!deniers.length) return warn(refusal);
 
 	const dice = attack.dice
 		.map((die, index) => ({ index, label: dieChoice(die) }))
@@ -843,7 +827,7 @@ export async function dismissGambitMark(actor, messageId, index) {
  * @returns {({actor: Actor} & import("../rules/armour.js").GreaterEffect)[]}
  */
 function greaterOptions(attack, gambit) {
-	const cuts = cutsFor(attack, gambit);
+	const cuts = cutsFor(attack, gambit, { severs: paysWithSevering, bladed: isBladedName });
 	return targetActors(attack)
 		.filter((actor) => actor.isOwner)
 		.flatMap((actor) => {
@@ -857,53 +841,43 @@ function greaterOptions(attack, gambit) {
 }
 
 /**
- * Whether whoever paid for a Gambit can cut with it as an Ability lets them
- * (p114): they have it, and a die of theirs on the card came from a blade.
- * @param {import("../rules/attack.js").AttackState} attack
- * @param {object} gambit
- * @returns {{severs: boolean, bladed: boolean}}
+ * @param {string} uuid Whoever paid for a Gambit.
+ * @returns {boolean} Whether they have an Ability that lets a Greater effect sever (p114).
  */
-function cutsFor(attack, gambit) {
-	const payer = gambitPayer(attack, gambit).uuid;
-	const actor = payer ? fromUuidSync(payer) : null;
-	const severs = Boolean(actor?.items && abilitiesWith(actor.items.contents, "severs").length);
-	const bladed = attack.dice.some((die) => dieMaker(attack, die) === payer && isBladedName(die.label));
-	return { severs, bladed };
+function paysWithSevering(uuid) {
+	const actor = fromUuidSync(uuid);
+	return Boolean(actor?.items && abilitiesWith(actor.items.contents, "severs").length);
 }
 
 /** What each Greater effect reads as once done, under `attack.greater.` */
 const GREATER_DONE = Object.freeze({ disarm: "disarmed", unhelm: "unhelmed", break: "broke" });
 
 /**
- * Carry a Greater effect out on the foe's sheet. A disarmed weapon or shield
- * and a helm knocked off stay on a Knight's sheet unticked until they're back;
- * a broken one stays faded until it's mended. An NPC's helm or shield is a
- * point of its Armour and a word of its note, both taken away.
+ * Carry a Greater effect out on the foe's sheet, as greaterEffectUpdate says
+ * it's written, and say what it did for the card.
  * @param {{actor: Actor} & import("../rules/armour.js").GreaterEffect} option
  * @returns {{text: string, carryOut: () => Promise<unknown>}} What happens, for the card, and doing it.
  */
 function greaterOutcome({ actor, effect, name, id }) {
-	// A limb taken is the table's to describe; a head taken Slays, if they're still at 0 GD (p114).
 	if (effect === "limb") return { text: t("attack.greater.limbDone", { name: actor.name }), carryOut: async () => {} };
 	if (effect === "head") {
 		return {
 			text: t("attack.greater.headDone", { name: actor.name }),
 			carryOut: async () => {
-				if ((actor.system.guard?.value ?? 0) !== 0) return warn("attack.greater.headGuarded", { name: actor.name });
+				// Their GD as it stands when it's done, which may have changed since the card was marked.
+				if (!greaterEffectUpdate(effect, { guard: actor.system.guard?.value ?? null }).slay) return warn("attack.greater.headGuarded", { name: actor.name });
 				return slay(actor);
 			}
 		};
 	}
+	const write = greaterEffectUpdate(effect, { id, armour: actor.system.armour, armourNote: actor.system.armourNote });
 	const said = [t(`attack.greater.${GREATER_DONE[effect]}`, { name: actor.name, item: name })];
-	if (id) {
+	if (write.item) {
 		if (effect !== "break") said.push(t(effect === "disarm" ? "attack.greater.pickUp" : "attack.greater.putOn"));
-		const update = effect === "break" ? { "system.broken": true } : { "system.equipped": false };
-		return { text: said.join(" "), carryOut: () => actor.items.get(id)?.update(update, causedBy("gambit")) };
+		return { text: said.join(" "), carryOut: () => actor.items.get(write.item)?.update(write.update, causedBy("gambit")) };
 	}
-	const from = Number(actor.system.armour) || 0;
-	const { armour: to, armourNote } = npcArmourWithout(from, actor.system.armourNote, effect === "unhelm" ? "helm" : "shield");
-	said.push(t("attack.greater.armour", { from, to }), t("attack.greater.npcBack"));
-	return { text: said.join(" "), carryOut: () => actor.update({ "system.armour": to, "system.armourNote": armourNote }) };
+	said.push(t("attack.greater.armour", { from: write.from, to: write.to }), t("attack.greater.npcBack"));
+	return { text: said.join(" "), carryOut: () => actor.update(write.actor) };
 }
 
 /**

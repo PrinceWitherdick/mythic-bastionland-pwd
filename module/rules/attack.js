@@ -447,6 +447,35 @@ export function swarmImpairs({ blast = false, largeScale = false }, targets) {
 }
 
 /**
+ * What can Impair an Attack, first to last in the order its cause is named
+ * where more than one holds: a Long weapon in a confined space; a swarm struck
+ * without a Blast (p61); Impaired before the Attack, marked so or by a foe's
+ * Impair on their whole next Attack (p9, p186); a foe's Impair on the weapon
+ * it's made with (p186); and nothing to strike with (p10).
+ */
+export const IMPAIRMENT_CAUSES = Object.freeze(["confined", "swarm", "condition", "weapon", "unarmed"]);
+
+/**
+ * Whether an Attack is Impaired, so it rolls a single d4 and can't benefit
+ * from Feats (p8, p9), and the one cause the card names for it, the first of
+ * IMPAIRMENT_CAUSES that holds. A held weapon is named only where nothing
+ * before it in that order Impairs the Attack already. A cause left out is
+ * taken not to hold.
+ * @param {object} [why]
+ * @param {boolean} [why.confined]  A Long weapon used in a confined space.
+ * @param {boolean} [why.swarm]     Struck at a swarm without a Blast (p61).
+ * @param {boolean} [why.condition] Impaired before the Attack is made.
+ * @param {string|null} [why.weapon] The name of the weapon a foe's Impair holds, where it's wielded.
+ * @param {boolean} [why.unarmed]   Nothing strikes (p10).
+ * @returns {{impaired: boolean, cause: string|null}} `cause` is one of IMPAIRMENT_CAUSES, or null when not Impaired.
+ */
+export function impairment({ confined = false, swarm = false, condition = false, weapon = null, unarmed = false } = {}) {
+	const holds = { confined, swarm, condition, weapon, unarmed };
+	const cause = IMPAIRMENT_CAUSES.find((key) => Boolean(holds[key])) ?? null;
+	return { impaired: cause !== null, cause };
+}
+
+/**
  * A foe's weakness once the Knights have learned it, which gives every Attack
  * that uses it a bonus die (p188). One nobody knows of yet gives nothing, and
  * isn't shown to whoever attacks.

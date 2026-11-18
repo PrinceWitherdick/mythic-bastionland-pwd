@@ -459,6 +459,36 @@ const OPENING_ROOM = Object.freeze({ width: 1600, height: 1000 });
 export const openingScale = (g) => Math.min(0.5, OPENING_ROOM.width / g.width, OPENING_ROOM.height / g.height);
 
 /**
+ * The Scene's grid and size for a Realm's geometry, as a new Realm Scene is
+ * made with and a Realm laid out another way is written again.
+ * @param {object} g
+ * @returns {{grid: {type: number}, width: number, height: number}}
+ */
+export const realmGridChanges = (g) => ({ grid: { type: g.gridType }, width: g.width, height: g.height });
+
+/**
+ * Where each of a Realm's Tiles goes as its hexes are laid out another way:
+ * each moves with its hex, by as far as that hex's centre moves, so the sync
+ * that follows finds each where the new layout looks for it. A picture of the
+ * map, and a Tile that isn't the Realm's or stands in no hex, stays put.
+ * @param {{source: object, centre: {x: number, y: number}}[]} tiles Each Tile's source data, with its `_id`,
+ *   and its centre as the Scene's Tiles stand (tileCentred).
+ * @param {object} from The geometry the Tiles were laid in.
+ * @param {object} to The geometry they're laid in now.
+ * @returns {{_id: string, x: number, y: number}[]} An update for each Tile that moves.
+ */
+export function relaidTileMoves(tiles, from, to) {
+	return tiles.flatMap(({ source, centre }) => {
+		const kind = realmFlag(source)?.kind;
+		const hex = kind && kind !== "map" ? hexAt(from, centre) : null;
+		if (!hex) return [];
+		const was = hexCentre(from, hex);
+		const now = hexCentre(to, hex);
+		return [{ _id: source._id, x: Math.round(source.x + now.x - was.x), y: Math.round(source.y + now.y - was.y) }];
+	});
+}
+
+/**
  * The complete Scene to create for a new Realm.
  * @param {object} options
  * @param {string} options.name
@@ -470,15 +500,16 @@ export const openingScale = (g) => Math.min(0.5, OPENING_ROOM.width / g.width, O
  */
 export function realmSceneData({ name, realm, geometry: g, textures, units = "" }) {
 	const { tiles, drawings } = realmDocuments(realm, g, textures);
+	const { grid, width, height } = realmGridChanges(g);
 	return {
 		name,
 		navigation: true,
-		width: g.width,
-		height: g.height,
+		width,
+		height,
 		padding: 0,
 		tokenVision: false,
 		...noFogSceneData(),
-		grid: { type: g.gridType, size: g.size, style: "solidLines", thickness: 2, color: textures.colours.grid, alpha: GRID_ALPHA, distance: 1, units },
+		grid: { ...grid, size: g.size, style: "solidLines", thickness: 2, color: textures.colours.grid, alpha: GRID_ALPHA, distance: 1, units },
 		...paperSceneData(LEVEL_ID, name, textures.colours.paper),
 		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: openingScale(g) },
 		tiles: tiles.map((tile) => tilePlaced(tile.data)),

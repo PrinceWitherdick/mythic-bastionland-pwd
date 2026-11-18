@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armourCounts, armourTotal, armourWorn, armourUnshielded, displacedArmour, greaterEffects, looksWooden, noteBearing, noteNamesShield, noteWithout, npcArmourUnshielded, shieldwallAround, shieldwallBearing, standTogether, withinArmsReach } from "../../module/rules/armour.js";
+import { armourCounts, armourTotal, armourWorn, armourUnshielded, displacedArmour, greaterEffectUpdate, greaterEffects, looksWooden, noteBearing, noteNamesShield, noteWithout, npcArmourUnshielded, shieldwallAround, shieldwallBearing, standTogether, withinArmsReach } from "../../module/rules/armour.js";
 
 const piece = (kind, armour = 1, more = {}) => ({ kind, armour, equipped: true, ...more });
 
@@ -213,5 +213,34 @@ describe("armourWorn", () => {
 	it("counts only the better of two pieces of one type, as the total does", () => {
 		const items = [item("Gambeson", "coat", 1), item("Mail", "coat", 2), item("Old mail", "coat", 2)];
 		expect(armourWorn(items).map((each) => each.counts)).toEqual([false, true, false]);
+	});
+});
+
+describe("greaterEffectUpdate", () => {
+	it("unticks a disarmed weapon or shield and a helm knocked off, and marks a broken one so (p10)", () => {
+		expect(greaterEffectUpdate("disarm", { id: "axe" })).toEqual({ item: "axe", update: { "system.equipped": false } });
+		expect(greaterEffectUpdate("unhelm", { id: "helm" })).toEqual({ item: "helm", update: { "system.equipped": false } });
+		expect(greaterEffectUpdate("break", { id: "club" })).toEqual({ item: "club", update: { "system.broken": true } });
+	});
+
+	it("takes a point of an NPC's Armour and the word from its note for a helm or shield", () => {
+		expect(greaterEffectUpdate("unhelm", { armour: 3, armourNote: "mail, helm, shield" }))
+			.toEqual({ actor: { "system.armour": 2, "system.armourNote": "mail, shield" }, from: 3, to: 2 });
+		expect(greaterEffectUpdate("disarm", { armour: "2", armourNote: "ringmail, redshield" }))
+			.toEqual({ actor: { "system.armour": 1, "system.armourNote": "ringmail" }, from: 2, to: 1 });
+	});
+
+	it("leaves an NPC's Armour as it is when its note doesn't name the piece", () => {
+		expect(greaterEffectUpdate("unhelm", { armour: 2, armourNote: "muscular hide" }))
+			.toEqual({ actor: { "system.armour": 2, "system.armourNote": "muscular hide" }, from: 2, to: 2 });
+		expect(greaterEffectUpdate("disarm", { armour: undefined, armourNote: null }))
+			.toEqual({ actor: { "system.armour": 0, "system.armourNote": "" }, from: 0, to: 0 });
+	});
+
+	it("Slays with a head taken only at 0 GD, and writes nothing for a limb (p114)", () => {
+		expect(greaterEffectUpdate("head", { guard: 0 })).toEqual({ slay: true });
+		expect(greaterEffectUpdate("head", { guard: null })).toEqual({ slay: true });
+		expect(greaterEffectUpdate("head", { guard: 2 })).toEqual({ slay: false });
+		expect(greaterEffectUpdate("limb", { guard: 0 })).toBeNull();
 	});
 });

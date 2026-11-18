@@ -9,13 +9,13 @@ import { temperedDie } from "../rules/lasting-dice.js";
 import { temperWeapon } from "./lasting-dice.js";
 import { hornBlownFor } from "./stances.js";
 import { lapseStances } from "./stance-lapse.js";
-import { WARDED_OUTCOMES, applyDoom, armourAgainst, downingOutcome, resolveDamage, spiritOutcome, wardedResult } from "../rules/damage.js";
+import { WARDED_OUTCOMES, WOUNDING_OUTCOMES, applyDoom, armourAgainst, damageUpdate, downingOutcome, resolveDamage, spiritOutcome, wardedResult } from "../rules/damage.js";
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { lingeringAffliction } from "../rules/afflictions.js";
 import { downBy, slainUpdate, unwrittenFate } from "../rules/virtues.js";
 import { afflictionsUpdate } from "./afflictions.js";
 import { downOf, moraleTrigger } from "../rules/morale.js";
-import { isDoomed } from "../rules/scars.js";
+import { doomedBy } from "../rules/scars.js";
 import { SCANNED_MESSAGES, marksOn } from "../chat/gambit-marks.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
@@ -32,9 +32,6 @@ import { paragraphs } from "../rules/text.js";
 import { keepsSeat } from "../rules/property.js";
 import { playerCharacter, worldKnights } from "./knights.js";
 import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
-
-/** Outcomes that take VIG, leaving the target Wounded (p8). */
-const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
 
 /**
  * @typedef {object} WornArmour Somebody's armour, as the Damage dialog and a Greater effect weigh it.
@@ -457,21 +454,14 @@ export async function takeDamage(actor, preset = {}) {
 	let { result } = asked;
 	if (spirit) result = spiritOutcome(result);
 	// Non-lethal Damage never Slays, Doom or not.
-	if (result.outcome === "mortal" && !preset.nonLethal && doomedNow(actor)) result = applyDoom(result, before.vigour);
+	if (result.outcome === "mortal" && !preset.nonLethal && doomedBy(actor.items, getCalendar())) result = applyDoom(result, before.vigour);
 	// An ally may take the Mortal Wound, or the death, in their place (p66).
 	const warden = virtues && !dead && !preset.nonLethal && WARDED_OUTCOMES.includes(result.outcome) ? await offerWard(actor) : null;
 	if (warden) result = wardedResult(result, before.vigour);
 	// A Mortal Wound that will be shaken off, or one somebody died of, is no milestone of its own, nor one to rally against.
 	const mortallyWounded = Boolean(virtues) && !dead && result.outcome === "mortal" && !preset.nonLethal;
 
-	const update = { "system.guard.value": result.guard };
-	if (virtues) update[`system.virtues.${score}.value`] = result.vigour;
-	// Non-lethal Damage leaves them down, but not dying.
-	if (result.outcome === "mortal" && !preset.nonLethal) update["system.mortalWound"] = true;
-	// VIG 0 by Damage is Slain (p8), which Virtue Loss to 0 never is, so it's marked. The dead aren't dying.
-	if (virtues && result.outcome === "slain") Object.assign(update, { "system.slain": true, "system.mortalWound": false }, slainFate(actor, preset.by));
-	// Damage past GD Wounds them (p8), which some armour answers to. SPI lost to a blow is no Wound.
-	if (virtues && !spirit && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
+	const update = damageUpdate(result, { character: Boolean(virtues), virtue: score, nonLethal: preset.nonLethal, fate: () => slainFate(actor, preset.by) });
 	// Whatever else the blow leaves on them goes in the same write.
 	if (preset.also) Object.assign(update, preset.also(result));
 	await actor.update(update, causedBy("damage"));
@@ -483,7 +473,6 @@ export async function takeDamage(actor, preset = {}) {
 		recorded = timelineMortalWound(actor, preset.cause || (dealer ? t("timeline.auto.scarBy", { name: dealer }) : ""));
 	}
 
-	const outcomes = outcomesFor(result.outcome, { warband, structure });
 	// Nobody routs from a practice bout, and SPI lost to a blow is no Wound for Morale to weigh.
 	const trigger = !preset.sparring && !spirit && moraleTrigger({
 		outcome: result.outcome,
@@ -496,12 +485,22 @@ export async function takeDamage(actor, preset = {}) {
 		warband
 	});
 	const morale = moralePrompt({ name: actor.name, uuid: actor.uuid }, trigger);
-	const card = damageCard(result, appliedArmour, before, outcomes, morale);
-	if (spirit && result.vigourLoss) card.vigourLine = t("damage.spiritLine", { from: before.vigour, to: result.vigour });
-	if (vigourTimes > 1 && result.vigourLoss) card.dealt = [card.dealt, t("damage.hornDoubled")].filter(Boolean).join(" ");
-	const said = outcomeSaid(actor, result, { warden, spirit, preset });
-	if (said) card.outcome = said;
-	if (preset.cause) card.cause = preset.cause;
+	const card = damageCard(result, {
+		armour: appliedArmour,
+		before,
+		morale,
+		name: actor.name,
+		character: Boolean(actor.system.virtues),
+		warband,
+		structure,
+		fightsOn: Boolean(actor.system.fightsOn),
+		spirit,
+		doubled: vigourTimes > 1,
+		warden: warden?.name ?? null,
+		nonLethal: Boolean(preset.nonLethal),
+		sparring: Boolean(preset.sparring),
+		cause: preset.cause
+	});
 	await Promise.all([postCard(actor, "damage", card), recorded]);
 	// Mortally Wounded by a known hand, a Knight's Ability may rally the allies beside them against it (p42).
 	if (mortallyWounded && !warden && preset.by) await offerMortalRally(actor, preset.by);
@@ -525,33 +524,6 @@ export async function takeDamage(actor, preset = {}) {
 	if (!dead) await announceFallenKnight(actor, result.outcome);
 	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt, { faces: preset.faces, by: preset.by });
 	return result;
-}
-
-/**
- * Whether a Doom Scar holds them as the calendar stands (p9).
- * @param {Actor} actor
- * @returns {boolean}
- */
-const doomedNow = (actor) => isDoomed(actor.items.filter((item) => item.type === "scar").map((item) => item.system), getCalendar());
-
-/**
- * What a Damage card says of the outcome in place of its usual words, if anything.
- * @param {Actor} actor Who it landed on.
- * @param {import("../rules/damage.js").DamageResult} result
- * @param {object} blow
- * @param {Actor|null} blow.warden Whoever took it in their place.
- * @param {boolean} blow.spirit Whether it came off SPI.
- * @param {object} blow.preset As takeDamage takes.
- * @returns {string|null}
- */
-function outcomeSaid(actor, result, { warden, spirit, preset }) {
-	if (warden) return t("damage.outcomes.warded", { name: warden.name });
-	if (spirit && result.outcome === "wounded") return t("damage.spiritHurt");
-	if (result.outcome !== "mortal") return null;
-	// Non-lethal Damage leaves them down, but not dying.
-	if (preset.nonLethal && actor.system.virtues) return t(preset.sparring ? "damage.sparringDown" : "damage.nonLethalDown");
-	// Some of the Cast fight on through a Mortal Wound, as their stat block says.
-	return actor.system.fightsOn ? t("damage.fightsOn", { name: actor.name }) : null;
 }
 
 /**
@@ -769,7 +741,7 @@ async function offerWard(victim) {
  * @param {Actor} victim
  */
 async function takeWard(warden, victim) {
-	const doomed = doomedNow(warden);
+	const doomed = doomedBy(warden.items, getCalendar());
 	const update = doomed
 		? { ...slainUpdate(warden, t("fallen.fateWarded", { name: victim.name })), "system.wounded": true }
 		: { "system.mortalWound": true, "system.wounded": true };
@@ -800,23 +772,57 @@ function watchSituationalArmour(dialog, target) {
 }
 
 /**
- * What the Damage card says.
- * @param {import("../rules/damage.js").DamageResult & {doom?: boolean}} result
- * @param {number} armour What the Attack was reduced by.
- * @param {{guard: number, vigour: number}} before
- * @param {string} outcomes Which set of outcome words, under `bastionland.damage`.
- * @param {{text: string, uuid?: string, label?: string}|null} morale A Morale Save called for; its button needs a uuid.
+ * What the Damage card says, each line decided from what's known of the blow.
+ * @param {import("../rules/damage.js").DamageResult & {doom?: boolean}} result As it finally stands.
+ * @param {object} blow
+ * @param {number} blow.armour What the Attack was reduced by.
+ * @param {{guard: number, vigour: number}} blow.before Their scores as it landed.
+ * @param {{text: string, uuid?: string, label?: string}|null} blow.morale A Morale Save called for; its button needs a uuid.
+ * @param {string} blow.name Who it landed on.
+ * @param {boolean} blow.character They have Virtues.
+ * @param {boolean} blow.warband
+ * @param {boolean} blow.structure
+ * @param {boolean} blow.fightsOn They fight on through a Mortal Wound.
+ * @param {boolean} blow.spirit It came off SPI rather than VIG.
+ * @param {boolean} blow.doubled A horn doubles the VIG it costs (p72).
+ * @param {string|null} blow.warden The name of whoever took it in their place.
+ * @param {boolean} blow.nonLethal
+ * @param {boolean} blow.sparring A practice bout's, always non-lethal.
+ * @param {string} [blow.cause] What dealt it.
  * @returns {object}
  */
-function damageCard(result, armour, before, outcomes, morale) {
+function damageCard(result, { armour, before, morale, cause, ...blow }) {
+	const scores = { from: before.vigour, to: result.vigour };
 	return {
 		outcomeKey: result.outcome,
-		dealt: result.outcome === "unharmed" ? null : t("damage.dealt", { dealt: result.dealt, armour }),
+		dealt: result.outcome === "unharmed"
+			? null
+			: [t("damage.dealt", { dealt: result.dealt, armour }), blow.doubled && result.vigourLoss ? t("damage.hornDoubled") : null].filter(Boolean).join(" "),
 		guardLine: result.guardLoss ? t("damage.guardLine", { from: before.guard, to: result.guard }) : null,
-		vigourLine: result.vigourLoss ? t("damage.vigourLine", { from: before.vigour, to: result.vigour }) : null,
-		outcome: result.doom ? t("damage.doom") : t(`damage.${outcomes}.${result.outcome}`),
-		morale
+		vigourLine: result.vigourLoss ? (blow.spirit ? t("damage.spiritLine", scores) : t("damage.vigourLine", scores)) : null,
+		outcome: outcomeLine(result, blow),
+		morale,
+		...(cause ? { cause } : {})
 	};
+}
+
+/**
+ * What a Damage card says of the outcome.
+ * @param {import("../rules/damage.js").DamageResult & {doom?: boolean}} result
+ * @param {object} blow As damageCard takes.
+ * @returns {string}
+ */
+function outcomeLine(result, { name, character, warband, structure, fightsOn, spirit, warden, nonLethal, sparring }) {
+	if (warden) return t("damage.outcomes.warded", { name: warden });
+	if (spirit && result.outcome === "wounded") return t("damage.spiritHurt");
+	if (result.outcome === "mortal") {
+		// Non-lethal Damage leaves them down, but not dying.
+		if (nonLethal && character) return sparring ? t("damage.sparringDown") : t("damage.nonLethalDown");
+		// Some of the Cast fight on through a Mortal Wound, as their stat block says.
+		if (fightsOn) return t("damage.fightsOn", { name });
+	}
+	if (result.doom) return t("damage.doom");
+	return t(`damage.${outcomesFor(result.outcome, { warband, structure })}.${result.outcome}`);
 }
 
 /**
