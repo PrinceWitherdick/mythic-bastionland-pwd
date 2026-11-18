@@ -36,8 +36,7 @@ describe("the pictures the Company can carry", () => {
 	it("offers every icon, each with a name to show and a file of its own", () => {
 		const choices = companyPictureChoices();
 		expect(choices.map(({ key }) => key)).toEqual(COMPANY_ICONS.map(({ key }) => key));
-		for (const { key, name, path } of choices) {
-			expect([key, name.length]).toEqual([key, expect.any(Number)]);
+		for (const { name, path } of choices) {
 			expect(name).not.toBe("");
 			expect(path).toMatch(/\.svg$/);
 		}

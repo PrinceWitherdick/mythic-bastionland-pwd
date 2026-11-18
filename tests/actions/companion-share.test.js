@@ -53,7 +53,8 @@ describe("makeCompanions", () => {
 	it("has a player ask the Referee to share what they made with the Knight's other players", async () => {
 		const { made } = await makeCompanions([{ type: "misc", name: "Charger" }], { folder: null, ownership: knight.ownership, id: knight.id });
 		expect(made[0].flags[SYSTEM_ID].companionOf).toBe("k1");
-		expect(made[0].ownership).toEqual({ alys: 3 });
+		// Left as Foundry gives it, to its maker, till the Referee shares it.
+		expect(Actor.implementation.create.mock.calls[0][0][0]).not.toHaveProperty("ownership");
 		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.shareOwnership`, { fromId: "k1", actorIds: ["n0"] }, expect.any(String));
 	});
 

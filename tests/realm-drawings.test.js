@@ -291,6 +291,12 @@ describe("the Blank Realm's lakes and Valleys", () => {
 		const hatching = blank["lake-water.svg"];
 		expect(hatching).toMatch(/<clipPath id="hex">.*clip-path="url\(#hex\)"/s);
 		// Rows every 48 units: a hex's half height is five of them, so the rows of the next column line up.
-		expect((HEX_H / 2) % 48).toBe(0);
+		const [strokes] = hatching.match(/<g clip-path="url\(#hex\)"><path d="([^"]+)"/).slice(1);
+		const rows = strokes.split("M").filter(Boolean).map((stroke) => {
+			const ys = [...stroke.matchAll(/-?[\d.]+ (-?[\d.]+)/g)].map(([, y]) => Number(y));
+			return (Math.min(...ys) + Math.max(...ys)) / 2;
+		});
+		expect(new Set(rows.map((y) => Math.round((y - 24) / 48)))).toEqual(new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
+		for (const y of rows) expect(Math.abs((y - 24) / 48 - Math.round((y - 24) / 48)) * 48).toBeLessThan(12);
 	});
 });
