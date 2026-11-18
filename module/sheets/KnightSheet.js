@@ -925,3 +925,21 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		return releaseSquire(this.actor);
 	}
 }
+
+/**
+ * The Domain button on a Knight's sheet reads that Domain's name, so it
+ * follows the Domain being renamed or deleted.
+ * @param {Actor} actor
+ */
+const refreshDomainButtons = (actor) => {
+	if (actor.type !== "domain") return;
+	for (const app of foundry.applications.instances.values()) {
+		if (app instanceof KnightSheet && app.actor.system.domain === actor.uuid) app.refreshHeaderButtons();
+	}
+};
+
+/** Redraw the Domain button on each open Knight sheet when its Domain is renamed or deleted. */
+export function registerDomainButtonHooks() {
+	Hooks.on("updateActor", (actor, changes) => "name" in changes && refreshDomainButtons(actor));
+	Hooks.on("deleteActor", refreshDomainButtons);
+}

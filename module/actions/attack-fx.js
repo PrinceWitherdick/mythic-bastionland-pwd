@@ -171,7 +171,8 @@ export function tokenOnScene(ref) {
 /** Sequencer wants the placeable where there is one; the document is its fallback. */
 const placeable = (token) => token?.object ?? token;
 
-const gmIds = () => (game.users?.filter?.((user) => user.isGM) ?? []).map((user) => user.id);
+/** @returns {string[]} The ids of every GM. */
+export const gmIds = () => (game.users?.filter?.((user) => user.isGM) ?? []).map((user) => user.id);
 
 /**
  * Who may see and hear a blow, or null for everyone. A hidden Token keeps it

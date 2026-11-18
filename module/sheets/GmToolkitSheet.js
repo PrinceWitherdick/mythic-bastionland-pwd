@@ -4,7 +4,6 @@ import { CITY_QUEST_HOOK, cityOmensSeen, cityQuestSetWorthy, resetCityQuest, rol
 import { COMPANY_FLAG, NO_COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { inCompany, worldKnights } from "../actions/knights.js";
-import { awardGloryTo } from "../actions/glory.js";
 import { getHexLore, sparkWhen } from "../actions/hex-lore.js";
 import { hexLabel, hexName } from "../actions/hex-names.js";
 import { getHexShared } from "../actions/hex-shared.js";
@@ -37,8 +36,7 @@ import { pickHexAside } from "../canvas/hex-pick.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { postCard, statLabels, t, warn } from "../chat/cards.js";
 import { scrollBehavior } from "../client-settings.js";
-import { openRulebook } from "../rulebook/BookReader.js";
-import { openRulebookSetup } from "../rulebook/RulebookSetup.js";
+import { openRulebookOrSetup } from "../rulebook/BookReader.js";
 import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
 import { MYTH_VERSE_VERSION } from "../rules/book-art.js";
 import { isSeerRecord } from "../rules/knight-refs.js";
@@ -47,9 +45,9 @@ import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenSt
 import { rulingKnightOf } from "../rules/dominion.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythGloryFor, mythNoteFor, mythRoll } from "../rules/myth-notes.js";
-import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { OMEN_COUNT, TERRAIN, featureAt, holdingName, terrainAt } from "../rules/realm.js";
 import { isOwnMyth, mythWithOwn } from "../rules/own-myths.js";
-import { POINT_KINDS } from "../rules/sites.js";
+import { markedPoints, pointCounts } from "../rules/sites.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
@@ -86,6 +84,9 @@ const REALM_PARTS = Object.freeze(["header", ...REALM_TABS, "time"]);
 
 /** Pages drawn from the Realm that, while another page is open, wait to be drawn again until they're opened. */
 const DEFERRED_PARTS = new Set([...REALM_TABS, "time"]);
+
+/** The one part that shows each of the Toolkit's own fields, so a change to those alone redraws only them. */
+const SYSTEM_PARTS = Object.freeze({ seasons: "time", notes: "notes" });
 
 /**
  * The parts one of the Realm's per-hex flags shows in, as scene-changes.js lists them.
@@ -163,8 +164,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		form: { submitOnChange: true },
 		actions: {
 			markOmen: GmToolkitSheet.#onMarkOmen,
-			activateOmenScene: (_event, target) => activateOmenScene(target.closest("[data-scene-id]")?.dataset.sceneId),
-			viewOmenScene: (_event, target) => viewOmenScene(target.closest("[data-scene-id]")?.dataset.sceneId),
+			activateOmenScene: (_event, target) => activateOmenScene(GmToolkitSheet.#sceneIdFrom(target)),
+			viewOmenScene: (_event, target) => viewOmenScene(GmToolkitSheet.#sceneIdFrom(target)),
 			unlinkOmenScene: GmToolkitSheet.#onUnlinkOmenScene,
 			mythResolved: GmToolkitSheet.#onMythResolved,
 			mythUnresolved: GmToolkitSheet.#onMythUnresolved,
@@ -173,7 +174,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			resetCityQuest: () => resetCityQuest(),
 			showHex: GmToolkitSheet.#onShowHex,
 			openHex: GmToolkitSheet.#onOpenHex,
-			openSite: GmToolkitSheet.#onOpenSite,
+			openSite: GmToolkitSheet.#onOpenDocument,
 			siteJournal: GmToolkitSheet.#onSiteJournal,
 			newSite: () => newSite(),
 			newMyth: GmToolkitSheet.#onNewMyth,
@@ -183,13 +184,13 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			showMythArt: GmToolkitSheet.#onShowMythArt,
 			editOwnMyth: GmToolkitSheet.#onEditOwnMyth,
 			makeCastMember: GmToolkitSheet.#onMakeCastMember,
-			openCastActor: GmToolkitSheet.#onOpenCastActor,
+			openCastActor: GmToolkitSheet.#onOpenDocument,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
 			...TIME_ACTIONS,
 			crisisRoll: GmToolkitSheet.#onCrisisRoll,
 			pickWeather: () => pickWeather(),
 			// With no copy yet, the button sets one up rather than doing nothing.
-			openRulebook: () => openRulebook() ?? openRulebookSetup(),
+			openRulebook: openRulebookOrSetup,
 			placesOrder: GmToolkitSheet.#onPlacesOrder,
 			trackAdd: GmToolkitSheet.#onTrackAdd,
 			trackHex: GmToolkitSheet.#onTrackHex,
@@ -359,14 +360,17 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 
 	/**
 	 * A change to the Seasons log alone, such as a Season's notes, redraws the
-	 * Time page, which keeps it, rather than every page.
+	 * Time page, which keeps it, and the GM's notes saved redraw the Notes page,
+	 * rather than every page.
 	 * @override
 	 */
 	_configureRenderOptions(options) {
 		super._configureRenderOptions(options);
 		const changes = options.renderContext === "updateActor" ? options.renderData : null;
 		const changed = Object.keys(changes ?? {}).filter((key) => !["_id", "_stats"].includes(key));
-		if (changed.length === 1 && changed[0] === "system" && Object.keys(changes.system).every((key) => key === "seasons")) options.parts = ["time"];
+		if (changed.length !== 1 || changed[0] !== "system") return;
+		const keys = Object.keys(changes.system);
+		if (keys.length && keys.every((key) => Object.hasOwn(SYSTEM_PARTS, key))) options.parts = [...new Set(keys.map((key) => SYSTEM_PARTS[key]))];
 	}
 
 	/** @override */
@@ -414,6 +418,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	#headerContext(data) {
 		const shown = data?.scene ?? null;
 		const realms = game.scenes.filter(isRealmScene).map((scene) => ({ id: scene.id, name: scene.name, selected: scene.id === shown?.id }));
+		const noCompany = Boolean(data) && !data.companyHex;
 		return {
 			realms,
 			// With one Realm there is nothing to choose: the banner names it instead of offering a dropdown.
@@ -421,8 +426,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			clock: this.#clockContext(),
 			rulebook: { have: hasRulebook(), tooltip: t(hasRulebook() ? "gmToolkit.rulebook" : "gmToolkit.rulebookSetup") },
 			company: data?.companyHex ? { label: hexLabel(data.companyHex, data.scene), key: hexKey(data.companyHex) } : null,
-			noCompany: Boolean(data) && !data.companyHex,
-			companyLeftOff: Boolean(data) && !data.companyHex && Boolean(data.scene?.getFlag?.(SYSTEM_ID, NO_COMPANY_FLAG))
+			noCompany,
+			companyLeftOff: noCompany && Boolean(data.scene?.getFlag?.(SYSTEM_ID, NO_COMPANY_FLAG))
 		};
 	}
 
@@ -436,19 +441,20 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		// actors, and names their scores by the same words.
 		const forCast = { actors: castActors(), labels: statLabels() };
 		this.#casts.clear();
+		const city = this.#index?.cityQuest;
 		const cityQuest = {
 			seen: t("cityQuest.seen", { count: seen.length, end: CITY_QUEST_END }),
-			omens: seen.map((omen) => ({ number: omen, text: this.#index?.cityQuest?.omens?.[omen - 1] ?? t("cityQuest.omen", { omen, count: CITY_OMEN_COUNT }) })),
+			omens: seen.map((omen) => ({ number: omen, text: city?.omens?.[omen - 1] ?? t("cityQuest.omen", { omen, count: CITY_OMEN_COUNT }) })),
 			over: cityQuestOver(seen),
 			empty: !seen.length,
 			worthy: cityWorthyContext(),
-			missingText: !this.#index?.cityQuest?.omens,
+			missingText: !city?.omens,
 			cast: this.#castContext({
 				key: CITY_CAST,
 				fold: "cast:city",
-				cast: this.#index?.cityQuest?.cast,
-				note: this.#index?.cityQuest?.castNote,
-				missingText: !this.#index?.cityQuest?.cast,
+				cast: city?.cast,
+				note: city?.castNote,
+				missingText: !city?.cast,
 				myth: t("cityQuest.title"),
 				...forCast
 			})
@@ -493,7 +499,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const kept = mythNoteFor(data.notes, myth);
 		const fold = `myth:${myth.number}`;
 		// Played alone, only the Omens met are read, and a Myth's hex only once the Company has found it.
-		const solo = secretsKeptOn(this.scene);
+		const solo = secretsKeptOn(data.scene);
 		const linked = omenSceneIds(data.scene, myth, { entry, notes: data.notes });
 		const omens = Array.from({ length: OMEN_COUNT }, (_, index) => {
 			const number = index + 1;
@@ -522,7 +528,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			own: isOwnMyth(myth) && entry ? myth.own : null,
 			reference: pageNote(page),
 			img: entry?.path ?? null,
-			hex: myth.hex ? hexLabel(myth.hex, this.scene) : null,
+			hex: myth.hex ? hexLabel(myth.hex, data.scene) : null,
 			hexKey: myth.hex ? hexKey(myth.hex) : null,
 			hidden: !myth.revealed && !solo,
 			seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
@@ -543,7 +549,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			open: this.#folds.get(fold) ?? false,
 			table: this.#tableContext(myth, page, entry, pointsOpposite(text(current))),
 			cast: this.#castContext({
-				key: castKey(this.scene, myth),
+				key: castKey(data.scene, myth),
 				fold: `cast:${myth.number}`,
 				cast: entry?.cast,
 				note: entry?.castNote,
@@ -609,7 +615,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 * @returns {object|null} Null for a Myth whose page there's no way to read.
 	 */
 	#tableContext(myth, page, entry, called) {
-		const fold = `table:${this.#mythKey(myth)}`;
+		const key = this.#mythKey(myth);
+		const fold = `table:${key}`;
 		const read = peekTable(page);
 		const table = entry?.table ?? read ?? null;
 		if (!table) {
@@ -623,7 +630,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			fold,
 			open: this.#folds.get(fold) ?? called,
 			name: table.name,
-			...tableView(table, this.#tableRolls.get(this.#mythKey(myth)), (column) => t("gmToolkit.myths.rollColumn", { column }))
+			...tableView(table, this.#tableRolls.get(key), (column) => t("gmToolkit.myths.rollColumn", { column }))
 		};
 	}
 
@@ -705,11 +712,10 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 */
 	#siteRow(entry, removable = false) {
 		const site = readSite(entry);
-		const points = Object.values(site.points).filter((point) => point.kind);
-		const counts = POINT_KINDS.map((kind) => {
-			const count = points.filter((point) => point.kind === kind).length;
-			return count ? `${count} ${t(`sites.points.${kind}.${count === 1 ? "label" : "plural"}`)}` : null;
-		}).filter(Boolean);
+		const points = markedPoints(site).map((key) => site.points[key]);
+		const counts = Object.entries(pointCounts(site))
+			.filter(([, count]) => count)
+			.map(([kind, count]) => `${count} ${t(`sites.points.${kind}.${count === 1 ? "label" : "plural"}`)}`);
 		const found = points.filter((point) => point.found).length;
 		return {
 			uuid: entry.uuid,
@@ -735,7 +741,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 */
 	#hexCard(data, hex, { removable = false } = {}) {
 		const key = hexKey(hex);
-		const place = this.#placeIn(data.realm, hex);
+		const here = featureAt(data.realm, hex);
+		const place = this.#placeIn(here);
 		const { self, status } = place;
 		// The GM's name for the hex heads its card, and what stands there follows it.
 		const given = hexName(data.scene, hex);
@@ -748,7 +755,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const terrain = terrainAt(data.realm, data.g, hex);
 		const label = t("realm.hex", hex);
 		const terrainName = terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null;
-		const features = [...status, ...this.#featuresIn(data.realm, hex, self)];
+		// What heads the card isn't listed again under it.
+		const features = [...status, ...this.#featuresIn(self ? { ...here, [self]: null } : here)];
 		const visited = visits && visitsLabel(visits);
 		// The wilderness as it was last rolled, read at a glance.
 		const wild = latestWilderness(record).map((spark) => ({
@@ -778,19 +786,17 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 * What heads a hex's card: the Holding in it, else the Landmark, by name or
 	 * by what it is while it has none, and saying what it is only once. A hex
 	 * holding neither is headed by its own name.
-	 * @param {object} realm
-	 * @param {{col: number, row: number}} hex
+	 * @param {{holding: object|null, landmark: object|null}} here What stands in the hex, as `featureAt` finds it.
 	 * @returns {{title: string|undefined, kind: string|null, self: "holding"|"landmark"|null, status: {text: string, hidden: boolean}[]}}
 	 */
-	#placeIn(realm, hex) {
-		const { holding, landmark } = featureAt(realm, hex);
+	#placeIn({ holding, landmark }) {
 		const named = (name, what) => ({ title: name || what, kind: name ? what : null });
 		if (holding) {
 			const { title, kind } = named(holding.name, t(`realm.holdings.${holding.style}`));
 			return { title, kind: [kind, holding.seat ? t("gmToolkit.places.seat") : null].filter(Boolean).join(", ") || null, self: "holding", status: [] };
 		}
 		if (landmark) {
-			const seer = isSeerRecord(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
+			const seer = this.#seerOf(landmark);
 			return {
 				...named(landmark.name, t(landmarkLabelKey(landmark))),
 				self: "landmark",
@@ -805,19 +811,13 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 
 	/**
 	 * What the Realm says stands in a hex, each flagged when players can't see it yet.
-	 * @param {object} realm
-	 * @param {{col: number, row: number}} hex
-	 * @param {string|null} [skip] A kind of feature to leave out, such as the one a card is about.
+	 * @param {{holding: object|null, myth: object|null, landmark: object|null}} here As `featureAt` finds it.
 	 * @returns {{text: string, hidden: boolean}[]}
 	 */
-	#featuresIn(realm, hex, skip = null) {
-		const here = featureAt(realm, hex);
-		const holding = skip === "holding" ? null : here.holding;
-		const landmark = skip === "landmark" ? null : here.landmark;
-		const { myth } = here;
+	#featuresIn({ holding, myth, landmark }) {
 		const features = [];
 		if (holding) {
-			const named = holding.name || t(`realm.holdings.${holding.style}`);
+			const named = holdingName(holding, t);
 			features.push({ text: holding.seat ? `${named} (${t("gmToolkit.places.seat")})` : named, hidden: false });
 		}
 		if (myth) {
@@ -826,10 +826,18 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		}
 		if (landmark) {
 			const named = landmarkName(landmark, t);
-			const seer = isSeerRecord(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
+			const seer = this.#seerOf(landmark);
 			features.push({ text: seer ? `${named}: ${seer.name}` : named, hidden: !landmark.revealed });
 		}
 		return features;
+	}
+
+	/**
+	 * @param {object} landmark
+	 * @returns {object|null} The Seer who keeps it, from the art index, if one does.
+	 */
+	#seerOf(landmark) {
+		return isSeerRecord(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
 	}
 
 	/** The calendar at the banner's end, each part of it set by hand from there. */
@@ -873,7 +881,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			resolved: waiting.map((myth) => ({
 				number: myth.number,
 				name: myth.unknown ? t("solo.unknownMyth") : mythLookup(this.#index, myth).name,
-				hex: myth.hex ? hexLabel(myth.hex, this.scene) : null
+				hex: myth.hex ? hexLabel(myth.hex, data.scene) : null
 			})),
 			pastAges: ages.map(({ age, seasons }) => {
 				const past = seasons.filter((entry) => !entry.current).map((entry) => this.#pastSeason(entry));
@@ -982,30 +990,31 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		// Only a Crisis Roll or a new name changes the Time page's list of Domains.
 		const onDomainChange = (actor, changes) => ("name" in changes || changes.system?.crisisRolled !== undefined) && onDomain(actor);
 		// A Knight's Glory or death can change what the Myths page says of the Company's worth for the City Quest.
-		const onWorthyChange = (actor, changes) => inCompany(actor) && (changes.system?.glory !== undefined || changes.system?.slain !== undefined) && this.#redraw("myths");
+		const onWorthyChange = (actor, changes) => (changes.system?.glory !== undefined || changes.system?.slain !== undefined) && inCompany(actor) && this.#redraw("myths");
+		const listen = (names, fn) => names.map((name) => [name, Hooks.on(name, fn)]);
 		this.#hooks = [
-			...["createTile", "updateTile", "deleteTile"].map((name) => [name, Hooks.on(name, onRealmDocument)]),
-			...["createScene", "deleteScene"].map((name) => [name, Hooks.on(name, onScenes)]),
-			["updateScene", Hooks.on("updateScene", onSceneChange)],
-			...["createToken", "deleteToken"].map((name) => [name, Hooks.on(name, onCompany)]),
-			["updateToken", Hooks.on("updateToken", onCompanyChange)],
-			...["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, onJournal)]),
-			[CITY_QUEST_HOOK, Hooks.on(CITY_QUEST_HOOK, () => this.#redraw("myths"))],
+			...listen(["createTile", "updateTile", "deleteTile"], onRealmDocument),
+			...listen(["createScene", "deleteScene"], onScenes),
+			...listen(["updateScene"], onSceneChange),
+			...listen(["createToken", "deleteToken"], onCompany),
+			...listen(["updateToken"], onCompanyChange),
+			...listen(["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"], onJournal),
+			...listen([CITY_QUEST_HOOK], () => this.#redraw("myths")),
 			// One listener for each, fanning out to the pages that care, rather than
 			// a pair of them running down every actor the world writes.
-			...["createActor", "deleteActor"].map((name) => [name, Hooks.on(name, (actor) => {
+			...listen(["createActor", "deleteActor"], (actor) => {
 				onDomain(actor);
 				onCast(actor);
-			})]),
-			["updateActor", Hooks.on("updateActor", (actor, changes) => {
+			}),
+			...listen(["updateActor"], (actor, changes) => {
 				onDomainChange(actor, changes);
 				onCastChange(actor, changes);
 				onWorthyChange(actor, changes);
-			})],
-			["canvasReady", Hooks.on("canvasReady", onCanvas)],
-			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time"))],
-			[WEATHER_HOOK, Hooks.on(WEATHER_HOOK, () => this.#redraw("header"))],
-			[RULEBOOK_HOOK, Hooks.on(RULEBOOK_HOOK, () => this.#redraw("header"))]
+			}),
+			...listen(["canvasReady"], onCanvas),
+			...listen([CALENDAR_HOOK], () => this.#redraw("header", "time")),
+			...listen([WEATHER_HOOK], () => this.#redraw("header")),
+			...listen([RULEBOOK_HOOK], () => this.#redraw("header"))
 		];
 	}
 
@@ -1213,7 +1222,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 
 	/**
 	 * @param {HTMLElement} target
-	 * @returns {{key: string, img: string|null, members: object[], member: object|null}|null} The Cast
+	 * @returns {{key: string, img: string|null, myth: string, member: object|null}|null} The Cast
 	 *   a control belongs to, and the entry it stands for, as the page last drew them.
 	 */
 	#castFrom(target) {
@@ -1221,7 +1230,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const cast = key ? this.#casts.get(key) : null;
 		if (!cast) return null;
 		const index = Number(target.closest("[data-cast-index]")?.dataset.castIndex);
-		return { key, img: cast.img, myth: cast.myth, members: cast.members, member: cast.members[index] ?? null };
+		return { key, img: cast.img, myth: cast.myth, member: cast.members[index] ?? null };
 	}
 
 	/**
@@ -1240,6 +1249,22 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 */
 	static #hexFrom(target) {
 		return parseHexKey(target.closest("[data-hex]")?.dataset.hex);
+	}
+
+	/**
+	 * @param {HTMLElement} target
+	 * @returns {foundry.abstract.Document|null} The document a control belongs to, by its UUID.
+	 */
+	static #documentFrom(target) {
+		return fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+	}
+
+	/**
+	 * @param {HTMLElement} target
+	 * @returns {string|undefined} The Scene a control belongs to, such as one linked to an Omen.
+	 */
+	static #sceneIdFrom(target) {
+		return target.closest("[data-scene-id]")?.dataset.sceneId;
 	}
 
 	/* -------------------------------------------- */
@@ -1334,10 +1359,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	static async #onMythResolved(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (!myth) return;
-		await resolveMyth(this.scene, myth, {
-			name: mythLookup(this.#index, myth).name,
-			award: async () => (await awardGloryTo("myth"))?.knights ?? []
-		});
+		await resolveMyth(this.scene, myth, { name: mythLookup(this.#index, myth).name });
 	}
 
 	/**
@@ -1348,7 +1370,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	static async #onAwardMythGlory(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (!myth) return;
-		await awardMythGlory(this.scene, myth, async () => (await awardGloryTo("myth"))?.knights ?? []);
+		await awardMythGlory(this.scene, myth);
 	}
 
 	/** @this {GmToolkitSheet} */
@@ -1398,12 +1420,6 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	}
 
 	/**
-	 * Show a hex on the map: view its Realm, pan there, ping it and ring it in
-	 * green for this GM alone, and open the Lay of the Land on it. A shared ping would
-	 * show every player where a hidden Myth lies, so none is sent.
-	 * @this {GmToolkitSheet}
-	 */
-	/**
 	 * Place the Company on a Realm made with them left off it: the mark is cleared, so the map offers them
 	 * again if they're put down or their Token is deleted, and the Referee is handed them on that Realm.
 	 * @this {GmToolkitSheet}
@@ -1416,6 +1432,12 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		if (!(await startCompanyPlacement(scene))) showCompanyButton();
 	}
 
+	/**
+	 * Show a hex on the map: view its Realm, pan there, ping it and ring it in
+	 * green for this GM alone, and open the Lay of the Land on it. A shared ping would
+	 * show every player where a hidden Myth lies, so none is sent.
+	 * @this {GmToolkitSheet}
+	 */
 	static async #onShowHex(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
 		const scene = this.scene;
@@ -1442,15 +1464,17 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		if (made) ui.notifications.info(t("gmToolkit.cast.created", { name: made.name }));
 	}
 
-	/** @this {GmToolkitSheet} */
-	static #onOpenCastActor(_event, target) {
-		const actor = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
-		return actor?.sheet?.render({ force: true });
+	/**
+	 * Open the sheet of what a control stands for: one of a Cast, or a Site.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onOpenDocument(_event, target) {
+		return GmToolkitSheet.#documentFrom(target)?.sheet?.render({ force: true });
 	}
 
 	/** @this {GmToolkitSheet} */
 	static #onDropFromCast(_event, target) {
-		const actor = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+		const actor = GmToolkitSheet.#documentFrom(target);
 		return actor ? removeFromCast(actor) : null;
 	}
 
@@ -1461,7 +1485,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	static #onUnlinkOmenScene(_event, target) {
 		const myth = this.#mythFrom(target);
 		const omen = Number(target.closest("[data-omen]")?.dataset.omen);
-		const id = target.closest("[data-scene-id]")?.dataset.sceneId;
+		const id = GmToolkitSheet.#sceneIdFrom(target);
 		return myth && omen && id ? unlinkOmenScene(this.scene, myth, omen, id) : null;
 	}
 
@@ -1533,24 +1557,18 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		if (domain?.type === "domain") return crisisRoll(domain);
 	}
 
-	/** @this {GmToolkitSheet} */
-	static #onOpenSite(_event, target) {
-		const entry = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
-		return entry?.sheet?.render({ force: true });
-	}
-
 	/**
 	 * Pin a Site to the Places page, or take it off: trackSite or untrackSite.
 	 * @this {GmToolkitSheet}
 	 */
 	static #onTrackSite(_event, target) {
-		const entry = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+		const entry = GmToolkitSheet.#documentFrom(target);
 		if (isSiteEntry(entry)) return setSiteTracked(entry, target.dataset.action === "trackSite");
 	}
 
 	/** @this {GmToolkitSheet} */
 	static #onSiteJournal(_event, target) {
-		const entry = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+		const entry = GmToolkitSheet.#documentFrom(target);
 		if (entry) return openSiteJournal(entry);
 	}
 }

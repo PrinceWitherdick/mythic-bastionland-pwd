@@ -340,6 +340,13 @@ export function openRulebook({ page, shown = false } = {}) {
 }
 
 /**
+ * Open the rulebook, or the setup where it can be kept when there's no copy
+ * this user can read.
+ * @returns {object|null} The window opened, if any.
+ */
+export const openRulebookOrSetup = () => openRulebook() ?? openRulebookSetup();
+
+/**
  * The reader to render when the book was open as the page last unloaded. No
  * page is asked for, so pdf.js puts the reader back where they were.
  * @returns {BookReader|null} Null when there's no book, or this user isn't offered it.

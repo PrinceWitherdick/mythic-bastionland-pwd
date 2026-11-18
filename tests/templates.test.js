@@ -86,7 +86,7 @@ describe("localization", () => {
 	const scriptKeys = scripts.flatMap((file) => {
 		const source = readFileSync(file, "utf8");
 		return [
-			...[...source.matchAll(/\b(?:t|localize|format)\(\s*"([\w.]+)"/g)].map((match) => `bastionland.${match[1]}`),
+			...[...source.matchAll(/\b(?:t|localize|format|(?<!\.)warn)\(\s*"([\w.]+)"/g)].map((match) => `bastionland.${match[1]}`),
 			...[...source.matchAll(/["'](bastionland\.[\w.]+)["']/g)].map((match) => match[1])
 		];
 	});
