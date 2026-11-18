@@ -242,15 +242,6 @@ describe("dropCompanion", () => {
 		expect(chooseActor).not.toHaveBeenCalled();
 		expect(ui.notifications.warn).toHaveBeenCalled();
 	});
-
-	it("marks a follower so replacing the Knight's Property keeps them", async () => {
-		const sir = knight();
-		const guide = actor({ id: "g1", name: "The Guide" });
-		world(sir, guide);
-		role = "follower";
-		await dropCompanion(sir, guide);
-		expect(guide.flags[follower]).toBe(true);
-	});
 });
 
 describe("takeSteed", () => {

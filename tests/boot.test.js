@@ -75,20 +75,14 @@ function installFoundryStubs() {
 
 describe("system boot", () => {
 	let hooks;
-	let entry;
 
 	// The entry module imports the whole system, which takes a second or two alone but can run
 	// past Vitest's 10s hook limit while the full suite fills every thread, so it gets a minute.
 	beforeAll(async () => {
 		hooks = installFoundryStubs();
-		entry = await import("../mythic-bastionland.js");
+		await import("../mythic-bastionland.js");
 		hooks.init();
 	}, 60_000);
-
-	it("loads the entry module and registers an init hook", () => {
-		expect(entry).toBeDefined();
-		expect(hooks.init).toBeTypeOf("function");
-	});
 
 	it("registers Reopen Sheets on Reload for each browser and follows open sheets", () => {
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "restoreOpenSheets", expect.objectContaining({

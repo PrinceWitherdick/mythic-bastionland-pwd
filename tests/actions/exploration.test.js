@@ -126,7 +126,7 @@ beforeEach(() => {
 		}
 	};
 	globalThis.ChatMessage = {
-		implementation: { getSpeaker: ({ actor }) => ({ alias: actor.name }), applyMode: () => {}, create: vi.fn(async (data) => data) }
+		implementation: { getSpeaker: ({ actor }) => ({ alias: actor.name }), applyMode: vi.fn(), create: vi.fn(async (data) => data) }
 	};
 	globalThis.CONFIG = { sounds: { dice: "dice.wav" } };
 });
@@ -220,7 +220,8 @@ describe("gatherFolklore", () => {
 	it("whispers the card to the Referee", async () => {
 		answer = { source: "vassal" };
 		await gatherFolklore({ scene: { id: "scene" } });
-		expect(ChatMessage.implementation.create).toHaveBeenCalled();
+		const [data] = ChatMessage.implementation.create.mock.lastCall;
+		expect(ChatMessage.implementation.applyMode).toHaveBeenCalledWith(data, "gm");
 	});
 
 	it("rolls which Myth a roamer speaks of, since they might name any of them", async () => {

@@ -902,15 +902,6 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		expect(knightPosts(seat, marshal, everyone)[0]).toMatchObject({ post: "marshal", rank: "gallant", proven: false });
 	});
 
-	it("draws arms at random, the charge in a tincture over each of the field's groups", async () => {
-		const { randomKnightArms } = await import("../../module/test-world/populate.js");
-		for (let index = 0; index < 50; index++) {
-			const arms = randomKnightArms();
-			expect(arms.field.length).toBeGreaterThan(0);
-			if (arms.charge) expect(arms.charge.tinctures).toHaveLength(arms.field.length);
-		}
-	});
-
 	it("gives Dame Isolde a Squire on a pony, and each Knight a folder of their own", async () => {
 		await populateTestWorld();
 		const { "Dame Isolde Marrow": isolde } = knights();
@@ -980,6 +971,17 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 			// Three steeds, the Squire's pony, the Domain's levy and sellswords, the mere's pike, and the Seer the Referee wrote.
 			expect(npcs).toHaveLength(8);
 			expect(npcs).toContain("The Tolling Seer");
+		}
+	});
+});
+
+describe("the test world's Knights", () => {
+	it("draws arms at random, the charge in a tincture over each of the field's groups", async () => {
+		const { randomKnightArms } = await import("../../module/test-world/populate.js");
+		for (let index = 0; index < 50; index++) {
+			const arms = randomKnightArms();
+			expect(arms.field.length).toBeGreaterThan(0);
+			if (arms.charge) expect(arms.charge.tinctures).toHaveLength(arms.field.length);
 		}
 	});
 });

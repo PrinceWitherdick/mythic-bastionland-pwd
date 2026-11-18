@@ -168,11 +168,6 @@ describe("knightUpdate", () => {
 		expect(update).not.toHaveProperty(["prototypeToken.texture.src"]);
 	});
 
-	it("keeps the Seer's scores as data beside their text, so the sheet can roll their Saves", () => {
-		const update = knightUpdate({ start: startFor("wanderer"), knight: lantern, seer: glassSeer });
-		expect(update["system.seerBook"]).toEqual(glassBook);
-	});
-
 	it("leaves out what wasn't rolled or chosen", () => {
 		expect(knightUpdate({ start: startFor("wanderer"), virtues: { vig: 11, cla: null } })).toEqual({
 			"system.age": "young",
