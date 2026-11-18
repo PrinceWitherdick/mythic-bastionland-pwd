@@ -2,9 +2,6 @@ import { searchable } from "../rules/text.js";
 import { serverNow } from "../server-now.js";
 import { templatePath } from "../system-id.js";
 
-/** @returns {Actor[]} The actors of the Tokens this user has selected on the canvas, none when there's no canvas. */
-export const selectedActors = () => (canvas?.tokens?.controlled ?? []).map((token) => token.actor);
-
 /**
  * Draw again every open window that carries one of these classes.
  * @param {...string} classNames

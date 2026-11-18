@@ -1,3 +1,4 @@
+import { selectedActors } from "../canvas/selected.js";
 import { chooseDialog, inputDialog } from "../apps/ui.js";
 import { chooseActor } from "../apps/actor-pick.js";
 import { postCard, t } from "../chat/cards.js";
@@ -85,9 +86,9 @@ import { captureAdvance } from "./time-capture.js";
  * @param {Actor[]} [options.present]
  * @param {Actor[]} [options.others] Listed unticked, for the Referee to tick any that take part.
  * @param {Actor[]} [options.later] Listed unticked after the Company's Knights, such as the Referee's NPC Knights.
- * @param {boolean} [options.gainsGlory] Leave out anybody who can't gain Glory, as a Squire can't (p7).
+ * @param {(actor: Actor) => boolean} [options.include] Who may be offered at all, of everybody
+ *   listed above: isKnight for Knights alone, gainsGlory (actions/glory.js) for those who can gain Glory.
  * @param {string[]} [options.pursuits]
- * @param {boolean} [options.knightsOnly] Leave out those given who aren't Knights.
  * @param {boolean} [options.aging] Ask who grows a stage older, as an Age turns.
  * @param {boolean} [options.onlyGiven] List only those given, not the selected Tokens or the world's Knights.
  * @param {boolean} [options.companions] List each Knight's steed and followers too, from companionsOf.
@@ -95,19 +96,18 @@ import { captureAdvance } from "./time-capture.js";
  * @returns {Promise<{actor: Actor, pursuit: string|null, making: string|null, older: boolean}[]|null>}
  *   Those ticked, or null if closed. `making` is one of the pursuit's PURSUIT_MAKINGS, or null where not said yet.
  */
-export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], later = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false, companions = false, wholeCompany = false, gainsGlory = false }) {
+export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], later = [], pursuits = [], include = () => true, aging = false, onlyGiven = false, companions = false, wholeCompany = false }) {
 	const candidates = [];
 	const seen = new Set();
 	const add = (actor, included, given = false) => {
 		if (!actor?.system?.virtues || actor.system.slain || seen.has(actor.uuid)) return;
-		if (gainsGlory && !actor.system.gainsGlory) return;
-		if (given ? knightsOnly && !isKnight(actor) : !isCompanyKnight(actor)) return;
+		if (!include(actor) || (!given && !isCompanyKnight(actor))) return;
 		// Another player's Knight is offered only while they ride with the Company, not every Knight in the world.
 		if (!game.user.isGM && !actor.isOwner && !(wholeCompany && (given || inCompany(actor)))) return;
 		seen.add(actor.uuid);
 		candidates.push({ actor, included });
 	};
-	const selected = onlyGiven ? [] : (canvas?.tokens?.controlled ?? []).map((token) => token.actor);
+	const selected = onlyGiven ? [] : selectedActors();
 	for (const actor of present) add(actor, true, true);
 	for (const actor of selected) add(actor, true);
 	for (const actor of others) add(actor, false, true);
@@ -604,7 +604,7 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	if (!game.user.isGM) return null;
 	const before = getCalendar();
 	const after = next(before);
-	const company = await chooseCompany({ title: t(label), icon, intro: intro(before, after), ok: t(label), pursuits, knightsOnly: true, aging: newAge });
+	const company = await chooseCompany({ title: t(label), icon, intro: intro(before, after), ok: t(label), pursuits, include: isKnight, aging: newAge });
 	if (!company) return null;
 	// From here on, all it writes is noted, so the Referee can take it back.
 	return captureAdvance(kind, () => timeTurns({ newAge, before, after, company, kind, turned, note, weather }));

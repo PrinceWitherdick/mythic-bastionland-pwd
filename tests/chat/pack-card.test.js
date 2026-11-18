@@ -3,22 +3,25 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 import { changePack, newPack } from "../../module/rules/pack.js";
 
 // The Attack dialog, the dice window and the roll are the Attack's own, tested with it; the card is under test here.
-// What the card draws of its state is the Attack's own too, and kept as it is.
-vi.mock("../../module/actions/attack.js", async (importOriginal) => ({
-	packShown: (await importOriginal()).packShown,
+vi.mock("../../module/actions/attack.js", () => ({
 	askPackGroups: vi.fn(async () => []),
 	joinPack: vi.fn(async () => null),
 	packRolled: vi.fn(async () => {}),
-	renderPackCard: vi.fn(async () => "<section></section>"),
 	rollPack: vi.fn(async () => ({ id: "attack-message" })),
 	spendAttack: vi.fn(async () => {})
+}));
+// What the card draws of its state is the card view's, and kept as it is.
+vi.mock("../../module/chat/attack-view.js", async (importOriginal) => ({
+	packShown: (await importOriginal()).packShown,
+	renderPackCard: vi.fn(async () => "<section></section>")
 }));
 vi.mock("../../module/apps/actor-pick.js", () => ({ chooseActor: vi.fn(async (actors) => actors[0]) }));
 vi.mock("../../module/apps/ui.js", () => ({ confirmDialog: vi.fn(async () => true) }));
 vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => true) }));
 vi.mock("../../module/chat/attack-card.js", () => ({ joinersFor: vi.fn(() => []) }));
 
-const { askPackGroups, joinPack, packRolled, renderPackCard, rollPack, spendAttack } = await import("../../module/actions/attack.js");
+const { askPackGroups, joinPack, packRolled, rollPack, spendAttack } = await import("../../module/actions/attack.js");
+const { renderPackCard } = await import("../../module/chat/attack-view.js");
 const { confirmDialog } = await import("../../module/apps/ui.js");
 const { askActiveGM } = await import("../../module/ask-gm.js");
 const { joinersFor } = await import("../../module/chat/attack-card.js");

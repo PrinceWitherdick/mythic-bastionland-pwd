@@ -1,10 +1,10 @@
-import { selectedActors } from "../apps/ui.js";
 /**
  * Leading from the front (Warfare, p11): someone in a Warband may add their own
  * Attack dice to its roll, and then takes whatever Damage it takes until their
  * next turn.
  */
 
+import { selectedActors } from "../canvas/selected.js";
 import { outOfFight } from "../rules/virtues.js";
 import { updateActors } from "./actor-updates.js";
 import { worldKnights } from "./knights.js";

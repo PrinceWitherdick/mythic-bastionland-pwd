@@ -3,18 +3,21 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 import { createDuel } from "../../module/rules/duel.js";
 
 vi.mock("../../module/actions/attack.js", () => ({
+	joinAttack: vi.fn(async () => null),
+	showRolls: vi.fn()
+}));
+vi.mock("../../module/actions/attack-holders.js", () => ({
+	poolRerollers: vi.fn(() => []),
+	sigilHolders: vi.fn(() => [])
+}));
+vi.mock("../../module/chat/attack-view.js", () => ({
 	renderAttackCard: vi.fn(async () => "<section></section>"),
 	dieLabel: (die) => die.label,
-	cardTarget: () => ({}),
-	joinAttack: vi.fn(async () => null),
-	poolRerollers: vi.fn(() => []),
-	sigilHolders: vi.fn(() => []),
-	showRolls: vi.fn()
+	cardTarget: () => ({})
 }));
 vi.mock("../../module/actions/damage.js", async (importOriginal) => ({ ...(await importOriginal()), takeAttack: vi.fn(async () => true) }));
 vi.mock("../../module/actions/saves.js", () => ({ rollSave: vi.fn() }));
-vi.mock("../../module/apps/ui.js", async (importOriginal) => ({
-	...(await importOriginal()),
+vi.mock("../../module/apps/ui.js", () => ({
 	confirmDialog: vi.fn(async () => false),
 	inputDialog: vi.fn(async () => null)
 }));
@@ -28,7 +31,8 @@ vi.mock("../../module/actions/feats.js", async (importOriginal) => ({
 
 const { confirmDialog, inputDialog } = await import("../../module/apps/ui.js");
 const { payFeat, postFeat, rollFeat } = await import("../../module/actions/feats.js");
-const { joinAttack, poolRerollers, showRolls, sigilHolders } = await import("../../module/actions/attack.js");
+const { joinAttack, showRolls } = await import("../../module/actions/attack.js");
+const { poolRerollers, sigilHolders } = await import("../../module/actions/attack-holders.js");
 const { rollSave } = await import("../../module/actions/saves.js");
 const { takeAttack } = await import("../../module/actions/damage.js");
 const { registerAttackCards } = await import("../../module/chat/attack-card.js");
@@ -704,6 +708,8 @@ describe("turning a die with a rune (p100)", () => {
 		expect(renderCard(attackState()).sigil.hidden).toBe(true);
 		sigilHolders.mockReturnValue([{ actor: { uuid: "Actor.y", name: "Ysolde", isOwner: true }, item: abilityWithUses(3), number: 3 }]);
 		expect(renderCard(attackState()).sigil.hidden).toBe(false);
+		// Only this user's Knights are scanned for a rune.
+		expect(sigilHolders).toHaveBeenLastCalledWith(expect.anything(), { owned: true });
 	});
 
 	it("turns the die picked to the face asked for, and spends one of the rune's turns", async () => {
@@ -809,6 +815,7 @@ describe("combat audit of 2026-10-23", () => {
 		tokens["Actor.other"] = combatant({ uuid: "Actor.other", name: "Other", owners: ["player-1"] });
 		const card = renderCard(attackState({ gambits: [{ key: "stop", die: 0, strong: null, save: null }] }));
 		const save = { type: "gambitSave", index: 0, total: 4, target: 10, passed: true };
+		expect(await ask(save)).toBe(false);
 		expect(await ask({ ...save, actor: "Actor.other" })).toBe(false);
 		expect(card.message.update).not.toHaveBeenCalled();
 		expect(await ask({ ...save, actor: "Actor.k" })).toBe(true);

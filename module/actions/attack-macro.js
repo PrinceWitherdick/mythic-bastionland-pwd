@@ -1,4 +1,4 @@
-import { selectedActors } from "../apps/ui.js";
+import { selectedActors } from "../canvas/selected.js";
 import { t } from "../chat/cards.js";
 import { chooseActor } from "../apps/actor-pick.js";
 import { ownedAttackers } from "../chat/attack-card.js";

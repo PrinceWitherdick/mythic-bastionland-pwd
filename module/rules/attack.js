@@ -827,6 +827,23 @@ export const harmTargetOf = (system) => ({
 });
 
 /**
+ * What a joint Attack card's target is, for reckoning the Damage against it
+ * (p11): a Warband, a structure, a stone wall. A card at several reads them as
+ * one only where they all are. A lone attacker's card, and one whose target
+ * can't be found, is reckoned as it always was.
+ * @param {{joined?: object[], targets: {uuid: string}[]}} attack
+ * @param {(uuid: string) => {system: object}|null|undefined} actorOf A target's actor, from its Token's UUID.
+ * @returns {{warband?: boolean, structure?: boolean, stone?: boolean}}
+ */
+export function jointHarmTarget(attack, actorOf) {
+	if (!attack.joined?.length || !attack.targets.length) return {};
+	const actors = attack.targets.map((target) => actorOf(target.uuid));
+	if (!actors.every(Boolean)) return {};
+	const each = actors.map((actor) => harmTargetOf(actor.system));
+	return Object.fromEntries(HARM_BARS.map((bar) => [bar, each.every((target) => target[bar])]));
+}
+
+/**
  * Why one share of an Attack can't harm a target (p11): a Warband is harmed
  * only by Blast or large-scale Attacks, a structure only by fire, siege
  * weapons or large creatures, and a stone wall only by siege weapons.

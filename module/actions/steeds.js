@@ -304,7 +304,7 @@ export async function gallop() {
 		icon: "fa-solid fa-horse",
 		intro: t("steed.gallop.intro"),
 		ok: t("steed.gallop.ok"),
-		knightsOnly: true
+		include: isKnight
 	});
 	if (!company?.length) return null;
 

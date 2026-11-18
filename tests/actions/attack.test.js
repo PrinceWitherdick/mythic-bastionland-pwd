@@ -27,7 +27,8 @@ const { postCard } = await import("../../module/chat/cards.js");
 const { marksOn } = await import("../../module/chat/gambit-marks.js");
 const { knockedDownIn, openDuelFor } = await import("../../module/actions/duel.js");
 const { leaderCandidates } = await import("../../module/actions/leading.js");
-const { askPackGroups, attack, attackCardContext, joinAttack, joinPack, packRolled, rollPack, spendAttack, tellUsedUp } = await import("../../module/actions/attack.js");
+const { askPackGroups, attack, joinAttack, joinPack, packRolled, rollPack, spendAttack, tellUsedUp } = await import("../../module/actions/attack.js");
+const { attackCardContext } = await import("../../module/chat/attack-view.js");
 const { changePack } = await import("../../module/rules/pack.js");
 
 /** A weapon as the Attack dialog reads one off a sheet. */

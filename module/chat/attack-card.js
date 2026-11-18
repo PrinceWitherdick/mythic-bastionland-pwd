@@ -3,15 +3,17 @@ import { endStanceFromMove, takeStanceOnMove } from "../actions/stances.js";
 import { keepsSeat } from "../rules/property.js";
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { isBladedName } from "../rules/attack-fx.js";
-import { cardTarget, dieLabel, joinAttack, poolRerollers, renderAttackCard, showRolls, sigilHolders } from "../actions/attack.js";
-import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
+import { joinAttack, showRolls } from "../actions/attack.js";
+import { poolRerollers, sigilHolders } from "../actions/attack-holders.js";
+import { playDismountFx } from "../actions/attack-fx.js";
 import { duelOf } from "../actions/duel.js";
 import { mountedNow } from "../rules/duel.js";
 import { singleArmour, takeAttack } from "../actions/damage.js";
 import { canDenyAttack, denyStanding, featRefusal, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
 import { chooseActor } from "../apps/actor-pick.js";
-import { confirmDialog, inputDialog, selectedActors } from "../apps/ui.js";
+import { confirmDialog, inputDialog } from "../apps/ui.js";
+import { selectedActors } from "../canvas/selected.js";
 import { GAMBITS } from "../config.js";
 import { greaterEffectUpdate, greaterEffects, severEffects, tokenDocBox, withinArmsReach } from "../rules/armour.js";
 import {
@@ -45,6 +47,7 @@ import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { ATTACK_FLAG, attackOf, ownsAnAttacker, targeted } from "./attack-flag.js";
+import { cardTarget, dieLabel, renderAttackCard } from "./attack-view.js";
 import { guardedChanges, keepsRolls, onCardClick, ownedBy, plural, rollDicePool, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, slay, spendUse } from "../actions/abilities.js";
@@ -94,11 +97,7 @@ const CHANGE_GUARDS = Object.freeze({
 		return actors.length ? { type: "applied", names: actors.map((actor) => actor.name) } : null;
 	},
 	// Only a foe the card was aimed at Saves against its Gambits; a card at nobody, whoever its reader picks.
-	gambitSave: (change, attack, user) => {
-		const roller = ownedBy(change.actor, user);
-		if (!roller || (attack.targets.length && !targeted(attack, roller))) return null;
-		return { ...change, by: roller.name };
-	},
+	gambitSave: (change, attack, user) => (ownsLandingFoe(attack, user, change.actor) ? { ...change, by: ownedBy(change.actor, user).name } : null),
 	// Clearing a mark, or carrying out a Greater effect, is the business of whoever owns the foe.
 	// A mark is only ever laid on a foe the card was aimed at, so a card at nobody has none to clear.
 	dismissMark: (change, attack, user) => (attack.targets.length && ownsLandingFoe(attack, user, change.actor) ? change : null),
@@ -411,7 +410,7 @@ async function rollDismount(key) {
  * @param {string} key
  */
 function showDismount(key) {
-	if (key === "dismount") playDismountFx({ whispered: !chatIsPublic() });
+	if (key === "dismount") playDismountFx();
 }
 
 /**
@@ -1013,7 +1012,7 @@ async function onReroll(message) {
  */
 async function onSigil(message) {
 	const attack = attackOf(message);
-	const holders = sigilHolders(attack).filter(({ actor }) => actor.isOwner);
+	const holders = sigilHolders(attack, { owned: true });
 	if (!holders.length) return warn("attack.sigil.none");
 	const actor = await chooseActor([...new Set(holders.map((holder) => holder.actor))], { title: t("attack.sigil.button"), message: t("attack.sigil.who"), icon: "fa-solid fa-star" });
 	const holder = holders.find((each) => each.actor === actor);
@@ -1069,7 +1068,7 @@ function activateAttackCard(message, html) {
 		}
 		// Shown to whoever owns the Knight whose Ability or rune it is.
 		if (attackAction === "reroll") button.hidden = !poolRerollers(attack).some(({ actor }) => actor.isOwner);
-		if (attackAction === "sigil") button.hidden = !sigilHolders(attack).some(({ actor }) => actor.isOwner);
+		if (attackAction === "sigil") button.hidden = !sigilHolders(attack, { owned: true }).length;
 	}
 	if (denyButton || joinButton) {
 		const refresh = () => {

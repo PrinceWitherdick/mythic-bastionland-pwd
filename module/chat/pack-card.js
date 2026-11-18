@@ -1,4 +1,4 @@
-import { askPackGroups, joinPack, packRolled, packShown, renderPackCard, rollPack, spendAttack } from "../actions/attack.js";
+import { askPackGroups, joinPack, packRolled, rollPack, spendAttack } from "../actions/attack.js";
 import { chooseActor } from "../apps/actor-pick.js";
 import { confirmDialog } from "../apps/ui.js";
 import { askActiveGM } from "../ask-gm.js";
@@ -6,6 +6,7 @@ import { queryAsker } from "../compat.js";
 import { PACK_FLAG, canJoinPack, changePack, packAttackers, unspentShares } from "../rules/pack.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { joinersFor } from "./attack-card.js";
+import { packShown, renderPackCard } from "./attack-view.js";
 import { guardedChanges, keepsRolls, onCardClick, ownedBy, statefulCard, t, warn } from "./cards.js";
 import { registerQuery } from "../queries.js";
 import { serverNow } from "../server-now.js";

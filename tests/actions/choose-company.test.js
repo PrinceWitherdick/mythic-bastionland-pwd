@@ -17,6 +17,8 @@ let riding = {};
 vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(), companionsOf: (actor) => riding[actor.id] ?? [], worldCompanions: () => [] }));
 
 const { chooseCompany } = await import("../../module/actions/time.js");
+const { gainsGlory } = await import("../../module/actions/glory.js");
+const { isKnight } = await import("../../module/rules/knight-types.js");
 
 const knight = (id, name, age = "young") => ({ id, uuid: `Actor.${id}`, name, type: "knight", hasPlayerOwner: true, isOwner: true, system: { virtues: {}, age } });
 
@@ -140,7 +142,52 @@ describe("chooseCompany for Glory", () => {
 		for (const actor of game.actors) actor.system.gainsGlory = true;
 		game.actors.push(tam);
 		answer = {};
-		await chooseCompany({ title: "", icon: "", intro: "", ok: "", knightsOnly: true, later: [rival], gainsGlory: true });
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", later: [rival], include: (actor) => isKnight(actor) && gainsGlory(actor) });
 		expect(asked.context.members.map(({ name, included }) => [name, included])).toEqual([["Tal", true], ["Moss", true], ["Sir Rival", false]]);
+	});
+});
+
+describe("chooseCompany, include", () => {
+	afterEach(() => {
+		riding = {};
+	});
+
+	const boar = { uuid: "Actor.boar", name: "Boar", type: "npc", isOwner: true, system: { virtues: {} } };
+	const brand = () => ({ ...knight("brand", "Sir Brand"), type: "npcKnight", hasPlayerOwner: false });
+
+	it("with isKnight, leaves out those given who aren't Knights, wherever they were given, but keeps NPC Knights given", async () => {
+		const bayard = { uuid: "Actor.bayard", name: "Bayard", type: "npc", isOwner: true, system: { virtues: {} } };
+		const carrier = { ...boar, uuid: "Actor.carrier", name: "Carrier" };
+		const guide = { ...boar, uuid: "Actor.guide", name: "Guide" };
+		riding = { tal: [bayard] };
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", present: [carrier, brand()], others: [boar], later: [guide], companions: true, include: isKnight });
+		expect(asked.context.members.map(({ name, included }) => [name, included])).toEqual([["Sir Brand", true], ["Tal", true], ["Moss", true]]);
+	});
+
+	it("still lists only Company Knights from the selected Tokens and the world, whatever it lets through", async () => {
+		const sel = brand();
+		canvas.tokens.controlled = [{ actor: boar }, { actor: sel }];
+		game.actors.push(brand());
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", include: () => true });
+		expect(asked.context.members.map(({ name }) => name)).toEqual(["Tal", "Moss"]);
+	});
+
+	it("is asked of the selected Tokens and the world's Knights too, not only those given", async () => {
+		canvas.tokens.controlled = [{ actor: game.actors[1] }];
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", others: [boar], include: (actor) => actor.name !== "Moss" && actor.name !== "Boar" });
+		expect(asked.context.members.map(({ name }) => name)).toEqual(["Tal"]);
+	});
+
+	it("leaves out a Squire with gainsGlory, the Company's own or given (p7)", async () => {
+		const ned = { ...knight("ned", "Ned"), system: { virtues: {}, gainsGlory: false, isSquire: true } };
+		const tam = { ...knight("tam", "Tam"), system: { virtues: {}, gainsGlory: false, isSquire: true } };
+		for (const actor of game.actors) actor.system.gainsGlory = true;
+		game.actors.push(ned);
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", present: [tam], include: gainsGlory });
+		expect(asked.context.members.map(({ name }) => name)).toEqual(["Tal", "Moss"]);
 	});
 });

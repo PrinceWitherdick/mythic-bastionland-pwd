@@ -10,6 +10,7 @@ import {
 	damageAgainst,
 	harmBarred,
 	isAttacker,
+	jointHarmTarget,
 	isBlastAttack,
 	isIndividual,
 	lastingMarkBy,
@@ -922,6 +923,18 @@ describe("a joint Attack", () => {
 		expect(harmBarred({ structureHarm: { fire: true } }, { structure: true })).toBeNull();
 		expect(harmBarred({ structureHarm: { fire: true } }, { structure: true, stone: true })).toBe("stone");
 		expect(harmBarred({}, {})).toBeNull();
+	});
+
+	it("reads a joint Attack's targets as a Warband, a structure or stone only where all of them are (p11)", () => {
+		const systems = { "Token.band": { scale: "warband" }, "Token.wall": { structure: true, stone: true }, "Token.gate": { structure: true } };
+		const actorOf = (uuid) => (systems[uuid] ? { system: systems[uuid] } : null);
+		const at = (...uuids) => ({ joined: [{ actor: "Actor.tal" }], targets: uuids.map((uuid) => ({ uuid })) });
+		expect(jointHarmTarget(at("Token.band"), actorOf)).toEqual({ warband: true, structure: false, stone: false });
+		expect(jointHarmTarget(at("Token.wall", "Token.gate"), actorOf)).toEqual({ warband: false, structure: true, stone: false });
+		// One target lost, a lone attacker, or nobody aimed at: reckoned as ever.
+		expect(jointHarmTarget(at("Token.wall", "Token.gone"), actorOf)).toEqual({});
+		expect(jointHarmTarget({ ...at("Token.band"), joined: [] }, actorOf)).toEqual({});
+		expect(jointHarmTarget(at(), actorOf)).toEqual({});
 	});
 
 	it("says when nobody's share can harm the target at all", () => {

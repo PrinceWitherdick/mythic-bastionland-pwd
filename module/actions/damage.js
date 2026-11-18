@@ -17,7 +17,7 @@ import { afflictionsUpdate } from "./afflictions.js";
 import { downOf, moraleTrigger } from "../rules/morale.js";
 import { doomedBy } from "../rules/scars.js";
 import { SCANNED_MESSAGES, marksOn } from "../chat/gambit-marks.js";
-import { chatIsPublic, playDamageFx } from "./attack-fx.js";
+import { playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
 import { DEATH_FATE_FLAG, offerMortalRally, sidesOf } from "./knight-powers.js";
 import { alliesBeside } from "../rules/knight-powers.js";
@@ -506,7 +506,7 @@ export async function takeDamage(actor, preset = {}) {
 	if (mortallyWounded && !warden && preset.by) await offerMortalRally(actor, preset.by);
 	// What the blow looks like where it landed (module/actions/attack-fx.js): after the
 	// scores are written and the card says so, since it's only the map catching up.
-	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
+	playDamageFx(actor, result.outcome);
 
 	// Down, a Knight holds no stance taken for the fight's turns.
 	// Brought down, or a creature that counts as a structure destroyed (p11).
