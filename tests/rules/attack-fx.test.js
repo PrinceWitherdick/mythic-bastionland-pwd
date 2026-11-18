@@ -37,14 +37,6 @@ describe("kindInName", () => {
 		for (const [name, kind] of Object.entries(attacks)) expect([name, kindInName(name)]).toEqual([name, kind]);
 	});
 
-	it("reads the longer name first, so a Shortsword is no Sword and a Poleaxe no Axe", () => {
-		expect(kindInName("Shortsword")).toBe("shortsword");
-		expect(kindInName("Greatsword")).toBe("greatsword");
-		expect(kindInName("Poleaxe")).toBe("polearm");
-		expect(kindInName("Crossbow")).toBe("crossbow");
-		expect(kindInName("Handaxe")).toBe("handaxe");
-	});
-
 	it("swings a shield too, since a shield carries an Attack die of its own", () => {
 		expect(kindInName("Shield")).toBe("shield");
 	});

@@ -250,16 +250,6 @@ describe("an improvised weapon (p10, p194)", () => {
 		expect(rolled().impaired).toBe(true);
 	});
 
-	it("isn't rolled, quietly unarmed, from text that names no die", async () => {
-		for (const improvised of ["barrel", "8", "d 8"]) {
-			postCard.mockClear();
-			inputDialog.mockResolvedValue({ improvised });
-			expect(await attack(brute())).toBeNull();
-			expect(ui.notifications.warn).toHaveBeenLastCalledWith("bastionland.attack.improvisedUnread");
-			expect(postCard).not.toHaveBeenCalled();
-		}
-	});
-
 	it("isn't rolled with bonus dice that can't all be read, so none is quietly dropped", async () => {
 		for (const bonus of ["8", "d8+2", "d6, x"]) {
 			postCard.mockClear();
@@ -282,7 +272,7 @@ describe("an improvised weapon (p10, p194)", () => {
 	});
 
 	it("isn't rolled from a name with no die, or with a slip beside it", async () => {
-		for (const improvised of ["barrel", "barrel d8+2", "d 8"]) {
+		for (const improvised of ["barrel", "8", "barrel d8+2", "d 8"]) {
 			postCard.mockClear();
 			inputDialog.mockResolvedValue({ improvised });
 			expect(await attack(brute())).toBeNull();

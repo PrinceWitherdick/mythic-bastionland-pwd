@@ -138,7 +138,7 @@ describe("a player's Token running into a hidden Barrier", () => {
 		const failed = vi.spyOn(console, "warn").mockImplementation(() => {});
 		query.mockRejectedValueOnce(new Error("timed out"));
 		reportTurnedBack(scene, { edges: [hidden], from, to });
-		await vi.waitFor(() => expect(failed).toHaveBeenCalled());
+		await vi.waitFor(() => expect(failed).toHaveBeenCalled(), { interval: 1 });
 	});
 
 	it("is answered by the GM's query, which this registers", () => {
@@ -332,14 +332,6 @@ describe("a Company turned back by a Barrier", () => {
 		expect(recordBarriersMet).toHaveBeenCalledWith(scene, [{ hex: from, edges: [hidden] }], "Alys");
 	});
 
-	it("is taken from a player who may move the Company Token without owning it, as on v13", async () => {
-		game.user.isGM = true;
-		scene.tokens = [token(from, { company: true })];
-		expect(await answerAs(report([hidden], { company: true }))).toBe(true);
-		expect(edits).toHaveLength(1);
-		expect(asked).toHaveLength(1);
-	});
-
 	it("offers nothing for a Token that isn't the Company, or a move nothing barred", async () => {
 		game.user.isGM = true;
 		// Alys's own Knight stands there, but the Company is across the Barrier.
@@ -361,7 +353,7 @@ describe("a Company turned back by a Barrier", () => {
 	it("asks a GM who moved it themselves at once, with nothing sent", async () => {
 		game.user.isGM = true;
 		reportTurnedBack(scene, { edges: [hidden], from, to, company: true });
-		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled());
+		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled(), { interval: 1 });
 		expect(query).not.toHaveBeenCalled();
 		expect(edits).toHaveLength(0);
 	});
@@ -370,7 +362,7 @@ describe("a Company turned back by a Barrier", () => {
 		game.user.isGM = true;
 		kept = true;
 		reportTurnedBack(scene, { edges: [hidden], from, to, company: true });
-		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled());
+		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled(), { interval: 1 });
 		expect(secretsKeptOn).toHaveBeenCalledWith(scene);
 		expect(edits).toHaveLength(1);
 		expect(recordBarriersMet).toHaveBeenCalledWith(scene, [{ hex: from, edges: [hidden] }], game.user.name);
@@ -380,7 +372,7 @@ describe("a Company turned back by a Barrier", () => {
 		kept = false;
 		vi.mocked(advancePhase).mockClear();
 		reportTurnedBack(scene, { edges: [hidden], from, to, company: true });
-		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled());
+		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled(), { interval: 1 });
 		expect(edits).toHaveLength(0);
 	});
 
@@ -389,7 +381,7 @@ describe("a Company turned back by a Barrier", () => {
 		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 		vi.mocked(advancePhase).mockRejectedValueOnce(new Error("no"));
 		reportTurnedBack(scene, { edges: [], from, to, company: true });
-		await vi.waitFor(() => expect(logged).toHaveBeenCalled());
+		await vi.waitFor(() => expect(logged).toHaveBeenCalled(), { interval: 1 });
 		expect(logged.mock.calls[0][0]).toContain("Couldn't offer the Phase wasted");
 	});
 

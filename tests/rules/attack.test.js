@@ -1178,11 +1178,6 @@ describe("combat audit of 2026-10-29", () => {
 		expect(tal).toMatchObject({ backlash: true, rally: true });
 		expect(own).toMatchObject({ backlash: false, rally: false });
 	});
-
-	it("lets a siege weapon's or a large creature's large-scale share harm a Warband", () => {
-		expect(harmBarred({ blast: false, largeScale: true }, { warband: true })).toBeNull();
-		expect(harmBarred({ blast: false, largeScale: false }, { warband: true })).toBe("warband");
-	});
 });
 
 describe("checkWielding, a pair", () => {

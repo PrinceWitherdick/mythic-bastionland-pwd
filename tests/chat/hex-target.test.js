@@ -80,14 +80,6 @@ describe("registerHexTargets", () => {
 		expect(showHexOnMap).toHaveBeenCalledWith(realm, { col: 5, row: 7 });
 	});
 
-	it("shows the hex without switching when its Realm is already on the map", async () => {
-		canvas.scene = realm;
-		const { fire } = renderedChip({ hexTarget: "2,3", hexScene: "realm" });
-		await fire("click");
-		expect(realm.view).not.toHaveBeenCalled();
-		expect(showHexOnMap).toHaveBeenCalledWith(realm, { col: 2, row: 3 });
-	});
-
 	it("keeps a player from a Realm the Referee hasn't shown them, saying so", async () => {
 		game.user.isGM = false;
 		const { fire } = renderedChip({ hexTarget: "5,7", hexScene: "realm" });

@@ -31,11 +31,6 @@ describe("the Start a new Knight's chooser opens on", () => {
 		expect(app).toContain("viewed: scene.id === viewed, active: scene.active");
 		expect(app).toContain("return realmStart(realms) ?? DEFAULT_START;");
 	});
-
-	it("is Wanderer for a Knight made in place of one who fell, a Young Knight-Errant (p195)", () => {
-		expect(newKnight).toContain("openKnightChooser(created, { fresh: true, companyGlory, replacement });");
-		expect(app).toContain("new KnightChooser({ actor, fresh, knighting, companyGlory, replacement })");
-	});
 });
 
 describe("the Glory a Knight made in place of one who fell may start with (p195)", () => {

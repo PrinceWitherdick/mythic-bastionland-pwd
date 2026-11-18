@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { rollLabel } from "../../module/rules/book-art.js";
 import { hexDistance, hexKey } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
@@ -376,7 +376,8 @@ function fakeIndex() {
 
 const BEFORE = Object.freeze({ age: 3, season: "winter", day: 9, phase: "night" });
 
-beforeEach(() => {
+/** A fresh world, and the Foundry it runs in. */
+function setUpWorld() {
 	Object.assign(world, {
 		calendar: { ...BEFORE },
 		visits: [],
@@ -440,467 +441,531 @@ beforeEach(() => {
 	vi.spyOn(console, "warn").mockImplementation(() => {});
 	vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("no server"));
 	vi.clearAllMocks();
-});
+}
 
-afterEach(() => {
+function tearDownWorld() {
 	vi.restoreAllMocks();
 	for (const key of ["foundry", "Actor", "CONST", "Roll", "Hooks", "ui", "canvas", "game"]) delete globalThis[key];
-});
+}
 
 /** The Knights, by name. */
 const knights = () => Object.fromEntries(world.actors.filter((actor) => actor.type === "knight" && !actor.system.isSquire).map((actor) => [actor.name, actor]));
 
 describe.each([["with the book imported", true], ["without it", false]])("the test world, %s", (_label, imported) => {
-	beforeEach(() => {
-		if (imported) world.index = fakeIndex();
-	});
-
-	it("plays five Seasons to the Afternoon of Harvest in Age 2, and says it's done", async () => {
-		await populateTestWorld();
-		expect(ui.notifications.error).not.toHaveBeenCalled();
-		expect(world.calendar).toEqual({ age: 2, year: expect.any(Number), season: "harvest", day: expect.any(Number), phase: "afternoon" });
-		expect(ui.notifications.info).toHaveBeenLastCalledWith(expect.stringContaining("The test world is ready"));
-		expect(world.toolkit.sheet.render).toHaveBeenCalledWith({ force: true, tab: "places" });
-	});
-
-	it("keeps what it changes on the GM Toolkit, to put back", async () => {
-		await populateTestWorld();
-		expect(world.toolkit.flags[SYSTEM_ID][BEFORE_FLAG]).toEqual({
-			calendar: BEFORE,
-			notes: "<p>Mine</p>",
-			seasons: { "3-winter": { notes: "Mine" } },
-			settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null }, siteJournals: false },
-			// No Timeline yet, so removing the test world removes the one it made.
-			timeline: null
+	describe("played once, then read", () => {
+		// Played once for every test here, since each only reads what the story left behind.
+		beforeAll(async () => {
+			setUpWorld();
+			if (imported) world.index = fakeIndex();
+			await populateTestWorld();
 		});
-		expect(world.toolkit.system.notes).toContain("<h2>Where we left off</h2>");
-	});
+		afterAll(tearDownWorld);
 
-	it("writes the Timeline as the story goes: every thread, by hand and by itself, each row in its Season", async () => {
-		// A Timeline the GM owns, so the story's Rumours tag has somewhere to go.
-		world.timelineJournal = new FakeDocument({ pages: [] });
-		await populateTestWorld();
-		const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = knights();
-		const squire = world.actors.find((actor) => actor.system.isSquire);
-		const domain = world.actors.find((actor) => actor.type === "domain");
-		const rows = (target) => world.timeline[target]?.entries ?? [];
-		const titled = (target) => rows(target).map((row) => [row.season, row.source, row.title]);
-		// Every thread has rows written by hand, and the Company's begins at Court.
-		for (const thread of ["company", isolde.id, corvin.id, oswin.id, squire.id, domain.id, world.scene.id]) {
-			expect(rows(thread).some((row) => row.source === "hand")).toBe(true);
-		}
-		// The Company's begins with the three Knights joining it, then at Court.
-		expect(titled("company").slice(0, 4)).toEqual([
-			...["Dame Isolde Marrow", "Sir Corvin Ashby", "Sir Oswin Hale"].map((name) => ["1-spring", "joined", `timeline.auto.joinedCompany ${JSON.stringify({ name })}`]),
-			["1-spring", "hand", "Presented at Court"]
-		]);
-		for (const knight of [isolde, corvin, oswin]) expect(titled(knight.id)[0]).toEqual(["1-spring", "joined", "timeline.auto.joined"]);
-		expect(titled(isolde.id)).toContainEqual(["2-2-spring", "hand", "Grey at the temples"]);
-		// Glory for the tourney and the battle, the Squire taken, the Levy mustered and the Omens met.
-		expect(rows(isolde.id).filter((row) => row.source === "award").map((row) => row.title)).toEqual(["glory.awards.tournament.label", "glory.awards.battle.label"]);
-		expect(rows(oswin.id).some((row) => row.source === "award")).toBe(true);
-		expect(rows("company").filter((row) => row.source === "award")).toHaveLength(2);
-		expect(rows(isolde.id).some((row) => row.source === "squire")).toBe(true);
-		expect(rows(squire.id).some((row) => row.source === "squire")).toBe(true);
-		expect(rows(domain.id).some((row) => row.source === "warband")).toBe(true);
-		const omens = rows("company").filter((row) => row.source === "omen");
-		expect(omens.length).toBeGreaterThan(0);
-		expect(rows(world.scene.id).filter((row) => row.source === "omen")).toHaveLength(omens.length);
-		// What the game writes by itself, though the story makes it by hand: Scars, the Domain's founding and its Crisis Roll.
-		expect(rows(corvin.id).filter((row) => row.source === "scar").map((row) => row.season)).toEqual(["1-spring", "2-2-harvest"]);
-		expect(corvin.items.find((item) => item.type === "scar" && item.system.roll === 6).system.resolved).toBe(true);
-		expect(rows(isolde.id).filter((row) => row.source === "scar").map((row) => row.season)).toEqual(["1-harvest"]);
-		expect(rows(domain.id).map((row) => row.source)).toEqual(expect.arrayContaining(["founded", "crisis", "hand"]));
-		expect(rows(world.scene.id).some((row) => row.source === "founded")).toBe(true);
-		// Knights' lives: the joust at the tourney, the Mortal Wounds, the Gouge stitched, and the heir Isolde named; Corvin's is in the Age's own row.
-		const sources = (target, source) => rows(target).filter((row) => row.source === source).map((row) => row.season);
-		expect(sources(isolde.id, "duel")).toEqual(["1-harvest"]);
-		expect(rows(corvin.id).find((row) => row.source === "duel").title).toContain("timeline.auto.duelLost");
-		expect([sources(corvin.id, "mortal"), sources(isolde.id, "mortal"), sources(oswin.id, "mortal")]).toEqual([["1-spring"], ["1-harvest"], ["2-2-spring"]]);
-		expect(sources(corvin.id, "settled")).toEqual(["1-spring"]);
-		expect(sources(isolde.id, "heir")).toEqual(["2-2-harvest"]);
-		expect(sources(corvin.id, "heir")).toEqual([]);
-		// The Domain's: Oswin seated in its Circle, and a neighbour beside him by Harvest, two Warbands mustered and one let go,
-		// the Court's comings and goings, and the walls begun.
-		expect(sources(domain.id, "circle")).toEqual(["2-2-spring", "2-2-harvest"]);
-		expect(sources(oswin.id, "circle")).toEqual(["2-2-spring"]);
-		expect(rows(domain.id).filter((row) => row.source === "warband").map((row) => row.title.split(" ")[0])).toEqual(["timeline.auto.mustered", "timeline.auto.mustered", "timeline.auto.dismissed"]);
-		expect(rows(domain.id).filter((row) => row.source === "court").map((row) => row.title)).toEqual([
-			`timeline.auto.courtLeft ${JSON.stringify({ name: "Goodwife Anne of the Mill" })}`,
-			`timeline.auto.courtJoined ${JSON.stringify({ name: "Master Quill" })}`
-		]);
-		expect(sources(domain.id, "design")).toEqual(["2-2-harvest"]);
-		expect(dramaInCourt).toHaveBeenCalledWith(domain);
-		expect(resolveCrisis).toHaveBeenCalledWith(domain, 0);
-		expect(timelineLandmarkFound).toHaveBeenCalledWith(world.scene, expect.objectContaining({ col: expect.any(Number) }));
-		// Hand rows at the Domain link to it, and the hearsay wears the GM's own tag.
-		expect(rows(oswin.id).find((row) => row.title === "Courting the envoy").placeUuid).toBe(domain.uuid);
-		const [tag] = Object.values(world.timelineJournal.flags[SYSTEM_ID].timelineTags);
-		expect(tag).toMatchObject({ name: "Rumours" });
-		expect(rows("company").filter((row) => row.tag === tag.id).map((row) => row.title)).toEqual(["A pilgrim's tale", "Smoke to the north"]);
-		// Every Knight, the Squire and the Domain are seen by the players, so none of their threads is kept from them.
-		for (const actor of [isolde, corvin, oswin, squire, domain]) expect(actor.ownership).toEqual({ default: 2 });
-		// The recap goes on the Timeline, as the Ending a Session window's tickbox has it.
-		expect(endTheSession).toHaveBeenCalledWith(expect.objectContaining({ shareRecap: true }));
-	});
-
-	it("flags everything it makes", async () => {
-		await populateTestWorld();
-		for (const document of [...world.actors, ...world.journal, ...world.folders, world.scene]) {
-			expect(document.flags[SYSTEM_ID][TEST_FLAG]).toBe(true);
-		}
-		expect(Hooks.on).toHaveBeenCalledWith("preCreateChatMessage", expect.any(Function));
-		expect(Hooks.off).toHaveBeenCalledWith("preCreateChatMessage", 7);
-	});
-
-	it("gives the Knights the Glory, Ranks and Ages the story says", async () => {
-		await populateTestWorld();
-		const company = knights();
-		expect(Object.keys(company)).toEqual(["Dame Isolde Marrow", "Sir Corvin Ashby", "Sir Oswin Hale"]);
-		const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = company;
-		expect([isolde.system.glory, corvin.system.glory, oswin.system.glory]).toEqual([7, 5, 6]);
-		expect([isolde.system.age, corvin.system.age, oswin.system.age]).toEqual(["old", "mature", "mature"]);
-		expect(rollAging).toHaveBeenCalledWith(isolde, "old");
-		expect(corvin.system.successor).toBe(oswin.uuid);
-		expect(corvin.system.fatigued).toBe(true);
-		for (const knight of [isolde, corvin, oswin]) {
-			expect(knight.system.steed).toMatch(/^Actor\./);
-			expect(knight.system.notes).toContain("<h2>Chronicle</h2>");
-			expect(knight.items.some((item) => item.type === "weapon")).toBe(true);
-			expect(knight.items.some((item) => item.type === "armour")).toBe(true);
-		}
-	});
-
-	it("records each Scar in the Season it was taken", async () => {
-		await populateTestWorld();
-		const scars = Object.fromEntries(Object.entries(knights()).map(([name, actor]) => [name, actor.items.filter((item) => item.type === "scar").map((item) => [item.system.roll, item.system.season])]));
-		expect(scars).toEqual({
-			"Dame Isolde Marrow": [[10, "1-harvest"]],
-			"Sir Corvin Ashby": [[6, "1-spring"], [11, "2-2-harvest"]],
-			"Sir Oswin Hale": [[12, "2-2-spring"]]
+		it("plays five Seasons to the Afternoon of Harvest in Age 2, and says it's done", async () => {
+			expect(ui.notifications.error).not.toHaveBeenCalled();
+			expect(world.calendar).toEqual({ age: 2, year: expect.any(Number), season: "harvest", day: expect.any(Number), phase: "afternoon" });
+			expect(ui.notifications.info).toHaveBeenLastCalledWith(expect.stringContaining("The test world is ready"));
+			expect(world.toolkit.sheet.render).toHaveBeenCalledWith({ force: true, tab: "places" });
 		});
-	});
 
-	it("turns three Seasons and one Age, and writes about all five", async () => {
-		await populateTestWorld();
-		expect(closeSeason.mock.calls.map(([, key, turn]) => [key, turn.kind])).toEqual([["1-spring", "season"], ["1-harvest", "season"], ["1-winter", "age"], ["2-2-spring", "season"]]);
-		expect(writeSeasonNotes.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-2-spring", "2-2-harvest"]);
-		expect(recordMythCompleted).toHaveBeenCalledTimes(1);
-		// The Myth goes on the Timeline too, with the Knights who took Glory for it.
-		expect(timelineMythCompleted).toHaveBeenCalledTimes(1);
-		expect(vi.mocked(timelineMythCompleted).mock.calls[0][0].knights).toHaveLength(3);
-		const succession = closeSeason.mock.calls[2][2].knights.find((entry) => entry.name === "Sir Corvin Ashby");
-		expect(succession.pursuit).toBe("time.pursuits.succession.label");
-		expect(hardshipFor).toHaveBeenCalledWith(expect.objectContaining({ key: "winter" }), expect.any(Array));
-	});
-
-	it("walks one unbroken road from the Seat, a Phase a hex, and camps a hex further on", async () => {
-		await populateTestWorld();
-		const seat = world.realm.holdings.find((holding) => holding.seat);
-		expect(world.visits[0]).toEqual({ hex: seat.hex, when: { age: 1, season: "spring", day: 1, phase: "morning" } });
-		for (let index = 1; index < world.visits.length; index++) {
-			expect(hexDistance(world.g, world.visits[index - 1].hex, world.visits[index].hex)).toBe(1);
-		}
-		const order = (when) => [when.age, ["spring", "harvest", "winter"].indexOf(when.season), when.day, ["morning", "afternoon", "night"].indexOf(when.phase)];
-		const sorted = world.visits.map(({ when }) => order(when));
-		for (let index = 1; index < sorted.length; index++) expect(sorted[index].join() >= sorted[index - 1].join()).toBe(true);
-		// The Company's Token counts the camp as it's put there, so this Season's travel doesn't.
-		const [[, camp]] = setCompanyHex.mock.calls;
-		expect(hexDistance(world.g, world.visits.at(-1).hex, camp)).toBe(1);
-		const thisSeason = world.visits.filter(({ when }) => when.age === 2 && when.season === "harvest");
-		expect(thisSeason.some(({ hex }) => hexKey(hex) === hexKey(camp))).toBe(false);
-	});
-
-	it("writes up open country along the road as well as the places, and tells the players some of it", async () => {
-		await populateTestWorld();
-		const walked = new Set(world.visits.map(({ hex }) => hexKey(hex)));
-		const [[, camp]] = setCompanyHex.mock.calls;
-		walked.add(hexKey(camp));
-		const { isWilderness } = await import("../../module/test-world/plan.js");
-		const noted = Object.keys(world.notes);
-		const wild = noted.filter((key) => {
-			const [col, row] = key.split(",").map(Number);
-			return isWilderness(world.realm, { col, row });
+		it("keeps what it changes on the GM Toolkit, to put back", async () => {
+			expect(world.toolkit.flags[SYSTEM_ID][BEFORE_FLAG]).toEqual({
+				calendar: BEFORE,
+				notes: "<p>Mine</p>",
+				seasons: { "3-winter": { notes: "Mine" } },
+				settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null }, siteJournals: false },
+				// No Timeline yet, so removing the test world removes the one it made.
+				timeline: null
+			});
+			expect(world.toolkit.system.notes).toContain("<h2>Where we left off</h2>");
 		});
-		expect(noted.length).toBeGreaterThanOrEqual(12);
-		expect(wild.length).toBeGreaterThanOrEqual(4);
-		// The GM only writes up the wilds the Company went through.
-		for (const key of wild) expect(walked.has(key)).toBe(true);
-		expect(world.told.length).toBeGreaterThanOrEqual(8);
-		for (const { hex } of world.told) expect(walked.has(hexKey(hex))).toBe(true);
-		// Told quietly, so a notification for each doesn't bury the build's own.
-		for (const [options] of tellPlayersAboutHex.mock.calls) expect(options.quiet).toBe(true);
-	});
 
-	it("tells the players more of some wayside hexes in a later Season, and the Company rewrites its note", async () => {
-		await populateTestWorld();
-		const byHex = Object.groupBy(world.told, ({ hex }) => hexKey(hex));
-		const retold = Object.entries(byHex).filter(([, told]) => new Set(told.map(({ note }) => note)).size > 1);
-		expect(retold.length).toBeGreaterThanOrEqual(3);
-		for (const [key, told] of retold) {
-			expect(told.at(-1).note).toBe(world.notes[key]);
-			expect(world.shared.hexes[key]?.party?.text).toBeTruthy();
-		}
-		// A Company's note can run to more than one line.
-		expect(Object.values(world.shared.hexes).some((record) => record.party?.text.includes("\n"))).toBe(true);
-	});
-
-	it("keeps the hidden Barriers the Company ran into, each with who found it", async () => {
-		const { recordBarriersMet } = await import("../../module/actions/hex-shared.js");
-		await populateTestWorld();
-		const walked = new Set(world.visits.map(({ hex }) => hexKey(hex)));
-		expect(recordBarriersMet).toHaveBeenCalled();
-		for (const [, met, byName] of recordBarriersMet.mock.calls) {
-			expect(byName).toBeTruthy();
-			for (const { hex, edges } of met) {
-				expect(walked.has(hexKey(hex))).toBe(true);
-				for (const edge of edges) expect(edge.split("|")).toContain(hexKey(hex));
+		it("flags everything it makes", async () => {
+			for (const document of [...world.actors, ...world.journal, ...world.folders, world.scene]) {
+				expect(document.flags[SYSTEM_ID][TEST_FLAG]).toBe(true);
 			}
-		}
-		const revealed = world.realm.barriers.filter((barrier) => barrier.revealed).map((barrier) => barrier.edge);
-		for (const [, met] of recordBarriersMet.mock.calls) for (const { edges } of met) for (const edge of edges) expect(revealed).toContain(edge);
-	});
+			expect(Hooks.on).toHaveBeenCalledWith("preCreateChatMessage", expect.any(Function));
+			expect(Hooks.off).toHaveBeenCalledWith("preCreateChatMessage", 7);
+		});
 
-	it("marks only hidden things beside the end of the road as seen from afar", async () => {
-		const { neighbours } = await import("../../module/rules/realm-geometry.js");
-		const { hiddenThere } = await import("../../module/rules/sighted.js");
-		await populateTestWorld();
-		const [[, camp]] = setCompanyHex.mock.calls;
-		const near = new Set([camp, ...world.visits.slice(-4).map(({ hex }) => hex)]
-			.flatMap((hex) => neighbours(world.g, hex).map(({ hex: next }) => hexKey(next))));
-		expect(Object.keys(world.sighted).length).toBeGreaterThan(0);
-		for (const [key, mark] of Object.entries(world.sighted)) {
-			const [col, row] = key.split(",").map(Number);
-			expect(near.has(key)).toBe(true);
-			expect(hiddenThere(world.realm, { col, row }, () => ({}))).not.toBeNull();
-			expect(mark.note).toBeTruthy();
-		}
-	});
+		it("gives the Knights the Glory, Ranks and Ages the story says", async () => {
+			const company = knights();
+			expect(Object.keys(company)).toEqual(["Dame Isolde Marrow", "Sir Corvin Ashby", "Sir Oswin Hale"]);
+			const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = company;
+			expect([isolde.system.glory, corvin.system.glory, oswin.system.glory]).toEqual([7, 5, 6]);
+			expect([isolde.system.age, corvin.system.age, oswin.system.age]).toEqual(["old", "mature", "mature"]);
+			expect(rollAging).toHaveBeenCalledWith(isolde, "old");
+			expect(corvin.system.successor).toBe(oswin.uuid);
+			expect(corvin.system.fatigued).toBe(true);
+			for (const knight of [isolde, corvin, oswin]) {
+				expect(knight.system.steed).toMatch(/^Actor\./);
+				expect(knight.system.notes).toContain("<h2>Chronicle</h2>");
+				expect(knight.items.some((item) => item.type === "weapon")).toBe(true);
+				expect(knight.items.some((item) => item.type === "armour")).toBe(true);
+			}
+		});
 
-	it("tells the players of a place heard of at Court before the Company goes there", async () => {
-		await populateTestWorld();
-		const dwelling = world.told.find(({ note }) => note?.includes("Said at Court"));
-		expect(dwelling?.when).toMatchObject({ age: 1, season: "spring" });
-	});
+		it("records each Scar in the Season it was taken", async () => {
+			const scars = Object.fromEntries(Object.entries(knights()).map(([name, actor]) => [name, actor.items.filter((item) => item.type === "scar").map((item) => [item.system.roll, item.system.season])]));
+			expect(scars).toEqual({
+				"Dame Isolde Marrow": [[10, "1-harvest"]],
+				"Sir Corvin Ashby": [[6, "1-spring"], [11, "2-2-harvest"]],
+				"Sir Oswin Hale": [[12, "2-2-spring"]]
+			});
+		});
 
-	it("keeps what the players were told of the Seat as it was, though the GM's note has moved on", async () => {
-		await populateTestWorld();
-		const seat = world.realm.holdings.find((holding) => holding.seat);
-		const told = world.told.find(({ hex }) => hexKey(hex) === hexKey(seat.hex));
-		expect(told.when).toMatchObject({ age: 1, season: "spring" });
-		expect(told.note).not.toContain("owes money");
-		expect(world.notes[hexKey(seat.hex)]).toContain("owes money");
-	});
+		it("turns three Seasons and one Age, and writes about all five", async () => {
+			expect(closeSeason.mock.calls.map(([, key, turn]) => [key, turn.kind])).toEqual([["1-spring", "season"], ["1-harvest", "season"], ["1-winter", "age"], ["2-2-spring", "season"]]);
+			expect(writeSeasonNotes.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-2-spring", "2-2-harvest"]);
+			expect(recordMythCompleted).toHaveBeenCalledTimes(1);
+			// The Myth goes on the Timeline too, with the Knights who took Glory for it.
+			expect(timelineMythCompleted).toHaveBeenCalledTimes(1);
+			expect(vi.mocked(timelineMythCompleted).mock.calls[0][0].knights).toHaveLength(3);
+			const succession = closeSeason.mock.calls[2][2].knights.find((entry) => entry.name === "Sir Corvin Ashby");
+			expect(succession.pursuit).toBe("time.pursuits.succession.label");
+			expect(hardshipFor).toHaveBeenCalledWith(expect.objectContaining({ key: "winter" }), expect.any(Array));
+		});
 
-	it("has the players take turns writing the Company's notes on places they've been", async () => {
-		await populateTestWorld();
-		const notes = Object.entries(world.shared.hexes).filter(([, record]) => record.party).map(([key, record]) => [key, record.party]);
-		expect(notes.length).toBeGreaterThanOrEqual(8);
-		expect(new Set(notes.map(([, party]) => party.byName))).toEqual(new Set(["Alys", "Bram"]));
-		for (const [, party] of notes) expect(party).toMatchObject({ text: expect.any(String), when: expect.objectContaining({ age: expect.any(Number) }) });
-	});
+		it("walks one unbroken road from the Seat, a Phase a hex, and camps a hex further on", async () => {
+			const seat = world.realm.holdings.find((holding) => holding.seat);
+			expect(world.visits[0]).toEqual({ hex: seat.hex, when: { age: 1, season: "spring", day: 1, phase: "morning" } });
+			for (let index = 1; index < world.visits.length; index++) {
+				expect(hexDistance(world.g, world.visits[index - 1].hex, world.visits[index].hex)).toBe(1);
+			}
+			const order = (when) => [when.age, ["spring", "harvest", "winter"].indexOf(when.season), when.day, ["morning", "afternoon", "night"].indexOf(when.phase)];
+			const sorted = world.visits.map(({ when }) => order(when));
+			for (let index = 1; index < sorted.length; index++) expect(sorted[index].join() >= sorted[index - 1].join()).toBe(true);
+			// The Company's Token counts the camp as it's put there, so this Season's travel doesn't.
+			const [[, camp]] = setCompanyHex.mock.calls;
+			expect(hexDistance(world.g, world.visits.at(-1).hex, camp)).toBe(1);
+			const thisSeason = world.visits.filter(({ when }) => when.age === 2 && when.season === "harvest");
+			expect(thisSeason.some(({ hex }) => hexKey(hex) === hexKey(camp))).toBe(false);
+		});
 
-	it("signs the Company's notes as the GM in a world with no players", async () => {
-		game.users = [game.user];
-		await populateTestWorld();
-		const names = Object.values(world.shared.hexes).filter((record) => record.party).map((record) => record.party.byName);
-		expect(names.length).toBeGreaterThan(0);
-		expect(new Set(names)).toEqual(new Set(["Gamemaster"]));
-	});
+		it("writes up open country along the road as well as the places, and tells the players some of it", async () => {
+			const walked = new Set(world.visits.map(({ hex }) => hexKey(hex)));
+			const [[, camp]] = setCompanyHex.mock.calls;
+			walked.add(hexKey(camp));
+			const { isWilderness } = await import("../../module/test-world/plan.js");
+			const noted = Object.keys(world.notes);
+			const wild = noted.filter((key) => {
+				const [col, row] = key.split(",").map(Number);
+				return isWilderness(world.realm, { col, row });
+			});
+			expect(noted.length).toBeGreaterThanOrEqual(12);
+			expect(wild.length).toBeGreaterThanOrEqual(4);
+			// The GM only writes up the wilds the Company went through.
+			for (const key of wild) expect(walked.has(key)).toBe(true);
+			expect(world.told.length).toBeGreaterThanOrEqual(8);
+			for (const { hex } of world.told) expect(walked.has(hexKey(hex))).toBe(true);
+			// Told quietly, so a notification for each doesn't bury the build's own.
+			for (const [options] of tellPlayersAboutHex.mock.calls) expect(options.quiet).toBe(true);
+		});
 
-	it("resolves the first Myth and replaces it, and leaves two more part met", async () => {
-		const { editRealm } = await import("../../module/actions/realm.js");
-		await populateTestWorld();
-		const resolved = editMythNote.mock.calls.find(([, , changes]) => changes.resolved === true);
-		expect(resolved).toBeTruthy();
-		const [, first] = resolved;
-		const now = world.realm.myths.find((myth) => myth.number === first.number);
-		expect(now.omen).toBe(0);
-		expect([now.d6, now.d12]).not.toEqual([first.d6, first.d12]);
-		const omens = world.realm.myths.map((myth) => myth.omen).sort();
-		expect(omens).toEqual([0, 0, 0, 0, 1, 3]);
-		expect(editRealm).toHaveBeenCalled();
-	});
+		it("tells the players more of some wayside hexes in a later Season, and the Company rewrites its note", async () => {
+			const byHex = Object.groupBy(world.told, ({ hex }) => hexKey(hex));
+			const retold = Object.entries(byHex).filter(([, told]) => new Set(told.map(({ note }) => note)).size > 1);
+			expect(retold.length).toBeGreaterThanOrEqual(3);
+			for (const [key, told] of retold) {
+				expect(told.at(-1).note).toBe(world.notes[key]);
+				expect(world.shared.hexes[key]?.party?.text).toBeTruthy();
+			}
+			// A Company's note can run to more than one line.
+			expect(Object.values(world.shared.hexes).some((record) => record.party?.text.includes("\n"))).toBe(true);
+		});
 
-	it("grants a Domain facing one Crisis from its Spring roll, resolved by Harvest, and makes two Sites", async () => {
-		await populateTestWorld();
-		const [domain] = world.actors.filter((actor) => actor.type === "domain");
-		expect(resolveCrisis).toHaveBeenCalledTimes(1);
-		expect(domain.system.crises).toEqual([]);
-		expect(domain.system.crisisRolled).toBe("2-2-spring");
-		// Oswin first, and one of the neighbours by Harvest of Age 2.
-		expect(domain.system.council.circle).toEqual([knights()["Sir Oswin Hale"].id, expect.any(String)]);
-		expect(knights()["Dame Isolde Marrow"].system.domain).toBe(domain.uuid);
-		const sites = world.journal.filter((entry) => entry.flags.core.sheetClass === "mythic-bastionland-pwd.SiteSheet");
-		expect(sites).toHaveLength(2);
-		expect(sites[0].flags[SYSTEM_ID].site.points).toBeTruthy();
-	});
+		it("keeps the hidden Barriers the Company ran into, each with who found it", async () => {
+			const { recordBarriersMet } = await import("../../module/actions/hex-shared.js");
+			const walked = new Set(world.visits.map(({ hex }) => hexKey(hex)));
+			expect(recordBarriersMet).toHaveBeenCalled();
+			for (const [, met, byName] of recordBarriersMet.mock.calls) {
+				expect(byName).toBeTruthy();
+				for (const { hex, edges } of met) {
+					expect(walked.has(hexKey(hex))).toBe(true);
+					for (const edge of edges) expect(edge.split("|")).toContain(hexKey(hex));
+				}
+			}
+			const revealed = world.realm.barriers.filter((barrier) => barrier.revealed).map((barrier) => barrier.edge);
+			for (const [, met] of recordBarriersMet.mock.calls) for (const { edges } of met) for (const edge of edges) expect(revealed).toContain(edge);
+		});
 
-	it("files the written Myth in a Your Myths folder the world has already, and leaves that folder be", async () => {
-		const mine = new FakeDocument({ name: "Your Myths", type: "JournalEntry", flags: { [SYSTEM_ID]: { ownMythsFolder: true } } });
-		world.folders.push(mine);
-		await populateTestWorld();
-		const entry = world.journal.find((candidate) => candidate.flags[SYSTEM_ID].ownMyth);
-		expect(entry.folder).toBe(mine.id);
-		expect(mine.flags[SYSTEM_ID].testWorld).toBeUndefined();
-	});
+		it("marks only hidden things beside the end of the road as seen from afar", async () => {
+			const { neighbours } = await import("../../module/rules/realm-geometry.js");
+			const { hiddenThere } = await import("../../module/rules/sighted.js");
+			const [[, camp]] = setCompanyHex.mock.calls;
+			const near = new Set([camp, ...world.visits.slice(-4).map(({ hex }) => hex)]
+				.flatMap((hex) => neighbours(world.g, hex).map(({ hex: next }) => hexKey(next))));
+			expect(Object.keys(world.sighted).length).toBeGreaterThan(0);
+			for (const [key, mark] of Object.entries(world.sighted)) {
+				const [col, row] = key.split(",").map(Number);
+				expect(near.has(key)).toBe(true);
+				expect(hiddenThere(world.realm, { col, row }, () => ({}))).not.toBeNull();
+				expect(mark.note).toBeTruthy();
+			}
+		});
 
-	it("writes a Myth of the Referee's own and makes it the third of the Realm's, met once", async () => {
-		await populateTestWorld();
-		const written = world.journal.filter((entry) => entry.flags.core.sheetClass === "mythic-bastionland-pwd.OwnMythSheet");
-		expect(written).toHaveLength(1);
-		const [entry] = written;
-		expect(entry.name).toBe("The Bell Under the Mere");
-		expect(entry.flags[SYSTEM_ID].testWorld).toBe(true);
-		// Filed with the Referee's own Myths, in the folder New Myth uses, made for it and so removed with the test world.
-		const folder = world.folders.find((candidate) => candidate.id === entry.folder);
-		expect(folder.flags[SYSTEM_ID]).toEqual({ ownMythsFolder: true, testWorld: true });
-		const myth = entry.flags[SYSTEM_ID].ownMyth;
-		expect(myth.omens.filter(Boolean)).toHaveLength(6);
-		expect(myth.table.rows.every((row) => row.every(Boolean))).toBe(true);
-		// Its picture is one of the book's, borrowed from a Myth the Realm doesn't hold, and there's none without the book.
-		const held = world.realm.myths.filter((candidate) => !candidate.own).map(({ d6, d12 }) => `art/myth-${d6}-${String(d12).padStart(2, "0")}.webp`);
-		if (imported) {
-			expect(myth.img).toMatch(/^art\/myth-/);
-			expect(held).not.toContain(myth.img);
-		} else {
-			expect(myth.img).toBe("");
-		}
-		const inRealm = world.realm.myths.filter((candidate) => candidate.own === entry.id);
-		expect(world.folders.filter((candidate) => candidate.flags?.[SYSTEM_ID]?.ownMythsFolder)).toHaveLength(1);
-		expect(inRealm).toHaveLength(1);
-		expect(inRealm[0]).toMatchObject({ d6: null, d12: null, omen: 1 });
-	});
+		it("tells the players of a place heard of at Court before the Company goes there", async () => {
+			const dwelling = world.told.find(({ note }) => note?.includes("Said at Court"));
+			expect(dwelling?.when).toMatchObject({ age: 1, season: "spring" });
+		});
 
-	it("writes two Knights of the Referee's own, ready to choose: one left free, one a neighbour whose Seer keeps the Sanctum", async () => {
-		const { OWN_KNIGHT_SHEET_CLASS } = await import("../../module/actions/own-knights.js");
-		const { normaliseOwnKnight } = await import("../../module/rules/own-knights.js");
-		await populateTestWorld();
-		const written = world.journal.filter((entry) => entry.flags.core.sheetClass === OWN_KNIGHT_SHEET_CLASS);
-		expect(written.map((entry) => entry.name)).toEqual(["The Lamplighter Knight", "The Bell Knight"]);
-		const [lamplighter, bell] = written;
-		const folder = world.folders.find((candidate) => candidate.id === lamplighter.folder);
-		expect(folder.flags[SYSTEM_ID]).toEqual({ ownKnightsFolder: true, testWorld: true });
-		for (const entry of written) {
-			expect(entry.folder).toBe(folder.id);
-			expect(entry.ownership).toEqual({ default: 2 });
+		it("keeps what the players were told of the Seat as it was, though the GM's note has moved on", async () => {
+			const seat = world.realm.holdings.find((holding) => holding.seat);
+			const told = world.told.find(({ hex }) => hexKey(hex) === hexKey(seat.hex));
+			expect(told.when).toMatchObject({ age: 1, season: "spring" });
+			expect(told.note).not.toContain("owes money");
+			expect(world.notes[hexKey(seat.hex)]).toContain("owes money");
+		});
+
+		it("has the players take turns writing the Company's notes on places they've been", async () => {
+			const notes = Object.entries(world.shared.hexes).filter(([, record]) => record.party).map(([key, record]) => [key, record.party]);
+			expect(notes.length).toBeGreaterThanOrEqual(8);
+			expect(new Set(notes.map(([, party]) => party.byName))).toEqual(new Set(["Alys", "Bram"]));
+			for (const [, party] of notes) expect(party).toMatchObject({ text: expect.any(String), when: expect.objectContaining({ age: expect.any(Number) }) });
+		});
+
+		it("resolves the first Myth and replaces it, and leaves two more part met", async () => {
+			const { editRealm } = await import("../../module/actions/realm.js");
+			const resolved = editMythNote.mock.calls.find(([, , changes]) => changes.resolved === true);
+			expect(resolved).toBeTruthy();
+			const [, first] = resolved;
+			const now = world.realm.myths.find((myth) => myth.number === first.number);
+			expect(now.omen).toBe(0);
+			expect([now.d6, now.d12]).not.toEqual([first.d6, first.d12]);
+			const omens = world.realm.myths.map((myth) => myth.omen).sort();
+			expect(omens).toEqual([0, 0, 0, 0, 1, 3]);
+			expect(editRealm).toHaveBeenCalled();
+		});
+
+		it("grants a Domain facing one Crisis from its Spring roll, resolved by Harvest, and makes two Sites", async () => {
+			const [domain] = world.actors.filter((actor) => actor.type === "domain");
+			expect(resolveCrisis).toHaveBeenCalledTimes(1);
+			expect(domain.system.crises).toEqual([]);
+			expect(domain.system.crisisRolled).toBe("2-2-spring");
+			// Oswin first, and one of the neighbours by Harvest of Age 2.
+			expect(domain.system.council.circle).toEqual([knights()["Sir Oswin Hale"].id, expect.any(String)]);
+			expect(knights()["Dame Isolde Marrow"].system.domain).toBe(domain.uuid);
+			const sites = world.journal.filter((entry) => entry.flags.core.sheetClass === "mythic-bastionland-pwd.SiteSheet");
+			expect(sites).toHaveLength(2);
+			expect(sites[0].flags[SYSTEM_ID].site.points).toBeTruthy();
+		});
+
+		it("writes a Myth of the Referee's own and makes it the third of the Realm's, met once", async () => {
+			const written = world.journal.filter((entry) => entry.flags.core.sheetClass === "mythic-bastionland-pwd.OwnMythSheet");
+			expect(written).toHaveLength(1);
+			const [entry] = written;
+			expect(entry.name).toBe("The Bell Under the Mere");
 			expect(entry.flags[SYSTEM_ID].testWorld).toBe(true);
-			// Kept as the sheet keeps them, and whole: property, Ability, Passion, a table with sentences, and a Seer with scores.
-			const data = entry.flags[SYSTEM_ID].ownKnight;
-			expect(normaliseOwnKnight(data)).toEqual(data);
-			expect(data.knight).toMatchObject({ ability: { name: expect.any(String) }, passion: { name: expect.any(String) }, worksLike: expect.any(Number) });
-			expect(data.knight.table.rows.every((row) => row.every(Boolean))).toBe(true);
-			expect(data.knight.table.sentences.every((sentence) => sentence.includes("{entry}"))).toBe(true);
-			expect(Object.values(data.seer.stats).every(Number.isInteger)).toBe(true);
-			// Pictures borrowed from the book where it's imported, from Knights and Seers the Company aren't.
+			// Filed with the Referee's own Myths, in the folder New Myth uses, made for it and so removed with the test world.
+			const folder = world.folders.find((candidate) => candidate.id === entry.folder);
+			expect(folder.flags[SYSTEM_ID]).toEqual({ ownMythsFolder: true, testWorld: true });
+			const myth = entry.flags[SYSTEM_ID].ownMyth;
+			expect(myth.omens.filter(Boolean)).toHaveLength(6);
+			expect(myth.table.rows.every((row) => row.every(Boolean))).toBe(true);
+			// Its picture is one of the book's, borrowed from a Myth the Realm doesn't hold, and there's none without the book.
+			const held = world.realm.myths.filter((candidate) => !candidate.own).map(({ d6, d12 }) => `art/myth-${d6}-${String(d12).padStart(2, "0")}.webp`);
 			if (imported) {
-				expect(data.knight.img).toMatch(/^art\//);
-				expect(data.seer.img).toMatch(/^art\/seer-/);
-				expect(["art/1-01.webp", "art/1-10.webp", "art/4-07.webp"]).not.toContain(data.knight.img);
+				expect(myth.img).toMatch(/^art\/myth-/);
+				expect(held).not.toContain(myth.img);
 			} else {
-				expect([data.knight.img, data.seer.img]).toEqual(["", ""]);
+				expect(myth.img).toBe("");
 			}
-		}
-		// Nobody is the Lamplighter Knight, so a player can choose them.
-		expect(world.actors.filter((actor) => actor.system.knightType === "Lamplighter")).toEqual([]);
-		// Sir Gaspard is the Bell Knight, with what Choose a Knight gives.
-		const gaspard = world.actors.find((actor) => actor.name === "Sir Gaspard Lusk");
-		expect(gaspard.system).toMatchObject({ knightType: "Bell", seer: "The Tolling Seer" });
-		expect(gaspard.items.filter((item) => ["ability", "passion"].includes(item.type)).map((item) => item.name)).toEqual(["The Tolling", "The Answering Bell"]);
-		expect(gaspard.items.some((item) => item.type === "weapon" && item.name === "Bell-hammer")).toBe(true);
-		// The Sanctum's Seer is the Bell Knight's, and the Company met them there.
-		const sanctum = world.realm.landmarks.find((landmark) => landmark.seer?.own);
-		expect(sanctum).toMatchObject({ type: "sanctum", seer: { own: bell.id } });
-		expect(Object.values(world.notes).some((note) => note.includes("where The Tolling Seer keeps their vigil"))).toBe(true);
+			const inRealm = world.realm.myths.filter((candidate) => candidate.own === entry.id);
+			expect(world.folders.filter((candidate) => candidate.flags?.[SYSTEM_ID]?.ownMythsFolder)).toHaveLength(1);
+			expect(inRealm).toHaveLength(1);
+			expect(inRealm[0]).toMatchObject({ d6: null, d12: null, omen: 1 });
+		});
+
+		it("writes two Knights of the Referee's own, ready to choose: one left free, one a neighbour whose Seer keeps the Sanctum", async () => {
+			const { OWN_KNIGHT_SHEET_CLASS } = await import("../../module/actions/own-knights.js");
+			const { normaliseOwnKnight } = await import("../../module/rules/own-knights.js");
+			const written = world.journal.filter((entry) => entry.flags.core.sheetClass === OWN_KNIGHT_SHEET_CLASS);
+			expect(written.map((entry) => entry.name)).toEqual(["The Lamplighter Knight", "The Bell Knight"]);
+			const [lamplighter, bell] = written;
+			const folder = world.folders.find((candidate) => candidate.id === lamplighter.folder);
+			expect(folder.flags[SYSTEM_ID]).toEqual({ ownKnightsFolder: true, testWorld: true });
+			for (const entry of written) {
+				expect(entry.folder).toBe(folder.id);
+				expect(entry.ownership).toEqual({ default: 2 });
+				expect(entry.flags[SYSTEM_ID].testWorld).toBe(true);
+				// Kept as the sheet keeps them, and whole: property, Ability, Passion, a table with sentences, and a Seer with scores.
+				const data = entry.flags[SYSTEM_ID].ownKnight;
+				expect(normaliseOwnKnight(data)).toEqual(data);
+				expect(data.knight).toMatchObject({ ability: { name: expect.any(String) }, passion: { name: expect.any(String) }, worksLike: expect.any(Number) });
+				expect(data.knight.table.rows.every((row) => row.every(Boolean))).toBe(true);
+				expect(data.knight.table.sentences.every((sentence) => sentence.includes("{entry}"))).toBe(true);
+				expect(Object.values(data.seer.stats).every(Number.isInteger)).toBe(true);
+				// Pictures borrowed from the book where it's imported, from Knights and Seers the Company aren't.
+				if (imported) {
+					expect(data.knight.img).toMatch(/^art\//);
+					expect(data.seer.img).toMatch(/^art\/seer-/);
+					expect(["art/1-01.webp", "art/1-10.webp", "art/4-07.webp"]).not.toContain(data.knight.img);
+				} else {
+					expect([data.knight.img, data.seer.img]).toEqual(["", ""]);
+				}
+			}
+			// Nobody is the Lamplighter Knight, so a player can choose them.
+			expect(world.actors.filter((actor) => actor.system.knightType === "Lamplighter")).toEqual([]);
+			// Sir Gaspard is the Bell Knight, with what Choose a Knight gives.
+			const gaspard = world.actors.find((actor) => actor.name === "Sir Gaspard Lusk");
+			expect(gaspard.system).toMatchObject({ knightType: "Bell", seer: "The Tolling Seer" });
+			expect(gaspard.items.filter((item) => ["ability", "passion"].includes(item.type)).map((item) => item.name)).toEqual(["The Tolling", "The Answering Bell"]);
+			expect(gaspard.items.some((item) => item.type === "weapon" && item.name === "Bell-hammer")).toBe(true);
+			// The Sanctum's Seer is the Bell Knight's, and the Company met them there.
+			const sanctum = world.realm.landmarks.find((landmark) => landmark.seer?.own);
+			expect(sanctum).toMatchObject({ type: "sanctum", seer: { own: bell.id } });
+			expect(Object.values(world.notes).some((note) => note.includes("where The Tolling Seer keeps their vigil"))).toBe(true);
+		});
+
+		it("gives the Domain an heir, a Court, Council tasks and a Warband it feeds too little", async () => {
+			const [domain] = world.actors.filter((actor) => actor.type === "domain");
+			expect(domain.system.successor).toBe("Sir Oswin Hale");
+			// The petitioner has left by Harvest of Age 2, and a courtier come.
+			expect(Object.values(domain.system.court).map((member) => member.role)).toEqual(["retainer", "retainer", "retainer", "retainer", "retainer", "courtier", "courtier", "seer", "courtier"]);
+			expect(Object.values(domain.system.designs)).toEqual([expect.objectContaining({ scale: "works", what: "Rebuild the burnt palisade in stone" })]);
+			// Each of the four great seats is held by one of those Retainers.
+			const seated = ["steward", "marshal", "sheriff", "envoy"].map((seat) => domain.system.court[domain.system.council[seat]]);
+			expect(seated.map((member) => member?.role)).toEqual(["retainer", "retainer", "retainer", "retainer"]);
+			expect(Object.values(domain.system.court).every((member) => member.name)).toBe(true);
+			// The Circle's week is settled; the steward's Season and the envoy's are still in hand.
+			expect(settleTask).toHaveBeenCalledTimes(1);
+			expect(Object.values(domain.system.tasks).map((task) => [task.seat, task.scope, task.started.season])).toEqual([["steward", "season", "spring"], ["envoy", "season", "harvest"]]);
+			const [warband, sellswords] = world.actors.filter((actor) => actor.system.scale === "warband");
+			expect(warband.flags[SYSTEM_ID]).toMatchObject({ musteredBy: domain.id, warbandOrigin: "vassals", [TEST_FLAG]: true });
+			// The sellswords are let go, though their sheet stays.
+			expect(sellswords.flags[SYSTEM_ID]).toEqual({ warbandOrigin: "mercenaries", [TEST_FLAG]: true });
+			expect(wearWarbandDown).toHaveBeenCalledWith(warband, "poorlyFed");
+		});
+
+		it("has an NPC Knight with arms of their own ruling each Holding but Isolde's, so every Holding flies arms", async () => {
+			const { holdingRulers } = await import("../../module/rules/dominion.js");
+			const { "Dame Isolde Marrow": isolde } = knights();
+			const domains = world.actors.filter((actor) => actor.type === "domain");
+			const realms = [{ sceneId: world.scene.id, holdings: world.realm.holdings.map((holding, index) => ({ ...holding, id: `tile${index}` })) }];
+			const rulers = realms[0].holdings.map((holding) => holdingRulers(realms, domains, world.scene.id, holding.id));
+			expect(rulers.every((ruling) => ruling.length === 1)).toBe(true);
+			const neighbours = world.actors.filter((actor) => actor.type === "npcKnight");
+			expect(neighbours.map((knight) => knight.name)).toEqual(["Lord Aldric Vane", "Dame Mirela Thorne", "Sir Gaspard Lusk"]);
+			for (const knight of neighbours) {
+				const domain = domains.find((each) => each.uuid === knight.system.domain);
+				expect(domain.system.ruler).toBe(knight.name);
+				// Done for this Season, so the Referee isn't told they're owed.
+				expect(domain.system).toMatchObject({ crisisRolled: "2-2-harvest", dramaRolled: "2-2-harvest" });
+				expect(world.folders.find((folder) => folder.id === knight.folder)?.name).toBe("Neighbours");
+			}
+			// The Seat of Power is ruled as one.
+			const seat = rulers[world.realm.holdings.findIndex((holding) => holding.seat)][0];
+			expect(seat.system.seat).toBe(true);
+			expect(isolde.system.domain).toBe(domains[0].uuid);
+		});
+
+		it("seats some of the Knights on Councils, not all: Corvin as envoy at the Seat, a neighbour as its marshal, another in Isolde's Circle", async () => {
+			const { knightPosts } = await import("../../module/rules/court.js");
+			const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = knights();
+			const domains = world.actors.filter((actor) => actor.type === "domain");
+			const [isoldes] = domains;
+			const seat = domains.find((domain) => domain.system.seat);
+			const neighbours = world.actors.filter((actor) => actor.type === "npcKnight");
+			const ruler = neighbours.find((knight) => knight.system.domain === seat.uuid);
+			const [marshal, circle] = neighbours.filter((knight) => knight !== ruler);
+			const holder = (domain, chair) => domain.system.court[domain.system.council[chair]];
+			// Seated as Take a Seat seats them: each in the Court as a Retainer, known by id.
+			expect(holder(seat, "envoy")).toMatchObject({ role: "retainer", name: corvin.name, knight: corvin.id });
+			expect(holder(seat, "marshal")).toMatchObject({ role: "retainer", name: marshal.name, knight: marshal.id });
+			expect(isoldes.system.council.circle).toEqual([oswin.id, circle.id]);
+			// Each listed on their own sheet's Posts; the rulers hold no seat on anybody's Council.
+			const everyone = world.actors.filter((actor) => ["knight", "npcKnight"].includes(actor.type) && !actor.system.isSquire);
+			const seats = (knight) => domains.flatMap((domain) => knightPosts(domain, knight, everyone)).map((post) => post.post).filter((post) => post !== "ruler");
+			expect([seats(corvin), seats(marshal), seats(circle), seats(oswin)]).toEqual([["envoy"], ["marshal"], ["circle"], ["circle"]]);
+			expect([seats(isolde), seats(ruler)]).toEqual([[], []]);
+			// A neighbour new to their Rank holds it unproven (p6).
+			expect(knightPosts(seat, marshal, everyone)[0]).toMatchObject({ post: "marshal", rank: "gallant", proven: false });
+		});
+
+		it("gives Dame Isolde a Squire on a pony, and each Knight a folder of their own", async () => {
+			const { "Dame Isolde Marrow": isolde } = knights();
+			const squire = world.actors.find((actor) => actor.system.isSquire);
+			expect(squire.system.serves).toBe(isolde.uuid);
+			expect(isolde.system.squire).toBe(squire.uuid);
+			expect(world.actors.find((actor) => actor.uuid === squire.system.steed)?.type).toBe("npc");
+			for (const knight of Object.values(knights())) {
+				const folder = world.folders.find((candidate) => candidate.id === knight.folder);
+				expect(folder.flags[SYSTEM_ID].knight).toBe(knight.id);
+			}
+		});
+
+		it("makes the mere's ferry and pike with their sheets filled in", async () => {
+			const ferry = world.actors.find((actor) => actor.name === "The Grey Heron");
+			expect(ferry).toMatchObject({ type: "structure", system: { kind: "ship", armour: 1, guard: { value: 3, max: 6 } } });
+			expect(ferry.system.carries).not.toBe("");
+			expect(ferry.items.map((item) => item.type)).toEqual(["weapon", "weapon", "gear", "gear", "gear"]);
+			const pike = world.actors.find((actor) => actor.name === "Old Gullet");
+			expect(pike).toMatchObject({ type: "npc", system: { age: "old", wields: "free", weakness: { known: true }, feats: { deny: true } } });
+			expect(pike.system.inflicts).toHaveLength(1);
+			expect(pike.flags[SYSTEM_ID][TEST_FLAG]).toBe(true);
+		});
+
+		it("marks each Season's feasts and masses, and its collection as it turns", async () => {
+			expect(markSeasonEvent.mock.calls.map(([key]) => key)).toEqual([
+				"feastOfTheSun", "sceptremass", "feastOfTheStars", "eldermass", "feastOfTheMoon", "kindlemass", "feastOfTheSun", "sceptremass", "feastOfTheStars"
+			]);
+			expect(markCollection.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-2-spring"]);
+			expect(closeSeason.mock.calls[0][2].collection.name).toBe("tax");
+		});
+
+		it("leaves it raining, with two City Omens met, a Ruin's echo and the session ended", async () => {
+			expect(world.settings.weather).toBe("rain");
+			expect(rollCityOmen).toHaveBeenCalledTimes(2);
+			expect(echoRuin).toHaveBeenCalledTimes(1);
+			expect(endTheSession).toHaveBeenCalledWith(expect.objectContaining({ step: "none", situations: [expect.objectContaining({ d6: 4 }), expect.objectContaining({ d6: 4 })] }));
+		});
+
+		it(imported ? "rolls each Knight's table from the book" : "leaves the Knights' tables empty", async () => {
+			// The Company's, and Sir Gaspard's as the Bell Knight.
+			expect(rollKnightTable).toHaveBeenCalledTimes(imported ? 4 : 0);
+			if (imported) for (const knight of Object.values(knights())) expect(knight.system.bookTable.rolls).toEqual([3]);
+		});
+
+		it(imported ? "rolls Spark Tables and makes the Seer and a Myth's Cast from the book" : "leaves the book's Spark Tables and people out", async () => {
+			const npcs = world.actors.filter((actor) => actor.type === "npc").map((actor) => actor.name);
+			if (imported) {
+				expect(keepTableRoll.mock.calls.length).toBeGreaterThanOrEqual(10);
+				expect(new Set(keepTableRoll.mock.calls.map(([{ page }]) => page.key))).toEqual(new Set(["nature", "civilisation", "people", "combat"]));
+				// The Wilderness tables are rolled for a hex once, however often the story passes it.
+				const wilds = rollHexSparkSet.mock.calls.map(([{ hex }]) => hexKey(hex));
+				expect(wilds.length).toBeGreaterThanOrEqual(4);
+				expect(new Set(wilds).size).toBe(wilds.length);
+				expect(npcs.some((name) => / Seer$/.test(name))).toBe(true);
+				const cast = world.actors.find((actor) => /^Cast of /.test(actor.name));
+				expect(cast.flags[SYSTEM_ID].cast).toEqual({ myth: expect.any(String), from: cast.name });
+				expect(world.folders.find((folder) => folder.id === cast.folder).flags[SYSTEM_ID].cast).toBe(cast.flags[SYSTEM_ID].cast.myth);
+			} else {
+				expect(keepTableRoll).not.toHaveBeenCalled();
+				expect(rollHexSparkSet).not.toHaveBeenCalled();
+				// Three steeds, the Squire's pony, the Domain's levy and sellswords, the mere's pike, and the Seer the Referee wrote.
+				expect(npcs).toHaveLength(8);
+				expect(npcs).toContain("The Tolling Seer");
+			}
+		});
 	});
 
-	it("files the written Knights in a Your Knights folder the world has already, and leaves that folder be", async () => {
-		const mine = new FakeDocument({ name: "Your Knights", type: "JournalEntry", flags: { [SYSTEM_ID]: { ownKnightsFolder: true } } });
-		world.folders.push(mine);
-		await populateTestWorld();
-		const entries = world.journal.filter((candidate) => candidate.flags[SYSTEM_ID].ownKnight);
-		expect(entries.map((entry) => entry.folder)).toEqual([mine.id, mine.id]);
-		expect(mine.flags[SYSTEM_ID].testWorld).toBeUndefined();
-	});
+	describe("played in a world set up first", () => {
+		beforeEach(() => {
+			setUpWorld();
+			if (imported) world.index = fakeIndex();
+		});
+		afterEach(tearDownWorld);
 
-	it("turns Site journals on and makes each Site's at once, and removing it deletes them", async () => {
-		const { deleteSiteJournals, keepSiteJournal } = await import("../../module/actions/site-journals.js");
-		await populateTestWorld();
-		expect(world.settings.siteJournals).toBe(true);
-		expect(keepSiteJournal.mock.calls.map(([entry]) => entry)).toEqual(world.journal.filter((entry) => entry.flags[SYSTEM_ID].site));
+		it("writes the Timeline as the story goes: every thread, by hand and by itself, each row in its Season", async () => {
+			// A Timeline the GM owns, so the story's Rumours tag has somewhere to go.
+			world.timelineJournal = new FakeDocument({ pages: [] });
+			await populateTestWorld();
+			const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = knights();
+			const squire = world.actors.find((actor) => actor.system.isSquire);
+			const domain = world.actors.find((actor) => actor.type === "domain");
+			const rows = (target) => world.timeline[target]?.entries ?? [];
+			const titled = (target) => rows(target).map((row) => [row.season, row.source, row.title]);
+			// Every thread has rows written by hand, and the Company's begins at Court.
+			for (const thread of ["company", isolde.id, corvin.id, oswin.id, squire.id, domain.id, world.scene.id]) {
+				expect(rows(thread).some((row) => row.source === "hand")).toBe(true);
+			}
+			// The Company's begins with the three Knights joining it, then at Court.
+			expect(titled("company").slice(0, 4)).toEqual([
+				...["Dame Isolde Marrow", "Sir Corvin Ashby", "Sir Oswin Hale"].map((name) => ["1-spring", "joined", `timeline.auto.joinedCompany ${JSON.stringify({ name })}`]),
+				["1-spring", "hand", "Presented at Court"]
+			]);
+			for (const knight of [isolde, corvin, oswin]) expect(titled(knight.id)[0]).toEqual(["1-spring", "joined", "timeline.auto.joined"]);
+			expect(titled(isolde.id)).toContainEqual(["2-2-spring", "hand", "Grey at the temples"]);
+			// Glory for the tourney and the battle, the Squire taken, the Levy mustered and the Omens met.
+			expect(rows(isolde.id).filter((row) => row.source === "award").map((row) => row.title)).toEqual(["glory.awards.tournament.label", "glory.awards.battle.label"]);
+			expect(rows(oswin.id).some((row) => row.source === "award")).toBe(true);
+			expect(rows("company").filter((row) => row.source === "award")).toHaveLength(2);
+			expect(rows(isolde.id).some((row) => row.source === "squire")).toBe(true);
+			expect(rows(squire.id).some((row) => row.source === "squire")).toBe(true);
+			expect(rows(domain.id).some((row) => row.source === "warband")).toBe(true);
+			const omens = rows("company").filter((row) => row.source === "omen");
+			expect(omens.length).toBeGreaterThan(0);
+			expect(rows(world.scene.id).filter((row) => row.source === "omen")).toHaveLength(omens.length);
+			// What the game writes by itself, though the story makes it by hand: Scars, the Domain's founding and its Crisis Roll.
+			expect(rows(corvin.id).filter((row) => row.source === "scar").map((row) => row.season)).toEqual(["1-spring", "2-2-harvest"]);
+			expect(corvin.items.find((item) => item.type === "scar" && item.system.roll === 6).system.resolved).toBe(true);
+			expect(rows(isolde.id).filter((row) => row.source === "scar").map((row) => row.season)).toEqual(["1-harvest"]);
+			expect(rows(domain.id).map((row) => row.source)).toEqual(expect.arrayContaining(["founded", "crisis", "hand"]));
+			expect(rows(world.scene.id).some((row) => row.source === "founded")).toBe(true);
+			// Knights' lives: the joust at the tourney, the Mortal Wounds, the Gouge stitched, and the heir Isolde named; Corvin's is in the Age's own row.
+			const sources = (target, source) => rows(target).filter((row) => row.source === source).map((row) => row.season);
+			expect(sources(isolde.id, "duel")).toEqual(["1-harvest"]);
+			expect(rows(corvin.id).find((row) => row.source === "duel").title).toContain("timeline.auto.duelLost");
+			expect([sources(corvin.id, "mortal"), sources(isolde.id, "mortal"), sources(oswin.id, "mortal")]).toEqual([["1-spring"], ["1-harvest"], ["2-2-spring"]]);
+			expect(sources(corvin.id, "settled")).toEqual(["1-spring"]);
+			expect(sources(isolde.id, "heir")).toEqual(["2-2-harvest"]);
+			expect(sources(corvin.id, "heir")).toEqual([]);
+			// The Domain's: Oswin seated in its Circle, and a neighbour beside him by Harvest, two Warbands mustered and one let go,
+			// the Court's comings and goings, and the walls begun.
+			expect(sources(domain.id, "circle")).toEqual(["2-2-spring", "2-2-harvest"]);
+			expect(sources(oswin.id, "circle")).toEqual(["2-2-spring"]);
+			expect(rows(domain.id).filter((row) => row.source === "warband").map((row) => row.title.split(" ")[0])).toEqual(["timeline.auto.mustered", "timeline.auto.mustered", "timeline.auto.dismissed"]);
+			expect(rows(domain.id).filter((row) => row.source === "court").map((row) => row.title)).toEqual([
+				`timeline.auto.courtLeft ${JSON.stringify({ name: "Goodwife Anne of the Mill" })}`,
+				`timeline.auto.courtJoined ${JSON.stringify({ name: "Master Quill" })}`
+			]);
+			expect(sources(domain.id, "design")).toEqual(["2-2-harvest"]);
+			expect(dramaInCourt).toHaveBeenCalledWith(domain);
+			expect(resolveCrisis).toHaveBeenCalledWith(domain, 0);
+			expect(timelineLandmarkFound).toHaveBeenCalledWith(world.scene, expect.objectContaining({ col: expect.any(Number) }));
+			// Hand rows at the Domain link to it, and the hearsay wears the GM's own tag.
+			expect(rows(oswin.id).find((row) => row.title === "Courting the envoy").placeUuid).toBe(domain.uuid);
+			const [tag] = Object.values(world.timelineJournal.flags[SYSTEM_ID].timelineTags);
+			expect(tag).toMatchObject({ name: "Rumours" });
+			expect(rows("company").filter((row) => row.tag === tag.id).map((row) => row.title)).toEqual(["A pilgrim's tale", "Smoke to the north"]);
+			// Every Knight, the Squire and the Domain are seen by the players, so none of their threads is kept from them.
+			for (const actor of [isolde, corvin, oswin, squire, domain]) expect(actor.ownership).toEqual({ default: 2 });
+			// The recap goes on the Timeline, as the Ending a Session window's tickbox has it.
+			expect(endTheSession).toHaveBeenCalledWith(expect.objectContaining({ shareRecap: true }));
+		});
 
-		await populateTestWorld();
-		expect(deleteSiteJournals).toHaveBeenCalledWith(world.journal.map((entry) => entry.id));
-		expect(world.settings.siteJournals).toBe(false);
-	});
+		it("signs the Company's notes as the GM in a world with no players", async () => {
+			game.users = [game.user];
+			await populateTestWorld();
+			const names = Object.values(world.shared.hexes).filter((record) => record.party).map((record) => record.party.byName);
+			expect(names.length).toBeGreaterThan(0);
+			expect(new Set(names)).toEqual(new Set(["Gamemaster"]));
+		});
 
-	it("gives the Domain an heir, a Court, Council tasks and a Warband it feeds too little", async () => {
-		await populateTestWorld();
-		const [domain] = world.actors.filter((actor) => actor.type === "domain");
-		expect(domain.system.successor).toBe("Sir Oswin Hale");
-		// The petitioner has left by Harvest of Age 2, and a courtier come.
-		expect(Object.values(domain.system.court).map((member) => member.role)).toEqual(["retainer", "retainer", "retainer", "retainer", "retainer", "courtier", "courtier", "seer", "courtier"]);
-		expect(Object.values(domain.system.designs)).toEqual([expect.objectContaining({ scale: "works", what: "Rebuild the burnt palisade in stone" })]);
-		// Each of the four great seats is held by one of those Retainers.
-		const seated = ["steward", "marshal", "sheriff", "envoy"].map((seat) => domain.system.court[domain.system.council[seat]]);
-		expect(seated.map((member) => member?.role)).toEqual(["retainer", "retainer", "retainer", "retainer"]);
-		expect(Object.values(domain.system.court).every((member) => member.name)).toBe(true);
-		// The Circle's week is settled; the steward's Season and the envoy's are still in hand.
-		expect(settleTask).toHaveBeenCalledTimes(1);
-		expect(Object.values(domain.system.tasks).map((task) => [task.seat, task.scope, task.started.season])).toEqual([["steward", "season", "spring"], ["envoy", "season", "harvest"]]);
-		const [warband, sellswords] = world.actors.filter((actor) => actor.system.scale === "warband");
-		expect(warband.flags[SYSTEM_ID]).toMatchObject({ musteredBy: domain.id, warbandOrigin: "vassals", [TEST_FLAG]: true });
-		// The sellswords are let go, though their sheet stays.
-		expect(sellswords.flags[SYSTEM_ID]).toEqual({ warbandOrigin: "mercenaries", [TEST_FLAG]: true });
-		expect(wearWarbandDown).toHaveBeenCalledWith(warband, "poorlyFed");
-	});
+		it("files the written Myth in a Your Myths folder the world has already, and leaves that folder be", async () => {
+			const mine = new FakeDocument({ name: "Your Myths", type: "JournalEntry", flags: { [SYSTEM_ID]: { ownMythsFolder: true } } });
+			world.folders.push(mine);
+			await populateTestWorld();
+			const entry = world.journal.find((candidate) => candidate.flags[SYSTEM_ID].ownMyth);
+			expect(entry.folder).toBe(mine.id);
+			expect(mine.flags[SYSTEM_ID].testWorld).toBeUndefined();
+		});
 
-	it("has an NPC Knight with arms of their own ruling each Holding but Isolde's, so every Holding flies arms", async () => {
-		await populateTestWorld();
-		const { holdingRulers } = await import("../../module/rules/dominion.js");
-		const { "Dame Isolde Marrow": isolde } = knights();
-		const domains = world.actors.filter((actor) => actor.type === "domain");
-		const realms = [{ sceneId: world.scene.id, holdings: world.realm.holdings.map((holding, index) => ({ ...holding, id: `tile${index}` })) }];
-		const rulers = realms[0].holdings.map((holding) => holdingRulers(realms, domains, world.scene.id, holding.id));
-		expect(rulers.every((ruling) => ruling.length === 1)).toBe(true);
-		const neighbours = world.actors.filter((actor) => actor.type === "npcKnight");
-		expect(neighbours.map((knight) => knight.name)).toEqual(["Lord Aldric Vane", "Dame Mirela Thorne", "Sir Gaspard Lusk"]);
-		for (const knight of neighbours) {
-			const domain = domains.find((each) => each.uuid === knight.system.domain);
-			expect(domain.system.ruler).toBe(knight.name);
-			// Done for this Season, so the Referee isn't told they're owed.
-			expect(domain.system).toMatchObject({ crisisRolled: "2-2-harvest", dramaRolled: "2-2-harvest" });
-			expect(world.folders.find((folder) => folder.id === knight.folder)?.name).toBe("Neighbours");
-		}
-		// The Seat of Power is ruled as one.
-		const seat = rulers[world.realm.holdings.findIndex((holding) => holding.seat)][0];
-		expect(seat.system.seat).toBe(true);
-		expect(isolde.system.domain).toBe(domains[0].uuid);
-	});
+		it("files the written Knights in a Your Knights folder the world has already, and leaves that folder be", async () => {
+			const mine = new FakeDocument({ name: "Your Knights", type: "JournalEntry", flags: { [SYSTEM_ID]: { ownKnightsFolder: true } } });
+			world.folders.push(mine);
+			await populateTestWorld();
+			const entries = world.journal.filter((candidate) => candidate.flags[SYSTEM_ID].ownKnight);
+			expect(entries.map((entry) => entry.folder)).toEqual([mine.id, mine.id]);
+			expect(mine.flags[SYSTEM_ID].testWorld).toBeUndefined();
+		});
 
-	it("seats some of the Knights on Councils, not all: Corvin as envoy at the Seat, a neighbour as its marshal, another in Isolde's Circle", async () => {
-		await populateTestWorld();
-		const { knightPosts } = await import("../../module/rules/court.js");
-		const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = knights();
-		const domains = world.actors.filter((actor) => actor.type === "domain");
-		const [isoldes] = domains;
-		const seat = domains.find((domain) => domain.system.seat);
-		const neighbours = world.actors.filter((actor) => actor.type === "npcKnight");
-		const ruler = neighbours.find((knight) => knight.system.domain === seat.uuid);
-		const [marshal, circle] = neighbours.filter((knight) => knight !== ruler);
-		const holder = (domain, chair) => domain.system.court[domain.system.council[chair]];
-		// Seated as Take a Seat seats them: each in the Court as a Retainer, known by id.
-		expect(holder(seat, "envoy")).toMatchObject({ role: "retainer", name: corvin.name, knight: corvin.id });
-		expect(holder(seat, "marshal")).toMatchObject({ role: "retainer", name: marshal.name, knight: marshal.id });
-		expect(isoldes.system.council.circle).toEqual([oswin.id, circle.id]);
-		// Each listed on their own sheet's Posts; the rulers hold no seat on anybody's Council.
-		const everyone = world.actors.filter((actor) => ["knight", "npcKnight"].includes(actor.type) && !actor.system.isSquire);
-		const seats = (knight) => domains.flatMap((domain) => knightPosts(domain, knight, everyone)).map((post) => post.post).filter((post) => post !== "ruler");
-		expect([seats(corvin), seats(marshal), seats(circle), seats(oswin)]).toEqual([["envoy"], ["marshal"], ["circle"], ["circle"]]);
-		expect([seats(isolde), seats(ruler)]).toEqual([[], []]);
-		// A neighbour new to their Rank holds it unproven (p6).
-		expect(knightPosts(seat, marshal, everyone)[0]).toMatchObject({ post: "marshal", rank: "gallant", proven: false });
+		it("turns Site journals on and makes each Site's at once, and removing it deletes them", async () => {
+			const { deleteSiteJournals, keepSiteJournal } = await import("../../module/actions/site-journals.js");
+			await populateTestWorld();
+			expect(world.settings.siteJournals).toBe(true);
+			expect(keepSiteJournal.mock.calls.map(([entry]) => entry)).toEqual(world.journal.filter((entry) => entry.flags[SYSTEM_ID].site));
+
+			await populateTestWorld();
+			expect(deleteSiteJournals).toHaveBeenCalledWith(world.journal.map((entry) => entry.id));
+			expect(world.settings.siteJournals).toBe(false);
+		});
 	});
+});
+
+describe("the test world's Knights", () => {
+	beforeEach(setUpWorld);
+	afterEach(tearDownWorld);
 
 	it("draws arms at random, the charge in a tincture over each of the field's groups", async () => {
 		const { randomKnightArms } = await import("../../module/test-world/populate.js");
@@ -910,81 +975,12 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 			if (arms.charge) expect(arms.charge.tinctures).toHaveLength(arms.field.length);
 		}
 	});
-
-	it("gives Dame Isolde a Squire on a pony, and each Knight a folder of their own", async () => {
-		await populateTestWorld();
-		const { "Dame Isolde Marrow": isolde } = knights();
-		const squire = world.actors.find((actor) => actor.system.isSquire);
-		expect(squire.system.serves).toBe(isolde.uuid);
-		expect(isolde.system.squire).toBe(squire.uuid);
-		expect(world.actors.find((actor) => actor.uuid === squire.system.steed)?.type).toBe("npc");
-		for (const knight of Object.values(knights())) {
-			const folder = world.folders.find((candidate) => candidate.id === knight.folder);
-			expect(folder.flags[SYSTEM_ID].knight).toBe(knight.id);
-		}
-	});
-
-	it("makes the mere's ferry and pike with their sheets filled in", async () => {
-		await populateTestWorld();
-		const ferry = world.actors.find((actor) => actor.name === "The Grey Heron");
-		expect(ferry).toMatchObject({ type: "structure", system: { kind: "ship", armour: 1, guard: { value: 3, max: 6 } } });
-		expect(ferry.system.carries).not.toBe("");
-		expect(ferry.items.map((item) => item.type)).toEqual(["weapon", "weapon", "gear", "gear", "gear"]);
-		const pike = world.actors.find((actor) => actor.name === "Old Gullet");
-		expect(pike).toMatchObject({ type: "npc", system: { age: "old", wields: "free", weakness: { known: true }, feats: { deny: true } } });
-		expect(pike.system.inflicts).toHaveLength(1);
-		expect(pike.flags[SYSTEM_ID][TEST_FLAG]).toBe(true);
-	});
-
-	it("marks each Season's feasts and masses, and its collection as it turns", async () => {
-		await populateTestWorld();
-		expect(markSeasonEvent.mock.calls.map(([key]) => key)).toEqual([
-			"feastOfTheSun", "sceptremass", "feastOfTheStars", "eldermass", "feastOfTheMoon", "kindlemass", "feastOfTheSun", "sceptremass", "feastOfTheStars"
-		]);
-		expect(markCollection.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-2-spring"]);
-		expect(closeSeason.mock.calls[0][2].collection.name).toBe("tax");
-	});
-
-	it("leaves it raining, with two City Omens met, a Ruin's echo and the session ended", async () => {
-		await populateTestWorld();
-		expect(world.settings.weather).toBe("rain");
-		expect(rollCityOmen).toHaveBeenCalledTimes(2);
-		expect(echoRuin).toHaveBeenCalledTimes(1);
-		expect(endTheSession).toHaveBeenCalledWith(expect.objectContaining({ step: "none", situations: [expect.objectContaining({ d6: 4 }), expect.objectContaining({ d6: 4 })] }));
-	});
-
-	it(imported ? "rolls each Knight's table from the book" : "leaves the Knights' tables empty", async () => {
-		await populateTestWorld();
-		// The Company's, and Sir Gaspard's as the Bell Knight.
-		expect(rollKnightTable).toHaveBeenCalledTimes(imported ? 4 : 0);
-		if (imported) for (const knight of Object.values(knights())) expect(knight.system.bookTable.rolls).toEqual([3]);
-	});
-
-	it(imported ? "rolls Spark Tables and makes the Seer and a Myth's Cast from the book" : "leaves the book's Spark Tables and people out", async () => {
-		await populateTestWorld();
-		const npcs = world.actors.filter((actor) => actor.type === "npc").map((actor) => actor.name);
-		if (imported) {
-			expect(keepTableRoll.mock.calls.length).toBeGreaterThanOrEqual(10);
-			expect(new Set(keepTableRoll.mock.calls.map(([{ page }]) => page.key))).toEqual(new Set(["nature", "civilisation", "people", "combat"]));
-			// The Wilderness tables are rolled for a hex once, however often the story passes it.
-			const wilds = rollHexSparkSet.mock.calls.map(([{ hex }]) => hexKey(hex));
-			expect(wilds.length).toBeGreaterThanOrEqual(4);
-			expect(new Set(wilds).size).toBe(wilds.length);
-			expect(npcs.some((name) => / Seer$/.test(name))).toBe(true);
-			const cast = world.actors.find((actor) => /^Cast of /.test(actor.name));
-			expect(cast.flags[SYSTEM_ID].cast).toEqual({ myth: expect.any(String), from: cast.name });
-			expect(world.folders.find((folder) => folder.id === cast.folder).flags[SYSTEM_ID].cast).toBe(cast.flags[SYSTEM_ID].cast.myth);
-		} else {
-			expect(keepTableRoll).not.toHaveBeenCalled();
-			expect(rollHexSparkSet).not.toHaveBeenCalled();
-			// Three steeds, the Squire's pony, the Domain's levy and sellswords, the mere's pike, and the Seer the Referee wrote.
-			expect(npcs).toHaveLength(8);
-			expect(npcs).toContain("The Tolling Seer");
-		}
-	});
 });
 
 describe("running it again", () => {
+	beforeEach(setUpWorld);
+	afterEach(tearDownWorld);
+
 	it("deletes what it made and puts the calendar and the GM Toolkit back", async () => {
 		const flagged = (id) => ({ id, flags: { [SYSTEM_ID]: { [TEST_FLAG]: true } } });
 		const plain = { id: "mine", flags: {} };

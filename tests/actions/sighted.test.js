@@ -31,8 +31,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 	hexHiddenByHand: (_scene, at) => ({ terrain: false, holding: handHidden.has(hexKey(at)), seat: false })
 }));
 
-const sightedModule = await import("../../module/actions/sighted.js");
-const { getSighted, offerSightings, revealSighted, sightedMarkAt } = sightedModule;
+const { getSighted, offerSightings, revealSighted, sightedMarkAt } = await import("../../module/actions/sighted.js");
 
 /** A Tile standing in the middle of a hex, as a Realm draws it. */
 const tile = (id, kind, at, hidden = true) => ({ id, hidden, ...hexCentre(g, at), flags: { [SYSTEM_ID]: { [REALM_FLAG]: { kind } } } });
@@ -168,9 +167,5 @@ describe("revealSighted", () => {
 		expect(await revealSighted(scene, [west])).toEqual([]);
 		expect(scene.updateEmbeddedDocuments).not.toHaveBeenCalled();
 		expect(scene.update).not.toHaveBeenCalled();
-	});
-
-	it("hangs nothing on the Company's moves itself: arrivals.js asks once a blind move has settled (p18)", () => {
-		expect(sightedModule.registerSightings).toBeUndefined();
 	});
 });

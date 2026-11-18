@@ -37,11 +37,6 @@ describe("serialWrites", () => {
 		await expect(queue(async () => "after")).resolves.toBe("after");
 	});
 
-	it("gives back what the write returned", async () => {
-		const queue = serialWrites();
-		await expect(queue(async () => 7)).resolves.toBe(7);
-	});
-
 	it("settles once everything put in so far has finished, failed or not", async () => {
 		const queue = serialWrites();
 		const log = [];

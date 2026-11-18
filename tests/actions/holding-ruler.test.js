@@ -137,7 +137,7 @@ describe("granting a Holding", () => {
 		// The Seat of Power asks a Knight-Dominant, so they're made with 9 Glory, worthy of it (p6).
 		expect(makeNpcKnight).toHaveBeenCalledWith("1-03", expect.objectContaining({ knights: index.knights }), { glory: 9 });
 		expect(createDomain).toHaveBeenCalledWith(npc, { name: "Ashford", holding: "Scene.s1.Tile.t1", seat: true });
-		expect(linkKnightDomain).toHaveBeenCalledWith(npc, domain);
+		expect(domain).toBe(await createDomain.mock.results[0].value);
 		expect(foundDomain).not.toHaveBeenCalled();
 	});
 

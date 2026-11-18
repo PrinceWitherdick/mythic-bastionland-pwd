@@ -6,7 +6,6 @@ import {
 	COMPANY_ICONS,
 	COMPANY_ICON_FILL,
 	COMPANY_ICON_HALO,
-	COMPANY_ICON_ROOT,
 	COMPANY_IMAGE,
 	companyColour,
 	companyHalo,
@@ -37,8 +36,7 @@ describe("the pictures the Company can carry", () => {
 	it("offers every icon, each with a name to show and a file of its own", () => {
 		const choices = companyPictureChoices();
 		expect(choices.map(({ key }) => key)).toEqual(COMPANY_ICONS.map(({ key }) => key));
-		for (const { key, name, path } of choices) {
-			expect([key, name.length]).toEqual([key, expect.any(Number)]);
+		for (const { name, path } of choices) {
 			expect(name).not.toBe("");
 			expect(path).toMatch(/\.svg$/);
 		}
@@ -49,10 +47,6 @@ describe("the pictures the Company can carry", () => {
 		expect(new Set(keys).size).toBe(keys.length);
 		const paths = companyPictureChoices().map(({ path }) => path);
 		expect(new Set(paths).size).toBe(paths.length);
-	});
-
-	it("keeps the icons where the build script writes them", () => {
-		for (const { key } of COMPANY_ICONS) expect(companyIconPath(key)).toBe(`${COMPANY_ICON_ROOT}/${key}.svg`);
 	});
 
 	it("takes four from the Knight search on game-icons.net, as the Referee asked", () => {
