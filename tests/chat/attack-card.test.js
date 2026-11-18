@@ -13,7 +13,8 @@ vi.mock("../../module/actions/attack.js", () => ({
 }));
 vi.mock("../../module/actions/damage.js", async (importOriginal) => ({ ...(await importOriginal()), takeAttack: vi.fn(async () => true) }));
 vi.mock("../../module/actions/saves.js", () => ({ rollSave: vi.fn() }));
-vi.mock("../../module/apps/ui.js", () => ({
+vi.mock("../../module/apps/ui.js", async (importOriginal) => ({
+	...(await importOriginal()),
 	confirmDialog: vi.fn(async () => false),
 	inputDialog: vi.fn(async () => null)
 }));

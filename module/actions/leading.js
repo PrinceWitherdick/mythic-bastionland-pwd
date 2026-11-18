@@ -1,3 +1,4 @@
+import { selectedActors } from "../apps/ui.js";
 /**
  * Leading from the front (Warfare, p11): someone in a Warband may add their own
  * Attack dice to its roll, and then takes whatever Damage it takes until their
@@ -20,7 +21,7 @@ export function leaderCandidates(warband) {
 	const current = warband.system.leader ? fromUuidSync(warband.system.leader) : null;
 	const actors = [
 		current,
-		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
+		...selectedActors(),
 		game.user.character,
 		...worldKnights((actor) => actor.testUserPermission(game.user, "OBSERVER"))
 	];

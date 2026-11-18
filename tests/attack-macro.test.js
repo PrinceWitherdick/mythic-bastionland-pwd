@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../module/actions/attack.js", async (importOriginal) => ({ ...(await importOriginal()), attack: vi.fn(async () => []) }));
-vi.mock("../module/apps/ui.js", () => ({ inputDialog: vi.fn() }));
+vi.mock("../module/apps/ui.js", async (importOriginal) => ({ ...(await importOriginal()), inputDialog: vi.fn() }));
 
 const { attack } = await import("../module/actions/attack.js");
 const { inputDialog } = await import("../module/apps/ui.js");

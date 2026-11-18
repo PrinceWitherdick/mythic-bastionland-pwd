@@ -5,12 +5,13 @@ import { askToKeepRealm } from "../apps/keep-realm.js";
 import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { companyPlacementDone, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
-import { keyChoices, plural, postCard, t } from "../chat/cards.js";
+import { keyChoices, plural, postCard, t, warn } from "../chat/cards.js";
 import { deletionEntry, scenePaper, tileReading, tileSettling } from "../compat.js";
 import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, companyStartContext, resolveCompanyPicture, wireCompanyPicture, wireCompanyStart } from "../apps/company-picture.js";
 import { freshRandom, randomSeed } from "../rules/random.js";
+import { escapeHTML } from "../rules/text.js";
 import { blogLandmarksOn } from "./blog-landmarks.js";
 import { BOOK_LANDMARK_TYPES, LANDMARKS_PER_TYPE, REALM_FLAG, holdingName, realmSeats, seersSanctums, validateRealm } from "../rules/realm.js";
 import { parseHoldingRef } from "../rules/dominion.js";
@@ -222,13 +223,19 @@ export function forgetRealm(sceneId) {
 const settledScenes = new Map();
 
 /**
+ * @param {Scene|null|undefined} scene
+ * @returns {boolean} Whether the Scene is flagged as having its Tiles placed by their corners (settleRealmTiles).
+ */
+const flaggedSettled = (scene) => Boolean(scene?.flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]);
+
+/**
  * tilesSettled for a Scene, its Tiles read once until any of them changes
  * (forgetRealm), and not at all once the Scene is flagged settled.
  * @param {Scene|null|undefined} scene
  * @returns {boolean}
  */
 export function realmTilesSettled(scene) {
-	if (scene?.flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]) return true;
+	if (flaggedSettled(scene)) return true;
 	if (!scene?.id) return tilesSettled(scene?.flags, scene?.tiles ?? []);
 	let settled = settledScenes.get(scene.id);
 	if (settled === undefined) settledScenes.set(scene.id, settled = tilesSettled(scene.flags, scene.tiles));
@@ -265,7 +272,7 @@ export const centredTiles = (scene) => scene.tiles.map(tileCentreOn(scene));
  * @param {Scene} scene
  */
 async function settleRealmTiles(scene) {
-	if (scene.flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]) return;
+	if (flaggedSettled(scene)) return;
 	if (!realmTilesSettled(scene)) {
 		const moves = scene.tiles.contents.filter((tile) => realmFlag(tile)).map((tile) => ({ _id: tile.id, ...tileSettling(tile) }));
 		if (moves.length) await scene.updateEmbeddedDocuments("Tile", moves);
@@ -735,8 +742,8 @@ async function tidyAfterReroll(scene, before) {
 	}
 	const [oldSeat] = realmSeats(before);
 	const [newSeat] = realmSeats(realm);
-	const standing = companyTokenHex(scene);
-	if (realmStartOf(scene) === "courtier" && oldSeat && newSeat && standing && sameHex(standing, oldSeat.hex) && !sameHex(standing, newSeat.hex)) {
+	const companyAt = companyTokenHex(scene);
+	if (realmStartOf(scene) === "courtier" && oldSeat && newSeat && companyAt && sameHex(companyAt, oldSeat.hex) && !sameHex(companyAt, newSeat.hex)) {
 		tidying.push(restandCompany(scene, newSeat.hex));
 	}
 	await Promise.all(tidying);
@@ -838,9 +845,7 @@ export async function newRealm() {
 	const pages = [
 		{ key: "realm", icon: "fa-map", label: t("realm.dialog.pages.realm") },
 		...(traced ? [{ key: "picture", icon: "fa-image", label: t("realm.picture.title") }] : []),
-		draw
-			? { key: "setup", icon: "fa-ruler-combined", label: t("realm.setup.sizeTitle") }
-			: { key: "setup", icon: "fa-sliders", label: t("realm.setup.title") },
+		{ key: "setup", ...(draw ? { icon: "fa-ruler-combined", label: t("realm.setup.sizeTitle") } : { icon: "fa-sliders", label: t("realm.setup.title") }) },
 		...(askSecrets ? [{ key: "secrets", icon: "fa-eye-slash", label: t("solo.secrets.title") }] : []),
 		// Drawn by hand, the Company is chosen and placed from the last page of Creating a Realm, once there are hexes to stand in.
 		...(draw ? [] : [{ key: "company", icon: "fa-flag", label: t("company.title") }])
@@ -894,7 +899,7 @@ export async function newRealm() {
 	const picture = traced ? readMapPictures(data) : null;
 	const layout = traced ? readMapLayout(data) : BOOK_LAYOUT;
 	if (traced && !picture.players) {
-		ui.notifications.warn(t("realm.picture.needed"));
+		warn("realm.picture.needed");
 		return null;
 	}
 
@@ -955,7 +960,7 @@ function holdForMapPicture(element) {
 		if (element.querySelector('[name="picture.players"]')?.value.trim()) return;
 		event.preventDefault();
 		event.stopImmediatePropagation();
-		ui.notifications.warn(t("realm.picture.needed"));
+		warn("realm.picture.needed");
 		element.querySelector('[data-rail-tab="picture"]')?.click();
 		element.querySelector('[name="picture.players"]')?.focus();
 	}, { capture: true });
@@ -1131,9 +1136,8 @@ export async function setRealmLayout(scene, layout) {
 	const trimmed = await queueRealmWrite(async () => {
 		const { realm } = getRealm(scene);
 		const joined = relayRealm(realm, to);
-		let next = joined;
-		const picture = await fitRealmPicture(next.picture ?? null, to);
-		if (picture) next = { ...next, picture };
+		const picture = await fitRealmPicture(joined.picture, to);
+		const next = picture ? { ...joined, picture } : joined;
 
 		// The layout goes into the Scene's flag with its grid and size in one write,
 		// so a Realm read from here on is read the new way, even by a sync the redraw sets off.
@@ -1293,7 +1297,7 @@ export async function finishRealmDrawing(scene) {
 		// Barriers no one has placed yet wall nothing off; played alone, unseen ones aren't counted.
 		const walled = handed ? 0 : walledOffHexes(known, sceneGeometry(scene));
 		if (short.length || walled) {
-			const items = short.map((entry) => `<li>${foundry.utils.escapeHTML(drawingCountLabel(entry))}</li>`).join("");
+			const items = short.map((entry) => `<li>${escapeHTML(drawingCountLabel(entry))}</li>`).join("");
 			const confirmed = await confirmDialog({
 				title: t("realmDrawing.finish.title"),
 				icon: "fa-solid fa-scroll",
