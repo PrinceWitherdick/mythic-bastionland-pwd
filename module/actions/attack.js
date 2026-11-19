@@ -351,6 +351,116 @@ function aimFor(joining, duel) {
 }
 
 /**
+ * The Attack dialog's first line: who the blow is at, or that nobody is targeted yet.
+ * @param {{name: string}[]} targets
+ * @returns {string}
+ */
+function aimLine(targets) {
+	return targets.length ? t("attack.against", { names: targets.map(({ name }) => name).join(", ") }) : t("attack.againstNobody");
+}
+
+/**
+ * Keep the Attack dialog's first line on whoever the blow is at while it
+ * stands open: the other duelist while the duel is ticked, and otherwise
+ * whoever this user targets, since the blow lands on those targeted as it's rolled.
+ * @param {{element: HTMLElement}} dialog
+ * @param {object|null} [duel] The duel it may be a blow in, as openDuelFor finds it.
+ * @returns {() => void} Stops following.
+ */
+function followAim(dialog, duel = null) {
+	const line = dialog.element?.querySelector("[data-attack-aim]");
+	if (!line) return () => {};
+	const duelBox = duel ? dialog.element.querySelector("input[name='duel']") : null;
+	const show = () => (line.textContent = aimLine(aimFor(null, duelBox?.checked ? duel : null)));
+	duelBox?.addEventListener("change", show);
+	// A dialog opened again on an unticked duel says so straight away.
+	if (duelBox && !duelBox.checked) show();
+	const id = Hooks.on("targetToken", (user) => {
+		if (user === game.user) show();
+	});
+	return () => {
+		Hooks.off("targetToken", id);
+		duelBox?.removeEventListener("change", show);
+	};
+}
+
+/**
+ * Whether any of these targets is the attacker's own Token.
+ * @param {Actor} actor
+ * @param {{uuid: string}[]} targets
+ * @returns {boolean}
+ */
+function targetsSelf(actor, targets) {
+	return targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === actor.uuid);
+}
+
+/**
+ * Whether two lists of targets name the same Tokens, in any order.
+ * @param {{uuid: string}[]} a
+ * @param {{uuid: string}[]} b
+ * @returns {boolean}
+ */
+function sameTargets(a, b) {
+	const uuids = new Set(a.map(({ uuid }) => uuid));
+	return a.length === b.length && b.every(({ uuid }) => uuids.has(uuid));
+}
+
+/**
+ * What the Attack dialog weighs at its targets: a steed's trample barred, the
+ * weaknesses known, a Warband's at-individuals tick, the lasting dice offered
+ * at them, and the lines said about them. The signature tells whether other
+ * targets would draw the dialog any differently.
+ * @param {Actor} actor
+ * @param {{uuid: string, name: string}[]} aimedAt
+ * @param {object} by
+ * @returns {{chargeBarred: string|null, weaknesses: object[], individuals: object|null, lasting: object[], signature: string}}
+ */
+function weighTargets(actor, aimedAt, { joining, duel, mount, warband, ticks, combatant }) {
+	// Nobody on foot among the targets leaves the steed nobody to trample.
+	const chargeBarred = mount ? trampleBarred(aimedAt, duel) : null;
+	// A joint Attack is one Attack, so a weakness whose die is already on the card adds no second (p188).
+	const weaknesses = joining?.dice.some((die) => die.weakness) ? [] : weaknessesOf(aimedAt);
+	// A Warband's Attack at individuals only gets +d12 and Blast (p11), so the targets tick the box.
+	const individuals = warband ? individualsTick(aimedAt, ticks.againstIndividuals) : null;
+	// One kept against a single foe is offered only at them (p42).
+	const aimedActors = aimedAt.map(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid).filter(Boolean);
+	const lasting = diceAimedAt(lastingDiceOf(actor, combatant), aimedActors).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
+	const said = [
+		...aimedAt.filter((target) => standingOf(target).swarm).map(({ name }) => name),
+		...aimedAt.flatMap(targetDownHint),
+		...aimedAt.flatMap(({ uuid }) => wornWarnings(fromUuidSync(uuid)?.actor))
+	];
+	const signature = JSON.stringify([
+		chargeBarred,
+		weaknesses.map(({ uuid, name, text, die }) => [uuid, name, text, die]),
+		individuals,
+		lasting,
+		said
+	]);
+	return { chargeBarred, weaknesses, individuals, lasting, signature };
+}
+
+/** Boxes drawn for the targets themselves, which open as the new targets have them rather than as answered. */
+const TARGET_BOXES = /^(weakness|lasting)\.|^againstIndividuals$/;
+
+/**
+ * Open the Attack dialog again on what was answered before its targets
+ * changed, all but the boxes drawn for the targets themselves.
+ * @param {{element: HTMLElement}} dialog
+ * @param {object} answered The form as it was sent, flat.
+ */
+function refillAttackForm(dialog, answered) {
+	const form = dialog.element?.querySelector?.("form");
+	if (!form) return;
+	for (const field of form.querySelectorAll("[name]")) {
+		const { name } = field;
+		if (field.disabled || TARGET_BOXES.test(name) || !(name in answered)) continue;
+		if (field.type === "checkbox") field.checked = Boolean(answered[name]);
+		else field.value = answered[name] ?? "";
+	}
+}
+
+/**
  * A line for the Attack dialog where a target is already beyond harm: Slain,
  * destroyed or wiped out (p8, p11). The Attack is still allowed.
  * @param {{uuid: string, name: string}} target
@@ -855,6 +965,8 @@ function whyCantAttack(actor) {
 function attackDialogContext({ actor, joining, sources, armed, wielded, remembered, ticks, individuals, mounted, duel, mount, chargeBarred, startsImpaired, marks, aimedAt, weaknesses, offers, sides, lasting, combatant, warband, leaders }) {
 	const { conditions } = actor.system;
 	return {
+		// Who the blow is at, said before it's rolled.
+		aim: aimLine(aimedAt),
 		sources: sources.map((item, index) => ({
 			id: item.id,
 			name: item.name,
@@ -1059,44 +1171,70 @@ async function planAttack(actor, joining = null) {
 	const thrown = duel?.duel.kind === "joust" && duel.duel.exchanges > 0 && actor.system.mounted === false;
 	const mounted = (duel?.duel.kind === "joust" && !thrown) || Boolean(conditions.mounted) || Boolean(remembered?.mounted && !thrown);
 	const wielded = openingWielded(actor, sources, remembered, mounted, marks);
-	// Who the Attack is aimed at as the dialog opens.
-	const aimedAt = aimFor(joining, duel);
-	// Nobody makes an Attack at themself.
-	if (!joining && aimedAt.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === actor.uuid)) {
-		warn("attack.selfTarget", { name: actor.name });
-		return null;
-	}
-	// Nobody on foot among the targets leaves the steed nobody to trample.
-	const chargeBarred = mount ? trampleBarred(aimedAt, duel) : null;
-	// A joint Attack is one Attack, so a weakness whose die is already on the card adds no second (p188).
-	const weaknesses = joining?.dice.some((die) => die.weakness) ? [] : weaknessesOf(aimedAt);
 	const ticks = rememberedTicks(remembered);
-	// A Warband's Attack at individuals only gets +d12 and Blast (p11), so the targets tick the box.
-	const individuals = warband ? individualsTick(aimedAt, ticks.againstIndividuals) : null;
 	// Abilities that lend a blow something: one with no limit comes ticked, one with uses waits to be spent.
 	const offers = abilityOffers(Array.from(actor.items ?? []));
 	// What the dialog weighs its Blast-only checks against, and the steed that draws its charge box.
 	const aim = { joining, duel, offers, trapped: shieldTrapped(marks), mount };
 	// Dice they keep for the rest of the fight.
 	const combatant = combatantOf(actor);
-	// One kept against a single foe is offered only at them (p42).
-	const aimedActors = aimedAt.map(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid).filter(Boolean);
-	const lasting = diceAimedAt(lastingDiceOf(actor, combatant), aimedActors).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
 	// How many stand on each side of their Combat, for an Ability that needs a crowd (p38).
 	const sides = offers.some((offer) => offer.crowd) ? sidesAround(combatant) : null;
-
-	const data = await inputDialog({
-		title: joining ? t("attack.joinTitle", { name: joining.attackerName ?? fromUuidSync(joining.attacker)?.name ?? "" }) : t("attack.title"),
-		icon: "fa-solid fa-swords",
-		template: "attack",
-		context: attackDialogContext({
-			actor, joining, sources, armed, wielded, remembered, ticks, individuals, mounted, duel, mount, chargeBarred,
-			startsImpaired, marks, aimedAt, weaknesses, offers, sides, lasting, combatant, warband, leaders
-		}),
-		ok: { label: t(joining ? "attack.joinRoll" : "attack.roll"), icon: "fa-solid fa-dice" },
-		render: (_event, dialog) => watchWielding(dialog, actor, sources, marks, aim, { mount, leaders })
-	});
+	// The duel the dialog is weighed as a blow in: the one in hand, until its box is unticked.
+	let weighedIn = duel;
+	// Who the Attack is aimed at as the dialog opens.
+	let aimedAt = aimFor(joining, weighedIn);
+	// What was answered before the targets changed, opened on again.
+	let answered = null;
+	let data;
+	let aimWeighed;
+	for (;;) {
+		// Nobody makes an Attack at themself.
+		if (!joining && targetsSelf(actor, aimedAt)) {
+			warn("attack.selfTarget", { name: actor.name });
+			return null;
+		}
+		aimWeighed = weighTargets(actor, aimedAt, { joining, duel: weighedIn, mount, warband, ticks, combatant });
+		const { chargeBarred, weaknesses, individuals, lasting } = aimWeighed;
+		let stopFollowingAim = () => {};
+		const prefill = answered;
+		data = await Promise.resolve(inputDialog({
+			title: joining ? t("attack.joinTitle", { name: joining.attackerName ?? fromUuidSync(joining.attacker)?.name ?? "" }) : t("attack.title"),
+			icon: "fa-solid fa-swords",
+			template: "attack",
+			context: attackDialogContext({
+				actor, joining, sources, armed, wielded, remembered, ticks, individuals, mounted, duel, mount, chargeBarred,
+				startsImpaired, marks, aimedAt, weaknesses, offers, sides, lasting, combatant, warband, leaders
+			}),
+			ok: { label: t(joining ? "attack.joinRoll" : "attack.roll"), icon: "fa-solid fa-dice" },
+			render: (_event, dialog) => {
+				if (prefill) refillAttackForm(dialog, prefill);
+				watchWielding(dialog, actor, sources, marks, aim, { mount, leaders });
+				// A joined Attack's targets are its card's; a blow of one's own follows the targeting, or the duel while it's ticked.
+				if (!joining) stopFollowingAim = followAim(dialog, duel);
+			}
+		})).finally(() => stopFollowingAim());
+		if (!data || joining) break;
+		// Targeted while it stood open, or the duel unticked: the blow lands on those aimed at now, so it's weighed at them.
+		const inDuelNow = duel && data.duel ? duel : null;
+		const now = aimFor(null, inDuelNow);
+		if (inDuelNow === weighedIn && sameTargets(now, aimedAt)) break;
+		if (targetsSelf(actor, now)) {
+			warn("attack.selfTarget", { name: actor.name });
+			return null;
+		}
+		const weighedNow = weighTargets(actor, now, { joining, duel: inDuelNow, mount, warband, ticks, combatant });
+		const unchanged = weighedNow.signature === aimWeighed.signature;
+		aimedAt = now;
+		weighedIn = inDuelNow;
+		aimWeighed = weighedNow;
+		if (unchanged) break;
+		// What these targets change, such as a weakness or a steed's trample, is shown before it's rolled.
+		ui.notifications.info(t("attack.retargeted", { name: actor.name }));
+		answered = data;
+	}
 	if (!data) return null;
+	const { weaknesses, lasting } = aimWeighed;
 
 	const choice = foundry.utils.expandObject(data);
 	const { chosen: picked, check, situation } = readWielding(actor, sources, choice, aim);

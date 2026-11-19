@@ -3666,6 +3666,8 @@
       "ledBy": "{name} leads from the front, suffering the same Damage as the Warband until their next turn.",
       "roll": "Roll Attack",
       "against": "Against {names}",
+      "againstNobody": "Nobody is targeted yet. Target a Token now, or the Damage goes to whoever is targeted when it’s applied.",
+      "retargeted": "{name}’s targets changed while the Attack was open, so it’s weighed at them now. Check it and roll again.",
       "damage": "Damage",
       "breakdown": "Highest die {highest}, plus {bolster} from Bolster",
       "damageNote": "The highest die left is the Damage.",
