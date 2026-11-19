@@ -1279,16 +1279,8 @@
 	flex: none;
 }
 
-/* A hex already tracked shows its pin struck in; one not tracked only shows it on hover. */
-.bastionland-gm-toolkit__track:not(.is-tracked) {
-	opacity: 0.45;
-}
-
-.bastionland-gm-toolkit__hex:hover .bastionland-gm-toolkit__track,
-.bastionland-gm-toolkit__site:hover .bastionland-gm-toolkit__track,
-.bastionland-gm-toolkit__track:focus-visible {
-	opacity: 1;
-}
+/* A hex already tracked shows its pin struck in; one not tracked only shows it while its card is
+   hovered or holds the focus (bastionland-reveal, track-pin.hbs), and always on a touch screen. */
 
 .bastionland-gm-toolkit__visits {
 	display: flex;

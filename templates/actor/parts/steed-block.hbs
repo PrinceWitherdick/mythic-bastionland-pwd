@@ -2,13 +2,13 @@
 				<section class="bastionland-block">
 					<h2 class="bastionland-heading">{{localize "bastionland.steed.label"}}</h2>
 					{{#if steed}}
-					<div class="bastionland-steed">
+					<div class="bastionland-steed bastionland-reveal-host">
 						<img class="bastionland-steed__img" src="{{steed.img}}" alt="">
 						<div class="bastionland-steed__text">
 							<span class="bastionland-steed__title">
 								<button type="button" class="bastionland-item__name" data-action="openSteed">{{steed.name}}</button>
 								{{#if steed.renamable}}
-								<button type="button" class="bastionland-icon" data-action="renameSteed" data-tooltip="{{localize 'bastionland.steed.rename'}}" aria-label="{{localize 'bastionland.steed.rename'}}">
+								<button type="button" class="bastionland-icon bastionland-reveal" data-action="renameSteed" data-tooltip="{{localize 'bastionland.steed.rename'}}" aria-label="{{localize 'bastionland.steed.rename'}}">
 									<i class="fa-solid fa-pen" inert></i>
 								</button>
 								{{/if}}
@@ -18,7 +18,7 @@
 							{{/if}}
 						</div>
 						{{#if editable}}
-						<button type="button" class="bastionland-icon" data-action="clearSteed" data-tooltip="{{localize 'bastionland.steed.clear'}}" aria-label="{{localize 'bastionland.steed.clear'}}">
+						<button type="button" class="bastionland-icon bastionland-reveal" data-action="clearSteed" data-tooltip="{{localize 'bastionland.steed.clear'}}" aria-label="{{localize 'bastionland.steed.clear'}}">
 							<i class="fa-solid fa-xmark" inert></i>
 						</button>
 						{{/if}}
