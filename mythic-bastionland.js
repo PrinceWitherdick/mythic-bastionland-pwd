@@ -17,6 +17,7 @@ import { watchTableRenewals } from "./module/actions/knight-tables.js";
 import { watchRestocks } from "./module/actions/restock.js";
 import { KNIGHT_TOKEN_NAMES_STEP, registerKnightTokenNames, showExistingKnightNames } from "./module/actions/knight-token-names.js";
 import { KNIGHT_TOKEN_LINK_STEP, linkExistingKnightTokens, registerKnightTokenLink } from "./module/actions/knight-token-link.js";
+import { registerMuster } from "./module/actions/muster.js";
 import { markTheSlain, SLAIN_STEP } from "./module/actions/slain.js";
 import { COUNCIL_RETAINERS_STEP, seatCouncilRetainers } from "./module/actions/court.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
@@ -624,6 +625,8 @@ Hooks.once("init", () => {
 	registerKnightTokenNames();
 	// A Knight's Token is the Knight: what lands on it lands on their sheet.
 	registerKnightTokenLink();
+	// The Combat tracker's button that brings the Company onto the Scene and into the fight.
+	registerMuster();
 
 	// A steed renamed by its Knight keeps what the book called it under the name.
 	registerSteedNames();

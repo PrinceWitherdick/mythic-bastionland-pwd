@@ -4414,6 +4414,12 @@
     "knightTokenLink": {
       "differed": "Knight Tokens now share their Knight’s sheet. These Tokens had marks of their own that no longer show, so check their sheets: {names}."
     },
+    "muster": {
+      "button": "Bring the Company onto this Scene and into the fight",
+      "brought": "Brought into the fight: {names}.",
+      "alreadyHere": "The Company is already on this Scene and in the fight.",
+      "nobody": "No Knight of the Company is there to bring. A Knight rides with the Company once a player owns them."
+    },
     "npcKnight": {
       "toggle": {
         "label": "NPC Knight",
