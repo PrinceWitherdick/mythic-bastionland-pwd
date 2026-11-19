@@ -1424,6 +1424,14 @@
 	vertical-align: 0.1em;
 }
 
+/* The heading is all capitals, but the Caps face's line box centres on its small
+   capitals, so the leaf rises to the capitals' middle as the heading's line does:
+   0.125em of the heading's size, which is 0.1667em of the leaf's own. */
+.bastionland-gm-toolkit__section.bastionland-gm-toolkit__season > .bastionland-heading i {
+	position: relative;
+	top: -0.1667em;
+}
+
 /* A past Season folds to one row, as a Places hex does, with how it ended beside its name.
    Its Age folds the same way, around all of them, with how many it holds beside its name. */
 :is(.bastionland-gm-toolkit__season:is(details), .bastionland-gm-toolkit__age) {

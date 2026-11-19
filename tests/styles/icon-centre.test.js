@@ -213,6 +213,20 @@ describe("centring the letters", () => {
 	});
 
 	/*
+	 * The Time page's "This Season: Harvest" is a heading, so all capitals, with
+	 * the Season's leaf beside it at 0.75em: the leaf rises by the heading's
+	 * 0.125em, 0.1667em of its own size. Measured offline by ink
+	 * (probe-season-heading.mjs: 3.1–3.7px low before, ≤1px after, 2026-11-18).
+	 */
+	it("raises the Season's leaf to the middle of its heading's capitals", () => {
+		expect(rule("mythic-bastionland.css", ".bastionland-heading")["text-transform"]).toBe("uppercase");
+		const leaf = ".bastionland-gm-toolkit__section.bastionland-gm-toolkit__season > .bastionland-heading i";
+		expect(css).toMatch(new RegExp(`${leaf.replace(/[.>]/g, "\\$&")},[^{]*\\{[^}]*font-size: 0\\.75em;`));
+		expect(rule("gm-toolkit.css", leaf)).toEqual({ position: "relative", top: "-0.1667em" });
+		expect(readFileSync(join(root, "templates/actor/gm-toolkit/time.hbs"), "utf8")).toContain('<h2 class="bastionland-heading"><i class="{{thisSeason.icon}}" inert></i> {{thisSeason.label}}</h2>');
+	});
+
+	/*
 	 * Icon-plus-label rows in the Caps face whose labels are mostly small
 	 * capitals, so they centre on its line box as it stands: the welcome
 	 * window's places (centred, not on the baseline) and the written Knight's
