@@ -139,6 +139,46 @@ export async function onJoinQuery(data = {}, context = {}) {
 	return setKnightKind(actor, false);
 }
 
+/**
+ * @param {Actor} actor
+ * @returns {boolean} Whether this is an NPC Knight in the world that a player has come to own.
+ */
+const heldByPlayer = (actor) => isNpcKnight(actor) && Boolean(actor.hasPlayerOwner) && !actor.isToken;
+
+/** NPC Knights on their way into the Company, so a second change of owner doesn't bring them twice. */
+const joining = new Set();
+
+/**
+ * Bring an NPC Knight a player now owns into the Company, and tell the Referee,
+ * since nobody asked for it in so many words.
+ * @param {Actor} actor
+ * @returns {Promise<void>}
+ */
+async function joinAsHeld(actor) {
+	if (joining.has(actor.id)) return;
+	joining.add(actor.id);
+	try {
+		if (await setKnightKind(actor, false)) ui.notifications.info(t("npcKnight.joinedWhenHeld", { name: actor.name }));
+	} catch (error) {
+		console.warn(`${SYSTEM_ID} | Couldn't bring ${actor.name} into the Company`, error);
+	} finally {
+		joining.delete(actor.id);
+	}
+}
+
+/**
+ * An NPC Knight is the Referee's to play, so one given to a player becomes a
+ * Knight of the Company, whichever way they were given. Those already held when
+ * the world loads follow. The active GM does it. Called once the world is ready.
+ */
+export function watchHeldNpcKnights() {
+	const acts = () => Boolean(game.users.activeGM?.isSelf);
+	Hooks.on("updateActor", (actor, changes) => {
+		if ("ownership" in changes && acts() && heldByPlayer(actor)) joinAsHeld(actor);
+	});
+	if (acts()) for (const actor of worldKnights(heldByPlayer)) joinAsHeld(actor);
+}
+
 /** Answer players taking up their NPC Knights. Called during init. */
 export function registerNpcKnightQueries() {
 	registerQuery(JOIN_QUERY, onJoinQuery);

@@ -108,7 +108,7 @@ An **NPC Knight** is a Knight the Referee plays: a Holding's ruler, a rival to d
 - **Where they're kept.** NPC Knights are filed in the Actors sidebar's NPCs folder, and their Tokens keep Foundry's usual name display.
 - **Made for you.** **Grant to a Knight** on a Holding, picking a Knight not yet in the world, makes them as an NPC Knight rolled as a Ruler. Its list has a **Homebrew Knights** group for the Knights the Referee wrote; one picked there is made the same way. See [Domains and Courts](Domains-and-Courts).
 - **Homebrew.** An NPC Knight can be any of the Referee's [homebrew Knights](Choosing-a-Knight#homebrew-knights): open **Choose a Knight** on their sheet and pick them on the **Homebrew** page.
-- **Taken up.** An NPC Knight a player takes up as a successor becomes a Knight of the Company. See [Scars, Death and Successors](Scars-Death-and-Successors).
+- **Given to a player.** An NPC Knight becomes a Knight of the Company as soon as a player owns them, and the Referee is told. That covers setting a player to Owner in the Actor's ownership, setting the default to Owner, and a player taking them up as a successor. See [Scars, Death and Successors](Scars-Death-and-Successors). To make them an NPC Knight again, take the ownership back first.
 
 In a world made before NPC Knights, the Knights in the NPCs folder that no player held became NPC Knights, as did any a solo Referee had marked as not riding with the Company. So does a Knight brought in from an older compendium.
 

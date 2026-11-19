@@ -30,7 +30,7 @@ vi.mock("../../module/actions/ledger.js", () => ({ withoutLedger: () => ({ ledge
 vi.mock("../../module/actions/property.js", () => ({ makeCompanions: (...args) => makeCompanions(...args), markCompanions: (...args) => markCompanions(...args) }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineJoined: () => null }));
 
-const { KNIGHT_KIND_CHOICE, NPC_FOLDER_FLAG, convertImportedNpcKnights, convertNpcKnights, foldNpcKnightType, joinCompany, knightKindChoice, makeNpcKnight, npcFolder, onJoinQuery, servedBySquire, setKnightKind } = await import("../../module/actions/npc-knights.js");
+const { KNIGHT_KIND_CHOICE, NPC_FOLDER_FLAG, convertImportedNpcKnights, convertNpcKnights, foldNpcKnightType, joinCompany, knightKindChoice, makeNpcKnight, npcFolder, onJoinQuery, servedBySquire, setKnightKind, watchHeldNpcKnights } = await import("../../module/actions/npc-knights.js");
 
 const index = {
 	knights: [{ roll: "3-07", name: "The Silk Knight", path: "silk.webp", property: [], ability: null, passion: null }],
@@ -226,6 +226,62 @@ describe("a player taking up their NPC Knight", () => {
 		expect(await onJoinQuery({ actorId: "k1" }, { user: player })).toBe(true);
 		expect(owned.update.mock.calls[0][0].type).toBe("knight");
 		expect(other.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("an NPC Knight given to a player", () => {
+	let onUpdate;
+
+	beforeEach(() => {
+		onUpdate = null;
+		globalThis.Hooks = { on: (name, fn) => {
+			if (name === "updateActor") onUpdate = fn;
+		} };
+		game.users = { activeGM: { isSelf: true } };
+	});
+
+	afterEach(() => {
+		delete globalThis.Hooks;
+	});
+
+	it("joins the Company as a Knight, and the Referee is told", async () => {
+		watchHeldNpcKnights();
+		const actor = worldKnight({ type: "npcKnight", hasPlayerOwner: true });
+		onUpdate(actor, { ownership: { u1: 3 } });
+		await vi.waitFor(() => expect(ui.notifications.info).toHaveBeenCalledWith("npcKnight.joinedWhenHeld"));
+		expect(actor.update.mock.calls[0][0].type).toBe("knight");
+	});
+
+	it("is brought only once while the change is on its way", async () => {
+		watchHeldNpcKnights();
+		const actor = worldKnight({ type: "npcKnight", hasPlayerOwner: true });
+		onUpdate(actor, { ownership: { u1: 3 } });
+		onUpdate(actor, { ownership: { u2: 3 } });
+		await vi.waitFor(() => expect(ui.notifications.info).toHaveBeenCalledOnce());
+		expect(actor.update).toHaveBeenCalledOnce();
+	});
+
+	it("joins when the world loads, if a player already holds them", async () => {
+		const held = worldKnight({ id: "a", type: "npcKnight", hasPlayerOwner: true });
+		const kept = worldKnight({ id: "b", type: "npcKnight" });
+		const company = worldKnight({ id: "c", hasPlayerOwner: true });
+		world = [held, kept, company];
+		watchHeldNpcKnights();
+		await vi.waitFor(() => expect(held.update).toHaveBeenCalledOnce());
+		for (const actor of [kept, company]) expect(actor.update).not.toHaveBeenCalled();
+	});
+
+	it("stays as they are unless ownership changed, a player holds them, and this is the active GM", () => {
+		watchHeldNpcKnights();
+		const held = worldKnight({ type: "npcKnight", hasPlayerOwner: true });
+		const kept = worldKnight({ type: "npcKnight" });
+		const onToken = Object.assign(worldKnight({ type: "npcKnight", hasPlayerOwner: true }), { isToken: true });
+		onUpdate(held, { name: "Sir Renamed" });
+		onUpdate(kept, { ownership: { u1: 1 } });
+		onUpdate(onToken, { ownership: { u1: 3 } });
+		game.users.activeGM = { isSelf: false };
+		onUpdate(held, { ownership: { u1: 3 } });
+		for (const actor of [held, kept, onToken]) expect(actor.update).not.toHaveBeenCalled();
 	});
 });
 

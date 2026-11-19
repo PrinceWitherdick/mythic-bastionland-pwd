@@ -35,7 +35,7 @@ import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_LINES_STEP, COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, POSSESSION_EFFECTS_STEP, POSSESSION_SPLITS_STEP, THROWN_AND_PAIRS_STEP, catchUpThrownAndPairs, dropCompanionLines, dropOwnerFromCompanionNames, fillPossessionDetails, fillPossessionEffects, retypeKnightProperty, splitKnightGear } from "./module/actions/property.js";
 import { TABLE_RESULTS_STEP, routeTableResults } from "./module/actions/table-stats.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
-import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights, registerNpcKnightCreateChoice } from "./module/actions/npc-knights.js";
+import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights, registerNpcKnightCreateChoice, watchHeldNpcKnights } from "./module/actions/npc-knights.js";
 import { KNIGHT_TYPES, NPC_KNIGHT_TYPE } from "./module/rules/knight-types.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { advancePhase, turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
@@ -774,6 +774,8 @@ Hooks.once("ready", async () => {
 	watchCompanySize();
 	// A Knight brought in from an older compendium, marked as the Referee's own, comes in as an NPC Knight.
 	convertImportedNpcKnights();
+	// An NPC Knight given to a player joins the Company.
+	watchHeldNpcKnights();
 	// Knights made while no GM was on get their folders now.
 	fileWaitingKnights();
 	// The written Knights' and Myths' folders, made as "Your Knights" and "Your Myths", are called Homebrew now.

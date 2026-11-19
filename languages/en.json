@@ -4429,7 +4429,8 @@
       "converted": "{count} of the Referee's Knights are now NPC Knights, kept out of the Company's rolls.",
       "cantSee": "You can't see that Knight's sheet.",
       "joinNeedsReferee": "{name} is an NPC Knight. A Referee needs to be logged in to make them a Knight of the Company’s for you.",
-      "joinRefused": "The Referee couldn’t make {name} a Knight of the Company’s, so they weren’t taken up."
+      "joinRefused": "The Referee couldn’t make {name} a Knight of the Company’s, so they weren’t taken up.",
+      "joinedWhenHeld": "{name} belongs to a player now, so they’ve joined the Company as a Knight."
     },
     "seerChooser": {
       "title": "Choose the Seer",
