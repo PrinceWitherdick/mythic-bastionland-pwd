@@ -50,8 +50,8 @@ import { settleScars } from "./scars.js";
 import { knightSquire } from "./squires.js";
 import { chooseSuccessor, heirOf } from "./succession.js";
 import { burnMorningAfflictions, sufferMorningAfflictions } from "./afflictions.js";
-import { companySituation, wildernessRoll } from "./wilderness.js";
-import { askPhaseEnd, dieUntended, forgetDeprived, takeMorningLosses } from "./phase-end.js";
+import { companySituation, omenMetThisPhase, wildernessRoll } from "./wilderness.js";
+import { askPhaseEnd, dieUntended, forgetDeprived, markMorningSettled, takeMorningLosses } from "./phase-end.js";
 import { followPursuits, makingsFor } from "./pursuits.js";
 import { markLongAbsences } from "./homecoming.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
@@ -489,9 +489,13 @@ async function phaseEnds(ending, answers, known) {
 	const met = answers.wilderness
 		? await wildernessRoll({ scene: answers.scene, phase: ending.phase, mode: answers.mode === "camp" ? "camp" : "travel", atBarrier: Boolean(known.atBarrier) })
 		: null;
-	// A hostile Omen in the night keeps those camping from proper sleep (p18).
-	if (await omenBrokeSleep(ending, answers, met)) answers.members = answers.members.map((member) => ({ ...member, noSleep: true }));
+	// A hostile Omen in the night keeps those camping from proper sleep (p18), met as the Phase ends or
+	// on a roll made for the camp's hex earlier in the Night.
+	const metOmen = showedOmen(met) || (!answers.wilderness && omenMetThisPhase(ending));
+	if (await omenBrokeSleep(ending, answers, metOmen)) answers.members = answers.members.map((member) => ({ ...member, noSleep: true }));
 	const calendar = nextPhase(getCalendar());
+	// Before the Morning comes, so the rules beside the map are drawn knowing its losses were asked after here.
+	if (ending.phase === "night" && answers.members.length) await markMorningSettled(calendar);
 	await setCalendar(calendar);
 	// Nobody lies untended through a Phase and lives (p8). They die as it ends, so the new Phase takes nothing more from them.
 	if (answers.dying?.length) await dieUntended(answers.dying);
@@ -515,11 +519,11 @@ async function phaseEnds(ending, answers, known) {
  * a hostile Omen does, and only the Referee can say whether this one was.
  * @param {import("../rules/time.js").Calendar} ending
  * @param {{mode: string|null, members: {noSleep: boolean}[]}} answers From askPhaseEnd.
- * @param {object|null} met What the Wilderness Roll turned up.
+ * @param {boolean} metOmen The Night's Wilderness Roll showed an Omen.
  * @returns {Promise<boolean>}
  */
-async function omenBrokeSleep(ending, answers, met) {
-	if (ending.phase !== "night" || answers.mode !== "camp" || !showedOmen(met)) return false;
+async function omenBrokeSleep(ending, answers, metOmen) {
+	if (ending.phase !== "night" || answers.mode !== "camp" || !metOmen) return false;
 	if (answers.members.every((member) => member.noSleep)) return false;
 	const choice = await chooseDialog({
 		title: t("phaseEnd.hostileOmen.title"),

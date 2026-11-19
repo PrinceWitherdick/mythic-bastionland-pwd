@@ -23,7 +23,7 @@ import { revealSighted } from "./sighted.js";
 import { timelineArrivals } from "./timeline-events.js";
 import { gallop } from "./steeds.js";
 import { advancePhase } from "./time.js";
-import { markOmenOnEntering, wildernessRoll } from "./wilderness.js";
+import { wildernessRoll } from "./wilderness.js";
 
 /**
  * What the book has happen as the Company comes into a hex, beyond the
@@ -471,10 +471,8 @@ const ARRIVAL_ACTIONS = {
 	gallop: () => gallop(),
 	async omen(scene, hex, arrived) {
 		if (!hex) return null;
-		const outcome = await wildernessRoll({ scene, hex });
 		// Shown as they came in, so the Phase they came in has had its Omen, whenever the button was pressed.
-		if (outcome) await markOmenOnEntering(scene, hex, arrived.when ?? getCalendar());
-		return outcome;
+		return wildernessRoll({ scene, hex, enteredAt: arrived.when ?? getCalendar() });
 	},
 	mood: () => rollRefereeTable("mood"),
 	// The Phase the Company travelled in ends (p18), in the window that asks how it was spent, ticked as travelling.

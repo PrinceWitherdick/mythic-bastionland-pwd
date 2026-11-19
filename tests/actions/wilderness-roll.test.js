@@ -109,6 +109,23 @@ describe("an Omen shown as the Company came into a Myth's hex (p27)", () => {
 	});
 });
 
+describe("a Wilderness Roll the Referee makes by hand, before the Phase ends", () => {
+	it("is kept as this Phase's roll for the Company's hex, so the Phase's end doesn't tick another", async () => {
+		companyAt = wildHex;
+		await wildernessRoll({ scene, hex: wildHex, mode: "travel" });
+		expect(omenShownOnEntering(scene, wildHex)).toBe(true);
+		expect(omenShownOnEntering(scene, wildHex, { ...calendar, phase: "afternoon" })).toBe(false);
+	});
+
+	it("isn't kept when it's the Phase's end making it, or for a hex the Company isn't in", async () => {
+		companyAt = wildHex;
+		await wildernessRoll({ scene, hex: wildHex, phase: "morning", mode: "travel" });
+		expect(omenShownOnEntering(scene, wildHex)).toBe(false);
+		await wildernessRoll({ scene, hex: mythHex });
+		expect(omenShownOnEntering(scene, mythHex)).toBe(false);
+	});
+});
+
 describe("a Company with a Knight-Radiant, on the City Quest (p172)", () => {
 	it("meets an Omen of the City on a 1, and no Myth's Omen is spent", async () => {
 		company = [{ system: { rank: "radiant" } }];

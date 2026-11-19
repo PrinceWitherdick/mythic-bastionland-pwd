@@ -49,12 +49,15 @@ export function wildernessDue({ calls, mode, atBarrier = false }) {
 /**
  * Whether the Phase's end window ticks the Wilderness Roll to start with: when
  * it's due, except a Myth's Omen that showed already as the Company came into
- * its hex this Phase, which isn't shown again as the Phase ends (p27).
+ * its hex this Phase, which isn't shown again as the Phase ends (p27), and a
+ * roll the Referee already made for this hex this Phase, which was the Phase's
+ * roll. A Phase wasted at a Barrier still causes one of its own (p18).
  * @param {object} args As wildernessDue takes, and:
- * @param {boolean} [args.omenShown] The Omen of the Myth in this hex showed on entering.
+ * @param {boolean} [args.omenShown] This hex's Omen showed, or its roll was made, earlier this Phase.
  * @returns {boolean}
  */
-export const wildernessTicked = ({ omenShown = false, ...due }) => wildernessDue(due) && !(due.calls === "omen" && omenShown);
+export const wildernessTicked = ({ omenShown = false, ...due }) =>
+	wildernessDue(due) && !(omenShown && (due.calls === "omen" || (due.calls === "roll" && !due.atBarrier)));
 
 /**
  * What one of the Company loses as Morning comes, by the HARDSHIPS of rules/time.js

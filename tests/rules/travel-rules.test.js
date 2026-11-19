@@ -75,6 +75,13 @@ describe("pressingSections", () => {
 		expect([...pressingSections({ season: "winter", phase: "night" })].sort()).toEqual(["night", "weather", "winter"]);
 	});
 
+	it("leaves Sleep and Supplies alone on a Morning the Night's end already settled", () => {
+		expect([...pressingSections({ season: "harvest", phase: "morning" }, { morningSettled: true })]).toEqual([]);
+		expect([...pressingSections({ season: "winter", phase: "morning" }, { morningSettled: true })].sort()).toEqual(["weather", "winter"]);
+		// Settled or not, the Night is still pressing at night.
+		expect([...pressingSections({ season: "spring", phase: "night" }, { morningSettled: true })]).toEqual(["night"]);
+	});
+
 	it("only ever marks sections that exist", () => {
 		for (const season of SEASONS) {
 			for (const phase of PHASES) {

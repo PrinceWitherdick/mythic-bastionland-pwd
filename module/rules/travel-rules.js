@@ -98,14 +98,17 @@ export const groupsOnSide = (side) => TRAVEL_RULES.filter((group) => group.side 
 /**
  * The sections the calendar makes pressing, so they can stand out: Night at
  * night, Sleep and Supplies each morning, and Winter and Dire Weather all
- * Winter.
+ * Winter. A Morning whose sleep and supplies the end of the Night already
+ * asked after and took isn't pressing: its button would take them again.
  * @param {{season?: string, phase?: string}} calendar
+ * @param {object} [options]
+ * @param {boolean} [options.morningSettled] Whether the Night's end took this Morning's losses.
  * @returns {Set<string>} Section keys.
  */
-export function pressingSections({ season, phase } = {}) {
+export function pressingSections({ season, phase } = {}, { morningSettled = false } = {}) {
 	const pressing = new Set();
 	if (phase === "night") pressing.add("night");
-	if (phase === "morning") ["sleep", "supplies"].forEach((key) => pressing.add(key));
+	if (phase === "morning" && !morningSettled) ["sleep", "supplies"].forEach((key) => pressing.add(key));
 	if (season === "winter") ["winter", "weather"].forEach((key) => pressing.add(key));
 	return pressing;
 }

@@ -36,9 +36,36 @@ export async function forgetDeprived() {
 	return game.settings.set(SYSTEM_ID, DEPRIVED_SETTING, []);
 }
 
-/** Register who went without last Morning. Called during init. */
+/** The Morning whose losses the Night's window already asked after and took, as its day on the calendar. */
+const MORNING_SETTLED_SETTING = "morningSettled";
+
+/** The parts of a calendar that name a day. */
+const DAY_PARTS = Object.freeze(["age", "year", "season", "day"]);
+
+/**
+ * Note that this Morning's sleep and supplies were asked after as the Night
+ * ended, so the rules beside the map don't call for them again. GMs only.
+ * @param {import("../rules/time.js").Calendar} morning The Morning the Night ends into.
+ * @returns {Promise<unknown>}
+ */
+export async function markMorningSettled(morning) {
+	if (!game.user.isGM) return null;
+	return game.settings.set(SYSTEM_ID, MORNING_SETTLED_SETTING, Object.fromEntries(DAY_PARTS.map((part) => [part, morning[part] ?? null])));
+}
+
+/**
+ * @param {import("../rules/time.js").Calendar} calendar
+ * @returns {boolean} Whether the end of the Night before this day already took what its Morning costs.
+ */
+export function morningSettled(calendar) {
+	const settled = game.settings.get(SYSTEM_ID, MORNING_SETTLED_SETTING);
+	return Boolean(settled && calendar) && DAY_PARTS.every((part) => (settled[part] ?? null) === (calendar[part] ?? null));
+}
+
+/** Register who went without last Morning, and the Morning last settled. Called during init. */
 export function registerPhaseEndSettings() {
 	game.settings.register(SYSTEM_ID, DEPRIVED_SETTING, { scope: "world", config: false, type: Array, default: [] });
+	game.settings.register(SYSTEM_ID, MORNING_SETTLED_SETTING, { scope: "world", config: false, type: Object, default: null });
 }
 
 /**

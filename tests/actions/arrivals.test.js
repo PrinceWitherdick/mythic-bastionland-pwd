@@ -56,7 +56,7 @@ vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.f
 vi.mock("../../module/actions/steeds.js", () => ({ gallop: vi.fn() }));
 // The Phase's end is time.js's to test: here only that it's asked, and what it answers.
 vi.mock("../../module/actions/time.js", () => ({ advancePhase: vi.fn(async () => ({ phase: "afternoon" })) }));
-vi.mock("../../module/actions/wilderness.js", () => ({ markOmenOnEntering: vi.fn(), wildernessRoll: vi.fn() }));
+vi.mock("../../module/actions/wilderness.js", () => ({ wildernessRoll: vi.fn() }));
 // What solo play finds in the hexes reached is solo.js's to work out; here only which hexes it's asked about.
 let solo = false;
 vi.mock("../../module/actions/solo.js", async () => {
@@ -68,7 +68,7 @@ const { noticeArrival, takeBackMove } = await import("../../module/actions/arriv
 const { advancePhase } = await import("../../module/actions/time.js");
 const { postCard, registerCardButtons } = await import("../../module/chat/cards.js");
 const { setCompanyHex } = await import("../../module/actions/company.js");
-const { markOmenOnEntering, wildernessRoll } = await import("../../module/actions/wilderness.js");
+const { wildernessRoll } = await import("../../module/actions/wilderness.js");
 const { revealMythsReached } = await import("../../module/actions/solo.js");
 const { forgetMoveVisits, setHeldBack } = await import("../../module/actions/journey.js");
 const { settleBlindTravel } = await import("../../module/actions/night-travel.js");
@@ -350,7 +350,7 @@ describe("a move followed", () => {
 		await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
 		calendar.phase = "afternoon";
 		await press("omen", "8,6");
-		expect(markOmenOnEntering).toHaveBeenCalledWith(scene, hex(8, 6), expect.objectContaining({ phase: "morning" }));
+		expect(wildernessRoll).toHaveBeenLastCalledWith({ scene, hex: hex(8, 6), enteredAt: expect.objectContaining({ phase: "morning" }) });
 	});
 
 	it("finds a Myth only in the hexes the Company really came into, after a blind roll or dire weather (p18)", async () => {

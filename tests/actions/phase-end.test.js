@@ -78,11 +78,13 @@ vi.mock("../../module/actions/referee-rolls.js", () => ({
 }));
 
 const { advancePhase } = await import("../../module/actions/time.js");
+const { morningSettled } = await import("../../module/actions/phase-end.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { rollRefereeTable } = await import("../../module/actions/referee-rolls.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
 const { burnMorningAfflictions, sufferMorningAfflictions } = await import("../../module/actions/afflictions.js");
 const { chooseDialog } = await import("../../module/apps/ui.js");
+const { wildernessRoll } = await import("../../module/actions/wilderness.js");
 
 /** A Realm Scene with the Company's own Token standing in a hex. */
 function realmScene(id, where) {
@@ -95,7 +97,7 @@ function realmScene(id, where) {
 function standAt(where) {
 	const scene = realmScene("realm", where);
 	globalThis.canvas = { scene, tokens: { controlled: [] } };
-	game.scenes = Object.assign([scene], { active: scene });
+	game.scenes = Object.assign([scene], { active: scene, get: (id) => (id === scene.id ? scene : undefined) });
 	return scene;
 }
 
@@ -251,6 +253,25 @@ describe("as Morning comes", () => {
 		expect(calendar.phase).toBe("morning");
 	});
 
+	it("notes the Morning as settled, so the rules beside the map don't call for its losses again", async () => {
+		standAt(hex(6, 6));
+		game.actors = [knight("Alys")];
+		answer = { mode: "camp", "include-0": true };
+		expect(morningSettled(calendar)).toBe(false);
+		await advancePhase();
+		expect(morningSettled(calendar)).toBe(true);
+		// The Morning after is one nobody has asked about yet.
+		expect(morningSettled({ ...calendar, day: calendar.day + 1 })).toBe(false);
+	});
+
+	it("leaves the Morning unsettled when nobody of the Company was asked about", async () => {
+		standAt(hex(6, 6));
+		game.actors = [knight("Alys")];
+		answer = { mode: "camp", "include-0": false };
+		await advancePhase();
+		expect(morningSettled(calendar)).toBe(false);
+	});
+
 	it("takes SPI and CLA for travelling through the Night, and VIG in Winter, on the Morning's own card", async () => {
 		standAt(hex(6, 6));
 		calendar.season = "winter";
@@ -299,6 +320,19 @@ describe("as Morning comes", () => {
 		game.actors = [alys];
 		vi.mocked(chooseDialog).mockResolvedValueOnce("hostile");
 		answer = { mode: "camp", wilderness: true, "include-0": true };
+		await advancePhase();
+		expect(vi.mocked(chooseDialog).mock.calls.at(-1)[0].title).toBe("phaseEnd.hostileOmen.title");
+		expect(alys.system.virtues.cla.value).toBe(5);
+	});
+
+	it("asks after an Omen the Referee rolled by hand earlier in the Night, though the Phase's end rolls nothing more (p18)", async () => {
+		const scene = standAt(hex(8, 6));
+		const alys = knight("Alys");
+		game.actors = [alys];
+		await wildernessRoll({ scene, mode: "camp" });
+		vi.mocked(chooseDialog).mockClear();
+		vi.mocked(chooseDialog).mockResolvedValueOnce("hostile");
+		answer = { mode: "camp", wilderness: false, "include-0": true };
 		await advancePhase();
 		expect(vi.mocked(chooseDialog).mock.calls.at(-1)[0].title).toBe("phaseEnd.hostileOmen.title");
 		expect(alys.system.virtues.cla.value).toBe(5);

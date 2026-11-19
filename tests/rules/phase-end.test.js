@@ -38,11 +38,18 @@ describe("wildernessDue", () => {
 });
 
 describe("wildernessTicked", () => {
-	it("leaves a Myth's Omen unticked once it showed on entering, but nothing else (p27)", () => {
+	it("leaves a Myth's Omen unticked once it showed on entering (p27)", () => {
 		expect(wildernessTicked({ calls: "omen", mode: "travel" })).toBe(true);
 		expect(wildernessTicked({ calls: "omen", mode: "travel", omenShown: true })).toBe(false);
-		expect(wildernessTicked({ calls: "roll", mode: "travel", omenShown: true })).toBe(true);
 		expect(wildernessTicked({ calls: "omen", mode: "indoors" })).toBe(false);
+	});
+
+	it("leaves the roll unticked once the Referee made it for this hex this Phase, except at a Barrier (p18)", () => {
+		expect(wildernessTicked({ calls: "roll", mode: "travel" })).toBe(true);
+		expect(wildernessTicked({ calls: "roll", mode: "travel", omenShown: true })).toBe(false);
+		expect(wildernessTicked({ calls: "roll", mode: "camp", omenShown: true })).toBe(false);
+		// A Phase wasted at a Barrier causes a roll of its own.
+		expect(wildernessTicked({ calls: "roll", mode: "travel", atBarrier: true, omenShown: true })).toBe(true);
 	});
 });
 
