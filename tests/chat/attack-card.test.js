@@ -260,12 +260,20 @@ describe("applying the Damage", () => {
 		expect(confirmDialog).not.toHaveBeenCalled();
 		expect(takeAttack).toHaveBeenCalledOnce();
 
+		// Whoever only takes the blow can't spend the attacker's dice, so they aren't asked about them.
+		const taken = renderCard(attackState({ dice, gambits: [{ key: "bolster", die: 1 }] }));
+		await taken.click("apply");
+		expect(confirmDialog).not.toHaveBeenCalled();
+
+		// The attacker's own user, as a Referee applying a foe's blow is, is told of the die left.
+		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: () => true };
 		const one = renderCard(attackState({ dice, gambits: [{ key: "bolster", die: 1 }] }));
 		await one.click("apply");
 		expect(confirmDialog.mock.calls[0][0].message).toEqual([
 			"bastionland.attack.unspentGambitsOne",
 			"bastionland.attack.applyAnyway"
 		]);
+		delete tokens["Actor.foe"];
 	});
 
 	it("asks nothing once the target is Fatigued and no die can pay for a Gambit", async () => {

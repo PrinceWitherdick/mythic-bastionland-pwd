@@ -695,7 +695,7 @@ async function onDeny(message) {
 
 /**
  * What is still to be had on an Attack before its Damage lands: dice of 4+ unspent,
- * a Deny somebody could still make, and Gambits whose Save hasn't been rolled,
+ * said to those who could spend them, a Deny somebody could still make, and Gambits whose Save hasn't been rolled,
  * which can't be once the Damage is applied (p10). The die dealing the Damage may
  * be spent too, but isn't one left over, so it isn't counted.
  * @param {import("../rules/attack.js").AttackState} attack
@@ -705,7 +705,8 @@ async function onDeny(message) {
 function stillToBeHad(attack, actors) {
 	const lines = [];
 	const dealing = damageAgainst(attack, cardTarget(attack)).die;
-	const unspent = attack.dice.filter((_die, index) => index !== dealing && canFundGambit(attack, index)).length;
+	// Dice are the attacker's to spend: whoever only takes the blow has nothing to do about them, so isn't asked.
+	const unspent = ownsAnAttacker(attack) ? attack.dice.filter((_die, index) => index !== dealing && canFundGambit(attack, index)).length : 0;
 	if (unspent) lines.push(plural("attack.unspentGambits", unspent));
 	const deniers = actors.filter((actor) => canDenyAttack(attack, actor)).map((actor) => actor.name);
 	if (deniers.length) lines.push(t("attack.deniableDice", { names: deniers.join(", ") }));

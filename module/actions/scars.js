@@ -56,18 +56,22 @@ export function handsLeft(actor) {
  * @param {object} [options]
  * @param {number} [options.faces=6] The die that dealt the Scar, selected in the dialog.
  * @param {string} [options.by] Actor UUID of whoever dealt the blow, when an Attack card knows.
+ * @param {boolean} [options.known] The die is the blow's own, as an Attack card has it, so nothing is asked.
  * @returns {Promise<{roll: number, key: string, location: string|null, faces: number, apply: boolean}|null>} The
  *   Scar's table entry, where it landed, the die rolled and whether it was recorded, or null if the dialog was closed.
  */
-export async function rollScar(actor, { faces: caused, by } = {}) {
+export async function rollScar(actor, { faces: caused, by, known = false } = {}) {
 	const preset = DIE_SIZES.includes(caused) ? caused : 6;
-	const data = await inputDialog({
-		title: t("scarRoll.title"),
-		icon: "fa-solid fa-bone-break",
-		template: "scar",
-		context: { dice: DIE_SIZES.map((faces) => ({ faces, selected: faces === preset })) },
-		ok: { label: t("scarRoll.roll"), icon: "fa-solid fa-dice" }
-	});
+	// A blow that names its die leaves nothing to choose, so the Scar is rolled and recorded at once.
+	const data = known && DIE_SIZES.includes(caused)
+		? { die: caused, apply: true }
+		: await inputDialog({
+			title: t("scarRoll.title"),
+			icon: "fa-solid fa-bone-break",
+			template: "scar",
+			context: { dice: DIE_SIZES.map((faces) => ({ faces, selected: faces === preset })) },
+			ok: { label: t("scarRoll.roll"), icon: "fa-solid fa-dice" }
+		});
 	if (!data) return null;
 
 	const faces = DIE_SIZES.includes(Number(data.die)) ? Number(data.die) : 6;

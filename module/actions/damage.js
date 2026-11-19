@@ -884,7 +884,8 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 	const wounding = result.vigourLoss > 0 && !sparring && !blow.spirit;
 	// A Humiliation remembers whoever rolled the die that counted, in a joint Attack.
 	// A Warband left at 0GD takes no Scar, which is an individual's (p9, p11).
-	const scarred = scars && result.outcome === "scar" && actor.system.scale !== "warband" ? await rollScar(actor, { faces: blow.faces, by: blow.dealer }) : null;
+	// The card knows the die, so the Scar is rolled with it at once; Shift, which opens the Damage window, opens the Scar's too.
+	const scarred = scars && result.outcome === "scar" && actor.system.scale !== "warband" ? await rollScar(actor, { faces: blow.faces, by: blow.dealer, known: quick }) : null;
 	// A Wound or Scar given back to whoever dealt it (p116).
 	if (!sparring && abilitiesWith(actor.items.contents, "mirror").length) {
 		const mirrored = { dealer: blow.dealer, victim: actor, loss: blow.spirit ? 0 : result.vigourLoss, scarred };
