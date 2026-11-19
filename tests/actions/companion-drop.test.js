@@ -210,7 +210,7 @@ describe("dropCompanion", () => {
 		world(sir, bayard);
 		expect(await dropCompanion(sir, bayard)).toBe(bayard);
 		expect(bayard.update).not.toHaveBeenCalled();
-		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.shareOwnership`, { fromId: "k1", actorIds: ["h1"] }, expect.any(String));
+		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.shareOwnership`, { fromId: "k1", actorIds: ["h1"], taken: true }, expect.any(String));
 	});
 
 	it("asks nothing where the Knight has no other players to share with", async () => {
@@ -232,6 +232,16 @@ describe("dropCompanion", () => {
 		expect(Actor.implementation.create).toHaveBeenCalledWith(expect.objectContaining({ name: "Torchbearer", ownership: { default: 0, alys: 3 } }));
 		expect(taken).not.toBe(hireling);
 		expect(taken.getFlag(SYSTEM_ID, "companionOf")).toBe("k1");
+	});
+
+	it("counts what a player brings from a compendium as made for the Knight, default and all", async () => {
+		game.user = { id: "alys", isGM: false, can: () => true };
+		game.users = { activeGM: {} };
+		const sir = knight("k1", { ownership: { default: 1, alys: 3 } });
+		world(sir);
+		role = "follower";
+		const taken = await dropCompanion(sir, actor({ id: "c1", name: "Torchbearer", pack: "world.bastionland-beasts-and-hirelings" }));
+		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.shareOwnership`, { fromId: "k1", actorIds: [taken.id] }, expect.any(String));
 	});
 
 	it("refuses a Warband", async () => {

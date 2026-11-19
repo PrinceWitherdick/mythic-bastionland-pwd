@@ -65,17 +65,19 @@ export function sharedOwnership(companion, knight) {
 }
 
 /**
- * Ownership raised so each user has at least what another gives them. The
- * default is left as it is: only the users named are raised.
+ * Ownership raised so each user has at least what another gives them. Someone
+ * already in the world keeps their default, so being linked to a Knight doesn't
+ * show them to everybody who can see that Knight.
  * @param {Record<string, number>} [ownership]
  * @param {Record<string, number>} [to]
+ * @param {boolean} [withDefault] Raise the default too, for one just made, as madeOwnership gives it.
  * @returns {Record<string, number>|null} The raised ownership, or null where nobody rises.
  */
-function raisedOwnership(ownership = {}, to = {}) {
+function raisedOwnership(ownership = {}, to = {}, withDefault = false) {
 	const raised = { ...ownership };
 	let changed = false;
 	for (const [user, level] of Object.entries(to ?? {})) {
-		if (user === "default" || (raised[user] ?? 0) >= level) continue;
+		if ((user === "default" && !withDefault) || (raised[user] ?? 0) >= level) continue;
 		raised[user] = level;
 		changed = true;
 	}
@@ -123,11 +125,12 @@ function belongsWith(actor, from) {
 /**
  * @param {Actor} actor
  * @param {Actor} from The Knight or Domain it belongs with.
+ * @param {boolean} [taken] Whether it was already in the world, rather than made for them.
  * @returns {Record<string, number>|null} The ownership the Referee would have given it, where that's more than it has.
  */
-function ownershipFrom(actor, from) {
+function ownershipFrom(actor, from, taken = false) {
 	const to = actor.type === "domain" ? domainOwnership(from, circleKnights(actor)) : from.ownership;
-	return raisedOwnership(actor.ownership, to);
+	return raisedOwnership(actor.ownership, to, !taken);
 }
 
 /** The query a player sends for what they've made, so it's shared as the Referee would have shared it. */
@@ -140,13 +143,15 @@ const SHARE_QUERY = `${SYSTEM_ID}.shareOwnership`;
  * Domain's Circle, sees it too. Nothing is asked where there's nothing more to share.
  * @param {(Actor|null)[]} actors Those made or taken, each belonging with `from`.
  * @param {Actor|null} from The Knight or Domain they belong with.
+ * @param {object} [options]
+ * @param {boolean} [options.taken] They were already in the world, so they keep their default.
  * @returns {Promise<boolean>} Whether all there was to share was shared.
  */
-export async function shareMade(actors, from) {
+export async function shareMade(actors, from, { taken = false } = {}) {
 	if (game.user.isGM || !from) return true;
-	const shared = actors.filter((actor) => actor && ownershipFrom(actor, from));
+	const shared = actors.filter((actor) => actor && ownershipFrom(actor, from, taken));
 	if (!shared.length) return true;
-	const asked = { fromId: from.id, actorIds: shared.map((actor) => actor.id) };
+	const asked = { fromId: from.id, actorIds: shared.map((actor) => actor.id), ...(taken ? { taken } : {}) };
 	const notice = { absent: "share.needsReferee", data: { names: shared.map((actor) => actor.name).join(", ") } };
 	return Boolean(await askActiveGMOrWarn(SHARE_QUERY, asked, `Couldn't share what belongs with ${from.name}`, notice));
 }
@@ -155,7 +160,7 @@ export async function shareMade(actors, from) {
  * A player's Squire, steed, companion, Warband or Domain, shared by the GM who
  * was asked: only where the asker owns both it and the Knight or Domain it
  * belongs with, and only as far as the Referee would have shared it.
- * @param {{fromId?: string, actorIds?: string[]}} data
+ * @param {{fromId?: string, actorIds?: string[], taken?: boolean}} data
  * @param {object} context
  * @returns {Promise<boolean>}
  */
@@ -167,7 +172,7 @@ export async function onShareQuery(data = {}, context = {}) {
 	const actors = (Array.isArray(data?.actorIds) ? data.actorIds : []).map((id) => game.actors.get(String(id)));
 	if (!actors.length || actors.some((actor) => !actor?.testUserPermission(asker, "OWNER") || !belongsWith(actor, from))) return false;
 	const updates = actors.flatMap((actor) => {
-		const ownership = ownershipFrom(actor, from);
+		const ownership = ownershipFrom(actor, from, data?.taken === true);
 		return ownership ? [{ _id: actor.id, ownership }] : [];
 	});
 	if (updates.length) await Actor.implementation.updateDocuments(updates);

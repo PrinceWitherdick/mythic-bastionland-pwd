@@ -402,6 +402,22 @@ describe("sharing what a player made, as the Referee would have", () => {
 		expect(Actor.implementation.updateDocuments).toHaveBeenLastCalledWith([{ _id: "d1", ownership: { alys: 3, ben: 2, cara: 2 } }]);
 	});
 
+	it("brings what a player made up to the Knight's default, as the Referee's copy has it", async () => {
+		const sir = knight("k1", { ownership: { default: 1, alys: 3 }, system: { steed: "Actor.h1" } });
+		const bayard = actor({ id: "h1", name: "Bayard", type: "npc", uuid: "Actor.h1", ownership: { default: 0, alys: 3 } });
+		game.actors = withGet(sir, bayard);
+		expect(await onShareQuery({ fromId: "k1", actorIds: ["h1"] }, { user: { id: "alys" } })).toBe(true);
+		expect(Actor.implementation.updateDocuments).toHaveBeenCalledWith([{ _id: "h1", ownership: { default: 1, alys: 3 } }]);
+	});
+
+	it("leaves the default of one who was already in the world", async () => {
+		const sir = knight("k1", { ownership: { default: 1, alys: 3, ben: 3 }, system: { steed: "Actor.h1" } });
+		const bayard = actor({ id: "h1", name: "Bayard", type: "npc", uuid: "Actor.h1", ownership: { default: 0, alys: 3 } });
+		game.actors = withGet(sir, bayard);
+		expect(await onShareQuery({ fromId: "k1", actorIds: ["h1"], taken: true }, { user: { id: "alys" } })).toBe(true);
+		expect(Actor.implementation.updateDocuments).toHaveBeenCalledWith([{ _id: "h1", ownership: { default: 0, alys: 3, ben: 3 } }]);
+	});
+
 	it("asks nothing of the Referee for a GM, or where nobody more would see it", async () => {
 		const sir = knight("k1", { ownership: { alys: 3 } });
 		const pony = actor({ id: "p1", name: "Pony", type: "npc", ownership: { alys: 3 } });
