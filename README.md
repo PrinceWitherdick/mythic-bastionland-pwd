@@ -174,6 +174,8 @@ npm run unpack    # extract packs back to packs/src
 
 A checkout runs straight from the source files. A release runs from the single bundled file. Game arithmetic lives in `module/rules/` as plain functions with no Foundry dependency, so all of it is unit tested. The system id is defined only in `module/system-id.js`.
 
+How the sheets, windows, dialogs and chat cards should look is written down in [STYLE-GUIDE.md](STYLE-GUIDE.md); the Knight sheet is the reference.
+
 No words of the book belong in the repository, code comments and tests included. A passage the system shows in the book's words is added to `module/rules/book-prints.js` as a page and fingerprint with `node scripts/book-text.js print`, and `node scripts/book-text.js overlap` checks, against your own PDFs, that nothing else has crept in. Both take Foundry's copy of pdf.js through `PDFJS` (see the top of `scripts/book-text.js`).
 
 ## Credits
