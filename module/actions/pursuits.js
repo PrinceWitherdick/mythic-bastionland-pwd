@@ -7,6 +7,8 @@ import { canHoldPost } from "../rules/dominion.js";
 import { addCourtMember, sitsAtCourt } from "./court.js";
 import { worldDomains } from "./dominion.js";
 import { isRealmScene } from "./realm.js";
+import { THREAD_KINDS } from "../rules/threads.js";
+import { addThread } from "./threads.js";
 
 /**
  * What a pursuit between Seasons made (p17): a Knight's Service may add a
@@ -102,6 +104,8 @@ export async function followPursuits(company, entries, season) {
 				: t(joined.already ? "time.pursuitMakes.courtesy.alreadyAtCourt" : "time.pursuitMakes.courtesy.joined", { court: joined.court }));
 		} else {
 			if (making === "dwelling") dwelling = true;
+			// A favour or a contact is kept with what's left open, till it's called on: the Referee says whose once it's known.
+			if (THREAD_KINDS.includes(making)) await addThread({ kind: making, name: t(`threads.courtesy.${making}`, { name: actor.name }), knight: actor.id });
 			lines.push(t(`time.pursuitMakes.${pursuit}.made.${making}`));
 		}
 	}

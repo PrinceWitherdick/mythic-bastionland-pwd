@@ -1,4 +1,5 @@
 import { takeExplorationAct } from "../actions/exploration.js";
+import { leaveOpen, settleThread, threadView, threadsInHex } from "../actions/threads.js";
 import { openGmToolkit, theGmToolkit } from "../actions/gm-toolkit.js";
 import {
 	editHexPerson,
@@ -198,6 +199,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		ruler: holding ? rulerContext(scene, holdingHere) : null,
 		// Out in the wilderness, the nearest Holding's rule (p20).
 		ruledFrom: holding ? null : ruledFrom(scene, entry.realm, g, hex),
+		// What the table has left open here: favours, contacts and unsettled situations tied to this hex.
+		threads: threadsInHex(scene, hex).map((thread) => threadView(thread)),
 		notice,
 		forget: hexForgetContext(scene, hex, { lore: record, visits })
 	};
@@ -569,6 +572,13 @@ export const HEX_GM_ACTIONS = Object.freeze({
 	tellHex({ scene, hex }, target) {
 		const note = target.closest(".bastionland-travels-hex__gm")?.querySelector('[name="note"]')?.value;
 		return tellPlayersAboutHex({ scene, hex, note });
+	},
+	// Leave something open in this hex, or settle what was: either changes only the Toolkit, so the hex is drawn again here.
+	async leaveOpenHere({ scene, hex, redraw }) {
+		if (await leaveOpen({ scene, hex, tied: true })) return redraw();
+	},
+	async settleThreadHere({ redraw }, target) {
+		if (await settleThread(target.closest("[data-thread-id]")?.dataset.threadId)) return redraw();
 	},
 	hexJournal: ({ scene, hex }) => openHexJournal(scene, hex),
 	markVisited: ({ scene, hex }) => markHexVisited(scene, hex),

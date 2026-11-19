@@ -37,6 +37,49 @@
 		</nav>
 	</section>
 
+	{{!-- What the table has left open: favours, contacts and unsettled situations (p13, p17, p18), each kept
+	      until it's settled; and under them what the Realm itself still holds open, read from where it's kept. --}}
+	<section class="bastionland-gm-toolkit__section bastionland-gm-toolkit__threads">
+		<h2 class="bastionland-heading">{{localize "bastionland.threads.title"}}</h2>
+		<p class="bastionland-hint">{{localize "bastionland.threads.hint"}}</p>
+		{{#if threads.list.length}}
+		<ul class="bastionland-gm-toolkit__waiting">
+			{{#each threads.list}}
+			<li class="bastionland-reveal-host" data-thread-id="{{id}}">
+				<span class="bastionland-gm-toolkit__thread">
+					<span class="bastionland-gm-toolkit__chips">
+						<span class="bastionland-gm-toolkit__chip bastionland-pill">{{kindLabel}}</span>
+						{{#if hexKey}}
+						<button type="button" class="bastionland-gm-toolkit__chip bastionland-pill bastionland-gm-toolkit__chip--button" data-action="showHex" data-hex="{{hexKey}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}"><i class="fa-solid fa-location-dot" inert></i> {{hex}}</button>
+						{{else if hex}}
+						<span class="bastionland-gm-toolkit__chip bastionland-pill">{{hex}}</span>
+						{{/if}}
+					</span>
+					<span><strong>{{name}}</strong>{{#if details}} · {{details}}{{/if}}</span>
+				</span>
+				<span class="bastionland-gm-toolkit__thread-tools">
+					<button type="button" class="bastionland-icon bastionland-reveal" data-action="editThread" data-tooltip="{{localize 'bastionland.threads.edit'}}" aria-label="{{localize 'bastionland.threads.edit'}}"><i class="fa-solid fa-pen" inert></i></button>
+					<button type="button" class="bastionland-button" data-action="settleThread" data-tooltip="{{localize 'bastionland.threads.settleHint'}}"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.threads.settle"}}</button>
+				</span>
+			</li>
+			{{/each}}
+		</ul>
+		{{else}}
+		<p class="bastionland-empty">{{localize "bastionland.threads.none"}}</p>
+		{{/if}}
+		{{#if threads.also.length}}
+		<p class="bastionland-hint" data-tooltip="{{localize 'bastionland.threads.alsoHint'}}">{{localize "bastionland.threads.also"}}</p>
+		<ul class="bastionland-gm-toolkit__also">
+			{{#each threads.also}}
+			<li>{{this}}</li>
+			{{/each}}
+		</ul>
+		{{/if}}
+		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.threads.title'}}">
+			<button type="button" data-action="leaveOpen"><i class="fa-solid fa-plus" inert></i> {{localize "bastionland.threads.add"}}</button>
+		</nav>
+	</section>
+
 	{{#if offCourse.shown}}
 	<section class="bastionland-gm-toolkit__section bastionland-off-course">
 		<h2 class="bastionland-heading">{{localize "bastionland.realm.landmarks.offCourse.title"}}</h2>

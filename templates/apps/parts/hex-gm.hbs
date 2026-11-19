@@ -15,6 +15,21 @@
 	{{/if}}
 	{{#if ruledFrom}}<p class="bastionland-hex-lore__hint">{{ruledFrom}}</p>{{/if}}
 
+	{{!-- What the table has left open in this hex: a favour owed here, a contact, an unsettled situation
+	      (actions/threads.js). Each is settled by the word at its line's end, as a note is told. --}}
+	<div class="bastionland-hex-lore__told bastionland-hex-lore__open">
+		{{#each threads}}
+		<p class="bastionland-hex-lore__told-state" data-thread-id="{{id}}">
+			<i class="{{icon}}" inert></i>
+			<span><strong>{{name}}</strong> · {{kindLabel}}{{#if details}} · {{details}}{{/if}} <button type="button" class="bastionland-hex-lore__told-tell" data-action="settleThreadHere" data-tooltip="{{localize "bastionland.threads.settleHint"}}">{{localize "bastionland.threads.settle"}}</button></span>
+		</p>
+		{{/each}}
+		<p class="bastionland-hex-lore__told-state">
+			<i class="fa-solid fa-link" inert></i>
+			<span>{{#unless threads.length}}{{localize "bastionland.threads.noneHere"}}{{/unless}}<button type="button" class="bastionland-hex-lore__told-tell" data-action="leaveOpenHere">{{localize "bastionland.threads.addHere"}}</button></span>
+		</p>
+	</div>
+
 	<div class="form-group bastionland-hex-lore__note">
 		<label for="{{@root.partId}}-note">{{localize "bastionland.hexLore.note"}}</label>
 		<div class="form-fields">

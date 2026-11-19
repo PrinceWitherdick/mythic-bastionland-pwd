@@ -1,6 +1,7 @@
 import { renameHex } from "../actions/hex-names.js";
 import { TRAVELS_CHANGED_HOOK, forgetHexBarrierMet, forgetHexPartyNote, forgetHexTold, writePartyNote } from "../actions/hex-shared.js";
 import { forgetHexVisit } from "../actions/journey.js";
+import { THREADS_CHANGED_HOOK } from "../actions/threads.js";
 import { showHexOnMap, travelsHexDetail, travelsListContext } from "../actions/travels.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
@@ -497,6 +498,8 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.#hooks = [
 			["userConnected", Hooks.on("userConnected", () => redraw(null))],
 			[TRAVELS_CHANGED_HOOK, Hooks.on(TRAVELS_CHANGED_HOOK, redraw)],
+			// What's left open in the hex shown, changed here, in the Toolkit or by another Referee.
+			[THREADS_CHANGED_HOOK, Hooks.on(THREADS_CHANGED_HOOK, () => redraw(null))],
 			// An Import PDF run while it's open names the hex's Myths and Seers from the new index.
 			[ART_INDEX_HOOK, Hooks.on(ART_INDEX_HOOK, () => {
 				this.#index = undefined;

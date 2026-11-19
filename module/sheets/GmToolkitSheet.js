@@ -3,6 +3,7 @@ import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../a
 import { CITY_QUEST_HOOK, cityOmensSeen, cityQuestSetWorthy, resetCityQuest, rollCityOmen, setCityQuestWorthy } from "../actions/city-quest.js";
 import { COMPANY_FLAG, NO_COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
+import { THREADS_CHANGED_HOOK, editThread, leaveOpen, openThreads, settleThread, threadView } from "../actions/threads.js";
 import { inCompany, worldKnights } from "../actions/knights.js";
 import { getHexLore, sparkWhen } from "../actions/hex-lore.js";
 import { hexLabel, hexName } from "../actions/hex-names.js";
@@ -188,6 +189,9 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
 			...TIME_ACTIONS,
 			crisisRoll: GmToolkitSheet.#onCrisisRoll,
+			leaveOpen: GmToolkitSheet.#onLeaveOpen,
+			editThread: GmToolkitSheet.#onEditThread,
+			settleThread: GmToolkitSheet.#onSettleThread,
 			pickWeather: () => pickWeather(),
 			// With no copy yet, the button sets one up rather than doing nothing.
 			openRulebook: openRulebookOrSetup,
@@ -865,6 +869,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 				turn: this.#seasonTurn(record.turn)
 			},
 			crisisRolls: crisisRollsDue(worldDomains(), calendar).map((domain) => ({ id: domain.id, name: domain.name, ruler: rulingKnightOf(domain, knights)?.name ?? null })),
+			threads: this.#threadsContext(data, waiting),
 			// Played alone, a Myth not yet met has no name to give, and one not yet found no hex.
 			resolved: waiting.map((myth) => ({
 				number: myth.number,
@@ -929,6 +934,33 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		};
 	}
 
+	/**
+	 * What the table has left open (actions/threads.js), and under it what the
+	 * Realm itself still holds open, read from where each is kept: Myths whose
+	 * Omens have begun, Crises a Domain hasn't resolved, and Council tasks in hand.
+	 * @param {object|null} data The Realm on show.
+	 * @param {object[]} resolved Its Myths already resolved.
+	 * @returns {{list: object[], also: string[]}}
+	 */
+	#threadsContext(data, resolved) {
+		const scene = data?.scene ?? null;
+		const done = new Set(resolved.map((myth) => myth.number));
+		const myths = (data?.realm.myths ?? [])
+			.filter((myth) => myth.omen > 0 && !done.has(myth.number))
+			.map((myth) => t("threads.alsoMyth", {
+				name: myth.unknown ? t("solo.unknownMyth") : mythLookup(this.#index, myth).name,
+				omen: myth.omen,
+				count: OMEN_COUNT
+			}));
+		const counted = (key, name, count) => (count > 1 ? t(`threads.${key}Many`, { name, count }) : t(`threads.${key}`, { name }));
+		const domains = worldDomains().flatMap((domain) => {
+			const crises = domain.system.crises?.length ?? 0;
+			const tasks = Object.keys(domain.system.tasks ?? {}).length;
+			return [crises ? counted("alsoCrises", domain.name, crises) : null, tasks ? counted("alsoTasks", domain.name, tasks) : null].filter(Boolean);
+		});
+		return { list: openThreads().map((thread) => threadView(thread, { scene })), also: [...myths, ...domains] };
+	}
+
 	/** @override */
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
@@ -976,7 +1008,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		// actor -- goods pictures, a breed, a hex's lore -- that the Myths page can't see.
 		const onCastChange = (actor, changes) => (["name", "img"].some((key) => key in changes) || CAST_FLAG in (changes.flags?.[SYSTEM_ID] ?? {})) && onCast(actor);
 		// Only a Crisis Roll or a new name changes the Time page's list of Domains.
-		const onDomainChange = (actor, changes) => ("name" in changes || changes.system?.crisisRolled !== undefined) && onDomain(actor);
+		// Its Crises and Council tasks are among what the page lists as still open.
+		const onDomainChange = (actor, changes) => ("name" in changes || ["crisisRolled", "crises", "tasks"].some((key) => changes.system?.[key] !== undefined)) && onDomain(actor);
 		// A Knight's Glory or death can change what the Myths page says of the Company's worth for the City Quest.
 		const onWorthyChange = (actor, changes) => (changes.system?.glory !== undefined || changes.system?.slain !== undefined) && inCompany(actor) && this.#redraw("myths");
 		const listen = (names, fn) => names.map((name) => [name, Hooks.on(name, fn)]);
@@ -988,6 +1021,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			...listen(["updateToken"], onCompanyChange),
 			...listen(["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"], onJournal),
 			...listen([CITY_QUEST_HOOK], () => this.#redraw("myths")),
+			...listen([THREADS_CHANGED_HOOK], () => this.#redraw("time")),
 			// One listener for each, fanning out to the pages that care, rather than
 			// a pair of them running down every actor the world writes.
 			...listen(["createActor", "deleteActor"], (actor) => {
@@ -1537,6 +1571,26 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	static #onTrackHex(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
 		if (hex && this.scene) return setHexTracked(this.scene, hex, target.dataset.action === "trackHex");
+	}
+
+	/**
+	 * Leave something open, tied to the hex the Company stands in if the Referee ticks it.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onLeaveOpen() {
+		const scene = this.scene;
+		return leaveOpen({ scene, hex: scene ? companyTokenHex(scene) : null, tied: false });
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onEditThread(_event, target) {
+		const scene = this.scene;
+		return editThread(target.closest("[data-thread-id]")?.dataset.threadId, scene, scene ? companyTokenHex(scene) : null);
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onSettleThread(_event, target) {
+		return settleThread(target.closest("[data-thread-id]")?.dataset.threadId);
 	}
 
 	/** @this {GmToolkitSheet} */

@@ -2,11 +2,13 @@ import { getCalendar } from "../actions/calendar.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { endTheSession, getSessionEnd, situationLabel } from "../actions/session-end.js";
+import { endTheSession, getSessionEnd } from "../actions/session-end.js";
+import { leaveOpen, openThreads } from "../actions/threads.js";
 import { t } from "../chat/cards.js";
 import { GLORY_BUTTONS } from "../rules/glory.js";
 import { crisisRollsDue } from "../rules/season-log.js";
 import { offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
+import { SITUATION_KIND, situationsOf } from "../rules/threads.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { timelineShown } from "./timeline-ui.js";
 
@@ -55,11 +57,11 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {"season"|"age"|null} A turn this session's roll puts at the end of the next one. */
 	#promised = null;
 
-	/** @type {{number: number, d6: number|null, result: string|null}[]} Situations left unresolved (p17); each is told, and found, by its number. */
-	#situations = [];
-
-	/** Numbers the next situation. A row keeps its number when another is dropped, since the table has been calling it by that. */
-	#nextNumber = 1;
+	/**
+	 * @type {{id: string, name: string, d6: number|null, result: string|null}[]|null} Situations left unresolved (p17):
+	 *   those left open on the Toolkit, each by the id and name it's kept under there. Null until the window first reads them.
+	 */
+	#situations = null;
 
 	/** @type {{key: string, names: string}[]} The Glory awarded from this window, and to whom. */
 	#glory = [];
@@ -114,9 +116,9 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				: null,
 			// Only a Season or an Age turning leaves a situation to change.
 			turning: turnsSeasonOrAge(this.#step),
-			situations: this.#situations.map((situation) => ({
+			situations: this.#listed().map((situation) => ({
 				...situation,
-				label: situationLabel(situation.number),
+				label: situation.name,
 				text: situation.result ? t(`refereeRolls.tables.unresolved.results.${situation.result}`) : null
 			})),
 			shareSituations: this.#shareSituations,
@@ -148,12 +150,22 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
+	 * The situations the window lists: those left open on the Toolkit as it first opens, then whatever is
+	 * added or left out here.
+	 * @returns {{id: string, name: string, d6: number|null, result: string|null}[]}
+	 */
+	#listed() {
+		this.#situations ??= situationsOf(openThreads()).map(({ id, name }) => ({ id, name, d6: null, result: null }));
+		return this.#situations;
+	}
+
+	/**
 	 * @param {HTMLElement} node Anything inside a situation's row.
 	 * @returns {object|undefined} That situation.
 	 */
 	#row(node) {
-		const number = Number(node.closest("[data-situation-number]")?.dataset.situationNumber);
-		return this.#situations.find((situation) => situation.number === number);
+		const id = node.closest("[data-situation-id]")?.dataset.situationId;
+		return this.#listed().find((situation) => situation.id === id);
 	}
 
 	/* -------------------------------------------- */
@@ -190,9 +202,16 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 		return this.render();
 	}
 
-	/** @this {SessionEnd} */
-	static #onAddSituation() {
-		this.#situations.push({ number: this.#nextNumber++, d6: null, result: null });
+	/**
+	 * Name a situation nobody has settled. It's kept with what's left open on the Toolkit, so it is
+	 * here again by name the next time a Season turns.
+	 * @this {SessionEnd}
+	 */
+	static async #onAddSituation() {
+		const id = await leaveOpen({ kind: SITUATION_KIND, kinds: [SITUATION_KIND] });
+		const added = id ? openThreads().find((thread) => thread.id === id) : null;
+		if (!added) return;
+		this.#listed().push({ id, name: added.name, d6: null, result: null });
 		return this.render();
 	}
 
@@ -212,7 +231,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onDropSituation(_event, target) {
 		const situation = this.#row(target);
 		if (!situation) return;
-		this.#situations = this.#situations.filter((entry) => entry !== situation);
+		this.#situations = this.#listed().filter((entry) => entry !== situation);
 		return this.render();
 	}
 
@@ -250,7 +269,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 			const ended = await endTheSession({
 				step: this.#step,
 				passed: t(`sessionEnd.time.steps.${this.#step}.card`),
-				situations: this.#situations.filter((situation) => situation.result),
+				situations: this.#listed().filter((situation) => situation.result),
 				shareSituations: this.#shareSituations,
 				glory: this.#glory.map(({ key, names }) => t("sessionEnd.glory.awarded", { award: t(`glory.awards.${key}.label`), names })),
 				plans: this.#plans,

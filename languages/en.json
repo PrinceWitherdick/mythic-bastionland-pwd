@@ -1499,6 +1499,59 @@
       "partly": "Some of it couldn’t be put back, so time stays where it is. Undo again to finish; the console says what went wrong.",
       "unanswered": "The active Referee’s client didn’t answer, so time wasn’t turned back."
     },
+    "threads": {
+      "title": "Left Open",
+      "hint": "Favours owed, contacts made and situations nobody has settled. Each is kept until it’s settled, shows in its hex in Places, and a situation is rolled for by name as a session ends.",
+      "none": "Nothing is left open.",
+      "add": "Leave Something Open",
+      "addTitle": "Leave Something Open",
+      "editTitle": "Left Open",
+      "save": "Keep",
+      "edit": "Change what this says",
+      "settle": "Settle",
+      "settleHint": "Takes it off the list, and writes a line on the Company’s Timeline.",
+      "kindLegend": "What is it?",
+      "name": "What’s left open",
+      "namePlaceholder": "The miller’s favour, the smoke to the north…",
+      "knight": "Whose it is",
+      "company": "The whole Company’s",
+      "knightGone": "A Knight no longer in the world",
+      "here": "Tied to {hex}, so it shows there in Places",
+      "before": "an earlier Season",
+      "rolled": "{result} ({when})",
+      "also": "Also open, from the Realm",
+      "alsoHint": "Read from what the Realm already keeps. Each is settled in its own place.",
+      "alsoMyth": "{name} · {omen} of {count} Omens seen",
+      "alsoCrises": "{name} · a Crisis unresolved",
+      "alsoCrisesMany": "{name} · {count} Crises unresolved",
+      "alsoTasks": "{name} · a Council task in hand",
+      "alsoTasksMany": "{name} · {count} Council tasks in hand",
+      "noneHere": "Nothing is left open here.",
+      "addHere": "Leave something open here",
+      "courtesy": {
+        "favour": "A favour earned by {name}",
+        "contact": "A contact made by {name}"
+      },
+      "kinds": {
+        "favour": {
+          "label": "Favour",
+          "detail": "Owed to a Knight or by them, to be called in or repaid."
+        },
+        "contact": {
+          "label": "Contact",
+          "detail": "Somebody a Knight now knows, and may call on."
+        },
+        "situation": {
+          "label": "Situation",
+          "detail": "Something important nobody has settled, which changes as a Season or Age turns."
+        }
+      },
+      "settled": {
+        "favour": "A favour settled: {name}",
+        "contact": "A contact no longer called on: {name}",
+        "situation": "Settled: {name}"
+      }
+    },
     "time": {
       "title": "Time",
       "now": "{phase}, {season}, Age {age}",
@@ -2634,6 +2687,7 @@
         "visit": "Arrival",
         "note": "Party Note",
         "aged": "Aging",
+        "thread": "Settled",
         "omen": "Omen",
         "duel": "Duel",
         "award": "Glory",
@@ -3341,12 +3395,12 @@
       },
       "situations": {
         "title": "Anything left unresolved?",
-        "hint": "An important situation left unresolved before the turn changes on a d6 (p17). Name each one out loud.",
+        "hint": "An important situation left unresolved before the turn changes on a d6 (p17). These are the situations left open on the Toolkit’s Time page; one added here is kept there too.",
+        "none": "Nothing is left open yet.",
         "add": "Add a situation",
-        "numbered": "Situation {number}",
         "roll": "Roll",
         "rollHint": "Roll Unresolved Situations for this one.",
-        "remove": "Take this situation off the list",
+        "remove": "Leave this one out this time. It stays on the Toolkit’s list",
         "share": "Show the players"
       },
       "crises": {

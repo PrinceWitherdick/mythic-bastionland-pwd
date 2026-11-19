@@ -90,6 +90,11 @@ vi.mock("../../module/actions/season-events.js", () => ({
 }));
 
 vi.mock("../../module/actions/session-end.js", () => ({ endTheSession: vi.fn(async () => true) }));
+// What's left open is kept by its own action: here it only answers with an id for each, in turn.
+vi.mock("../../module/actions/threads.js", () => {
+	let made = 0;
+	return { addThread: vi.fn(async () => `thread${++made}`), keepThreadRoll: vi.fn(async () => true) };
+});
 
 vi.mock("../../module/actions/warbands.js", async (importOriginal) => ({ ...(await importOriginal()), wearWarbandDown: vi.fn() }));
 
@@ -262,6 +267,7 @@ const { markCollection, markSeasonEvent } = await import("../../module/actions/s
 const { settleTask } = await import("../../module/actions/council-tasks.js");
 const { wearWarbandDown } = await import("../../module/actions/warbands.js");
 const { endTheSession } = await import("../../module/actions/session-end.js");
+const { addThread, keepThreadRoll } = await import("../../module/actions/threads.js");
 const { rollCityOmen } = await import("../../module/actions/city-quest.js");
 const { echoRuin } = await import("../../module/actions/landmarks.js");
 const { rollKnightTable } = await import("../../module/actions/knight-tables.js");
@@ -473,6 +479,7 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 				calendar: BEFORE,
 				notes: "<p>Mine</p>",
 				seasons: { "3-winter": { notes: "Mine" } },
+				threads: {},
 				settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null }, siteJournals: false },
 				// No Timeline yet, so removing the test world removes the one it made.
 				timeline: null
@@ -818,6 +825,10 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 			expect(rollCityOmen).toHaveBeenCalledTimes(2);
 			expect(echoRuin).toHaveBeenCalledTimes(1);
 			expect(endTheSession).toHaveBeenCalledWith(expect.objectContaining({ step: "none", situations: [expect.objectContaining({ d6: 4 }), expect.objectContaining({ d6: 4 })] }));
+			// What the game left open is on the Toolkit's list: two situations, each named and rolled for, a favour and a contact.
+			expect(addThread.mock.calls.map(([thread]) => thread.kind)).toEqual(["situation", "situation", "favour", "contact"]);
+			expect(endTheSession.mock.calls.at(-1)[0].situations.map(({ name }) => name)).toEqual(["The smoke to the north", "The steward's missing grain"]);
+			expect(keepThreadRoll).toHaveBeenCalledTimes(2);
 		});
 
 		it(imported ? "rolls each Knight's table from the book" : "leaves the Knights' tables empty", async () => {
@@ -998,6 +1009,7 @@ describe("running it again", () => {
 		expect(world.toolkit.update).toHaveBeenCalledWith({
 			"system.notes": "<p>Mine</p>",
 			"system.seasons": { replaced: { "3-winter": { notes: "Mine" } } },
+			"system.threads": { replaced: {} },
 			[`flags.${SYSTEM_ID}.${BEFORE_FLAG}`]: expect.any(foundry.data.operators.ForcedDeletion)
 		});
 		expect(ui.notifications.info).toHaveBeenCalledWith(expect.stringContaining("Removed the test world"));

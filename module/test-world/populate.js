@@ -39,6 +39,7 @@ import { rollRefereeTable, rollSpark } from "../actions/referee-rolls.js";
 import { collectionEntry, markCollection, markSeasonEvent } from "../actions/season-events.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
 import { endTheSession } from "../actions/session-end.js";
+import { addThread, keepThreadRoll } from "../actions/threads.js";
 import { nameSuccessor } from "../actions/succession.js";
 import { deleteHexJournals } from "../actions/hex-journals.js";
 import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../actions/site-journals.js";
@@ -488,6 +489,7 @@ async function removeTestWorld() {
 		await toolkit.update(Object.fromEntries([
 			["system.notes", before.notes ?? ""],
 			replacementEntry("system.seasons", before.seasons ?? {}),
+			replacementEntry("system.threads", before.threads ?? {}),
 			deletionEntry(`flags.${SYSTEM_ID}.${BEFORE_FLAG}`)
 		]));
 	}
@@ -548,6 +550,7 @@ async function buildTestWorld() {
 			calendar: getCalendar(),
 			notes: toolkit.system.notes,
 			seasons: foundry.utils.deepClone(toolkit.system.seasons ?? {}),
+			threads: foundry.utils.deepClone(toolkit.system.threads ?? {}),
 			settings: Object.fromEntries(SETTINGS.map((key) => [key, foundry.utils.deepClone(game.settings.get(SYSTEM_ID, key))])),
 			timeline: timelineBefore()
 		}
@@ -2143,16 +2146,30 @@ class TestGame {
 
 	/**
 	 * End the session where the game has got to, as the Ending a Session window
-	 * ends one (p16): no time passes, two threads left hanging are rolled on,
+	 * ends one (p16): no time passes, what's left open is kept and two of them rolled on,
 	 * and the recap and the players' plans go into this Season's notes.
 	 */
 	async endSession() {
-		const { corvin } = this.knights;
+		const { corvin, oswin } = this.knights;
+		// What the game has left open, as the Toolkit's Time page lists it: two situations nobody has settled,
+		// a favour owed at the Seat, where Places shows it, and a contact made on the road.
+		const seat = this.places.seat?.hex;
+		const tied = seat ? { scene: this.scene.id, hex: hexKey(seat) } : {};
+		const open = [
+			{ kind: "situation", name: "The smoke to the north" },
+			{ kind: "situation", name: "The steward's missing grain", ...tied },
+			{ kind: "favour", name: `The cook of ${this.names.seat} owes a quiet word`, knight: oswin.id, ...tied },
+			{ kind: "contact", name: "A drover who knows the high road", knight: corvin.id }
+		];
 		const situations = [];
-		// Numbered as the window numbers them: the smoke to the north, and the steward's missing grain.
-		for (const number of [1, 2]) {
+		for (const thread of open) {
+			const id = await addThread(thread);
+			if (thread.kind !== "situation") continue;
 			const rolled = await rollRefereeTable("unresolved");
-			if (rolled) situations.push({ number, d6: rolled.d6, result: rolled.result });
+			if (!rolled) continue;
+			situations.push({ id, name: thread.name, d6: rolled.d6, result: rolled.result });
+			// No Season turns as this session ends, so the roll is kept here, to show how the list reads one.
+			if (id) await keepThreadRoll(id, rolled);
 		}
 		await endTheSession({
 			step: "none",

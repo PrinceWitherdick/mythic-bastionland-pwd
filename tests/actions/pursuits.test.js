@@ -25,6 +25,7 @@ vi.mock("../../module/apps/actor-pick.js", () => ({
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 vi.mock("../../module/actions/dominion.js", () => ({ worldDomains: () => domains }));
 vi.mock("../../module/actions/realm.js", () => ({ isRealmScene: () => true }));
+vi.mock("../../module/actions/threads.js", () => ({ addThread: vi.fn(async () => "t1") }));
 
 const { followPursuits } = await import("../../module/actions/pursuits.js");
 
@@ -75,6 +76,16 @@ describe("followPursuits", () => {
 		expect(asked).toHaveLength(1);
 		expect(entries[0].lines).toEqual([]);
 		expect(entries[1].lines).toEqual(["time.pursuitMakes.courtesy.made.favour"]);
+	});
+
+	it("keeps a favour or a contact Courtesy earned with what's left open, for the Knight who earned it", async () => {
+		const { addThread } = await import("../../module/actions/threads.js");
+		addThread.mockClear();
+		const moss = knight("Moss");
+		const company = [{ actor: moss, pursuit: "courtesy", making: "favour" }, { actor: knight("Ash"), pursuit: "service", making: "other" }];
+		await followPursuits(company, [{ lines: [] }, { lines: [] }], "Winter");
+		expect(addThread).toHaveBeenCalledOnce();
+		expect(addThread).toHaveBeenCalledWith({ kind: "favour", name: 'threads.courtesy.favour {"name":"Moss"}', knight: moss.id });
 	});
 
 	it("takes up the Dwelling brush once everybody has been asked (p192)", async () => {

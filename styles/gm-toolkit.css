@@ -1363,6 +1363,39 @@
 	flex: 0 0 auto;
 }
 
+/* Something left open: its chips, then its name and what's said of it, wrapping under the chips when the page is narrow. */
+.bastionland-gm-toolkit__thread {
+	display: flex;
+	flex: 1 1 14rem;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem 0.5rem;
+	min-width: 0;
+}
+
+.bastionland-gm-toolkit__thread-tools {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+/* Its heading line stands clear of the rows above it. */
+.bastionland-gm-toolkit__threads > .bastionland-gm-toolkit__waiting + .bastionland-hint {
+	margin-top: 0.6rem;
+}
+
+/* What the Realm itself holds open: read, not settled here, so it's set back and plain. */
+.bastionland-gm-toolkit__also {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin: 0;
+	padding: 0 0 0 0.9rem;
+	color: var(--bastionland-ink-soft);
+	list-style: none;
+}
+
 /* ---------------------------------------------------------------- */
 /* Seasons                                                          */
 /* ---------------------------------------------------------------- */

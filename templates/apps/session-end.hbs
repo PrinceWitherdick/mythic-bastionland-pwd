@@ -31,9 +31,9 @@
 			<p class="bastionland-hint">{{localize "bastionland.sessionEnd.situations.hint"}}</p>
 			<ul class="bastionland-session-end__situations">
 				{{#each situations}}
-				<li data-situation-number="{{number}}">
+				<li data-situation-id="{{id}}">
 					<div class="bastionland-session-end__row">
-						{{!-- Each is named out loud at the table, so the window only numbers them. --}}
+						{{!-- By the name it's kept under on the Toolkit's list of what's left open. --}}
 						<span class="bastionland-session-end__situation">{{label}}</span>
 						<button type="button" class="bastionland-button" data-action="rollSituation" data-tooltip="{{localize 'bastionland.sessionEnd.situations.rollHint'}}">
 							<i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.sessionEnd.situations.roll"}}
@@ -45,6 +45,8 @@
 					</div>
 					{{#if text}}<p class="bastionland-session-end__rolled"><span class="bastionland-session-end__d6">{{d6}}</span> {{text}}</p>{{/if}}
 				</li>
+				{{else}}
+				<li class="bastionland-empty">{{localize "bastionland.sessionEnd.situations.none"}}</li>
 				{{/each}}
 			</ul>
 			<button type="button" class="bastionland-button" data-action="addSituation">

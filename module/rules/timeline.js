@@ -56,7 +56,7 @@ const UNDATED = "";
  */
 export const KIND_GROUPS = Object.freeze({
 	hand: Object.freeze(["hand"]),
-	time: Object.freeze(["season", "age", "distant", "session", "aged"]),
+	time: Object.freeze(["season", "age", "distant", "session", "aged", "thread"]),
 	myth: Object.freeze(["myth", "omen"]),
 	glory: Object.freeze(["rank", "duel", "award"]),
 	wounds: Object.freeze(["scar", "death", "mortal", "ward", "settled", "revenge"]),
