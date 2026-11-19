@@ -11,7 +11,7 @@ import { FRAME_FLAG, sameSrc } from "./portrait-frame.js";
 import { propertyGear } from "./property.js";
 import { isStructureBlock, parseArmour } from "./stat-blocks.js";
 import { escapeHTML, searchable } from "./text.js";
-import { VIRTUES } from "./virtues.js";
+import { SCORES, VIRTUES } from "./virtues.js";
 
 const gloryFor = (rankKey) => RANKS.find((rank) => rank.key === rankKey).glory;
 
@@ -243,6 +243,15 @@ export function knightTypeTakenBy(knights, knightType, exceptId = null) {
 	if (!key) return null;
 	return holders(knights, exceptId).find((knight) => knightTypeKey(knight.knightType) === key)?.name ?? null;
 }
+
+/**
+ * The scores a new Knight still lacks: each Virtue and GD not yet rolled or
+ * typed in. A Knight made without them would keep the blank sheet's stand-in
+ * numbers as though they had been rolled.
+ * @param {Record<string, number|null>} [scores] VIG, CLA, SPI and guard, as the chooser holds them.
+ * @returns {string[]} The keys still missing, Virtues first.
+ */
+export const scoresMissing = (scores = {}) => SCORES.filter((key) => !Number.isInteger(scores[key]));
 
 /**
  * The actor update for the choices made. Virtues and GD are only set once

@@ -9,6 +9,7 @@ import {
 	knightTypeFromName,
 	knightTypeTakenBy,
 	knightUpdate,
+	scoresMissing,
 	seerAutoFill,
 	seerForKnight,
 	seerBook,
@@ -122,6 +123,18 @@ describe("knightTypeTakenBy", () => {
 		expect(knightTypeTakenBy(knights, "Candle")).toBeNull();
 		expect(knightTypeTakenBy(knights, "Moth")).toBeNull();
 		expect(knightTypeTakenBy(knights, "  ")).toBeNull();
+	});
+});
+
+describe("scoresMissing", () => {
+	it("names each Virtue and GD not yet rolled or typed in", () => {
+		expect(scoresMissing({ vig: null, cla: null, spi: null, guard: null })).toEqual(["vig", "cla", "spi", "guard"]);
+		expect(scoresMissing({ vig: 12, cla: 9, spi: null, guard: 4 })).toEqual(["spi"]);
+		expect(scoresMissing()).toEqual(["vig", "cla", "spi", "guard"]);
+	});
+
+	it("finds nothing missing once all four are there, a GD of 0 among them", () => {
+		expect(scoresMissing({ vig: 12, cla: 9, spi: 7, guard: 0 })).toEqual([]);
 	});
 });
 

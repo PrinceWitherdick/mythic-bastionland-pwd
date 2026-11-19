@@ -4718,6 +4718,7 @@
       },
       "scores": "2. Virtues and Guard",
       "rollScores": "Roll Virtues and GD",
+      "scoresNeeded": "Roll the Virtues and GD first, or type them in. A new Knight has none until then.",
       "scoresHint": "Rolls VIG, CLA and SPI in order, then GD, with the Start’s dice. Change a result by hand if you need to.",
       "averageHint": "High is better, and 10 is an average Virtue (p177).",
       "glory": {
