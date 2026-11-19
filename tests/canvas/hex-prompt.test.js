@@ -75,6 +75,14 @@ describe("the hex arrival prompt", () => {
 		expect(openHex).toHaveBeenCalledWith({ scene, hex: { col: 4, row: 3 } });
 	});
 
+	it("opens on the hex a dragged Token is going to, though the Token is still read where it set off from", () => {
+		// As Foundry 14 hands a drag to the hook: the Token's own place is the hex it left.
+		const dragged = { ...tokenIn({ col: 4, row: 3 }), getCenterPoint: (position) => position ?? hexCentre(g, { col: 4, row: 3 }) };
+		moveToken(dragged, { ...leg(), origin: hexCentre(g, { col: 4, row: 3 }), destination: hexCentre(g, { col: 5, row: 3 }) });
+		vi.advanceTimersByTime(GATHER);
+		expect(openHex).toHaveBeenCalledWith({ scene, hex: { col: 5, row: 3 } });
+	});
+
 	it("opens nothing while there are waypoints still to walk", () => {
 		moveToken(tokenIn({ col: 4, row: 3 }), leg([{ x: 1, y: 1 }]));
 		vi.advanceTimersByTime(GATHER);
