@@ -50,7 +50,7 @@ Click the shield to paint it with heraldry's tinctures and divisions. **Add a ch
 
 Weapons, armour and gear sort themselves by die and by armour piece. Worn armour adds up to the Armour score, one piece of each type. Items can have a rarity, a count, a restock, a **Broken** mark, armour that only counts in some situations, bucklers, wooden weapons, a second way to fight, poisons, and Remedies that restore a Virtue.
 
-### For Game Masters
+### For Referees
 
 #### Referee Toolkit
 
