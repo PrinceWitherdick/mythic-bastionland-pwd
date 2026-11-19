@@ -18,7 +18,7 @@
 		<div class="bastionland-gm-toolkit__myth-head">
 			<span class="bastionland-gm-toolkit__name">{{number}}. {{name}}</span>
 			<span class="bastionland-gm-toolkit__pips" role="img" aria-label="{{seen}}" data-tooltip="{{seen}}">
-				{{#each pips}}<i class="bastionland-gm-toolkit__pip"></i>{{/each}}
+				{{#each pips}}<i class="bastionland-gm-toolkit__pip" inert></i>{{/each}}
 			</span>
 			<span class="bastionland-gm-toolkit__verse">{{localize "bastionland.solo.unknownMythHint"}}</span>
 		</div>
@@ -33,7 +33,7 @@
 			{{/if}}
 			<span class="bastionland-gm-toolkit__name">{{number}}. {{name}}</span>
 			<span class="bastionland-gm-toolkit__pips" role="img" aria-label="{{seen}}" data-tooltip="{{seen}}">
-				{{#each pips}}<i class="bastionland-gm-toolkit__pip{{#if met}} is-met{{/if}}{{#if current}} is-current{{/if}}"></i>{{/each}}
+				{{#each pips}}<i class="bastionland-gm-toolkit__pip{{#if met}} is-met{{/if}}{{#if current}} is-current{{/if}}" inert></i>{{/each}}
 			</span>
 			{{!-- The verse under the Myth's name in the book, its two lines run into one. --}}
 			{{#if verse}}

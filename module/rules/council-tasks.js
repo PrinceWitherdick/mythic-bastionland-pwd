@@ -26,7 +26,7 @@ export const TASK_SCOPES = Object.freeze(["phase", "week", "season"]);
 
 /** Each scope's icon, on the sheet and its cards. */
 export const TASK_SCOPE_ICONS = Object.freeze({
-	phase: "fa-regular fa-clock",
+	phase: "fa-solid fa-clock",
 	week: "fa-solid fa-calendar-week",
 	season: "fa-solid fa-leaf"
 });

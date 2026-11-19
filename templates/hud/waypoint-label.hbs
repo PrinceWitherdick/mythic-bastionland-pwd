@@ -2,7 +2,7 @@
     {{#if action.img}}
     <div class="img" style="background-image: url('{{ action.img }}');"></div>
     {{else if action.icon}}
-    <i class="icon {{action.icon}}"></i>
+    <i class="icon {{action.icon}}" inert></i>
     {{else if action.label}}
     <label class="action-label">{{localize action.label}}</label>
     {{/if}}
@@ -21,13 +21,13 @@
     <span class="bastionland-pill bastionland-ruler-pace" data-pace="{{pace.key}}" style="--pace-ink: {{pace.ink}}">{{pace.label}}</span>
     {{/if}}
     {{#if (and elevation (not elevation.hidden))}}
-    <i class="icon {{elevation.icon}}"></i>
+    <i class="icon {{elevation.icon}}" inert></i>
     <span class="total-elevation">{{elevation.total}} {{units}}</span>
     {{#if elevation.delta}}
     <span class="delta-elevation">({{elevation.delta}})</span>
     {{/if}}
     {{/if}}
     {{#if secret}}
-    <i class="icon fa-solid fa-eye-slash"></i>
+    <i class="icon fa-solid fa-eye-slash" inert></i>
     {{/if}}
 </div>

@@ -28,16 +28,16 @@
 	{{#if open}}
 	<p class="bastionland-card__prompt">{{waiting}}</p>
 	<div class="bastionland-card__actions">
-		<button type="button" data-pack-action="join" data-tooltip="{{localize 'bastionland.attack.pack.joinHint'}}"><i class="fa-solid fa-user-plus"></i> {{localize "bastionland.attack.join"}}</button>
-		<button type="button" data-pack-action="roll" data-tooltip="{{rollHint}}"><i class="fa-solid fa-dice"></i> {{rollLabel}}</button>
-		<button type="button" data-pack-action="call-off" data-tooltip="{{localize 'bastionland.attack.pack.callOffHint'}}"><i class="fa-solid fa-ban"></i> {{localize "bastionland.attack.pack.callOff"}}</button>
+		<button type="button" data-pack-action="join" data-tooltip="{{localize 'bastionland.attack.pack.joinHint'}}"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.attack.join"}}</button>
+		<button type="button" data-pack-action="roll" data-tooltip="{{rollHint}}"><i class="fa-solid fa-dice" inert></i> {{rollLabel}}</button>
+		<button type="button" data-pack-action="call-off" data-tooltip="{{localize 'bastionland.attack.pack.callOffHint'}}"><i class="fa-solid fa-ban" inert></i> {{localize "bastionland.attack.pack.callOff"}}</button>
 	</div>
 	{{else}}
 	<p class="bastionland-card__outcome">{{closed}}</p>
 	{{#if stalled}}
 	{{!-- Shown only once the roll has stood too long with no Attack card (pack-card.js, watchStalled). --}}
 	<div class="bastionland-card__actions">
-		<button type="button" data-pack-action="recover" data-tooltip="{{localize 'bastionland.attack.pack.recoverHint'}}" hidden><i class="fa-solid fa-rotate-left"></i> {{localize "bastionland.attack.pack.recover"}}</button>
+		<button type="button" data-pack-action="recover" data-tooltip="{{localize 'bastionland.attack.pack.recoverHint'}}" hidden><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.attack.pack.recover"}}</button>
 	</div>
 	{{/if}}
 	{{/if}}
