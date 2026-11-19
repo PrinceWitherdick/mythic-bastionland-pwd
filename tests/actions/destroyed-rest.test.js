@@ -13,7 +13,8 @@ vi.mock("../../module/actions/damage.js", () => ({ takeDamage: vi.fn() }));
 vi.mock("../../module/book-art/goods-folders.js", () => ({ GOODS_PACKS: {} }));
 
 const { confirmDialog } = await import("../../module/apps/ui.js");
-const { restAfterCombat } = await import("../../module/actions/recovery.js");
+const { postCard, warn } = await import("../../module/chat/cards.js");
+const { acceptRestAfterCombat, restAfterCombat } = await import("../../module/actions/recovery.js");
 const { repair } = await import("../../module/actions/structures.js");
 
 const fighter = (name, system = {}) => ({
@@ -37,6 +38,31 @@ describe("restAfterCombat", () => {
 		const rested = await restAfterCombat({ started: true, combatants: [{ actor: colossus }, { actor: boar }] });
 		expect(rested).toEqual([boar]);
 		expect(colossus.update).not.toHaveBeenCalled();
+	});
+
+	it("offers the rest on a card for the Referee to accept, with no window and nothing restored yet", async () => {
+		const boar = { ...fighter("Boar", { fatigued: true }), uuid: "Actor.boar" };
+		expect(await restAfterCombat({ started: true, combatants: [{ actor: boar }] })).toEqual([boar]);
+		expect(confirmDialog).not.toHaveBeenCalled();
+		expect(boar.update).not.toHaveBeenCalled();
+		const [, kind, context, options] = postCard.mock.calls[0];
+		expect(kind).toBe("note");
+		expect(context.action).toMatchObject({ data: "rest-after-combat", label: "sheet.accept" });
+		expect(options.mode).toBe("gm");
+		expect(Object.values(options.flags)[0]).toEqual({ restAfterCombat: ["Actor.boar"] });
+	});
+
+	it("rests whoever of them still needs it once accepted, and says so when nobody does", async () => {
+		const boar = { ...fighter("Boar", { fatigued: true }), uuid: "Actor.boar" };
+		const fresh = { ...fighter("Fresh", { guard: { value: 6, max: 6 } }), uuid: "Actor.fresh" };
+		const dead = { ...fighter("Dead", { slain: true }), uuid: "Actor.dead" };
+		const all = { "Actor.boar": boar, "Actor.fresh": fresh, "Actor.dead": dead };
+		globalThis.fromUuidSync = (uuid) => all[uuid] ?? null;
+		expect(await acceptRestAfterCombat(["Actor.boar", "Actor.fresh", "Actor.dead", "Actor.gone"])).toEqual([boar]);
+		expect(postCard).toHaveBeenCalledOnce();
+		expect(await acceptRestAfterCombat(["Actor.fresh", "Actor.dead"])).toBeNull();
+		expect(warn).toHaveBeenCalledWith("recovery.afterCombatNobody");
+		delete globalThis.fromUuidSync;
 	});
 
 	it("passes over a Knight sworn to a quest whose only lack is GD, which the oath holds back (p94)", async () => {

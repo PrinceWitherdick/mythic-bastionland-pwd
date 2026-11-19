@@ -1,7 +1,6 @@
 import { askActiveGM } from "../ask-gm.js";
 import { gmAsker } from "../gm-asker.js";
-import { confirmDialog } from "../apps/ui.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { updateActors } from "./actor-updates.js";
 import { companionsOf, worldCompanions } from "./fallen.js";
@@ -81,12 +80,19 @@ export async function restIfAccepted(actor) {
 	return true;
 }
 
+/** What marks the button on the card offered once a Combat ends, and the flag naming who it would rest. */
+const REST_OFFER_SELECTOR = "[data-rest-after-combat]";
+const REST_OFFER_FLAG = "restAfterCombat";
+
 /**
- * The danger has passed (Recovery, p9): once a Combat ends, offer the active
- * GM to restore Guard, remove Fatigue and end a marked Exposed for everybody
- * in it still standing who needs it, on one card.
+ * The danger has passed (Recovery, p9): once a Combat ends, the active GM's
+ * client offers the Referee a card naming everybody in it still standing who
+ * needs the rest, with a button that restores their Guard, removes Fatigue
+ * and ends a marked Exposed. Nothing is restored until it's pressed, so a
+ * tracker emptied in the middle of a fight costs nobody anything, and the
+ * Referee isn't stopped by a second window after Foundry's own.
  * @param {Combat} combat
- * @returns {Promise<Actor[]|null>} Those rested, or null when nobody was.
+ * @returns {Promise<Actor[]|null>} Those the card offers to rest, or null when nobody needs it.
  */
 export async function restAfterCombat(combat) {
 	if (!game.users.activeGM?.isSelf || !combat?.started) return null;
@@ -102,13 +108,45 @@ export async function restAfterCombat(combat) {
 	}
 	if (!actors.length) return null;
 	const names = actors.map((actor) => actor.name).join(", ");
-	const confirmed = await confirmDialog({ title: t("recovery.afterCombatTitle"), icon: "fa-solid fa-mug-hot", message: t("recovery.afterCombat", { names: foundry.utils.escapeHTML(names) }) });
-	if (!confirmed) return null;
+	await postCard(null, "note", {
+		icon: "fa-solid fa-mug-hot",
+		text: t("recovery.afterCombat", { names }),
+		action: { data: "rest-after-combat", icon: "fa-solid fa-mug-hot", label: t("sheet.accept") }
+	}, { mode: "gm", flags: { [SYSTEM_ID]: { [REST_OFFER_FLAG]: actors.map((actor) => actor.uuid) } } });
+	return actors;
+}
+
+/**
+ * Rest those a Combat's end offered to, once the Referee accepts: whoever of
+ * them still needs it, since some may have rested, fallen or gone since. GMs only.
+ * @param {string[]} uuids The Actors the card named.
+ * @returns {Promise<Actor[]|null>} Those rested, or null when nobody was.
+ */
+export async function acceptRestAfterCombat(uuids) {
+	if (!game.user.isGM) return null;
+	const actors = [...new Set((uuids ?? []).map((uuid) => fromUuidSync(uuid)).filter(Boolean))]
+		.filter((actor) => actor.system?.guard && !actor.system.slain && !actor.system.destroyed && needsRest(actor.system, { sworn: swornToQuest(actor) }));
+	if (!actors.length) {
+		warn("recovery.afterCombatNobody");
+		return null;
+	}
+	const names = actors.map((actor) => actor.name).join(", ");
 	await updateActors(actors.map((actor) => [actor, restedActorUpdate(actor)]), causedBy("recovery"));
 	const held = actors.filter(swornToQuest).map((actor) => actor.name);
 	const text = t("recovery.restedAfterCombat", { names }) + (held.length ? ` ${t("recovery.swornHeld", { names: held.join(", ") })}` : "");
 	await postCard(null, "note", { icon: "fa-solid fa-mug-hot", text });
 	return actors;
+}
+
+/** Wire the card a Combat's end offers the Referee. Called during init. */
+export function registerRestAfterCombat() {
+	registerCardButtons({
+		selector: REST_OFFER_SELECTOR,
+		gmOnly: true,
+		// A second press would only find nobody left to rest, so the button goes once it has done its work.
+		once: true,
+		handler: async (_button, message) => Boolean(await acceptRestAfterCombat(message?.flags?.[SYSTEM_ID]?.[REST_OFFER_FLAG]))
+	});
 }
 
 /**
