@@ -5,7 +5,7 @@
 		<p class="hint">{{localize "bastionland.realm.look.intro"}}</p>
 
 		<section class="bastionland-realm-appearance__section">
-			<h3>{{localize "bastionland.realm.look.skin"}}</h3>
+			<h3 class="bastionland-heading">{{localize "bastionland.realm.look.skin"}}</h3>
 			<div class="bastionland-realm-appearance__skins">
 				{{#each skins}}
 				<button type="button" class="bastionland-realm-appearance__skin {{#if active}}is-active{{/if}}" data-action="pickSkin" data-skin="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
@@ -41,7 +41,7 @@
 		</section>
 
 		<section class="bastionland-realm-appearance__section">
-			<h3>{{localize "bastionland.realm.look.palette"}}</h3>
+			<h3 class="bastionland-heading">{{localize "bastionland.realm.look.palette"}}</h3>
 			<div class="bastionland-realm-appearance__palettes">
 				{{#each palettes}}
 				<button type="button" class="bastionland-realm-appearance__palette {{#if active}}is-active{{/if}}" data-action="pickPalette" data-palette="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
@@ -56,7 +56,7 @@
 
 		{{#if fades}}
 		<section class="bastionland-realm-appearance__section">
-			<h3>{{localize "bastionland.realm.look.fade.title"}}</h3>
+			<h3 class="bastionland-heading">{{localize "bastionland.realm.look.fade.title"}}</h3>
 			<p class="hint">{{localize "bastionland.realm.look.fade.hint"}}</p>
 			{{!-- The number follows the handle as it's dragged; the map shows the new strength when it's let go. --}}
 			<div class="bastionland-realm-appearance__fades">
@@ -78,7 +78,7 @@
 
 	<aside class="bastionland-realm-appearance__side">
 		<section class="bastionland-realm-appearance__section">
-			<h3>{{localize "bastionland.realm.look.preview"}}</h3>
+			<h3 class="bastionland-heading">{{localize "bastionland.realm.look.preview"}}</h3>
 			<div class="bastionland-realm-appearance__preview" style="background: {{paper}}">
 				{{#each groups}}
 				<div class="bastionland-realm-appearance__group {{#if hexes}}is-hexes{{/if}}">

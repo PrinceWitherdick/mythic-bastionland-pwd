@@ -31,9 +31,9 @@
 	</div>
 	<div class="bastionland-ledger__list">
 		{{#if empty}}
-		<p class="bastionland-ledger__empty">{{localize "bastionland.ledger.empty"}}</p>
+		<p class="bastionland-empty bastionland-ledger__empty">{{localize "bastionland.ledger.empty"}}</p>
 		{{else}}
-		<p class="bastionland-ledger__empty bastionland-ledger__none" hidden>{{localize "bastionland.ledger.noMatch"}}</p>
+		<p class="bastionland-empty bastionland-ledger__empty bastionland-ledger__none" hidden>{{localize "bastionland.ledger.noMatch"}}</p>
 		{{#each days}}
 		<section class="bastionland-ledger__day">
 			<h3 class="bastionland-ledger__date">{{label}}</h3>

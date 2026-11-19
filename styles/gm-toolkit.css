@@ -306,8 +306,8 @@
 	align-items: center;
 	gap: 0.8rem;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.9rem;
-	font-variant: small-caps;
+	font-size: var(--bastionland-font-note);
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.03em;
 }
 
@@ -427,7 +427,7 @@
 }
 
 .bastionland-gm-toolkit__chip.is-terrain {
-	font-variant: small-caps;
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
 }
 
@@ -474,7 +474,7 @@
 .bastionland-gm-toolkit__note > span {
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
-	font-variant: small-caps;
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
 }
 
@@ -590,7 +590,7 @@
 	height: 4.5rem;
 	padding: 0;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 0;
+	border-radius: 3px;
 	cursor: zoom-in;
 }
 
@@ -642,13 +642,6 @@
 
 .bastionland-gm-toolkit__myth-body > .bastionland-hint {
 	margin: 0;
-}
-
-/* Taking an Omen back is the odd one out on the row, so it stays a small square. */
-.bastionland-gm-toolkit__myth .bastionland-toolbar button[data-action="omenStep"] {
-	flex: 0 0 2.6rem;
-	min-width: 0;
-	padding: 0;
 }
 
 .bastionland-gm-toolkit__resolved {
@@ -775,7 +768,7 @@
 	display: block;
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-caps);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 	letter-spacing: 0.03em;
 }
 
@@ -790,7 +783,7 @@
 	justify-content: space-between;
 	gap: 0.6rem;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 	list-style: none;
 	cursor: pointer;
@@ -837,7 +830,7 @@
 	border: none;
 	border-collapse: collapse;
 	background: none;
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-myth-table th,
@@ -890,7 +883,7 @@
 }
 
 .bastionland-myth-table tbody tr:nth-child(odd) td:not(.is-spinning) {
-	background: var(--bastionland-paper-deep);
+	background: color-mix(in srgb, var(--bastionland-ink) 6%, transparent);
 }
 
 /* The highlight running down a column, and the row it lands on. */
@@ -974,7 +967,7 @@
 
 .bastionland-gm-toolkit__cast-text {
 	margin: 0;
-	font-size: 0.92rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-gm-toolkit__cast-made {
@@ -1044,7 +1037,7 @@
 }
 
 .bastionland-page .bastionland-gm-toolkit__cast-make:hover {
-	color: var(--bastionland-rubric);
+	color: var(--bastionland-blood);
 }
 
 /* The line about dropping one in sits under the Cast, out of the way. */
@@ -1124,7 +1117,7 @@
 /* What the table gave, in the size of an item's notes. */
 .bastionland-item__book-table {
 	margin: 0.1rem 0 0;
-	font-size: 0.92rem;
+	font-size: var(--bastionland-font-note);
 	color: var(--bastionland-ink-soft);
 }
 
@@ -1520,7 +1513,7 @@
 	margin: 0;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
-	font-variant: small-caps;
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
 }
 
@@ -1548,9 +1541,8 @@
 	background: var(--bastionland-rubric);
 	color: var(--bastionland-paper);
 	font-family: var(--bastionland-font-caps);
-	font-variant: small-caps;
 	letter-spacing: 0.04em;
-	box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25), 0 1px 2px rgb(0 0 0 / 0.25);
+	box-shadow: none;
 }
 
 .bastionland-hex-lore__grid button.is-landmark:hover {

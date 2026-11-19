@@ -5,7 +5,7 @@
 	</header>
 
 	{{#if myths.length}}
-	<h4 class="bastionland-card__heading">{{localize "bastionland.realm.key.myths"}}</h4>
+	<h4 class="bastionland-heading bastionland-heading--small bastionland-card__heading">{{localize "bastionland.realm.key.myths"}}</h4>
 	<ul class="bastionland-card__list">
 		{{#each myths}}
 		<li><strong>{{number}}</strong> {{name}} <span class="bastionland-card__hint">{{#if page}}{{localize "bastionland.realm.key.page" page=page}}, {{/if}}{{> "bastionland.hex-target" where}}</span></li>
@@ -14,7 +14,7 @@
 	{{/if}}
 
 	{{#if holdings.length}}
-	<h4 class="bastionland-card__heading">{{localize "bastionland.realm.key.holdings"}}</h4>
+	<h4 class="bastionland-heading bastionland-heading--small bastionland-card__heading">{{localize "bastionland.realm.key.holdings"}}</h4>
 	<ul class="bastionland-card__list">
 		{{#each holdings}}
 		<li>{{name}}{{#if seat}} <em>{{localize "bastionland.realm.key.seat"}}</em>{{/if}} <span class="bastionland-card__hint">{{> "bastionland.hex-target" where}}</span></li>
@@ -23,7 +23,7 @@
 	{{/if}}
 
 	{{#if sanctums.length}}
-	<h4 class="bastionland-card__heading">{{localize "bastionland.realm.key.sanctums"}}</h4>
+	<h4 class="bastionland-heading bastionland-heading--small bastionland-card__heading">{{localize "bastionland.realm.key.sanctums"}}</h4>
 	<ul class="bastionland-card__list">
 		{{#each sanctums}}
 		<li>{{name}} <span class="bastionland-card__hint">{{#if page}}{{localize "bastionland.realm.key.page" page=page}}, {{/if}}{{> "bastionland.hex-target" where}}</span></li>

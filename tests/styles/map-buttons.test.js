@@ -49,4 +49,9 @@ describe("Place the Company", () => {
 	it("holds still for those who ask for less motion", () => {
 		expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\n\tbutton\.bastionland-company-button::after \{\n\t\tcontent: none;/);
 	});
+
+	/** The setting's blanket rule stills what is inside a window; the ring is the button's own, on the body. */
+	it("holds still under the system's own Reduce Motion too", () => {
+		expect(css).toMatch(/:root\.bastionland-reduce-motion button\.bastionland-company-button::after \{\n\tcontent: none;/);
+	});
 });

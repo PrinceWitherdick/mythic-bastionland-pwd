@@ -18,7 +18,7 @@
 		var(--bastionland-page-sheen),
 		var(--bastionland-paper);
 	font-family: var(--bastionland-font-body);
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 	font-variant-numeric: lining-nums;
 	line-height: 1.35;
 }
@@ -40,7 +40,7 @@
 	color: var(--bastionland-ink);
 	color-scheme: var(--bastionland-color-scheme);
 	font-family: var(--bastionland-font-body);
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 }
 
 /* Only a button with words: the others are Font Awesome glyphs drawn on the button itself. */
@@ -57,7 +57,7 @@
 	--button-text-color: var(--bastionland-ink-soft);
 	--button-hover-background-color: transparent;
 	--button-hover-border-color: transparent;
-	--button-hover-text-color: var(--bastionland-rubric);
+	--button-hover-text-color: var(--bastionland-blood);
 }
 
 .mythic-bastionland-journal .journal-sidebar input {
@@ -67,7 +67,7 @@
 	--input-placeholder-color: var(--bastionland-ink-faint);
 	--input-focus-outline-color: var(--bastionland-verdigris);
 	font-family: var(--bastionland-font-body);
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 }
 
 /* Rows with no rules between them, as the rails have; the page shown is in the rubric's red ochre. */
@@ -90,17 +90,17 @@
 }
 
 .mythic-bastionland-journal .journal-sidebar .toc li.page.active > .page-heading {
-	border-color: color-mix(in srgb, var(--bastionland-rule) 60%, transparent);
-	background: rgb(var(--bastionland-shade-rgb) / 0.06);
-	color: var(--bastionland-rubric);
+	border-color: var(--bastionland-blood);
+	background: var(--bastionland-blood);
+	color: var(--bastionland-paper);
 }
 
 .mythic-bastionland-journal .journal-sidebar .toc .page-heading :is(.page-index, .page-number) {
 	color: var(--bastionland-ink-soft);
 }
 
-.mythic-bastionland-journal .journal-sidebar .toc li.page.active .page-index {
-	color: var(--bastionland-rubric);
+.mythic-bastionland-journal .journal-sidebar .toc li.page.active > .page-heading :is(.page-index, .page-number) {
+	color: var(--bastionland-paper);
 }
 
 /* Who may see a page reads from the glyph, so it takes the soft ink rather than Foundry's bright colours. */
@@ -120,11 +120,11 @@
 .mythic-bastionland-journal .journal-sidebar .toc .heading-link {
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 }
 
 .mythic-bastionland-journal .journal-sidebar .toc .heading-link:hover {
-	color: var(--bastionland-rubric);
+	color: var(--bastionland-blood);
 }
 
 /*
@@ -138,7 +138,7 @@
 	padding: 0;
 	overflow: hidden;
 	zoom: normal;
-	font-size: calc(15px * var(--bastionland-text-size, 1));
+	font-size: calc(var(--bastionland-font-text) * var(--bastionland-text-size, 1));
 	line-height: 1.4;
 }
 

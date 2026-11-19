@@ -6,7 +6,7 @@
 
 	<div class="bastionland-realm-panel__columns">
 		<section class="bastionland-realm-panel__group">
-			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.terrain"}}</h2>
+			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.panel.terrain"}}</h2>
 			{{> "bastionland.realm-tally" terrainTally}}
 			<div class="bastionland-realm-panel__palette">
 				{{#each swatches.terrain}}{{> "bastionland.realm-swatch" this}}{{/each}}
@@ -17,7 +17,7 @@
 			<button type="button" data-action="clearRiver" {{disabled river.none}}><i class="fa-solid fa-trash" inert></i> {{river.clear}}</button>
 			{{/if}}
 
-			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.barriers"}}</h2>
+			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.panel.barriers"}}</h2>
 			{{> "bastionland.realm-tally" barrierTally}}
 			<div class="bastionland-realm-panel__palette">
 				{{#each swatches.barrier}}{{> "bastionland.realm-swatch" this}}{{/each}}
@@ -25,14 +25,14 @@
 		</section>
 
 		<section class="bastionland-realm-panel__group">
-			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.holdings"}}</h2>
+			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.panel.holdings"}}</h2>
 			{{> "bastionland.realm-tally" holdingTally}}
 			<div class="bastionland-realm-panel__palette bastionland-realm-panel__palette--pairs">
 				{{#each swatches.holding}}{{> "bastionland.realm-swatch" this}}{{/each}}
 			</div>
 			{{> "bastionland.realm-tally" seatTally}}
 
-			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.landmarks"}}</h2>
+			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.panel.landmarks"}}</h2>
 			{{> "bastionland.realm-tally" landmarkTally}}
 			<div class="bastionland-realm-panel__palette">
 				{{#each swatches.landmark}}{{> "bastionland.realm-swatch" this}}{{/each}}
