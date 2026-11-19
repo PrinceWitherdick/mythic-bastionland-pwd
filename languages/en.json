@@ -4411,6 +4411,9 @@
     "npcFolder": {
       "name": "NPCs"
     },
+    "knightTokenLink": {
+      "differed": "Knight Tokens now share their Knight’s sheet. These Tokens had marks of their own that no longer show, so check their sheets: {names}."
+    },
     "npcKnight": {
       "toggle": {
         "label": "NPC Knight",

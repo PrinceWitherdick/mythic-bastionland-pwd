@@ -16,6 +16,7 @@ import { openOfferedKnights, registerUnchosenKnightHooks } from "./module/action
 import { watchTableRenewals } from "./module/actions/knight-tables.js";
 import { watchRestocks } from "./module/actions/restock.js";
 import { KNIGHT_TOKEN_NAMES_STEP, registerKnightTokenNames, showExistingKnightNames } from "./module/actions/knight-token-names.js";
+import { KNIGHT_TOKEN_LINK_STEP, linkExistingKnightTokens, registerKnightTokenLink } from "./module/actions/knight-token-link.js";
 import { markTheSlain, SLAIN_STEP } from "./module/actions/slain.js";
 import { COUNCIL_RETAINERS_STEP, seatCouncilRetainers } from "./module/actions/court.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
@@ -621,6 +622,8 @@ Hooks.once("init", () => {
 
 	// Everyone at the table sees a Knight's name when hovering over their Token.
 	registerKnightTokenNames();
+	// A Knight's Token is the Knight: what lands on it lands on their sheet.
+	registerKnightTokenLink();
 
 	// A steed renamed by its Knight keeps what the book called it under the name.
 	registerSteedNames();
@@ -737,6 +740,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.
 	{ key: KNIGHT_TOKEN_NAMES_STEP, run: showExistingKnightNames },
+	// Knights made while their Tokens took a copy of them, so a blow on the map never reached the sheet.
+	{ key: KNIGHT_TOKEN_LINK_STEP, run: linkExistingKnightTokens },
 	// Worlds from before Slain was a mark, when VIG 0 alone told the dead.
 	{ key: SLAIN_STEP, run: markTheSlain },
 	// Domains from before the Council was filled from the Court, when its seats were names written in.
