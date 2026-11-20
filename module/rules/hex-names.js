@@ -7,6 +7,7 @@
  */
 import { hexKey, hexRecords } from "./realm-geometry.js";
 import { trimmedText } from "./text.js";
+import { hexNumberWords } from "./hex-numbers.js";
 
 export const HEX_NAMES_VERSION = 1;
 
@@ -75,9 +76,12 @@ export function setHexName(names, hex, name) {
  * @param {{col: number, row: number}} hex
  * @param {string} name
  * @param {(key: string, data?: object) => string} t The language's words for a key.
+ * @param {unknown} [numbering] How the Realm's hexes are numbered (hexNumbering), once its map has grown.
  * @returns {string} e.g. "The Weeping Fen (Column 5, Row 7)".
  */
-export const hexLabelText = (hex, name, t) => (name ? t("realm.hexNamed", { name, hex: t("realm.hex", hex) }) : t("realm.hex", hex));
+export const hexLabelText = (hex, name, t, numbering = null) => (name
+	? t("realm.hexNamed", { name, hex: hexNumberWords(hex, numbering, t) })
+	: hexNumberWords(hex, numbering, t));
 
 /**
  * How a window's heading calls a hex: by its name, with the column and row

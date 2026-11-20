@@ -24,6 +24,8 @@ import { timelineArrivals } from "./timeline-events.js";
 import { gallop } from "./steeds.js";
 import { advancePhase } from "./time.js";
 import { wildernessRoll } from "./wilderness.js";
+import { cardOffset, shiftHex, shiftKeyed } from "../rules/realm-growth.js";
+import { hexNumbering } from "../rules/hex-numbers.js";
 
 /**
  * What the book has happen as the Company comes into a hex, beyond the
@@ -507,8 +509,18 @@ export function registerArrivals() {
 				return false;
 			}
 			const act = ARRIVAL_ACTIONS[button.dataset.arrival];
-			const hex = button.dataset.arrivalHex ? parseHexKey(button.dataset.arrivalHex) : null;
-			return Boolean(act && (await act(scene, hex, message.flags[SYSTEM_ID].arrived ?? {})));
+			// A card posted before the map grew names its hexes as they were numbered then.
+			const moved = cardOffset(message.timestamp, hexNumbering(scene));
+			const hex = button.dataset.arrivalHex ? shiftHex(parseHexKey(button.dataset.arrivalHex), moved) : null;
+			const arrived = message.flags[SYSTEM_ID].arrived ?? {};
+			const now = moved.cols || moved.rows
+				? {
+					...arrived,
+					...(Array.isArray(arrived.held) ? { held: arrived.held.map((at) => shiftHex(at, moved)).filter(Boolean) } : {}),
+					...(arrived.orders ? { orders: shiftKeyed(arrived.orders, moved) } : {})
+				}
+				: arrived;
+			return Boolean(act && (await act(scene, hex, now)));
 		}
 	});
 }

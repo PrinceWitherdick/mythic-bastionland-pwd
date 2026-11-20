@@ -635,9 +635,19 @@ export function shownRange(g, growth) {
  */
 export function cardHexKey(key, timestamp, growth) {
 	if (!parseHexKey(key)) return key;
+	return shiftHexKey(key, cardOffset(timestamp, growth)) ?? key;
+}
+
+/**
+ * How far the hexes have moved since a card was posted: by every expansion
+ * logged after it.
+ * @param {number|null|undefined} timestamp When the card was posted.
+ * @param {unknown} growth The Scene's growth flag.
+ * @returns {Offset}
+ */
+export function cardOffset(timestamp, growth) {
 	const since = normaliseRealmGrowth(growth).log.filter((entry) => !Number.isFinite(timestamp) || entry.when > timestamp);
-	const offset = since.reduce((sum, entry) => ({ cols: sum.cols + entry.west, rows: sum.rows + entry.north }), { cols: 0, rows: 0 });
-	return shiftHexKey(key, offset) ?? key;
+	return since.reduce((sum, entry) => ({ cols: sum.cols + entry.west, rows: sum.rows + entry.north }), { cols: 0, rows: 0 });
 }
 
 // The window's little picture.

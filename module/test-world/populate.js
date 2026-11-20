@@ -86,6 +86,7 @@ import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { deletionEntry, replacementEntry } from "../compat.js";
 import { barriersBeside, companionActorData, heraldrySvg, isSteed, isWilderness, pickPlaces, propertyItems, seasonRoad } from "./plan.js";
+import { hexNumberWords } from "../rules/hex-numbers.js";
 
 /** Marks every document the macro makes, so running it again can find and delete them. */
 export const TEST_FLAG = "testWorld";
@@ -1419,7 +1420,7 @@ class TestGame {
 				const name = this.mythName(myth);
 				await resolveMyth(this.scene, myth, {
 					name,
-					note: `${name}: all six Omens met between Spring and Winter of Age 1. It ended at ${t("realm.hex", hex)}, with ${oswin.name} holding the line. The Knights each took Glory for it.`,
+					note: `${name}: all six Omens met between Spring and Winter of Age 1. It ended at ${hexNumberWords(hex, null, t)}, with ${oswin.name} holding the line. The Knights each took Glory for it.`,
 					award: async () => {
 						await this.award("myth", this.company);
 						return this.company;
@@ -1972,7 +1973,7 @@ class TestGame {
 		}));
 
 		let chapel = rollSite(emptySite(), createRandom(`${REALM_SEED}-chapel`));
-		chapel.notes = `${this.names.ruin}, at ${t("realm.hex", hex)}. A pilgrim chapel the mere rose over. Explored in Harvest of Age 1.`;
+		chapel.notes = `${this.names.ruin}, at ${hexNumberWords(hex, null, t)}. A pilgrim chapel the mere rose over. Explored in Harvest of Age 1.`;
 		const used = { feature: 0, danger: 0, treasure: 0 };
 		for (const key of numberedPoints(chapel)) {
 			const point = chapel.points[key];

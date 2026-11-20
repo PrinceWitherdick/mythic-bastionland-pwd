@@ -64,6 +64,8 @@ import { TabRailMixin } from "./tab-rail.js";
 import { TimelineTabMixin } from "./timeline-tab.js";
 import { ViewableMixin } from "./viewable.js";
 import { landmarkLabelKey, landmarkName } from "../rules/landmarks.js";
+import { hexNumberWords, hexNumbering } from "../rules/hex-numbers.js";
+import { shownRange, storedHex } from "../rules/realm-growth.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -745,7 +747,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		// What the players were told of it, and their own note on it.
 		const shared = data.shared?.hexes[key] ?? null;
 		const terrain = terrainAt(data.realm, data.g, hex);
-		const label = t("realm.hex", hex);
+		const label = hexNumberWords(hex, hexNumbering(data.scene), t);
 		const terrainName = terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null;
 		// What heads the card isn't listed again under it.
 		const features = [...status, ...this.#featuresIn(self ? { ...here, [self]: null } : here)];
@@ -1557,10 +1559,11 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			title: t("gmToolkit.places.track.title"),
 			icon: "fa-solid fa-thumbtack",
 			template: "track-hex",
-			context: { cols: g.cols, rows: g.rows },
+			// The numbers the hexes are shown by, which run below 1 on a map grown north or west with its numbers kept.
+			context: shownRange(g, hexNumbering(scene)),
 			ok: { label: t("gmToolkit.places.track.ok"), icon: "fa-solid fa-thumbtack" }
 		});
-		const hex = answer && { col: Number(answer.col), row: Number(answer.row) };
+		const hex = answer && storedHex({ col: Number(answer.col), row: Number(answer.row) }, hexNumbering(scene));
 		return inRealm(g, hex) ? hex : null;
 	}
 
