@@ -4,7 +4,7 @@ import { REALM_FLAG } from "../../module/rules/realm.js";
 import { hexAt, hexTopLeft, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm } from "../../module/rules/realm-generator.js";
 import { realmSceneData, realmTextures } from "../../module/rules/realm-documents.js";
-import { EXPANDING_FLAG, REALM_GROWTH_FLAG, growRealm, growthOffset, shiftHex } from "../../module/rules/realm-growth.js";
+import { EXPANDING_FLAG, REALM_BACKUP_FLAG, REALM_GROWTH_FLAG, cardHexKey, growRealm, growthOffset, shiftHex } from "../../module/rules/realm-growth.js";
 
 vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 	...(await importOriginal()),
@@ -246,6 +246,20 @@ describe("expandRealm", () => {
 		expect(scene.log).toEqual([]);
 	});
 
+	it("keeps the backup before working out the plan, so nothing done while it's kept is lost", async () => {
+		const backup = vi.fn(async (target) => {
+			// A player moves a Token while the backup uploads, or the Referee is asked whether to go on.
+			target.tokens.get("stranger")._source.x = 500;
+			target.flags[SYSTEM_ID].hexNames.hexes["4,5"].name = "Mossbridge";
+			return true;
+		});
+		await expandRealm(scene, growth, { backup });
+		expect(scene.tokens.get("stranger")._source.x).toBe(500 + Math.round(1.5 * g.radius * 3));
+		expect(scene.flags[SYSTEM_ID].hexNames.hexes["7,6"].name).toBe("Mossbridge");
+		const marked = scene.log.findIndex(([what, changes]) => what === "scene" && Object.keys(changes).some((key) => key.includes(EXPANDING_FLAG)));
+		expect(backup.mock.invocationCallOrder[0]).toBeLessThan(scene.update.mock.invocationCallOrder[marked]);
+	});
+
 	it("stops before writing anything when the backup can't be kept", async () => {
 		const backup = vi.fn(async () => false);
 		expect(await expandRealm(scene, growth, { backup })).toBe(false);
@@ -253,6 +267,18 @@ describe("expandRealm", () => {
 		expect(scene.log.some(([what, changes]) => what === "scene" && Object.keys(changes).some((key) => key.includes(EXPANDING_FLAG)))).toBe(false);
 		expect(scene.log.some(([what]) => what === "update Tile")).toBe(false);
 	});
+});
+
+const snapshot = (target) => ({
+	_id: target.id,
+	width: target.width,
+	height: target.height,
+	grid: structuredClone(target.grid),
+	initial: structuredClone(target._source.initial),
+	flags: structuredClone(target.flags),
+	tiles: target.tiles.map((tile) => structuredClone(tile._source)),
+	drawings: target.drawings.map((drawing) => structuredClone(drawing._source)),
+	tokens: target.tokens.map((token) => structuredClone(token._source))
 });
 
 describe("resumeExpansion", () => {
@@ -307,6 +333,35 @@ describe("resumeExpansion", () => {
 		expect(scene.flags[SYSTEM_ID][REALM_GROWTH_FLAG].log).toHaveLength(1);
 	});
 
+	it("finishes a put-back cut short from the backup it was reading", async () => {
+		const before = snapshot(scene);
+		await expandRealm(scene, growth);
+		scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG] = { path: "worlds/w/bastionland-backups/realm-vale.json", when: 5 };
+		globalThis.foundry.utils.getRoute = (path) => `/${path}`;
+		globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ scene: before, growth }) }));
+		const realUpdate = scene.updateEmbeddedDocuments.getMockImplementation();
+		scene.updateEmbeddedDocuments.mockImplementationOnce(async (type, updates) => {
+			await realUpdate(type, updates);
+			throw new Error("closed");
+		});
+		await expect(putRealmBack(scene, { scene: before, growth })).rejects.toThrow("closed");
+		expect(scene.flags[SYSTEM_ID][EXPANDING_FLAG]).toMatchObject({ restoring: true });
+
+		expect(await resumeExpansion(scene)).toBe(true);
+		expect(fetch).toHaveBeenCalledOnce();
+		expect(scene.flags[SYSTEM_ID][EXPANDING_FLAG]).toBeUndefined();
+		expect([scene.width, scene.height]).toEqual([before.width, before.height]);
+		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("4,5");
+		delete globalThis.fetch;
+	});
+
+	it("unlocks a put-back cut short whose backup can't be read, and says so", async () => {
+		scene.flags[SYSTEM_ID][EXPANDING_FLAG] = { by: "gm", restoring: true, kept: null };
+		expect(await resumeExpansion(scene)).toBe(false);
+		expect(scene.flags[SYSTEM_ID][EXPANDING_FLAG]).toBeUndefined();
+		expect(warn).toHaveBeenCalledOnce();
+	});
+
 	it("leaves one still being written by another Referee whose browser is open", async () => {
 		scene.flags[SYSTEM_ID][EXPANDING_FLAG] = { by: "other", growth, embedded: {}, tokens: [] };
 		game.users.get = () => ({ active: true });
@@ -315,18 +370,6 @@ describe("resumeExpansion", () => {
 });
 
 describe("putRealmBack", () => {
-	const snapshot = (target) => ({
-		_id: target.id,
-		width: target.width,
-		height: target.height,
-		grid: structuredClone(target.grid),
-		initial: structuredClone(target._source.initial),
-		flags: structuredClone(target.flags),
-		tiles: target.tiles.map((tile) => structuredClone(tile._source)),
-		drawings: target.drawings.map((drawing) => structuredClone(drawing._source)),
-		tokens: target.tokens.map((token) => structuredClone(token._source))
-	});
-
 	it("puts the Scene back as the backup holds it, Tile ids and all, and moves what's kept outside back", async () => {
 		const before = snapshot(scene);
 		const realmBefore = getRealm(scene).realm;
@@ -345,5 +388,35 @@ describe("putRealmBack", () => {
 		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("4,5");
 		// Written for a hex of the land added, it loses its hex rather than landing on another.
 		expect(game.journal.get("j2").flags[SYSTEM_ID].hexJournal).toBeUndefined();
+	});
+
+	it("uses the backup up, logs the growth undone, and has every client follow the hexes back", async () => {
+		const before = snapshot(scene);
+		await expandRealm(scene, growth);
+		scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG] = { path: "worlds/w/b.json", when: 5 };
+		game.time.serverTime = 2000;
+		await putRealmBack(scene, { scene: before, growth });
+		expect(scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG]).toBeUndefined();
+		const logged = scene.flags[SYSTEM_ID][REALM_GROWTH_FLAG];
+		expect(logged.log.at(-1)).toEqual({ when: 2000, west: -3, north: -1, east: -1, south: -2 });
+		// A card posted on the grown map names the hex it meant again.
+		expect(cardHexKey("7,6", 1500, logged)).toBe("4,5");
+		const restored = scene.log.findLast(([what, changes]) => what === "scene" && "width" in changes);
+		expect(restored[2][SYSTEM_ID].realmExpanded).toMatchObject({ cols: -3, rows: -1 });
+		expect(restored[2][SYSTEM_ID].realmExpanded.dx).toBeLessThan(0);
+		const tokens = scene.log.filter(([what]) => what === "update Token").at(-1);
+		const options = scene.updateEmbeddedDocuments.mock.calls.findLast(([type]) => type === "Token")[2];
+		expect(tokens).toBeTruthy();
+		expect(options.movement.company.constrainOptions).toEqual({ ignoreWalls: true, ignoreCost: true });
+	});
+
+	it("undoes every expansion since the backup, kept with one or not", async () => {
+		const before = snapshot(scene);
+		await expandRealm(scene, { north: 1 });
+		await expandRealm(scene, { west: 2 });
+		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("6,6");
+		expect(await putRealmBack(scene, { scene: before, growth: { north: 1 } })).toBe(true);
+		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("4,5");
+		expect([scene.width, scene.height]).toEqual([before.width, before.height]);
 	});
 });

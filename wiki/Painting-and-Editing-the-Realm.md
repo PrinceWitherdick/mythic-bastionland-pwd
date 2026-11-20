@@ -144,17 +144,17 @@ Every hex keeps what it holds, and every Token, Tile, Drawing, Note, light, soun
 
 **Hex numbers.** Once hexes are added to the north or west, choose how hexes are numbered. **Keep every hex's number** leaves Column 5, Row 7 as it was; new columns to the west count down from Column 0, and new rows to the north from Row 0. Old chat cards and any numbers printed on your map stay right. **Number the map again from 1** gives every hex a new number. The hexes on old chat cards still open the right place, but the numbers printed on them and in some Timeline rows are then out of date. You can choose again at the next expansion.
 
-**The backup.** **Keep a backup of this Realm first** is ticked to start. It saves the whole Scene, with what is kept for its hexes, in a file with your world on the server, in place of the last one. Tick **Download a copy as well** to keep older ones on your computer. If the backup can't be saved, you're asked whether to go on without it.
+**The backup.** **Keep a backup of this Realm first** is ticked to start. It saves the whole Scene, with what is kept for its hexes, in a file with your world on the server, in place of the last one. Tick **Download a copy as well** to keep older ones on your computer. With the first unticked, only the download is made, and the last backup on the server stays as it was. If the backup can't be saved, you're asked whether to go on without it.
 
 Expanding forgets Undo on the map and Undo on recent Phase cards.
 
 ### Putting the Realm back
 
-Once a Realm has a backup, Expand the map offers **Put the Realm back as it was on** the day it was kept. It asks first. The map, its Tokens and what is kept for its hexes go back to how they were then, and everything done on this Realm since is lost. Anything written down since for a hex that is still there follows it back; anything written for the land added loses its hex. The calendar, the Knights and everything else in the world stay as they are now.
+Once a Realm has a backup, Expand the map offers **Put the Realm back as it was on** the day it was kept. It asks first. The map, its Tokens and what is kept for its hexes go back to how they were then, and everything done on this Realm since is lost. Every expansion since the backup is undone, even one made without a backup of its own. Anything written down since for a hex that is still there follows it back, and chat cards posted since point at the right hex again; anything written for the land added loses its hex. The calendar, the Knights and everything else in the world stay as they are now. A backup is used up once the Realm is put back from it, so it can't be put back twice.
 
 ### If an expansion is cut short
 
-An expansion is written in several steps. If the browser closes part way, the Realm is marked, and the next time a Referee opens it the expansion is finished from the start and you're told so.
+An expansion is written in several steps. If the browser closes part way, the Realm is marked, and the next time a Referee opens it the expansion is finished from the start and you're told so. Putting a Realm back is finished the same way, from its backup. Should that backup no longer be readable, the mark is taken off so the Realm can be used again, and you're told to look it over for anything left out of place.
 
 ## See also
 

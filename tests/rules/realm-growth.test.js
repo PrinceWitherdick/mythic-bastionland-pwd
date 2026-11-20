@@ -13,15 +13,18 @@ import {
 	growthOffset,
 	growthPreview,
 	growthProblem,
+	growthSince,
 	grownGeometry,
 	grownLayout,
 	hasShifted,
 	loggedGrowth,
 	newLandHexes,
 	normaliseGrowth,
+	normaliseRealmGrowth,
 	numbersKept,
 	pixelShift,
 	placeableShifts,
+	putBackGrowth,
 	reverseOffset,
 	shiftEdgeKey,
 	shiftHeldBack,
@@ -158,6 +161,14 @@ describe("growRealm", () => {
 			.toMatchObject({ x: 110.5, y: 47, width: 400, height: 300 });
 		expect(shiftPicture({ players: { src: "a.webp" } }, shift).players).toEqual({ src: "a.webp", bare: false });
 		expect(shiftPicture(null, shift)).toBeNull();
+	});
+
+	it("measures a picture never lined up as lying over the map it was laid on, so it stays over its old hexes", () => {
+		const unmeasured = growRealm({ ...emptyRealm(from), picture: { players: { src: "a.webp" } } }, from, growth);
+		const shift = pixelShift(from, growth);
+		expect(unmeasured.picture.players).toMatchObject({ src: "a.webp", width: from.width, height: from.height });
+		expect(unmeasured.picture.players.x).toBeCloseTo(from.width / 2 + shift.dx, 1);
+		expect(unmeasured.picture.players.y).toBeCloseTo(from.height / 2 + shift.dy, 1);
 	});
 });
 
@@ -309,6 +320,25 @@ describe("numbers shown and old chat cards", () => {
 		expect(hasShifted(null)).toBe(false);
 		expect(hasShifted(loggedGrowth(null, grow(0, 0, 3, 1), { when: 1, keepNumbers: true }))).toBe(false);
 		expect(hasShifted(loggedGrowth(null, grow(1), { when: 1, keepNumbers: false }))).toBe(true);
+		const grown = loggedGrowth(null, grow(2, 1), { when: 1, keepNumbers: true });
+		expect(hasShifted(putBackGrowth(grown, null, growthSince(grown, null), { when: 2 }))).toBe(false);
+	});
+
+	it("adds up every growth logged since a backup, and logs it undone once put back", () => {
+		const backedUp = loggedGrowth(null, grow(0, 0, 1), { when: 50, keepNumbers: true });
+		const once = loggedGrowth(backedUp, grow(0, 1), { when: 100, keepNumbers: true });
+		const twice = loggedGrowth(once, grow(2, 0, 0, 1), { when: 200, keepNumbers: false });
+		const undone = growthSince(twice, backedUp);
+		expect(undone).toEqual(grow(2, 1, 0, 1));
+		expect(growthSince(backedUp, backedUp)).toEqual(grow());
+		const back = putBackGrowth(twice, backedUp, undone, { when: 300 });
+		expect(back.origin).toEqual(normaliseRealmGrowth(backedUp).origin);
+		expect(back.log.at(-1)).toEqual({ when: 300, west: -2, north: -1, east: 0, south: -1 });
+		// A card posted before the backup, or on the grown map, points at its hex again once put back.
+		expect(cardHexKey("5,7", 10, back)).toBe("5,7");
+		expect(cardHexKey("8,8", 250, back)).toBe("6,7");
+		expect(cardHexKey("5,7", 350, back)).toBe("5,7");
+		expect(putBackGrowth(backedUp, backedUp, grow(), { when: 300 }).log).toHaveLength(1);
 	});
 
 	it("turns a card's hex into today's by every expansion after it was posted", () => {
@@ -353,6 +383,17 @@ describe("rollNewLand", () => {
 		expect(rolled.landmarks).toEqual(grown.landmarks);
 		expect(rolled.barriers).toEqual(grown.barriers);
 		expect(rollNewLand({ seed: "s", realm: grown, geometry: to, added })).toEqual(rolled);
+	});
+
+	it("leaves an old hex still blank to paint as it is", () => {
+		const blankHexes = [hex(5, 5), hex(6, 6)].map((h) => shiftHex(h, growthOffset(growth)));
+		const blanked = { ...grown, terrain: grown.terrain.map((terrain, index) => (blankHexes.some((h) => at(h) === index) ? 0 : terrain)) };
+		const rolled = rollNewLand({ seed: "s", realm: blanked, geometry: to, added });
+		for (const h of blankHexes) {
+			expect(rolled.terrain[at(h)]).toBe(0);
+			expect(rolled.variants[at(h)]).toBe(blanked.variants[at(h)]);
+		}
+		for (const h of added) expect(rolled.terrain[at(h)]).toBeGreaterThan(0);
 	});
 
 	it("rolls hidden Landmarks and Barriers into the new land alone when asked, walling nothing off", () => {

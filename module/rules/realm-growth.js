@@ -18,7 +18,7 @@
  */
 import { OWN_SIZE_LIMITS } from "./realm-setup.js";
 import { emptyVariants } from "./realm-pictures.js";
-import { normaliseRealmPicture } from "./realm-map.js";
+import { fullMapRect, normaliseRealmPicture } from "./realm-map.js";
 import { allHexes, edgeKey, hexCentre, hexIndex, hexKey, hexVertices, inRealm, parseHexKey, realmGeometry } from "./realm-geometry.js";
 
 /** The four sides a map can grow on, in the order the window asks. */
@@ -198,19 +198,29 @@ export function newLandHexes(from, growth) {
 	return allHexes(grownGeometry(from, growth)).filter((hex) => !old.has(hexKey(hex)));
 }
 
+const hundredth = (value) => Math.round(value * 100) / 100;
+
 /**
- * A picture's place shifted with the hexes, or left where it is with no place yet.
+ * A picture's place shifted with the hexes. One never lined up lies over the
+ * whole map it was laid on: given that map, it's measured as lying there first,
+ * so it stays over its old hexes rather than stretching over the land added.
+ * Without it, one with no place yet is left as it is.
  * @param {object|null|undefined} picture
  * @param {{dx: number, dy: number}} shift
+ * @param {object|null} [from] The geometry of the map it was laid on.
  * @returns {object|null}
  */
-export function shiftPicture(picture, { dx, dy }) {
+export function shiftPicture(picture, { dx, dy }, from = null) {
 	const pictures = normaliseRealmPicture(picture);
 	if (!pictures) return null;
-	return Object.fromEntries(Object.entries(pictures).map(([role, map]) => [role,
-		map && Number.isFinite(map.x) && Number.isFinite(map.y)
-			? { ...map, x: Math.round((map.x + dx) * 100) / 100, y: Math.round((map.y + dy) * 100) / 100 }
-			: map]));
+	return Object.fromEntries(Object.entries(pictures).map(([role, map]) => {
+		const placed = map && !(map.width > 0) && from
+			? { ...map, ...Object.fromEntries(Object.entries(fullMapRect(from)).map(([key, value]) => [key, hundredth(value)])) }
+			: map;
+		return [role, placed && Number.isFinite(placed.x) && Number.isFinite(placed.y)
+			? { ...placed, x: hundredth(placed.x + dx), y: hundredth(placed.y + dy) }
+			: placed];
+	}));
 }
 
 /**
@@ -246,7 +256,7 @@ export function growRealm(realm, from, growth) {
 	if (variants) grown.variants = variants;
 	else delete grown.variants;
 	if (realm.setup) grown.setup = { ...realm.setup, cols: to.cols, rows: to.rows };
-	const picture = shiftPicture(realm.picture, pixelShift(from, growth));
+	const picture = shiftPicture(realm.picture, pixelShift(from, growth), from);
 	if (picture) grown.picture = picture;
 	return grown;
 }
@@ -548,9 +558,11 @@ export function shiftOmenEntered(value, sceneId, offset, g = null) {
  * @returns {RealmGrowth}
  */
 export function normaliseRealmGrowth(raw) {
+	// An entry may be negative: a Realm put back from its backup logs the growth undone.
+	const side = (value) => (Number.isInteger(value) ? value : 0);
 	const log = (Array.isArray(raw?.log) ? raw.log : [])
 		.filter((entry) => entry && Number.isFinite(entry.when))
-		.map((entry) => ({ when: entry.when, ...normaliseGrowth(entry) }));
+		.map((entry) => ({ when: entry.when, ...Object.fromEntries(GROWTH_SIDES.map((key) => [key, side(entry[key])])) }));
 	const origin = {
 		cols: Number.isInteger(raw?.origin?.cols) ? raw.origin.cols : 0,
 		rows: Number.isInteger(raw?.origin?.rows) ? raw.origin.rows : 0
@@ -576,10 +588,44 @@ export function loggedGrowth(raw, growth, { when, keepNumbers }) {
 }
 
 /**
- * @param {unknown} raw
- * @returns {boolean} Whether any expansion has moved the map's hexes, so the numbering is a choice worth offering.
+ * Every growth logged since a backup was taken: the entries the Realm's log
+ * has past those the backup's held, added up. A put-back undoes them all, as
+ * the Scene goes back to the backup whatever was grown since.
+ * @param {unknown} raw The Scene's growth flag now.
+ * @param {unknown} backupRaw The growth flag the backup holds.
+ * @returns {Growth} Each side's total, which may be 0 for every side.
  */
-export const hasShifted = (raw) => normaliseRealmGrowth(raw).log.some((entry) => entry.west || entry.north);
+export function growthSince(raw, backupRaw) {
+	const since = normaliseRealmGrowth(raw).log.slice(normaliseRealmGrowth(backupRaw).log.length);
+	return Object.fromEntries(GROWTH_SIDES.map((side) => [side, since.reduce((sum, entry) => sum + entry[side], 0)]));
+}
+
+/**
+ * The growth record once a Realm is put back from its backup: the numbering the
+ * backup held, and the log kept, with the growth undone logged after it, so a
+ * card posted on the grown map is moved back to the hex it meant.
+ * @param {unknown} raw The Scene's growth flag now.
+ * @param {unknown} backupRaw The growth flag the backup holds.
+ * @param {Growth} undone From growthSince.
+ * @param {object} options
+ * @param {number} options.when The time on the server.
+ * @returns {RealmGrowth}
+ */
+export function putBackGrowth(raw, backupRaw, undone, { when }) {
+	const { log } = normaliseRealmGrowth(raw);
+	const { origin } = normaliseRealmGrowth(backupRaw);
+	const moved = GROWTH_SIDES.some((side) => undone[side]);
+	return { log: moved ? [...log, { when, ...Object.fromEntries(GROWTH_SIDES.map((side) => [side, 0 - undone[side]])) }] : log, origin };
+}
+
+/**
+ * @param {unknown} raw
+ * @returns {boolean} Whether the expansions logged have moved the map's hexes, so the numbering is a choice worth offering.
+ */
+export const hasShifted = (raw) => {
+	const { log } = normaliseRealmGrowth(raw);
+	return log.reduce((sum, entry) => sum + entry.west, 0) !== 0 || log.reduce((sum, entry) => sum + entry.north, 0) !== 0;
+};
 
 /**
  * @param {unknown} raw

@@ -33,7 +33,7 @@ const sizeText = (g, growth) => t("realm.expand.size", grownSize(g, growth));
 
 /**
  * @param {Scene} scene
- * @returns {{path: string, when: number}|null} The backup kept before the Realm's last expansion.
+ * @returns {{path: string, when: number}|null} The backup the Realm was last kept in before an expansion.
  */
 export function realmBackup(scene) {
 	const backup = scene?.flags?.[SYSTEM_ID]?.[REALM_BACKUP_FLAG];

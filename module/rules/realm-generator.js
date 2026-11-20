@@ -131,18 +131,22 @@ function scaledSpacings(spacings, g, count, bookCount) {
  * the land already drawn, favouring compact shapes.
  * @param {{cluster: number, lakes: number}} rules The die for a cluster's size, and the most lake clusters.
  * @param {Set<string>} [dry] Hexes a lake mustn't cover, where kept Holdings stand.
+ * @param {number[]|null} [start] Terrain already drawn, grown out from.
+ * @param {Set<number>|null} [fill] The only hexes to fill, by index; every blank hex if not given.
  * @returns {number[]} Terrain for each hex in `hexIndex` order.
  */
-function generateTerrain(random, g, { cluster: sizeDie, lakes: maxLakes }, dry = new Set(), start = null) {
+function generateTerrain(random, g, { cluster: sizeDie, lakes: maxLakes }, dry = new Set(), start = null, fill = null) {
 	// Given land already drawn, the clusters grow out from it, as new land added beside a standing Realm does.
 	const terrain = start ? [...start] : new Array(g.cols * g.rows).fill(0);
-	const isSet = (hex) => terrain[hexIndex(g, hex)] > 0;
+	const hasLand = (hex) => terrain[hexIndex(g, hex)] > 0;
+	// Only the hexes asked for are filled: an old hex left blank to paint stays blank.
+	const isSet = (hex) => hasLand(hex) || Boolean(fill && !fill.has(hexIndex(g, hex)));
 	let lakes = 0;
 
 	for (;;) {
 		const open = allHexes(g).filter((hex) => !isSet(hex));
 		if (!open.length) return terrain;
-		const frontier = open.filter((hex) => neighbours(g, hex).some(({ hex: next }) => isSet(next)));
+		const frontier = open.filter((hex) => neighbours(g, hex).some(({ hex: next }) => hasLand(next)));
 		const start = random.pick(frontier.length ? frontier : open);
 
 		let type = random.die(TERRAIN.length);
@@ -512,7 +516,7 @@ export function rollNewLand({ seed, realm, geometry: g, added, terrain: rollTerr
 	const dry = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
 	let grown = realm;
 	if (rollTerrain) {
-		const terrain = generateTerrain(random, g, { cluster: rules.cluster, lakes: Math.round(rules.lakes * share) }, dry, realm.terrain);
+		const terrain = generateTerrain(random, g, { cluster: rules.cluster, lakes: Math.round(rules.lakes * share) }, dry, realm.terrain, isNew);
 		// The new hexes' pictures, none grouped with an old hex's, so every old hex shows what it showed.
 		const old = new Set(allHexes(g).map((hex) => hexIndex(g, hex)).filter((index) => !isNew.has(index)));
 		const kept = new Set([...old, ...keptHexes(g, realm)]);
