@@ -2,12 +2,14 @@ import {
 	REALM_HISTORY_HOOK,
 	REALM_LOOK_FLAG,
 	REALM_LOOK_HOOK,
+	EXPANDED_OPTION,
 	forgetRealm,
 	forgetRealmHistory,
 	getRealm,
 	isDrawingRealm,
 	isRealmScene,
 	realmWritesSettled,
+	resumeExpansion,
 	syncRealmScene
 } from "../actions/realm.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
@@ -25,8 +27,8 @@ import { refreshSeerChooser } from "../apps/SeerChooser.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
-import { refreshHexEditor } from "../apps/HexEditor.js";
-import { refreshPlaces, registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
+import { followMovedHexes, refreshHexEditor } from "../apps/HexEditor.js";
+import { followMovedPlaces, refreshPlaces, registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
 import { registerVisitedMarksMenu } from "../apps/VisitedMarks.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -201,6 +203,11 @@ export function registerRealmHooks() {
 		// A Realm finished drawing swaps its rules back to Travel and Exploration, on every client.
 		if (scene.id === canvas?.scene?.id && foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`)) showRealmRules();
 	});
+	// An expansion moves every hex along the page: each client keeps looking at the land it was, and its windows on their hexes.
+	Hooks.on("updateScene", (scene, _changes, options) => {
+		const moved = options?.[SYSTEM_ID]?.[EXPANDED_OPTION];
+		if (moved) followExpansion(scene, moved);
+	});
 	Hooks.on("deleteScene", (scene) => {
 		forgetRealm(scene.id);
 		forgetRealmHistory(scene.id);
@@ -242,8 +249,12 @@ export function registerRealmHooks() {
 		offerWaitingArrival();
 		// And, for a Realm with no Company on it, the button that hands the Referee one.
 		showCompanyButton();
-		// Put right anything that drifted on the Scene's own layers, quietly: it writes nothing on a Realm in order.
-		syncRealmScene(canvas?.scene).catch((error) => console.error(`${SYSTEM_ID} | Couldn't put the Realm Scene back in order`, error));
+		// An expansion cut short, as by a browser closed part way, is finished first; then anything that drifted
+		// on the Scene's own layers is put right, quietly: it writes nothing on a Realm in order.
+		const scene = canvas?.scene;
+		resumeExpansion(scene)
+			.then(() => syncRealmScene(scene))
+			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't put the Realm Scene back in order`, error));
 	});
 	Hooks.on("canvasTearDown", () => {
 		detachHexReadout();
@@ -255,5 +266,24 @@ export function registerRealmHooks() {
 				refreshTravelsButtons();
 			}
 		}, 0);
+	});
+}
+
+/**
+ * Follow an expansion on this client: the view panned by as far as the hexes
+ * moved, once the canvas is drawn again at its new size, and the windows
+ * open on a hex kept on it.
+ * @param {Scene} scene
+ * @param {{dx: number, dy: number, cols: number, rows: number}} moved
+ */
+function followExpansion(scene, moved) {
+	followMovedHexes(scene.id, moved);
+	followMovedPlaces(scene.id, moved);
+	if (scene.id !== canvas?.scene?.id || !canvas.stage) return;
+	// Where this client was looking, before the redraw the new size sets off resets it.
+	const { x, y } = canvas.stage.pivot;
+	const scale = canvas.stage.scale.x;
+	Hooks.once("canvasReady", () => {
+		if (canvas.scene?.id === scene.id) canvas.pan({ x: x + moved.dx, y: y + moved.dy, scale });
 	});
 }

@@ -5902,6 +5902,57 @@ button.bastionland-dice:focus-visible {
 	stroke-linejoin: round;
 }
 
+/* Expand the map: the sides in two pairs, and the map drawn small with its new hexes round it. */
+.bastionland-expand__sides {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem 1rem;
+}
+
+.bastionland-expand__preview {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.3rem;
+	margin: 0.5rem 0 0;
+}
+
+.bastionland-expand__map {
+	width: 100%;
+	max-width: 18rem;
+	max-height: 14rem;
+}
+
+.bastionland-expand__old,
+.bastionland-expand__added {
+	stroke-width: 1;
+	stroke-linejoin: round;
+}
+
+.bastionland-expand__old {
+	fill: color-mix(in srgb, var(--bastionland-ink) 14%, transparent);
+	stroke: var(--bastionland-ink);
+}
+
+.bastionland-expand__added {
+	fill: color-mix(in srgb, var(--bastionland-rubric) 16%, transparent);
+	stroke: var(--bastionland-rubric);
+	stroke-dasharray: 2 1.5;
+}
+
+.bastionland-expand__preview figcaption {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-expand__problem {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-expand__restore {
+	flex: none;
+	align-self: flex-start;
+}
+
 .bastionland-realm-layout__edge {
 	fill: none;
 	stroke: var(--bastionland-ink-soft);

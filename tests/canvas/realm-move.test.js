@@ -7,6 +7,7 @@ const barred = edgeKey({ col: 3, row: 3 }, { col: 4, row: 3 });
 const realm = { ...emptyRealm(g), barriers: [{ id: "b1", edge: barred, revealed: false }] };
 
 vi.mock("../../module/actions/realm.js", () => ({
+	expansionUnderWay: () => null,
 	getRealm: () => ({ realm }),
 	isRealmScene: (scene) => Boolean(scene?.realm),
 	sceneGeometry: () => g

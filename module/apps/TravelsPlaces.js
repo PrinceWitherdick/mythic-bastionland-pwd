@@ -595,3 +595,17 @@ export function refreshPlaces(sceneId) {
 	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
 	if (app?.rendered && app.state.realm === sceneId) renderWhenIdle(app);
 }
+
+/**
+ * Keep the hex chosen in Places chosen after a Realm's hexes moved, as an
+ * expansion to the north or west moves them.
+ * @param {string} sceneId
+ * @param {{cols: number, rows: number}} offset
+ */
+export function followMovedPlaces(sceneId, offset) {
+	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
+	if (!app || app.state.realm !== sceneId) return;
+	const hex = parseHexKey(app.state.selected ?? "");
+	app.state.selected = hex ? hexKey({ col: hex.col + offset.cols, row: hex.row + offset.rows }) : null;
+	if (app.rendered) renderWhenIdle(app);
+}

@@ -160,3 +160,15 @@ function placeBeside(app, other) {
 export function refreshHexEditor(sceneId) {
 	if (editor?.rendered && editor.sceneId === sceneId) renderWhenIdle(editor);
 }
+
+/**
+ * Keep Edit this hex on the same hex after a Realm's hexes moved, as an
+ * expansion to the north or west moves them.
+ * @param {string} sceneId
+ * @param {{cols: number, rows: number}} offset
+ */
+export function followMovedHexes(sceneId, offset) {
+	if (!editor?.rendered || editor.sceneId !== sceneId || !editor.hex) return;
+	editor.hex = { col: editor.hex.col + offset.cols, row: editor.hex.row + offset.rows };
+	renderWhenIdle(editor);
+}

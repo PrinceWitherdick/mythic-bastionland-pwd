@@ -1,6 +1,6 @@
 import { forcedMove } from "../actions/company.js";
 import { movesAsCompany } from "../actions/journey.js";
-import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { expansionUnderWay, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { t } from "../chat/cards.js";
 import { barrierEdges, hexAt, sameHex } from "../rules/realm-geometry.js";
 import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
@@ -51,7 +51,8 @@ function hexesBefore(hexes, { from, to }) {
  */
 export function allowRealmMove(token, movement, operation) {
 	const scene = token?.parent;
-	if (!isRealmScene(scene)) return true;
+	// Every Token moved by an expansion stays on the land it stood on.
+	if (!isRealmScene(scene) || expansionUnderWay(scene)) return true;
 	if (travelsUnheard(token)) {
 		ui.notifications.warn(t("realm.movement.travelNeedsGM"));
 		return false;
