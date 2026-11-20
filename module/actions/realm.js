@@ -1236,7 +1236,6 @@ async function expansionPlan(scene, growth, { keepNumbers, land = (grown) => gro
 			height: to.height,
 			gridType: to.gridType,
 			realm: realmFlagChanges(realmFlag(scene), target, to) ?? { set: {}, drop: [] },
-			hexFlags: shiftedHexFlags(flags, offset),
 			initial: Number.isFinite(initial?.x) && Number.isFinite(initial?.y) ? { x: Math.round(initial.x + shift.dx), y: Math.round(initial.y + shift.dy) } : null,
 			growth: loggedGrowth(flags[REALM_GROWTH_FLAG], growth, { when: serverNow(), keepNumbers })
 		},
@@ -1248,18 +1247,24 @@ async function expansionPlan(scene, growth, { keepNumbers, land = (grown) => gro
 /**
  * The Scene update an expansion's plan makes: its size and grid, the Realm's
  * flag, everything kept for each hex written whole under its new keys, where
- * it opens, and the growth logged.
+ * it opens, and the growth logged. What's kept for each hex isn't in the plan,
+ * as a long-played Realm's would make it hundreds of kilobytes: it's re-keyed
+ * from the Scene as it stands, unless this write is already made, which the
+ * mark on the Scene says, so a plan written again never moves it twice.
+ * @param {Scene} scene
  * @param {object} plan From expansionPlan.
  * @returns {object}
  */
-function expansionSceneUpdate({ scene: changes }) {
+function expansionSceneUpdate(scene, { scene: changes, growth, sceneWritten = false }) {
 	const flag = (key) => `flags.${SYSTEM_ID}.${key}`;
+	const hexFlags = sceneWritten ? {} : shiftedHexFlags(scene.flags?.[SYSTEM_ID] ?? {}, growthOffset(growth));
 	return Object.fromEntries([
+		[`${flag(EXPANDING_FLAG)}.sceneWritten`, true],
 		["width", changes.width],
 		["height", changes.height],
 		["grid.type", changes.gridType],
 		...realmFlagEntries(changes.realm),
-		...Object.entries(changes.hexFlags).map(([key, value]) => (value === null || value === undefined ? deletionEntry(flag(key)) : replacementEntry(flag(key), value))),
+		...Object.entries(hexFlags).map(([key, value]) => (value === null || value === undefined ? deletionEntry(flag(key)) : replacementEntry(flag(key), value))),
 		...(changes.initial ? [["initial.x", changes.initial.x], ["initial.y", changes.initial.y]] : []),
 		replacementEntry(flag(REALM_GROWTH_FLAG), changes.growth)
 	]);
@@ -1282,7 +1287,7 @@ async function writeExpansion(scene, plan) {
 	}
 	const { writeOutsideShifts } = await import("./realm-expand.js");
 	await writeOutsideShifts(plan.outside);
-	await scene.update(expansionSceneUpdate(plan), { [SYSTEM_ID]: { [EXPANDED_OPTION]: { ...plan.shift, ...growthOffset(plan.growth) } } });
+	await scene.update(expansionSceneUpdate(scene, { ...plan, sceneWritten: Boolean(expansionUnderWay(scene)?.sceneWritten) }), { [SYSTEM_ID]: { [EXPANDED_OPTION]: { ...plan.shift, ...growthOffset(plan.growth) } } });
 	forgetRealm(scene.id);
 	const { canvasRedrawn } = await import("./realm-map.js");
 	await canvasRedrawn(scene);

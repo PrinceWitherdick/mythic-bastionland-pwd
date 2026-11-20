@@ -16,7 +16,7 @@ vi.mock("../../module/actions/hex-journals.js", () => ({ syncHexJournals: vi.fn(
 vi.mock("../../module/canvas/hex-prompt.js", () => ({ forgetHexArrivals: vi.fn() }));
 vi.mock("../../module/actions/time-capture.js", () => ({ writeAdvanceRecords: vi.fn(async () => {}) }));
 
-const { expandRealm, getRealm, resumeExpansion, forgetRealm, sceneGeometry } = await import("../../module/actions/realm.js");
+const { expandRealm, getRealm, putRealmBack, resumeExpansion, forgetRealm, sceneGeometry } = await import("../../module/actions/realm.js");
 const { warn } = await import("../../module/chat/cards.js");
 const { writeAdvanceRecords } = await import("../../module/actions/time-capture.js");
 const { syncHexJournals } = await import("../../module/actions/hex-journals.js");
@@ -289,9 +289,61 @@ describe("resumeExpansion", () => {
 		expect(scene.flags[SYSTEM_ID].hexNames).toEqual(whole.flags[SYSTEM_ID].hexNames);
 	});
 
+	it("moves nothing twice when cut short after the Scene itself was written", async () => {
+		const realUpdate = scene.update.getMockImplementation();
+		let cut = false;
+		scene.update.mockImplementation(async (changes, options) => {
+			await realUpdate(changes, options);
+			if ("width" in changes && !cut) {
+				cut = true;
+				throw new Error("closed");
+			}
+		});
+		await expect(expandRealm(scene, growth)).rejects.toThrow("closed");
+		scene.update.mockImplementation(realUpdate);
+		expect(await resumeExpansion(scene)).toBe(true);
+		expect(scene.flags[SYSTEM_ID].hexNames).toEqual({ version: 1, hexes: { "7,6": { name: "Mossford" } } });
+		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("7,6");
+		expect(scene.flags[SYSTEM_ID][REALM_GROWTH_FLAG].log).toHaveLength(1);
+	});
+
 	it("leaves one still being written by another Referee whose browser is open", async () => {
 		scene.flags[SYSTEM_ID][EXPANDING_FLAG] = { by: "other", growth, embedded: {}, tokens: [] };
 		game.users.get = () => ({ active: true });
 		expect(await resumeExpansion(scene)).toBe(false);
+	});
+});
+
+describe("putRealmBack", () => {
+	const snapshot = (target) => ({
+		_id: target.id,
+		width: target.width,
+		height: target.height,
+		grid: structuredClone(target.grid),
+		initial: structuredClone(target._source.initial),
+		flags: structuredClone(target.flags),
+		tiles: target.tiles.map((tile) => structuredClone(tile._source)),
+		drawings: target.drawings.map((drawing) => structuredClone(drawing._source)),
+		tokens: target.tokens.map((token) => structuredClone(token._source))
+	});
+
+	it("puts the Scene back as the backup holds it, Tile ids and all, and moves what's kept outside back", async () => {
+		const before = snapshot(scene);
+		const realmBefore = getRealm(scene).realm;
+		await expandRealm(scene, growth);
+		// Something written since for a hex of the old land, and one for the new.
+		game.journal.push(Object.assign({ id: "j2", flags: { [SYSTEM_ID]: { hexJournal: { scene: "vale", hex: "1,1" } } } }, { getFlag() {} }));
+		expect(await putRealmBack(scene, { scene: before, growth })).toBe(true);
+		forgetRealm();
+		const after = getRealm(scene).realm;
+		expect(after.terrain).toEqual(realmBefore.terrain);
+		expect(after.holdings).toEqual(realmBefore.holdings);
+		expect(scene.tiles.map((tile) => tile.id).sort()).toEqual(before.tiles.map((tile) => tile._id).sort());
+		expect([scene.width, scene.height]).toEqual([before.width, before.height]);
+		expect(scene.flags[SYSTEM_ID].hexNames).toEqual(before.flags[SYSTEM_ID].hexNames);
+		expect(scene.flags[SYSTEM_ID][EXPANDING_FLAG]).toBeUndefined();
+		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("4,5");
+		// Written for a hex of the land added, it loses its hex rather than landing on another.
+		expect(game.journal.get("j2").flags[SYSTEM_ID].hexJournal).toBeUndefined();
 	});
 });

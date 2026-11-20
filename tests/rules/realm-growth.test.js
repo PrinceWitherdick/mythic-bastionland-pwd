@@ -4,7 +4,8 @@ import { REALM_FLAG, emptyRealm, validateRealm } from "../../module/rules/realm.
 import { DIRECTIONS, REALM_LAYOUTS, allHexes, edgeKey, hexCentre, neighbour, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm, isConnected, rollNewLand } from "../../module/rules/realm-generator.js";
 import { brokenPictures } from "../../module/rules/realm-pictures.js";
-import { planRealmSync, realmFromDocuments, realmSceneData, realmSceneFlag, realmTextures } from "../../module/rules/realm-documents.js";
+import { planRealmSync, realmDocuments, realmFromDocuments, realmSceneData, realmSceneFlag, realmTextures } from "../../module/rules/realm-documents.js";
+import { normaliseRealmPicture } from "../../module/rules/realm-map.js";
 import { OWN_SIZE_LIMITS } from "../../module/rules/realm-setup.js";
 import {
 	cardHexKey,
@@ -370,5 +371,36 @@ describe("rollNewLand", () => {
 		}
 		expect(isConnected(to, new Set(rolled.barriers.map((barrier) => barrier.edge)))).toBe(true);
 		expect(validateRealm(rolled, to)).toEqual([]);
+	});
+});
+
+describe("a Realm laid over a picture, grown", () => {
+	const from = realmGeometry();
+	const realm = generateRealm({ seed: "picture", geometry: from });
+	realm.picture = { players: { src: "map.webp", bare: false, x: from.width / 2, y: from.height / 2, width: from.width, height: from.height } };
+	const growth = grow(2, 0, 2, 0);
+	const to = grownGeometry(from, growth);
+	const grown = growRealm(realm, from, growth);
+	const alphas = (target) => new Map(realmDocuments(target, to, realmTextures()).tiles
+		.filter(({ data }) => data.flags[SYSTEM_ID][REALM_FLAG].kind === "terrain")
+		.map(({ match, data }) => [match.slice("terrain:".length), data.alpha]));
+	const filled = { ...grown, terrain: grown.terrain.map((terrain) => terrain || 8) };
+
+	it("moves the picture with its hexes", () => {
+		expect(grown.picture.players.x).toBeCloseTo(realm.picture.players.x + pixelShift(from, growth).dx, 1);
+		expect(grown.picture.players.width).toBe(realm.picture.players.width);
+	});
+
+	it("hides the system's ink everywhere, as before, unless the new land is to be inked", () => {
+		expect([...alphas(filled).values()].every((alpha) => alpha === 0)).toBe(true);
+		const inked = { ...filled, picture: { players: { ...filled.picture.players, inkOutside: true } } };
+		const shown = alphas(inked);
+		const added = new Set(newLandHexes(from, growth).map((h) => `${h.col},${h.row}`));
+		for (const [key, alpha] of shown) expect(alpha).toBe(added.has(key) ? 1 : 0);
+	});
+
+	it("keeps the word that new land is inked through the picture's cleaning", () => {
+		expect(normaliseRealmPicture({ players: { src: "a.webp", x: 1, y: 1, width: 2, height: 2, inkOutside: true } }).players.inkOutside).toBe(true);
+		expect(normaliseRealmPicture({ players: { src: "a.webp", inkOutside: "yes" } }).players).toEqual({ src: "a.webp", bare: false });
 	});
 });
