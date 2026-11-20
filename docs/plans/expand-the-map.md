@@ -16,9 +16,11 @@ The feature: a Referee adds columns and rows of hexes to any side of a Realm tha
 2. Afterwards every hex holds what it held, every Token stands in the hex it stood in, and everything the system keeps for a hex (names, notes, visits, sightings, Journal entries, Threads, Timeline rows) still belongs to that hex.
 3. The new land is either rolled as the book rolls terrain, or left blank to paint.
 4. It works on a Realm drawn in the system's ink, on one still being drawn by hand, and on one laid over an imported picture.
-5. `npm run lint`, `npm test` and `npm run build` pass. Nobody can run Foundry in CI, so the live checks at the end of this plan go into `ROADMAP.md` for the owner to try.
+5. The Referee chooses whether hexes keep the numbers they had (new hexes to the north and west then count down through 0 into negatives) or the whole map is numbered again from 1.
+6. The tool keeps a backup of the Realm before it changes anything, and can put the Realm back from it.
+7. `npm run lint`, `npm test` and `npm run build` pass. Nobody can run Foundry in CI, so the live checks at the end of this plan go into `ROADMAP.md` for the owner to try.
 
-Out of scope: shrinking a map, undoing an expansion, and turning a plain Foundry Scene with a background image into a Realm in place (New Realm → Import a map I drew already does that from the same picture).
+Out of scope: shrinking a map, an Undo that keeps what play has done since (the backup puts the Realm back as it was, losing what came after), and turning a plain Foundry Scene with a background image into a Realm in place (New Realm → Import a map I drew already does that from the same picture).
 
 ## How a Realm is stored (read this before designing anything)
 
@@ -30,11 +32,28 @@ Out of scope: shrinking a map, undoing an expansion, and turning a plain Foundry
 
 ## The design
 
-### 1. Shift the Realm; don't invent hexes numbered below 1
+### 1. Shift the Realm underneath; let the Referee choose the numbers on top
 
 Growing by `{west, east, north, south}` gives `cols + west + east` by `rows + north + south`. An old hex `(c, r)` becomes `(c + west, r + north)`. East and south growth moves nothing.
 
-Keeping old numbers by allowing column 0 or −3 was considered and rejected: `parseHexKey`, `hexIndex`, `allHexes`, Journal sort order and the book's own numbering all count from 1.
+**What is stored always counts from 1.** `parseHexKey`, `hexIndex`, `allHexes`, the terrain arrays and Foundry's own grid all start at the top-left hex, so a stored hex below 1 would break them. Do not store one, whatever the Referee chooses below.
+
+**What is shown is a separate matter, and is the Referee's choice.** The owner wants both offered:
+
+- **Keep every hex's number.** Column 5, Row 7 stays Column 5, Row 7. A column added on the west is Column 0, the next Column -1, and so on. There is a Column 0: the count does not skip it.
+- **Number the map again from 1.** Every hex north or west of nothing is 1, and old hexes take new numbers.
+
+This is safe because it is display only. The Scene keeps a tick for which the Referee chose (`keepNumbers`); the growth log (design point 6) already records every shift. A shown hex is the stored hex less the total shift logged, when the tick is on, and the stored hex itself when it is off. Nothing stored differs between the two, so the Referee can change their mind at a later expansion and lose nothing.
+
+The work is to route every place a hex's number is printed or typed through one pure helper, `shownHex(hex, numbering)`:
+
+- The two strings that print a number: `realm.hex` ("Column {col}, Row {row}") and `realm.readout.coordinates` ("({col}, {row})").
+- Their callers. Most go through `hexLabel` and `hexHeading` in `module/actions/hex-names.js`, which already have the Scene. These pass a raw hex today and need the Scene's numbering: `rules/travels.js:367`, `apps/RealmPanel.js:66`, `sheets/GmToolkitSheet.js:748`, `canvas/map-alignment.js:320`, `canvas/travels-click.js:54`, `actions/sighted.js:81,118`, `actions/homecoming.js:102`, `canvas/hex-readout.js:154`.
+- The one place a number is typed: the Track a hex dialog (`templates/dialogs/track-hex.hbs`), whose fields run from 1 to the map's size. They must show and accept shown numbers and turn them back into stored ones.
+
+Add a test that fails if either string is used outside the helper, so a later feature can't print a stored number by mistake. Journal entry sort (`entrySort`) and everything else internal stays on stored hexes.
+
+The window offers the choice only when hexes are being added north or west, or when an earlier expansion has already shifted the map. Default to keeping numbers: it leaves old chat cards, players' own notes and any numbers printed on an imported map correct.
 
 ### 2. Flip the layout when the shift is odd
 
@@ -104,7 +123,7 @@ Domains, Sites, Warbands and the Ledger hold no hex. No client setting or User f
 
 Cards carry hex keys in their HTML (`data-hex-target`, `data-arrival-hex`, `data-landmark-hex`) and in flags (`arrived.held`, `arrived.orders`), and they print "Column 5, Row 7" as text. Rewriting thousands of messages is slow and fragile.
 
-Instead keep a growth log on the Scene, `[{when, west, north}]`, written in step 6 with `serverNow()`. One pure helper turns a key from a card into today's key by adding every shift logged after the card's `timestamp`. Route the three click handlers (`chat/hex-target.js`, `actions/arrivals.js:499`, `chat/landmark-card.js:22`) through it. Old cards then open the right hex, though the numbers printed on them stay as they were. The window says so before the Referee confirms.
+Instead keep a growth log on the Scene, `[{when, west, north}]`, written in step 6 with `serverNow()`. One pure helper turns a key from a card into today's key by adding every shift logged after the card's `timestamp`. Route the three click handlers (`chat/hex-target.js`, `actions/arrivals.js:499`, `chat/landmark-card.js:22`) through it. Old cards then open the right hex whichever numbering is chosen. With numbers kept, what is printed on them is still right. With the map numbered again from 1, the numbers printed on old cards and in a few Timeline rows (`place` from `settleThread`, `actions/threads.js:253`) are out of date, and the window says so beside that choice.
 
 ### 7. An expansion that is cut short
 
@@ -118,7 +137,7 @@ The window offers:
 
 - **Roll its terrain** (the default for a Realm whose terrain was rolled). Clusters of d12 hexes as on p14, growing out from the land already there. `generateTerrain` (`module/rules/realm-generator.js:136`) already grows from a frontier beside set hexes, so give it a starting terrain. Scale the lake cap by the share of hexes added.
 - **Leave it blank to paint** (the default for a Realm drawn by hand, `setup.roll.terrain === false`, or laid over a picture).
-- A tick, off by default: **Roll Landmarks and Barriers into it too**, hidden from players, at the book's density for the hexes added (`sizedCounts`, `barrierCount`), Barriers only on edges touching a new hex, and never walling a hex off (`isConnected`). No new Myths, since a Realm has six, and no Holdings or rivers.
+- A tick, off by default, which the owner has asked for: **Roll Landmarks and Barriers into it too**, hidden from players, at the book's density for the hexes added (`sizedCounts`, `barrierCount`), Barriers only on edges touching a new hex, and never walling a hex off (`isConnected`). No new Myths, since a Realm has six, and no Holdings or rivers.
 
 Two rules for the generator work. Existing seeds must roll exactly the Realms they roll today: the seed tests in `tests/rules/` pin this, so add new paths rather than reordering random calls in old ones. And old hexes keep their terrain pictures (`variants`); only new hexes pick theirs (see `paintPictures` and `mendPictures` in `realm-pictures.js`).
 
@@ -137,6 +156,21 @@ Extending a painted picture so that new land matches it is not possible: there i
 
 Replace the two strings that tell Referees to make a New Realm for a different size.
 
+### 10. The backup, and putting the Realm back
+
+The owner wants the tool to offer a backup itself, not only advise one. As far as I know Foundry has no way to start a world backup from inside a running world (confirm this); if so the backup is the system's own.
+
+**Keeping it.** The window has a tick, on by default: **Keep a backup of this Realm first**. Before step 3 of the order of writes, save one JSON file holding the whole Scene (`scene.toObject()`), the growth about to be made, the system's version and the time. Save it on the server under the world's own folder with `ensureDirectories` and `uploadFile` (`module/book-art/files.js`), named for the Scene so the next expansion writes over it: Foundry gives no way to delete a file, so one backup a Scene, the latest. Confirm `.json` may be uploaded on both versions and on hosted servers. Note the file's path and time in a Scene flag. Offer **Download a copy** as well (`foundry.utils.saveDataToFile`, as `HeraldryPainter.js:2452` does), for a Referee who wants to keep older ones. If the file can't be saved, say so and ask whether to go on without it; never expand silently unbacked when the tick is on.
+
+**Putting it back.** When the Scene has a backup, the window offers **Put the Realm back as it was on {date}**, behind a confirmation that says plainly what is lost. It restores two things, under the same guard flag as an expansion:
+
+- *The Scene*, whole, from the file: its size, grid, flags and every Tile, Drawing, Token and other placeable, with their ids, since Domains point at Holding Tiles by id. Foundry's own Import Data on a Scene (`Document#importFromJSON`) replaces a document in place; check whether it keeps embedded ids on both versions, and write the replacement by hand if it doesn't.
+- *What lives outside the Scene* (hex Journal entries, Toolkit Threads, Timeline row keys, `omenEntered`), re-keyed by the opposite shift, using the same functions with the amounts negated. This way things recorded since the expansion follow their hex back. Anything recorded for a hex of the new land, which no longer exists, loses its hex; it must never land on another one.
+
+Then clear what an expansion clears: Realm Undo, the `timeUndo` records, the in-memory hex caches, and run the hex-Journal sync.
+
+The confirmation, and the wiki, must say what the backup is and isn't: it holds this Realm's map and what is kept for its hexes. Putting it back loses everything done on this Realm since. The calendar, the Knights and everything else in the world stay as they are now.
+
 ## Suggested shape of the code
 
 Follow the split the repository already keeps: pure rules in `module/rules/` with no Foundry in them, Foundry work in `module/actions/`, windows in `module/apps/` and `templates/dialogs/`.
@@ -144,10 +178,10 @@ Follow the split the repository already keeps: pure rules in `module/rules/` wit
 - `module/rules/realm-growth.js` (new, pure): normalise and limit a growth; the target geometry with its flip; the hex, edge and pixel shifts; `growRealm(realm, from, growth)`; the per-type placeable shifts; a re-key function for each store shape; the card-key helper; the preview's SVG paths (see `hexOverlay` in `rules/realm-map.js:486` for the pattern).
 - `module/actions/realm.js`: `expandRealm(scene, growth, options)` beside `setRealmLayout`, since it needs `queueRealmWrite`, `writeRealm`, `settleRealmTiles` and `refreshThumbnail`, which are private there.
 - `module/rules/realm.js`: add the tool to `REALM_TOOLS`, `REALM_BUTTONS` and `REALM_TOOL_ICONS`; `RealmLayer.runButton` (`module/canvas/RealmLayer.js:242`) runs it.
-- The window: use `inputDialog` (`module/apps/ui.js:282`) as `askForRealmPicture` does. Four number fields, the map drawn small with the new hexes around it, the resulting size ("14 by 12, 168 hexes"), the new-land choice, and the warnings: hexes are renumbered when adding north or west; Realm Undo and the Undo on recent Phase cards are forgotten; this can't be undone, so back the world up first. Follow `STYLE-GUIDE.md`; its rules are enforced by `tests/styles/`.
+- The window: use `inputDialog` (`module/apps/ui.js:282`) as `askForRealmPicture` does. Four number fields, the map drawn small with the new hexes around it, the resulting size ("14 by 12, 168 hexes"), the new-land choice with its Landmarks and Barriers tick, the numbering choice (design point 1), the backup tick and the way back from a backup (design point 10), and the warnings: Realm Undo and the Undo on recent Phase cards are forgotten, and the only way back is the backup. It is a lot for one window, so group it under headings as the New Realm dialog's pages do, and show the numbering choice only when it applies. Follow `STYLE-GUIDE.md`; its rules are enforced by `tests/styles/`.
 - Strings in `languages/en.json` under `bastionland.realm`. Match the house voice: plain, British spelling, the book's capitals (Realm, Holding, Referee).
 
-Build in this order, each step leaving the tests green: the pure rules and their tests; `expandRealm` for a painted Realm with blank new land; the window and tool; rolled new land; pictures; interruption safety; documents.
+Build in this order, each step leaving the tests green: the pure rules and their tests; `expandRealm` for a painted Realm with blank new land; the window and tool; shown numbers; rolled new land; pictures; the backup and putting it back; interruption safety; documents.
 
 ## Tests
 
@@ -157,16 +191,18 @@ Pure tests in `tests/rules/realm-growth.test.js`, in the style of `tests/rules/r
 - `growRealm` re-indexes terrain and variants, shifts rivers, features and Barrier edges, adds no `validateRealm` problem beyond blank terrain, and breaks no picture group (`brokenPictures`).
 - Round trip: `realmDocuments` for the old Realm, apply the shift plan, then `realmFromDocuments` with the new geometry equals `growRealm`. A `planRealmSync` after that deletes nothing, updates no feature Tile, and only creates Tiles for new land.
 - Each store's re-key, including `sighted` with no wrapper, the old bare-array `heldBack`, and `hexShared.met[].edge`.
-- The limits; the card-key helper across two logged growths; the picture rect shift and the per-hex ink rule; rolled land touching no old hex.
+- The limits; the card-key helper across two logged growths; the picture rect shift and the per-hex ink rule; rolled land touching no old hex; rolled Barriers only on edges of new hexes and walling nothing off.
+- Shown numbers: with numbers kept, an old hex shows what it showed before across two expansions and new western columns show 0, -1, -2; numbered again from 1, shown and stored agree; a typed shown number turns back into the right stored hex. And the guard that neither string is used outside the helper.
+- Putting back: re-keying by a shift and then by its opposite returns every store to what it was, and a record for a hex of the new land loses its hex and moves nowhere.
 - The existing seed and generator tests pass untouched.
 
-Action tests in `tests/actions/` with the mocks the neighbouring tests use (`company-token.test.js`, `hex-flags.test.js`): the order of writes, the guard set and cleared, Tile ids kept, and a replay of a stored plan landing in the same state.
+Action tests in `tests/actions/` with the mocks the neighbouring tests use (`company-token.test.js`, `hex-flags.test.js`): the order of writes, the guard set and cleared, Tile ids kept, a replay of a stored plan landing in the same state, the backup saved before the first write, an expansion that stops and asks when the backup can't be saved, and a Realm put back matching the backup with its Tile ids.
 
 ## Documents
 
 - `wiki/Painting-and-Editing-the-Realm.md`: the tool in the table, and a section on expanding.
 - `wiki/Making-a-Realm.md:147`: no longer true; point at the new tool.
-- `ROADMAP.md`: live checks under **Test live**, next free id T-264. At least: add two columns west of a played Realm and see names, notes, visits, the Company, a Domain's Holding and a hex's Journal entry all in place; add one column west and see the map look unchanged though the layout flipped; click a hex chip on a chat card from before the expansion; expand as a player watches and see their view stay on the same land; expand a picture Realm both ways; close the browser mid-expansion and reload.
+- `ROADMAP.md`: live checks under **Test live**, next free id T-264. At least: add two columns west of a played Realm and see names, notes, visits, the Company, a Domain's Holding and a hex's Journal entry all in place; add one column west and see the map look unchanged though the layout flipped; click a hex chip on a chat card from before the expansion; expand as a player watches and see their view stay on the same land; expand a picture Realm both ways; close the browser mid-expansion and reload; expand west keeping numbers and see Column 0 on the readout, in Places and in Track a hex, then expand again numbered from 1; tick Landmarks and Barriers and see them hidden from a player; expand, play a Phase in the new land, then put the Realm back and see the map, the Company and a Domain's Holding as they were.
 - Run `npm run wiki:check`.
 
 ## Things to verify in Foundry's own code, not assume
@@ -176,9 +212,10 @@ Action tests in `tests/actions/` with the mocks the neighbouring tests use (`com
 - How the canvas chooses its view after a redraw (`scene._viewPosition`), for the pan.
 - That v14's Levels leave `width`, `height` and `grid` on the Scene (`setRealmLayout` suggests so).
 - That `followCrown` (`actions/homecoming.js:303`) and the Omen hooks (`realm-hooks.js:177`) ignore a Tile update that only moves it.
+- Whether a running world can start one of Foundry's own backups, whether `.json` can be uploaded, and whether `importFromJSON` keeps embedded ids (design point 10).
 
-## Open questions for the owner
+## Decided by the owner
 
-1. Renumbering. Adding north or west changes every hex's column and row, and numbers already printed on old chat cards and in a few Timeline rows will be stale (the cards still open the right hex). Accepted here as the lesser evil.
-2. Rolling Landmarks and Barriers into new land is planned as an optional tick, off by default. Drop it if terrain alone is enough.
-3. Whether an expansion should also offer to back up the world, or only advise it.
+1. Numbering is the Referee's choice at each expansion: keep every hex's number, running below 1 to the north and west, or number the map again from 1.
+2. Rolling Landmarks and Barriers into new land is built, as a tick that is off by default.
+3. The tool keeps a backup itself and can put the Realm back from it.
