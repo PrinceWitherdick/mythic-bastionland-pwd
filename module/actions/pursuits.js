@@ -97,7 +97,7 @@ async function markWithBrush(brush) {
 const realmScene = () => [globalThis.canvas?.scene, game.scenes?.active].find((scene) => isRealmScene(scene)) ?? null;
 
 /**
- * What a Pilgrimage learnt of an unknown part of the Realm (p17): where a Myth
+ * What a Pilgrimage learnt of the Realm that nobody knew (p17): where a Myth
  * or a Landmark lies that the players' map still hides, shown on it. The only
  * one hidden is shown at once; of several, the Referee picks.
  * @param {Actor} actor

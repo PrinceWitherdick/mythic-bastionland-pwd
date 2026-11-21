@@ -1678,7 +1678,7 @@
           "made": {
             "myth": "Pilgrimage: learnt where {name} lies, in {hex}, now on the players’ map.",
             "landmark": "Pilgrimage: learnt where {name} lies, in {hex}, now on the players’ map.",
-            "other": "Pilgrimage: something learnt of an unknown part of the Realm."
+            "other": "Pilgrimage: something learnt of the Realm that nobody knew."
           }
         },
         "service": {
