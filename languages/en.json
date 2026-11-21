@@ -5777,7 +5777,8 @@
     },
     "hexTarget": {
       "hint": "Point at it to ring the hex on the map. Click to go there.",
-      "notShown": "The Referee hasn’t shown you that Realm yet."
+      "notShown": "The Referee hasn’t shown you that Realm yet.",
+      "gone": "That hex is no longer on the map: the Realm was put back as it was before it grew."
     },
     "explore": {
       "here": "in this very Hex",

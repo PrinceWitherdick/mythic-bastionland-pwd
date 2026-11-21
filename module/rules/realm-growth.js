@@ -677,11 +677,13 @@ export function shownRange(g, growth) {
  * @param {string} key
  * @param {number|null|undefined} timestamp When the card was posted.
  * @param {unknown} growth The Scene's growth flag.
- * @returns {string} The key now, or as it was when no expansion came after.
+ * @returns {string|null} The key now, or as it was when no expansion came after. Null for a hex
+ *   that's gone, as land a Realm put back from its backup takes away: it neither lands on another hex
+ *   nor is kept under its old key, which now names a different one.
  */
 export function cardHexKey(key, timestamp, growth) {
 	if (!parseHexKey(key)) return key;
-	return shiftHexKey(key, cardOffset(timestamp, growth)) ?? key;
+	return shiftHexKey(key, cardOffset(timestamp, growth));
 }
 
 /**

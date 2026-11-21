@@ -79,6 +79,11 @@ export function registerHexTargets() {
 				warn("hexTarget.notShown");
 				return;
 			}
+			// The hex it names is gone, as land a Realm put back from its backup takes away.
+			if (scene && !hex) {
+				warn("hexTarget.gone");
+				return;
+			}
 			// A card about another Realm brings that Realm up first.
 			await viewAndShowHex(scene, hex);
 		}

@@ -338,6 +338,8 @@ describe("numbers shown and old chat cards", () => {
 		expect(cardHexKey("5,7", 10, back)).toBe("5,7");
 		expect(cardHexKey("8,8", 250, back)).toBe("6,7");
 		expect(cardHexKey("5,7", 350, back)).toBe("5,7");
+		// A card on the grown map naming a hex of the land the put-back took away names no hex, not another one.
+		expect(cardHexKey("1,7", 250, back)).toBeNull();
 		expect(putBackGrowth(backedUp, backedUp, grow(), { when: 300 }).log).toHaveLength(1);
 	});
 
