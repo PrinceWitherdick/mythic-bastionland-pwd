@@ -491,6 +491,22 @@ describe("centring the letters", () => {
 		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
 	});
 
+	/*
+	 * A Cast member on the Toolkit's Myths page carries a pawn, which brings them
+	 * into the fight, beside the × that takes them out of the Cast. The pawn is
+	 * drawn by the ×'s rules and nothing else, so it sits where the × does.
+	 */
+	it("draws a Cast member's pawn by the same rules as their ×, and moves it by none of its own", () => {
+		const chip = readFileSync(join(root, "templates/actor/gm-toolkit/cast-actor.hbs"), "utf8");
+		expect(chip).toMatch(/<button type="button" class="bastionland-gm-toolkit__cast-bring" data-action="bringCastActor"[^>]*><i class="[^"]+" inert><\/i><\/button>/);
+		expect(rule("gm-toolkit.css", ".bastionland-gm-toolkit__cast-actor")["align-items"]).toBe("center");
+		// Their shared rules name both in one :is(), so any mention of the class counts.
+		const naming = (name) => rules.filter(({ selectors }) => selectors.some((selector) => new RegExp(`\\.${name}(?![\\w-])`).test(selector)));
+		const [bring, drop] = ["bastionland-gm-toolkit__cast-bring", "bastionland-gm-toolkit__cast-drop"].map(naming);
+		expect(bring.length).toBeGreaterThan(0);
+		expect(bring.map(({ body }) => body.trim())).toEqual(drop.map(({ body }) => body.trim()));
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

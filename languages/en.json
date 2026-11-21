@@ -2944,6 +2944,7 @@
         "makeTooltip": "Add them to the Actors directory as one of the Cast, with the stat block the book prints for them, in a folder named after this Myth.",
         "open": "Open their sheet",
         "remove": "Take them out of this Cast",
+        "bring": "Bring them onto this Scene and into the fight. Alt-click to bring them hidden.",
         "yours": "Added",
         "empty": "Nobody here yet. Drag an actor onto this card to count them among the Cast.",
         "dropHint": "Drag an actor onto this card to count them among the Cast.",
@@ -4475,7 +4476,9 @@
       "button": "Bring the Company onto this Scene and into the fight",
       "brought": "Brought into the fight: {names}.",
       "alreadyHere": "The Company is already on this Scene and in the fight.",
-      "nobody": "No Knight of the Company is there to bring. A Knight rides with the Company once a player owns them."
+      "nobody": "No Knight of the Company is there to bring. A Knight rides with the Company once a player owns them.",
+      "castHere": "They are already on this Scene and in the fight.",
+      "noScene": "Open a Scene first: they are brought onto the Scene being looked at."
     },
     "npcKnight": {
       "toggle": {

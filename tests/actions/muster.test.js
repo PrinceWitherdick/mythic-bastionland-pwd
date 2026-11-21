@@ -4,7 +4,7 @@ vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data?.names ? 
 vi.mock("../../module/actions/knights.js", () => ({ inCompany: (actor) => Boolean(actor.company) }));
 
 const { warn } = await import("../../module/chat/cards.js");
-const { bringCompany } = await import("../../module/actions/muster.js");
+const { bringCast, bringCompany } = await import("../../module/actions/muster.js");
 
 /** A Knight as far as the muster looks at one: its Token is one grid space, made where it's asked for. */
 const knight = (id, extra = {}) => ({
@@ -26,7 +26,7 @@ beforeEach(() => {
 		grid: { size: 100 },
 		tokens: [],
 		createEmbeddedDocuments: vi.fn(async (_type, data) => {
-			const made = data.map((token, index) => ({ ...token, id: `new${index}`, hidden: false }));
+			const made = data.map((token, index) => ({ hidden: false, ...token, id: `new${index}` }));
 			scene.tokens.push(...made);
 			return made;
 		})
@@ -88,6 +88,41 @@ describe("bringing the Company onto a Scene", () => {
 		game.user.isGM = false;
 		game.actors = [knight("Alys")];
 		expect(await bringCompany()).toBeNull();
+		expect(scene.createEmbeddedDocuments).not.toHaveBeenCalled();
+	});
+});
+
+describe("bringing a Myth's Cast onto a Scene", () => {
+	const foe = (id, extra = {}) => knight(id, { company: false, ...extra });
+
+	it("puts them in the middle of the view and into the fight, as the Company is brought", async () => {
+		const { placed, joined } = await bringCast([foe("Troll")]);
+		expect(placed.map(({ name, x, y }) => [name, x, y])).toEqual([["Troll", 950, 550]]);
+		expect(joined.map(({ name }) => name)).toEqual(["Troll"]);
+		expect(ui.notifications.info).toHaveBeenCalledWith("muster.brought:Troll");
+	});
+
+	it("places them and their place in the fight hidden from the players when asked", async () => {
+		await bringCast([foe("Troll")], { hidden: true });
+		expect(scene.createEmbeddedDocuments.mock.calls[0][1][0].hidden).toBe(true);
+		expect(combat.createEmbeddedDocuments).toHaveBeenCalledWith("Combatant", [{ tokenId: "new0", sceneId: "s1", actorId: "Troll", hidden: true }]);
+	});
+
+	it("brings nobody Slain, and says when they're there and fighting already", async () => {
+		expect(await bringCast([foe("Troll", { system: { slain: true } })])).toBeNull();
+		scene.tokens.push({ id: "old", name: "Troll", actorId: "Troll", hidden: false });
+		combat.combatants = [{ tokenId: "old" }];
+		await bringCast([foe("Troll")]);
+		expect(scene.createEmbeddedDocuments).not.toHaveBeenCalled();
+		expect(ui.notifications.info).toHaveBeenCalledWith("muster.castHere");
+	});
+
+	it("asks for a Scene where none is open, and is the Referee's alone", async () => {
+		canvas.scene = null;
+		expect(await bringCast([foe("Troll")])).toBeNull();
+		expect(warn).toHaveBeenCalledWith("muster.noScene");
+		game.user.isGM = false;
+		expect(await bringCast([foe("Troll")], { scene })).toBeNull();
 		expect(scene.createEmbeddedDocuments).not.toHaveBeenCalled();
 	});
 });

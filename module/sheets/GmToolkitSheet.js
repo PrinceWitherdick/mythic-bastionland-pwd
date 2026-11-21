@@ -14,6 +14,7 @@ import { getJourney, visitsLabel } from "../actions/journey.js";
 import { hexStoreFlags, realmSceneChanges } from "../actions/scene-changes.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
+import { bringCast } from "../actions/muster.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { awardMythGlory, replaceMyth, resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
 import { markMythOmen } from "../actions/omens.js";
@@ -189,6 +190,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			makeCastMember: GmToolkitSheet.#onMakeCastMember,
 			openCastActor: GmToolkitSheet.#onOpenDocument,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
+			bringCastActor: GmToolkitSheet.#onBringCastActor,
 			...TIME_ACTIONS,
 			crisisRoll: GmToolkitSheet.#onCrisisRoll,
 			leaveOpen: GmToolkitSheet.#onLeaveOpen,
@@ -1500,6 +1502,16 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	static #onDropFromCast(_event, target) {
 		const actor = GmToolkitSheet.#documentFrom(target);
 		return actor ? removeFromCast(actor) : null;
+	}
+
+	/**
+	 * Bring one of a Cast onto the Scene being looked at and into its fight,
+	 * hidden from the players with Alt held, as an Alt-drag places a Token.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onBringCastActor(event, target) {
+		const actor = GmToolkitSheet.#documentFrom(target);
+		return actor ? bringCast([actor], { hidden: Boolean(event.altKey) }) : null;
 	}
 
 	/**
