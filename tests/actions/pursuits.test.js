@@ -7,6 +7,8 @@ let asked;
 let domains;
 let notices;
 let useTool;
+/** The Realm in view, as getRealm reads it. */
+let realm;
 
 vi.mock("../../module/apps/ui.js", () => ({
 	chooseDialog: vi.fn(async (options) => {
@@ -23,9 +25,13 @@ vi.mock("../../module/apps/actor-pick.js", () => ({
 	})
 }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
-vi.mock("../../module/actions/dominion.js", () => ({ worldDomains: () => domains }));
-vi.mock("../../module/actions/realm.js", () => ({ isRealmScene: () => true }));
+vi.mock("../../module/actions/dominion.js", () => ({ worldDomains: () => domains, knightDomain: (actor) => actor.domain ?? null }));
+vi.mock("../../module/actions/realm.js", () => ({ isRealmScene: (scene) => Boolean(scene), getRealm: () => (realm ? { realm } : null) }));
 vi.mock("../../module/actions/threads.js", () => ({ addThread: vi.fn(async () => "t1") }));
+vi.mock("../../module/actions/grand-designs.js", () => ({ beginDesign: vi.fn(async () => "g1") }));
+vi.mock("../../module/actions/hex-names.js", () => ({ hexLabel: (hex) => `${hex.col},${hex.row}` }));
+vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null, mythLookup: (_index, myth) => ({ name: `Myth ${myth.number}` }) }));
+vi.mock("../../module/actions/exploration.js", () => ({ markOnPlayersMap: vi.fn(async () => 1) }));
 
 const { followPursuits } = await import("../../module/actions/pursuits.js");
 
@@ -38,6 +44,7 @@ beforeEach(() => {
 	domains = [];
 	notices = [];
 	useTool = vi.fn();
+	realm = null;
 	globalThis.canvas = { realm: { useTool }, scene: {} };
 	globalThis.ui = { notifications: { info: (text) => notices.push(text) } };
 	globalThis.foundry = { utils: { randomID: () => "newId" } };
@@ -45,13 +52,15 @@ beforeEach(() => {
 });
 
 describe("pursuitMakings", () => {
-	it("lets Service and Courtesy make something, and nothing else", () => {
+	it("lets Pilgrimage, Service, Courtesy and Duty make something, and nothing else (p17)", () => {
+		expect(pursuitMakings("pilgrimage")).toEqual(["myth", "landmark", "other"]);
 		expect(pursuitMakings("service")).toEqual(["dwelling", "other"]);
 		expect(pursuitMakings("courtesy")).toEqual(["court", "contact", "favour"]);
-		expect(pursuitMakings("pilgrimage")).toEqual([]);
+		expect(pursuitMakings("duty")).toEqual(["grand", "holding", "other"]);
+		expect(pursuitMakings("succession")).toEqual([]);
 		expect(pursuitMakings(null)).toEqual([]);
 		expect(pursuitMakings("toString")).toEqual([]);
-		expect(Object.keys(PURSUIT_MAKINGS)).toEqual(["service", "courtesy"]);
+		expect(Object.keys(PURSUIT_MAKINGS)).toEqual(["pilgrimage", "service", "courtesy", "duty"]);
 	});
 });
 
@@ -69,7 +78,7 @@ describe("followPursuits", () => {
 	});
 
 	it("asks only those whose pursuit makes something, and says what it made on their entry", async () => {
-		const company = [{ actor: knight("Tal"), pursuit: "pilgrimage" }, { actor: knight("Moss"), pursuit: "courtesy" }];
+		const company = [{ actor: knight("Tal"), pursuit: "succession" }, { actor: knight("Moss"), pursuit: "courtesy" }];
 		const entries = [{ lines: [] }, { lines: [] }];
 		answers = ["favour"];
 		await followPursuits(company, entries, "Winter");
@@ -170,5 +179,60 @@ describe("followPursuits", () => {
 		expect(entries[0].lines).toEqual(["time.pursuitMakes.courtesy.noCourt"]);
 		expect(entries[1].lines).toEqual([]);
 		expect(useTool).not.toHaveBeenCalled();
+	});
+
+	it("shows on the players' map where the Myth a Pilgrimage learnt of lies, picked from those still hidden (p17)", async () => {
+		const { markOnPlayersMap } = await import("../../module/actions/exploration.js");
+		markOnPlayersMap.mockClear();
+		realm = {
+			myths: [{ id: "m1", number: 1, hex: { col: 2, row: 3 }, revealed: true }, { id: "m2", number: 2, hex: { col: 4, row: 5 }, revealed: false }, { id: "m3", number: 3, hex: { col: 6, row: 1 }, revealed: false }],
+			landmarks: []
+		};
+		const entries = [{ lines: [] }];
+		answers = ["m3"];
+		await followPursuits([{ actor: knight("Tal"), pursuit: "pilgrimage", making: "myth" }], entries, "Winter");
+		expect(asked[0].items.map(({ name, detail }) => [name, detail])).toEqual([["Myth 2", "4,5"], ["Myth 3", "6,1"]]);
+		expect(markOnPlayersMap).toHaveBeenCalledWith(canvas.scene, ["m3"]);
+		expect(entries[0].lines).toEqual(['time.pursuitMakes.pilgrimage.made.myth {"name":"Myth 3","hex":"6,1"}']);
+	});
+
+	it("shows the only Landmark still hidden without asking which, and says when none is", async () => {
+		const { markOnPlayersMap } = await import("../../module/actions/exploration.js");
+		markOnPlayersMap.mockClear();
+		realm = { myths: [], landmarks: [{ id: "l1", type: "sanctum", name: "Greyhallow", hex: { col: 1, row: 1 }, revealed: false }] };
+		const entries = [{ lines: [] }, { lines: [] }];
+		await followPursuits([{ actor: knight("Tal"), pursuit: "pilgrimage", making: "landmark" }, { actor: knight("Ash"), pursuit: "pilgrimage", making: "myth" }], entries, "Winter");
+		expect(asked).toHaveLength(0);
+		expect(markOnPlayersMap).toHaveBeenCalledOnce();
+		expect(entries[0].lines[0]).toContain("Greyhallow");
+		expect(entries[1].lines).toEqual(["time.pursuitMakes.pilgrimage.noneHidden.myth"]);
+	});
+
+	it("says to open a Realm where there's none to learn of", async () => {
+		canvas.scene = null;
+		game.scenes = { active: null };
+		const entries = [{ lines: [] }];
+		await followPursuits([{ actor: knight("Tal"), pursuit: "pilgrimage", making: "myth" }], entries, "Winter");
+		expect(entries[0].lines).toEqual(["time.pursuitMakes.pilgrimage.noRealm"]);
+	});
+
+	it("begins a grand project on the Domain a Knight's Duty serves, or says there's none (p17, p21)", async () => {
+		const { beginDesign } = await import("../../module/actions/grand-designs.js");
+		beginDesign.mockClear();
+		const keep = domain("d1", "Keep");
+		const entries = [{ lines: [] }, { lines: [] }];
+		await followPursuits([{ actor: { name: "Moss", domain: keep }, pursuit: "duty", making: "grand" }, { actor: knight("Tal"), pursuit: "duty", making: "grand" }], entries, "Spring");
+		expect(beginDesign).toHaveBeenCalledOnce();
+		expect(beginDesign).toHaveBeenCalledWith(keep, "grand");
+		expect(entries[0].lines).toEqual(['time.pursuitMakes.duty.begun {"domain":"Keep"}']);
+		expect(entries[1].lines).toEqual(['time.pursuitMakes.duty.noDomain {"name":"Tal"}']);
+	});
+
+	it("takes up the Holding brush for a Holding a Duty added", async () => {
+		const entries = [{ lines: [] }];
+		await followPursuits([{ actor: knight("Moss"), pursuit: "duty", making: "holding" }], entries, "Spring");
+		expect(useTool).toHaveBeenCalledWith("terrain", { brush: "holding" });
+		expect(notices).toEqual(["time.pursuitMakes.duty.markIt"]);
+		expect(entries[0].lines).toEqual(["time.pursuitMakes.duty.made.holding"]);
 	});
 });

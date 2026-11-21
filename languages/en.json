@@ -1658,6 +1658,29 @@
       "pursuitMakes": {
         "label": "What came of it",
         "later": "Ask once the Season turns",
+        "pilgrimage": {
+          "question": "What unknown part of the Realm did {name}’s Pilgrimage learn of?",
+          "myth": "Where a Myth lies",
+          "landmark": "Where a Landmark lies",
+          "other": "Something else",
+          "which": {
+            "myth": "Which Myth did {name} learn of? It’s shown on the players’ map.",
+            "landmark": "Which Landmark did {name} learn of? It’s shown on the players’ map."
+          },
+          "show": "Show It on the Map",
+          "search": "Find by name or hex",
+          "found": "Nothing hidden matches that.",
+          "noRealm": "Pilgrimage: something learnt of the Realm, though no Realm is open to show it on.",
+          "noneHidden": {
+            "myth": "Pilgrimage: every Myth is already on the players’ map.",
+            "landmark": "Pilgrimage: every Landmark is already on the players’ map."
+          },
+          "made": {
+            "myth": "Pilgrimage: learnt where {name} lies, in {hex}, now on the players’ map.",
+            "landmark": "Pilgrimage: learnt where {name} lies, in {hex}, now on the players’ map.",
+            "other": "Pilgrimage: something learnt of an unknown part of the Realm."
+          }
+        },
         "service": {
           "question": "What small improvement to the Realm did {name}’s Service make?",
           "dwelling": "A Dwelling added to the map",
@@ -1684,6 +1707,20 @@
             "contact": "Courtesy: a new contact.",
             "favour": "Courtesy: a favour owed."
           }
+        },
+        "duty": {
+          "question": "What significant improvement to the Realm did {name}’s Duty make?",
+          "grand": "A grand project begun",
+          "holding": "A Holding added to the map",
+          "other": "Something else",
+          "begun": "Duty: a grand project begun for {domain}. Name it under Grand Designs on the Domain sheet.",
+          "noDomain": "Duty: a grand project, though {name} rules no Domain to write it in.",
+          "made": {
+            "holding": "Duty: a new Holding, marked on the map.",
+            "other": "Duty: the Realm made much better."
+          },
+          "markIt": "The Holding brush is in hand: click the hex where the Duty raised it.",
+          "openRealm": "Open the Realm and mark the new Holding with the Holding brush in Paint the Realm."
         }
       },
       "seasonTurned": "{season} Begins",

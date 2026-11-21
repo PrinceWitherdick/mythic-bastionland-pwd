@@ -33,14 +33,18 @@ const KNIGHTS_PURSUITS = Object.freeze(["succession", "legacy"]);
 export const pursuitsFor = (pursuits, system) => (system?.isSquire ? pursuits.filter((pursuit) => !KNIGHTS_PURSUITS.includes(pursuit)) : [...pursuits]);
 
 /**
- * What a pursuit between Seasons can make, as the book plays them (p192):
- * Service a Dwelling added to the map or some other small improvement, Courtesy
- * a place at Court, a new contact or a favour. Wording lives under
- * `bastionland.time.pursuitMakes`.
+ * What a pursuit can make, as the book plays them (p17, p192). Between Seasons:
+ * Pilgrimage learns where a Myth or a Landmark lies, or something else of the
+ * Realm; Service adds a Dwelling to the map or some other small improvement;
+ * Courtesy earns a place at Court, a new contact or a favour. Between Ages,
+ * Duty begins a grand project, adds a Holding to the map, or some other
+ * significant improvement. Wording lives under `bastionland.time.pursuitMakes`.
  */
 export const PURSUIT_MAKINGS = Object.freeze({
+	pilgrimage: Object.freeze(["myth", "landmark", "other"]),
 	service: Object.freeze(["dwelling", "other"]),
-	courtesy: Object.freeze(["court", "contact", "favour"])
+	courtesy: Object.freeze(["court", "contact", "favour"]),
+	duty: Object.freeze(["grand", "holding", "other"])
 });
 
 /**
