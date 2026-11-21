@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
+import { KIT_FLAG } from "../../module/rules/ability-kits.js";
 
 vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => ({})), t: (key) => key, warn: vi.fn() }));
 // Like the real one, with no GM there is nobody to answer.
@@ -76,6 +77,19 @@ describe("isHandOver", () => {
 		expect(isHandOver(carried(alys), alys)).toBe(false);
 		expect(isHandOver({ type: "weapon", parent: null }, bram)).toBe(false);
 		for (const type of ["ability", "passion", "scar"]) expect(isHandOver(carried(alys, type, type), bram)).toBe(false);
+	});
+
+	it("leaves a weapon an Ability gives that fills no hand on whoever has the Ability, but hands on one that's a real thing", () => {
+		const alys = actor("Alys");
+		const bram = actor("Bram");
+		const radiance = carried(alys, "weapon", "radiance");
+		radiance.system = { noHand: true };
+		radiance.flags = { [SYSTEM_ID]: { [KIT_FLAG]: "radiance" } };
+		expect(isHandOver(radiance, bram)).toBe(false);
+		const chain = carried(alys, "weapon", "chain");
+		chain.system = {};
+		chain.flags = { [SYSTEM_ID]: { [KIT_FLAG]: "chain" } };
+		expect(isHandOver(chain, bram)).toBe(true);
 	});
 
 	it("copies a possession dragged off an actor in a compendium, rather than taking it from the pack", () => {

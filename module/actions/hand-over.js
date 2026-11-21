@@ -1,6 +1,7 @@
 import { askActiveGMOrWarn } from "../ask-gm-warn.js";
 import { gmAsker } from "../gm-asker.js";
 import { postCard, t, warn } from "../chat/cards.js";
+import { KIT_FLAG } from "../rules/ability-kits.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { registerQuery } from "../queries.js";
 
@@ -9,6 +10,15 @@ export const HANDED_TYPES = Object.freeze(["weapon", "armour", "gear"]);
 
 /** The query a player sends to hand a possession to a character they don't own. */
 const HAND_QUERY = `${SYSTEM_ID}.handOver`;
+
+/**
+ * Whether an item is a weapon an Ability gives that fills no hand, such as a
+ * bite or a burst of light: part of whoever has the Ability, not carried, so
+ * it can't leave them. One that's a real thing, such as a chain, can.
+ * @param {Item|null|undefined} item
+ * @returns {boolean}
+ */
+const isOwnPower = (item) => Boolean(item?.type === "weapon" && item.system?.noHand && item.flags?.[SYSTEM_ID]?.[KIT_FLAG]);
 
 /**
  * Whether an Item dropped on an actor's sheet is a possession handed on from
@@ -22,6 +32,7 @@ export function isHandOver(item, to) {
 	const from = item?.parent;
 	// An actor in a compendium is a pattern to copy from, not somebody carrying it.
 	if (item?.pack || from?.pack) return false;
+	if (isOwnPower(item)) return false;
 	return from?.documentName === "Actor" && from.uuid !== to?.uuid && HANDED_TYPES.includes(item.type);
 }
 
