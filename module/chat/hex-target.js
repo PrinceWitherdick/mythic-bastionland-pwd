@@ -5,6 +5,7 @@
  * or clicks sees any of it.
  */
 import { hexLabel } from "../actions/hex-names.js";
+import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
@@ -42,7 +43,8 @@ function chipTarget(chip) {
 	const scene = game.scenes.get(chip.dataset.hexScene) ?? null;
 	// A card posted before the map grew names the hex as it was numbered then.
 	const posted = postedAt(game.messages?.get(chip.closest("[data-message-id]")?.dataset.messageId));
-	return { scene, hex: parseHexKey(cardHexKey(chip.dataset.hexTarget, posted, hexNumbering(scene))) };
+	const g = isRealmScene(scene) ? sceneGeometry(scene) : null;
+	return { scene, hex: parseHexKey(cardHexKey(chip.dataset.hexTarget, posted, hexNumbering(scene), g)) };
 }
 
 /**

@@ -5,6 +5,7 @@
  * to the Referee, so only a GM sees the button at all.
  */
 import { takeLandmarkOffer } from "../actions/landmarks.js";
+import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { LANDMARK_OFFERS } from "../rules/landmarks.js";
 import { parseHexKey } from "../rules/realm-geometry.js";
 import { registerCardButtons, warn } from "./cards.js";
@@ -23,7 +24,8 @@ export function registerLandmarkCards() {
 			// The card names the Realm it was rolled for; without one, whatever Scene is on the canvas.
 			const scene = game.scenes.get(button.dataset.landmarkScene) ?? canvas.scene;
 			// A card posted before the map grew names the hex as it was numbered then.
-			const hex = parseHexKey(cardHexKey(button.dataset.landmarkHex, postedAt(message), hexNumbering(scene)));
+			const g = isRealmScene(scene) ? sceneGeometry(scene) : null;
+			const hex = parseHexKey(cardHexKey(button.dataset.landmarkHex, postedAt(message), hexNumbering(scene), g));
 			// The hex it names is gone, as land a Realm put back from its backup takes away.
 			if (button.dataset.landmarkHex && !hex) {
 				warn("realm.landmarks.offerGone");

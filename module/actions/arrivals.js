@@ -17,7 +17,7 @@ import { rollFirstArrival } from "./hex-lore.js";
 import { welcomeHome } from "./homecoming.js";
 import { COMPANY_MOVED_HOOK, COMPANY_MOVES_FLAG, COMPANY_MOVE_UNDONE_HOOK, forgetMoveVisits, heldBack, setHeldBack } from "./journey.js";
 import { liveRealm } from "./myth-notes.js";
-import { getRealm, isRealmScene } from "./realm.js";
+import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { realmKnown, revealMythsReached, secretsKeptOn } from "./solo.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { revealSighted } from "./sighted.js";
@@ -511,16 +511,16 @@ export function registerArrivals() {
 			}
 			const act = ARRIVAL_ACTIONS[button.dataset.arrival];
 			// A card posted before the map grew names its hexes as they were numbered then.
+			// Land a put-back took away, east and south as well as west and north, leaves no hex.
 			const moved = cardOffset(postedAt(message), hexNumbering(scene));
-			const hex = button.dataset.arrivalHex ? shiftHex(parseHexKey(button.dataset.arrivalHex), moved) : null;
+			const g = sceneGeometry(scene);
+			const hex = button.dataset.arrivalHex ? shiftHex(parseHexKey(button.dataset.arrivalHex), moved, g) : null;
 			const arrived = message.flags[SYSTEM_ID].arrived ?? {};
-			const now = moved.cols || moved.rows
-				? {
-					...arrived,
-					...(Array.isArray(arrived.held) ? { held: arrived.held.map((at) => shiftHex(at, moved)).filter(Boolean) } : {}),
-					...(arrived.orders ? { orders: shiftKeyed(arrived.orders, moved) } : {})
-				}
-				: arrived;
+			const now = {
+				...arrived,
+				...(Array.isArray(arrived.held) ? { held: arrived.held.map((at) => shiftHex(at, moved, g)).filter(Boolean) } : {}),
+				...(arrived.orders ? { orders: shiftKeyed(arrived.orders, moved, g) } : {})
+			};
 			return Boolean(act && (await act(scene, hex, now)));
 		}
 	});

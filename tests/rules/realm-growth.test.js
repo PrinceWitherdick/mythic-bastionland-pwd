@@ -350,6 +350,16 @@ describe("numbers shown and old chat cards", () => {
 		expect(cardHexKey("5,7", 250, log)).toBe("5,7");
 		expect(cardHexKey("bad", 50, log)).toBe("bad");
 	});
+
+	it("names no hex for one past the map's east or south edge now, as a put-back leaves it", () => {
+		const grown = loggedGrowth(null, grow(0, 0, 3, 2), { when: 100, keepNumbers: true });
+		const back = putBackGrowth(grown, null, growthSince(grown, null), { when: 200 });
+		const g = realmGeometry({ cols: 12, rows: 12 });
+		expect(cardHexKey("14,5", 150, back)).toBe("14,5");
+		expect(cardHexKey("14,5", 150, back, g)).toBeNull();
+		expect(cardHexKey("5,13", 150, back, g)).toBeNull();
+		expect(cardHexKey("12,12", 150, back, g)).toBe("12,12");
+	});
 });
 
 describe("growthPreview", () => {
