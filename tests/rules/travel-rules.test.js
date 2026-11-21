@@ -98,10 +98,26 @@ describe("pressingSections", () => {
 describe("travelRulesPlacement", () => {
 	const screen = { left: 120, top: 40, right: 1600, bottom: 1040 };
 
-	it("stands against the map's edges, level with its top and as tall as it, whichever way the map has been panned and zoomed", () => {
+	it("stands against the map's edges, level with its top and as tall as it, while both are on the screen", () => {
+		const map = { left: 500, top: 100, right: 1100, bottom: 900 };
+		expect(travelRulesPlacement(screen, { side: "right", map, width: 380 })).toEqual({ left: 1112, top: 100, maxHeight: 800 });
+		expect(travelRulesPlacement(screen, { side: "left", map, width: 380 })).toEqual({ left: 108, top: 100, maxHeight: 800 });
+	});
+
+	it("stops at the screen room's top and foot where the map runs past them, so its heading stays in sight", () => {
 		const map = { left: 500, top: -300, right: 1100, bottom: 1400 };
-		expect(travelRulesPlacement(screen, { side: "right", map, width: 380 })).toEqual({ left: 1112, top: -300, maxHeight: 1700 });
-		expect(travelRulesPlacement(screen, { side: "left", map, width: 380 })).toEqual({ left: 108, top: -300, maxHeight: 1700 });
+		expect(travelRulesPlacement(screen, { side: "right", map, width: 380 })).toEqual({ left: 1112, top: 52, maxHeight: 976 });
+		expect(travelRulesPlacement(screen, { side: "left", map, width: 380 })).toEqual({ left: 108, top: 52, maxHeight: 976 });
+	});
+
+	it("goes off the screen with a map panned wholly above or below the room, rather than standing over empty canvas", () => {
+		expect(travelRulesPlacement(screen, { side: "right", map: { left: 300, top: -900, right: 1100, bottom: -100 }, width: 380 })).toEqual({ left: 1112, top: -900, maxHeight: 800 });
+		expect(travelRulesPlacement(screen, { side: "right", map: { left: 300, top: 1200, right: 1100, bottom: 2000 }, width: 380 })).toEqual({ left: 1112, top: 1200, maxHeight: 800 });
+	});
+
+	it("follows the map alone when no room is given", () => {
+		const map = { left: 500, top: -300, right: 1100, bottom: 1400 };
+		expect(travelRulesPlacement(null, { side: "right", map, width: 380 })).toEqual({ left: 1112, top: -300, maxHeight: 1700 });
 	});
 
 	it("is never shorter than can be read, however far out the map is zoomed", () => {

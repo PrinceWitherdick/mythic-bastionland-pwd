@@ -104,6 +104,14 @@ describe("panelScreen", () => {
 		forgetNavigationFloor();
 		expect(panelScreen()).toEqual({ left: 384, top: 216, right: 1536, bottom: 864 });
 	});
+
+	it("measures once for everything placed in the same frame, and afresh on the next", async () => {
+		expect(panelScreen().right).toBe(1600);
+		parts.sidebar = { left: 1700, right: 1920, width: 220, height: 900 };
+		expect(panelScreen().right).toBe(1600);
+		await Promise.resolve();
+		expect(panelScreen().right).toBe(1700);
+	});
 });
 
 describe("hotbarFloor", () => {
