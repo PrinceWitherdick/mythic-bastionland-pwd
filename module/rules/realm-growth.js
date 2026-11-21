@@ -551,6 +551,20 @@ export function shiftOmenEntered(value, sceneId, offset, g = null) {
 	return hex ? { ...value, hex } : null;
 }
 
+/**
+ * Whether two waiting Omens are the same entry, entered in the same hex.
+ * @param {{scene?: string, hex?: {col: number, row: number}, when?: object, omen?: unknown}|null} a
+ * @param {{scene?: string, hex?: {col: number, row: number}, when?: object, omen?: unknown}|null} b
+ * @returns {boolean}
+ */
+export function sameOmenEntered(a, b) {
+	if (!a || !b) return a === b;
+	return a.scene === b.scene
+		&& a.hex?.col === b.hex?.col && a.hex?.row === b.hex?.row
+		&& a.omen === b.omen
+		&& JSON.stringify(a.when ?? null) === JSON.stringify(b.when ?? null);
+}
+
 // The growth log, old chat cards and the numbers shown.
 
 /**

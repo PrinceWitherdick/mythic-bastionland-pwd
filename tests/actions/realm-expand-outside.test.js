@@ -20,9 +20,12 @@ beforeEach(() => {
 	globalThis.game = {
 		actors: { get: (id) => (id === toolkit.id ? toolkit : undefined) },
 		journal: { get: (id) => (id === book.id ? book : undefined) },
-		settings: { set: vi.fn(async () => {}) }
+		settings: { get: vi.fn(() => omenEntered), set: vi.fn(async () => {}) }
 	};
 });
+
+let omenEntered = null;
+const entered = (scene, col, row) => ({ when: { day: 3, phase: "night" }, scene, hex: { col, row }, omen: true });
 
 afterEach(() => {
 	delete globalThis.game;
@@ -49,5 +52,23 @@ describe("writeOutsideShifts", () => {
 		});
 		expect(toolkit.update).not.toHaveBeenCalled();
 		expect(page.update).not.toHaveBeenCalled();
+	});
+
+	const omenOnly = (from, value) => ({ journal: [], threads: null, timeline: [], omen: { from, value } });
+
+	it("moves the waiting Omen while the setting still holds the entry the plan moved", async () => {
+		omenEntered = entered("vale", 4, 5);
+		await writeOutsideShifts(omenOnly(entered("vale", 4, 5), entered("vale", 6, 5)));
+		expect(game.settings.set).toHaveBeenCalledWith(expect.any(String), "omenEntered", entered("vale", 6, 5));
+	});
+
+	it("leaves an Omen entered since, on another Realm, or one already moved, as it is", async () => {
+		omenEntered = entered("moor", 2, 2);
+		await writeOutsideShifts(omenOnly(entered("vale", 4, 5), entered("vale", 6, 5)));
+		omenEntered = entered("vale", 6, 5);
+		await writeOutsideShifts(omenOnly(entered("vale", 4, 5), entered("vale", 6, 5)));
+		omenEntered = null;
+		await writeOutsideShifts(omenOnly(entered("vale", 4, 5), null));
+		expect(game.settings.set).not.toHaveBeenCalled();
 	});
 });

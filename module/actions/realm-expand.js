@@ -15,7 +15,7 @@ import { deletionEntry } from "../compat.js";
 import { HEX_JOURNAL_FLAG } from "../rules/hex-journal.js";
 import { randomSeed } from "../rules/random.js";
 import { rollNewLand } from "../rules/realm-generator.js";
-import { REALM_BACKUP_FLAG, newLandHexes, shiftJournalFlag, shiftOmenEntered, shiftThreads, shiftTimelineKey } from "../rules/realm-growth.js";
+import { REALM_BACKUP_FLAG, newLandHexes, sameOmenEntered, shiftJournalFlag, shiftOmenEntered, shiftThreads, shiftTimelineKey } from "../rules/realm-growth.js";
 import { slugify } from "../rules/book-art.js";
 import { serverNow } from "../server-now.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -31,7 +31,7 @@ const OMEN_ENTERED_SETTING = "omenEntered";
  * @property {{_id: string, flag: object|null, sort?: number}[]} journal Each hex entry moved, or loosed from a hex that's gone.
  * @property {{actor: string, threads: Record<string, string>}|null} threads The Toolkit's threads moved, by id.
  * @property {{journal: string, page: string, keys: Record<string, string>}[]} timeline Each Timeline page's row keys moved, by row id.
- * @property {{value: object|null}|null} omen The waiting Omen moved, or null where it isn't this Realm's.
+ * @property {{from: object, value: object|null}|null} omen The waiting Omen as it was and as moved, or null where it isn't this Realm's.
  */
 
 /**
@@ -64,7 +64,7 @@ export function outsideShifts(sceneId, offset, g = null) {
 
 	const said = game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING);
 	const value = shiftOmenEntered(said, sceneId, offset, g);
-	return { journal, threads, timeline, omen: value === undefined ? null : { value } };
+	return { journal, threads, timeline, omen: value === undefined ? null : { from: said, value } };
 }
 
 /**
@@ -103,7 +103,10 @@ export async function writeOutsideShifts(shifts) {
 		const update = Object.fromEntries(Object.entries(keys).filter(([id]) => rows[id]).map(([id, key]) => [`system.entries.${id}.key`, key]));
 		if (Object.keys(update).length) await document.update(update);
 	}
-	if (shifts.omen) await game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, shifts.omen.value);
+	// Only while the setting still holds the entry the plan moved: one entered since, on any Realm, is left as it is.
+	if (shifts.omen && sameOmenEntered(game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING), shifts.omen.from)) {
+		await game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, shifts.omen.value);
+	}
 }
 
 /** Where a world's Realm backups are kept, under its own folder on the server. */
