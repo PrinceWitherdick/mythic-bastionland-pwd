@@ -55,13 +55,24 @@ export function pursuitMakings(pursuit, { holdsPost = true } = {}) {
 	return holdsPost ? makings : makings.filter((making) => making !== "court");
 }
 
-/** Virtue Loss from hardship on the road (Travel, p18), and the Virtue each costs. */
+/**
+ * Virtue Loss from hardship on the road (Travel, p18), and the Virtue each costs.
+ * `anybody` marks the two the book deals to all who suffer them, steeds and
+ * followers too: Winter's cold and lost sleep. Night travel and want of
+ * supplies are put to the Company itself.
+ */
 export const HARDSHIPS = Object.freeze([
-	Object.freeze({ key: "night", virtue: "spi" }),
-	Object.freeze({ key: "sleep", virtue: "cla" }),
-	Object.freeze({ key: "winter", virtue: "vig" }),
-	Object.freeze({ key: "supplies", virtue: "vig" })
+	Object.freeze({ key: "night", virtue: "spi", anybody: false }),
+	Object.freeze({ key: "sleep", virtue: "cla", anybody: true }),
+	Object.freeze({ key: "winter", virtue: "vig", anybody: true }),
+	Object.freeze({ key: "supplies", virtue: "vig", anybody: false })
 ]);
+
+/**
+ * @param {string} key One of HARDSHIPS.
+ * @returns {boolean} Whether a Knight's steed and followers suffer it as well.
+ */
+export const hardshipForAnybody = (key) => HARDSHIPS.some((hardship) => hardship.key === key && hardship.anybody);
 
 /** Each Virtue is rerolled on this when a character grows Mature or Old. */
 export const AGING_VIRTUE_ROLL = "1d12 + 1d6";

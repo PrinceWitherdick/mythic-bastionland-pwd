@@ -41,12 +41,16 @@
 			<span class="bastionland-phase-end__head">{{localize "bastionland.phaseEnd.morning.noSleep"}}</span>
 			<span class="bastionland-phase-end__head">{{localize "bastionland.phaseEnd.morning.deprived"}}</span>
 			{{#each morning.members}}
-			<label class="bastionland-check">
+			<label class="bastionland-check{{#if companion}} bastionland-phase-end__companion{{/if}}">
 				<input type="checkbox" name="include-{{index}}" {{checked included}}>
 				<span class="bastionland-check__label">{{name}}</span>
 			</label>
 			<input type="checkbox" name="nosleep-{{index}}" aria-label="{{localize 'bastionland.phaseEnd.morning.noSleep'}}: {{name}}">
+			{{#if companion}}
+			<span></span>
+			{{else}}
 			<input type="checkbox" name="deprived-{{index}}" aria-label="{{localize 'bastionland.phaseEnd.morning.deprived'}}: {{name}}" {{checked deprived}}>
+			{{/if}}
 			{{/each}}
 		</div>
 		{{else}}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PHASE_END_MODES, likelyPhaseMode, morningHardships, wildernessDue, wildernessTicked } from "../../module/rules/phase-end.js";
-import { HARDSHIPS } from "../../module/rules/time.js";
+import { HARDSHIPS, hardshipForAnybody } from "../../module/rules/time.js";
 
 describe("likelyPhaseMode", () => {
 	it("travels by day, camps through the Night, and stays indoors in a Holding", () => {
@@ -72,6 +72,23 @@ describe("morningHardships", () => {
 	it("takes each member's own lost sleep and hunger, once each", () => {
 		expect(morningHardships({ mode: "indoors" }, { noSleep: true, deprived: true })).toEqual(["sleep", "supplies"]);
 		expect(morningHardships({ mode: "travel" }, { noSleep: true })).toEqual(["night", "sleep"]);
+	});
+
+	it("puts only Winter's cold and lost sleep to a steed or follower", () => {
+		const companion = { companion: true };
+		expect(morningHardships({ mode: "travel", winter: true }, companion)).toEqual(["winter", "sleep"]);
+		expect(morningHardships({ mode: "camp", winter: true }, companion)).toEqual(["winter"]);
+		expect(morningHardships({ mode: "camp", dire: true }, companion)).toEqual(["sleep"]);
+		expect(morningHardships({ mode: "travel" }, companion)).toEqual(["sleep"]);
+		expect(morningHardships({ mode: "indoors" }, { ...companion, deprived: true, noSleep: true })).toEqual(["sleep"]);
+		expect(morningHardships({ mode: "indoors", winter: true }, companion)).toEqual([]);
+	});
+
+	it("marks Winter and lost sleep as the hardships anybody suffers", () => {
+		expect(HARDSHIPS.filter(({ anybody }) => anybody).map(({ key }) => key).sort()).toEqual(["sleep", "winter"]);
+		expect(hardshipForAnybody("winter")).toBe(true);
+		expect(hardshipForAnybody("night")).toBe(false);
+		expect(hardshipForAnybody("nonsense")).toBe(false);
 	});
 
 	it("names only the book's hardships", () => {

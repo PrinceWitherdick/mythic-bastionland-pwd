@@ -1446,6 +1446,7 @@
           "travel": "Travelling or exploring through the Night costs d6 SPI each, and leaves no time for proper sleep.",
           "winter": "Winter: d6 VIG from each who camped out or travelled by night.",
           "dire": "Dire weather held through the Night, so nobody outdoors got proper sleep.",
+          "companions": "Steeds and followers, listed under their Knight, lose only what Winter's cold and lost sleep cost.",
           "each": "Tick who else went without proper sleep, such as for a hostile Omen (d6 CLA), and who was deprived of essential needs (d6 VIG)."
         }
       },

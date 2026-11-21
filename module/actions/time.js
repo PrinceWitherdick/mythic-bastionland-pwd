@@ -984,11 +984,13 @@ export async function sufferHardship(key) {
 	if (!hardship) return null;
 
 	const name = t(`time.hardship.kinds.${key}.label`);
+	// Winter's cold and lost sleep reach a Knight's steed and followers too (p18), listed under the Knight.
 	const company = await chooseCompany({
 		title: name,
 		icon: "fa-solid fa-person-hiking",
 		intro: `${t(`time.hardship.kinds.${key}.hint`)} ${t("time.hardship.intro")}`,
-		ok: t("time.hardship.roll")
+		ok: t("time.hardship.roll"),
+		companions: hardship.anybody
 	});
 	if (!company) return null;
 	if (!company.length) {
