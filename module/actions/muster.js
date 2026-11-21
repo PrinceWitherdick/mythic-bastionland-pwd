@@ -87,7 +87,8 @@ export async function bringCast(actors, { scene = canvas?.scene, hidden = false 
 async function bringToFight(actors, scene, { already, hidden = false }) {
 	const absent = absentFrom(actors.map((actor) => ({ id: actor.id, actor })), scene.tokens.map((token) => token.actorId));
 	const grid = scene.grid?.size ?? canvas?.grid?.size ?? 100;
-	const prototypes = await Promise.all(absent.map(({ actor }) => actor.getTokenDocument()));
+	// Made in the Scene, so each snaps to the Scene's own grid and not Foundry's default square one.
+	const prototypes = await Promise.all(absent.map(({ actor }) => actor.getTokenDocument({}, { parent: scene })));
 	const spots = musterRow(viewCentre(scene), prototypes.map((token) => token.width ?? 1), grid);
 	const data = prototypes.map((token, index) => tokenAt(token, spots[index], grid));
 	if (hidden) for (const token of data) token.hidden = true;

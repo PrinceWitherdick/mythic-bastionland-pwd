@@ -58,6 +58,20 @@ describe("bringing the Company onto a Scene", () => {
 		expect(ui.notifications.info).toHaveBeenCalledWith("muster.brought:Alys, Bors");
 	});
 
+	it("snaps each new Token to the Scene's own grid, its prototype made in that Scene", async () => {
+		const getTokenDocument = vi.fn(async (_data, { parent } = {}) => ({
+			width: 1,
+			height: 1,
+			// As Foundry's: snapped by its parent's grid, or by a 100px square one where it has none.
+			getSnappedPosition: ({ x, y }) => (parent ? { x: x + 7, y: y + 7 } : { x, y }),
+			toObject: () => ({ name: "Alys", actorId: "Alys", actorLink: true })
+		}));
+		game.actors = [knight("Alys", { getTokenDocument })];
+		const { placed } = await bringCompany();
+		expect(getTokenDocument).toHaveBeenCalledWith({}, { parent: scene });
+		expect(placed.map(({ x, y }) => [x, y])).toEqual([[957, 557]]);
+	});
+
 	it("makes a Combat for the Scene where none is being looked at", async () => {
 		game.actors = [knight("Alys")];
 		game.combats.viewed = null;
