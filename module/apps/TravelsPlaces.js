@@ -1,4 +1,5 @@
 import { renameHex } from "../actions/hex-names.js";
+import { keepClearOfCompany } from "./clear-of-company.js";
 import { TRAVELS_CHANGED_HOOK, forgetHexBarrierMet, forgetHexPartyNote, forgetHexTold, writePartyNote } from "../actions/hex-shared.js";
 import { forgetHexVisit } from "../actions/journey.js";
 import { THREADS_CHANGED_HOOK } from "../actions/threads.js";
@@ -488,11 +489,13 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/**
 	 * Draw again when anything the Company knows of the Realm changes, or a GM
-	 * comes or goes, which decides whether the note can be written.
+	 * comes or goes, which decides whether the note can be written. Opening
+	 * over the Company's Token, it moves aside from it.
 	 * @override
 	 */
 	_onFirstRender(context, options) {
 		super._onFirstRender(context, options);
+		keepClearOfCompany(this);
 		const redraw = (sceneId) => {
 			if (!sceneId || sceneId === this.state.realm) renderWhenIdle(this);
 		};

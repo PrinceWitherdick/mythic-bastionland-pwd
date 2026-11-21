@@ -31,6 +31,7 @@ import { isMoraleBreak } from "../rules/morale.js";
 import { clearMoraleBreak } from "../chat/morale-card.js";
 import { canBrowseFiles } from "../book-art/files.js";
 import { handOver, isHandOver } from "../actions/hand-over.js";
+import { keepClearOfCompany } from "../apps/clear-of-company.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -275,11 +276,13 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 
 	/**
 	 * Follow the fights this actor is in: their dice for the fight show among
-	 * their conditions, and an Ability's die is offered only during one.
+	 * their conditions, and an Ability's die is offered only during one. A
+	 * sheet opening over the Company's Token moves aside from it.
 	 * @override
 	 */
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
+		keepClearOfCompany(this);
 		const theirs = (combatant) => combatant.actor?.uuid === this.actor.uuid;
 		this._watchHooks(["createCombatant", "deleteCombatant"], (combatant) => {
 			if (theirs(combatant)) renderWhenIdle(this);
