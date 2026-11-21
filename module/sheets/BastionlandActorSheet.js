@@ -7,7 +7,7 @@ import { armourCounts, armourWorn, displacedArmour, SITUATION_CONDITIONS } from 
 import { countAfter, isAtHand, isCounted, isUsedUp } from "../rules/restock.js";
 import { comparePropertyPlace, samePropertyPlace } from "../rules/property-tab.js";
 import { splitName } from "../rules/text.js";
-import { indulgePassion, rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
+import { indulgePassion, rest, restoreFromSheet, useRemedy } from "../actions/recovery.js";
 import { addAbilityDie, combatantOf, dropLastingDie, lastingDiceOf, lastingDieLabel } from "../actions/lasting-dice.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
@@ -529,7 +529,7 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 
 	/** @this {BastionlandActorSheet} */
 	static #onRestore(_event, target) {
-		return restoreVirtue(this.actor, target.dataset.virtue);
+		return restoreFromSheet(this.actor, target.dataset.virtue);
 	}
 
 	/** @this {BastionlandActorSheet} */

@@ -14,6 +14,7 @@ import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
 import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
 import { lapseStances } from "./stance-lapse.js";
 import { registerQuery } from "../queries.js";
+import { chooseOne } from "../apps/actor-pick.js";
 
 /**
  * Restore one Virtue of each of them to its most, all in one write.
@@ -181,6 +182,33 @@ export async function restoreVirtue(actor, virtue, card = {
 	const value = actor.system.virtues[virtue].max;
 	await actor.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("recovery"));
 	await postCard(actor, "note", { icon: card.icon, text: card.text(value) });
+}
+
+/**
+ * The sheet's restore heart beside a Virtue. Restored outright, as by an
+ * Action or a new Season, unless they carry a Remedy for it: then they're asked
+ * whether it's the Remedy, which is used up and reaches everybody present (p9),
+ * or something else that restores it.
+ * @param {Actor} actor
+ * @param {string} virtue "vig", "cla" or "spi".
+ * @returns {Promise<unknown>}
+ */
+export async function restoreFromSheet(actor, virtue) {
+	const remedy = actor.items?.contents?.find((item) => item.system?.remedy === virtue && isAtHand(item.system));
+	if (!remedy) return restoreVirtue(actor, virtue);
+	const abbr = t(`virtues.${virtue}.abbr`);
+	const picked = await chooseOne([
+		{ name: t("recovery.heart.remedy", { item: remedy.name }), detail: t("recovery.heart.remedyDetail", { virtue: abbr }), remedy },
+		{ name: t("recovery.heart.without"), detail: t("recovery.heart.withoutDetail") }
+	], {
+		title: t("recovery.restore", { virtue: t(`virtues.${virtue}.label`) }),
+		message: t("recovery.heart.question", { name: actor.name, virtue: abbr }),
+		icon: "fa-solid fa-heart-pulse",
+		ok: t("recovery.restore", { virtue: abbr }),
+		full: true
+	});
+	if (!picked) return null;
+	return picked.remedy ? useRemedy(actor, picked.remedy) : restoreVirtue(actor, virtue);
 }
 
 /**

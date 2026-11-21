@@ -558,6 +558,13 @@
       "guardLabel": "GD/Fatigue",
       "restore": "Restore {virtue}",
       "restored": "{virtue} restored to {value}.",
+      "heart": {
+        "question": "What restores {name}’s {virtue}?",
+        "remedy": "The {item} they carry",
+        "remedyDetail": "Used up, and everybody present has their {virtue} restored too.",
+        "without": "Something else",
+        "withoutDetail": "An Action, a new Season, or the like. The Remedy is kept."
+      },
       "afterCombat": "The fight is over. Accept to restore Guard for {names}, and leave them no longer Fatigued or Exposed.",
       "afterCombatNobody": "Nobody from that fight still needs the rest.",
       "dyingAfterCombat": "The fight is over, and {names} still lie Mortally Wounded. Left untended for an hour they die; a few moments patch them up.",
