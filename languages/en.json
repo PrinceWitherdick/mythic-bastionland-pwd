@@ -851,6 +851,12 @@
       "limitSteed": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. {steed} could carry it.",
       "othersNeedReferee": "{names} weren’t restored, as only the Referee can change characters you don’t own. Ask the Referee to restore them."
     },
+    "handOver": {
+      "card": "{from} hands {item} to {to}.",
+      "notYours": "{item} is {from}’s to hand over. Ask their player, or the Referee, to do it.",
+      "needsReferee": "Only the Referee can hand {item} to {to}, as you don’t play them, and no Referee is here. It stays with {from}.",
+      "refused": "{item} couldn’t be handed to {to}, so it stays with {from}."
+    },
     "ability": {
       "label": "Ability",
       "uses": "Uses",

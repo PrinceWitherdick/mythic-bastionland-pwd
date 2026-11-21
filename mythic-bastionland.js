@@ -161,6 +161,7 @@ import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasR
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 import { registerRemedyQuery, registerRestAfterCombat, restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
+import { registerHandOverQuery } from "./module/actions/hand-over.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
 import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, POWER_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, fillPowerKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
@@ -638,6 +639,8 @@ Hooks.once("init", () => {
 	// parting a Knight and Squire, and restoring the Company members a Remedy reaches.
 	registerCompanionQueries();
 	registerRemedyQuery();
+	// A possession a player hands to a character they don't own.
+	registerHandOverQuery();
 	// The card that offers everybody their rest once a Combat ends.
 	registerRestAfterCombat();
 

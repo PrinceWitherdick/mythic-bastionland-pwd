@@ -30,6 +30,7 @@ import { inEffect } from "../rules/stances.js";
 import { isMoraleBreak } from "../rules/morale.js";
 import { clearMoraleBreak } from "../chat/morale-card.js";
 import { canBrowseFiles } from "../book-art/files.js";
+import { handOver, isHandOver } from "../actions/hand-over.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -384,6 +385,26 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			return;
 		}
 		return super._onSortItem(event, item);
+	}
+
+	/**
+	 * Anybody who can see a sheet may drop a possession on it, to hand it over;
+	 * anything else dropped still needs a sheet they can change.
+	 * @override
+	 */
+	_canDragDrop(selector) {
+		return super._canDragDrop(selector) || this.actor.testUserPermission(game.user, "LIMITED");
+	}
+
+	/**
+	 * A possession dropped from another character's sheet is handed over: it
+	 * leaves them, rather than being copied (see actions/hand-over.js).
+	 * @override
+	 */
+	async _onDropDocument(event, document) {
+		if (document?.documentName === "Item" && isHandOver(document, this.actor)) return handOver(document, this.actor);
+		if (!this.isEditable) return null;
+		return super._onDropDocument(event, document);
 	}
 
 	/**
