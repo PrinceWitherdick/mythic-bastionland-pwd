@@ -1437,6 +1437,13 @@ export async function resumeExpansion(scene) {
  * @returns {Promise<boolean>} Whether it was finished.
  */
 async function resumePutBack(scene, plan) {
+	// Cut short after its Scene write: everything is put back but what settleExpansion clears.
+	if (plan.sceneWritten) {
+		forgetRealm(scene.id);
+		await settleExpansion(scene, { shift: { dx: plan.follow.dx, dy: plan.follow.dy }, company: null });
+		ui.notifications.info(t("realm.expand.restore.finished", { realm: scene.name }));
+		return true;
+	}
 	const { readRealmBackup } = await import("./realm-expand.js");
 	const backup = plan.kept ? await readRealmBackup(scene, plan.kept) : null;
 	if (!backup?.scene || !plan.outside || !plan.growth) {
@@ -1507,8 +1514,9 @@ async function writePutBack(scene, saved, plan) {
 	const { writeOutsideShifts } = await import("./realm-expand.js");
 	await writeOutsideShifts(plan.outside);
 	// The backup is used up: put back once, what's kept outside the Scene has been moved back already.
-	const flags = { ...saved.flags?.[SYSTEM_ID], [REALM_GROWTH_FLAG]: plan.growth };
-	delete flags[EXPANDING_FLAG];
+	// The mark stays, saying this write is made, until settleExpansion has run: a put-back cut short
+	// after this point is still finished next time, and not written twice.
+	const flags = { ...saved.flags?.[SYSTEM_ID], [REALM_GROWTH_FLAG]: plan.growth, [EXPANDING_FLAG]: { ...plan, sceneWritten: true } };
 	delete flags[REALM_BACKUP_FLAG];
 	await scene.update(Object.fromEntries([
 		["width", saved.width],

@@ -360,6 +360,34 @@ describe("resumeExpansion", () => {
 		delete globalThis.fetch;
 	});
 
+	it("settles a put-back cut short after the Scene itself was written, writing nothing twice", async () => {
+		const before = snapshot(scene);
+		await expandRealm(scene, growth);
+		globalThis.fetch = vi.fn();
+		const realUpdate = scene.update.getMockImplementation();
+		let cut = false;
+		scene.update.mockImplementation(async (changes, options) => {
+			await realUpdate(changes, options);
+			if ("width" in changes && !cut) {
+				cut = true;
+				throw new Error("closed");
+			}
+		});
+		await expect(putRealmBack(scene, { scene: before, growth })).rejects.toThrow("closed");
+		scene.update.mockImplementation(realUpdate);
+		// The Scene is put back, but the mark stays until what an expansion clears is cleared.
+		expect(scene.flags[SYSTEM_ID][EXPANDING_FLAG]).toMatchObject({ restoring: true, sceneWritten: true });
+		const sizedBefore = scene.log.filter(([what, changes]) => what === "scene" && "width" in changes).length;
+
+		expect(await resumeExpansion(scene)).toBe(true);
+		expect(fetch).not.toHaveBeenCalled();
+		expect(scene.log.filter(([what, changes]) => what === "scene" && "width" in changes)).toHaveLength(sizedBefore);
+		expect(scene.flags[SYSTEM_ID][EXPANDING_FLAG]).toBeUndefined();
+		expect([scene.width, scene.height]).toEqual([before.width, before.height]);
+		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("4,5");
+		delete globalThis.fetch;
+	});
+
 	it("unlocks a put-back cut short whose backup can't be read, and says so", async () => {
 		scene.flags[SYSTEM_ID][EXPANDING_FLAG] = { by: "gm", restoring: true, kept: null };
 		expect(await resumeExpansion(scene)).toBe(false);
