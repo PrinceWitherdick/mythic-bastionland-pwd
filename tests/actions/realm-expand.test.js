@@ -327,7 +327,12 @@ describe("resumeExpansion", () => {
 		});
 		await expect(expandRealm(scene, growth)).rejects.toThrow("closed");
 		scene.update.mockImplementation(realUpdate);
+		const sizedBefore = scene.log.filter(([what, changes]) => what === "scene" && "width" in changes).length;
 		expect(await resumeExpansion(scene)).toBe(true);
+		// The clients followed the first write: the one made again doesn't move their windows or view a second time.
+		const again = scene.log.filter(([what, changes]) => what === "scene" && "width" in changes).slice(sizedBefore);
+		expect(again).toHaveLength(1);
+		expect(again[0][2]?.[SYSTEM_ID]?.realmExpanded).toBeUndefined();
 		expect(scene.flags[SYSTEM_ID].hexNames).toEqual({ version: 1, hexes: { "7,6": { name: "Mossford" } } });
 		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("7,6");
 		expect(scene.flags[SYSTEM_ID][REALM_GROWTH_FLAG].log).toHaveLength(1);

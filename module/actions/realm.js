@@ -1300,7 +1300,10 @@ async function writeExpansion(scene, plan) {
 	}
 	const { writeOutsideShifts } = await import("./realm-expand.js");
 	await writeOutsideShifts(plan.outside);
-	await scene.update(expansionSceneUpdate(scene, { ...plan, sceneWritten: Boolean(expansionUnderWay(scene)?.sceneWritten) }), { [SYSTEM_ID]: { [EXPANDED_OPTION]: { ...plan.shift, ...growthOffset(plan.growth) } } });
+	const sceneWritten = Boolean(expansionUnderWay(scene)?.sceneWritten);
+	// Each client follows the hexes once: a write made again, after the first landed, says nothing of the move.
+	const follow = sceneWritten ? {} : { [SYSTEM_ID]: { [EXPANDED_OPTION]: { ...plan.shift, ...growthOffset(plan.growth) } } };
+	await scene.update(expansionSceneUpdate(scene, { ...plan, sceneWritten }), follow);
 	forgetRealm(scene.id);
 	const { canvasRedrawn } = await import("./realm-map.js");
 	await canvasRedrawn(scene);
