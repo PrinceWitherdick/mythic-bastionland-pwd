@@ -14,6 +14,7 @@ import { barriersAround, edgeSide, hexSummary, holdingName, landmarkVariantOf } 
 import { hexKey, parseHexKey, sameHex } from "./realm-geometry.js";
 import { compareCalendars, normalizeCalendar, PHASES, seasonKey } from "./time.js";
 import { landmarkLabelKey } from "./landmarks.js";
+import { hexNumberWords } from "./hex-numbers.js";
 
 /**
  * @typedef {object} TravelsSources
@@ -117,7 +118,9 @@ export function hexViewOf(sources, hex, { visits, record, mark, name }) {
 		told: [...(record?.told ?? [])].reverse().map(({ id, note, when }) => ({ id, note, when })),
 		party: record?.party ? { text: record.party.text, byName: record.party.byName, when: record.party.when, at: record.party.at } : null,
 		here: sameHex(companyHex, hex),
-		openable
+		openable,
+		// How the Realm's hexes are numbered, once its map has grown (hex-numbers.js).
+		...(sources.numbering ? { numbering: sources.numbering } : {})
 	};
 }
 
@@ -362,9 +365,9 @@ export function viewWords(view, t) {
 	// The GM's name for the hex comes first, then the name of what stands there.
 	const place = view.name || view.holding?.name || view.landmark?.name || "";
 	return {
-		title: hexLabelText(view.hex, place, t),
+		title: hexLabelText(view.hex, place, t, view.numbering),
 		name: place,
-		coords: t("realm.hex", view.hex),
+		coords: hexNumberWords(view.hex, view.numbering, t),
 		terrain: view.terrain ? t(`realm.terrain.${view.terrain}`) : "",
 		features,
 		sighted: view.sighted ? (view.sighted.note ? t("seenFromAfar.readoutNote", { note: view.sighted.note }) : t("seenFromAfar.readout")) : ""

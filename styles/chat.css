@@ -825,6 +825,11 @@
 	justify-self: center;
 }
 
+/* A Knight's steed and followers sit under the Knight, set in a step. */
+.bastionland-phase-end__companion {
+	padding-left: 1.4rem;
+}
+
 .bastionland-phase-end__head {
 	font-size: var(--bastionland-font-text);
 	text-align: center;

@@ -245,6 +245,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		if (name === "reroll") return rerollRealm(scene);
 		if (name === "appearance") return openRealmAppearance();
 		if (name === "picture") return changeRealmPicture(scene);
+		// Loaded only when asked for: the window, the backup and the rolling of new land.
+		if (name === "expand") return import("../actions/realm-expand.js").then(({ openExpandRealm }) => openExpandRealm(scene));
 		return null;
 	}
 

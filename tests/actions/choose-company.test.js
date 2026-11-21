@@ -35,13 +35,14 @@ afterEach(() => {
 });
 
 describe("chooseCompany", () => {
-	it("offers what Service and Courtesy can make beside the pursuit, and keeps only what fits the pursuit picked (p17)", async () => {
+	it("offers what each pursuit can make beside it, and keeps only what fits the pursuit picked (p17)", async () => {
 		answer = {
 			"include-0": true, "pursuit-0": "courtesy", "making-0": "court",
 			"include-1": true, "pursuit-1": "service", "making-1": "favour"
 		};
 		const company = await chooseCompany({ title: "", icon: "", intro: "", ok: "", pursuits: ["service", "courtesy", "pilgrimage"] });
-		expect(asked.context.members[0].makings.map(({ value }) => value)).toEqual(["dwelling", "other", "court", "contact", "favour"]);
+		expect(asked.context.members[0].makings.map(({ value }) => value)).toEqual(["dwelling", "other", "court", "contact", "favour", "myth", "landmark", "other"]);
+		expect(asked.context.members[0].makings.map(({ pursuit }) => pursuit)).toEqual(["service", "service", "courtesy", "courtesy", "courtesy", "pilgrimage", "pilgrimage", "pilgrimage"]);
 		expect(asked.render).toBeTypeOf("function");
 		expect(company.map(({ actor, pursuit, making }) => [actor.name, pursuit, making])).toEqual([["Tal", "courtesy", "court"], ["Moss", "service", null]]);
 	});

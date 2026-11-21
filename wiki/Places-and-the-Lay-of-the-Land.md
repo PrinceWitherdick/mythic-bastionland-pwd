@@ -82,7 +82,7 @@ A line under it says where the players stand:
 
 ### The tabs
 
-Under the note, a tab for each kind of thing that can be rolled in the hex. A tab shows only where the hex has one. Each tab shows its count, kept rolls come first, and its buttons sit at the foot. The tab you choose is kept as you move from hex to hex. The **arrow keys**, **Home** and **End** move between tabs.
+Under the note, a tab for each kind of thing that can be rolled in the hex. A tab shows only where the hex has one. Each tab shows its count, kept rolls come first, and its buttons sit at the foot. The tab you choose is kept as you move from hex to hex. While that's **The Land**, a hex with a Myth, Holding or Landmark opens on that tab instead, in that order. A hex drawn again after a roll stays on the tab it's on. The **arrow keys**, **Home** and **End** move between tabs.
 
 | Tab | What it holds |
 | --- | --- |

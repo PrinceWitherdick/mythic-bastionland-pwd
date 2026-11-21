@@ -32,6 +32,7 @@ import { getHexVisits, getJourney, realmKnownToPlayers, visitsLabel } from "./jo
 import { getRealm, getRealmLook, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { getSighted, sightedMarkAt } from "./sighted.js";
 import { keptFromMe, realmKnown } from "./solo.js";
+import { hexNumbering } from "../rules/hex-numbers.js";
 
 /**
  * The players' record of the Realm, read off a Scene: what each window and
@@ -57,7 +58,8 @@ export function travelsSources(scene) {
 		marks: sightedMarks(entry.realm, getSighted(scene), handHidden),
 		handHidden,
 		companyHex: companyTokenHex(scene),
-		gm: Boolean(game.user?.isGM)
+		gm: Boolean(game.user?.isGM),
+		numbering: hexNumbering(scene)
 	};
 }
 
@@ -73,7 +75,7 @@ export function playersHexView(scene, hex) {
 	const entry = getRealm(scene);
 	if (!entry) return null;
 	const handHidden = (at) => hexHiddenByHand(scene, at);
-	return hexViewOf({ realm: realmKnown(entry.realm, scene), g: sceneGeometry(scene), handHidden, companyHex: companyTokenHex(scene), gm: false }, hex, {
+	return hexViewOf({ realm: realmKnown(entry.realm, scene), g: sceneGeometry(scene), handHidden, companyHex: companyTokenHex(scene), gm: false, numbering: hexNumbering(scene) }, hex, {
 		visits: getHexVisits(scene, hex),
 		record: getHexSharedRecord(scene, hex),
 		// Read off the whole Realm, as travelsSources' marks are.

@@ -5,6 +5,8 @@
  * Pure, so it can be tested without Foundry.
  */
 
+import { hardshipForAnybody } from "./time.js";
+
 /**
  * How the Company spent a Phase: on the move (travelling or exploring),
  * sleeping outdoors, or indoors as guests. Wording lives under
@@ -65,6 +67,8 @@ export const wildernessTicked = ({ omenShown = false, ...due }) =>
  * a Winter night camped out or on the road, d6 CLA without proper sleep, and
  * d6 VIG where essential needs were deprived. Travelling through the Night
  * leaves no time for sleep, and dire weather lets nobody outdoors sleep properly.
+ * A Knight's steed or follower suffers only what the book deals to anybody:
+ * Winter's cold and lost sleep, never the Company's own Night SPI or want of supplies.
  * @param {object} night
  * @param {string} night.mode How the Company spent the Night, one of PHASE_END_MODES.
  * @param {boolean} [night.winter]
@@ -72,14 +76,15 @@ export const wildernessTicked = ({ omenShown = false, ...due }) =>
  * @param {object} [member]
  * @param {boolean} [member.noSleep] Kept from proper sleep otherwise, as by a hostile Omen.
  * @param {boolean} [member.deprived] Deprived of essential needs.
+ * @param {boolean} [member.companion] A Knight's steed or follower rather than one of the Company.
  * @returns {string[]} HARDSHIPS keys, each a d6 to roll.
  */
-export function morningHardships({ mode, winter = false, dire = false }, { noSleep = false, deprived = false } = {}) {
+export function morningHardships({ mode, winter = false, dire = false }, { noSleep = false, deprived = false, companion = false } = {}) {
 	const outdoors = mode !== "indoors";
 	const kinds = [];
 	if (mode === "travel") kinds.push("night");
 	if (winter && outdoors) kinds.push("winter");
 	if (noSleep || mode === "travel" || (dire && outdoors)) kinds.push("sleep");
 	if (deprived) kinds.push("supplies");
-	return kinds;
+	return companion ? kinds.filter(hardshipForAnybody) : kinds;
 }

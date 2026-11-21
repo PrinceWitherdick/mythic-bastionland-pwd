@@ -78,7 +78,7 @@ vi.mock("../../module/apps/hex-rename.js", () => ({ wirePersonRename: vi.fn() })
 vi.mock("../../module/apps/RollPerson.js", () => ({ openRollPerson: vi.fn() }));
 vi.mock("../../module/actions/calendar.js", () => ({ momentLabel: (when) => when.label }));
 
-const { HEX_GM_ACTIONS, hexGmContext, hexGmState, sparkTab, writeHexGmField } = await import("../../module/apps/hex-gm-part.js");
+const { HEX_GM_ACTIONS, hexGmContext, hexGmState, openingTab, sparkTab, writeHexGmField } = await import("../../module/apps/hex-gm-part.js");
 
 const view = { openable: true, barriers: [], told: [] };
 
@@ -186,10 +186,36 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 		const part = hexGmContext({ scene, hex, view, index: null, state });
 		expect(part.tab).toBe("people");
 		expect(part.tabs.filter(({ active }) => active).map(({ key }) => key)).toEqual(["people"]);
+		// Chosen, as a click on the tab in a hex with a Holding chooses it.
 		state.tab = "holding";
+		state.showing = "holding";
 		expect(hexGmContext({ scene, hex, view, index: null, state }).tab).toBe("land");
 		// The choice is kept for the next hex that has a Holding.
 		expect(state.tab).toBe("holding");
+	});
+
+	it("opens a hex where something stands on its tab, unless another than the land's was chosen", () => {
+		const all = { people: true, land: true, myth: true, landmark: false, holding: true };
+		expect(openingTab(all, "land")).toBe("myth");
+		expect(openingTab({ ...all, myth: false }, "land")).toBe("holding");
+		expect(openingTab({ ...all, myth: false, holding: false, landmark: true }, "land")).toBe("landmark");
+		expect(openingTab({ ...all, myth: false, holding: false }, "land")).toBe("land");
+		expect(openingTab(all, "people")).toBe("people");
+		expect(openingTab(all, "holding")).toBe("holding");
+		// The hex drawn again after a roll stays on the tab it's on, the land's included.
+		expect(openingTab(all, "land", "land")).toBe("land");
+		expect(openingTab(all, "land", "myth")).toBe("myth");
+	});
+
+	it("keeps the hex on its tab when drawn again, and turns to what stands in the next", () => {
+		heldRealm = { ...emptyRealm(g), myths: [{ number: 2, hex, d6: 1, d12: 1, omen: 2, revealed: false }] };
+		const state = hexGmState();
+		expect(hexGmContext({ scene, hex, view, index: null, state }).tab).toBe("myth");
+		expect(state.tab).toBe("land");
+		// Chosen The Land here, and drawn again after a roll on it.
+		state.tab = "land";
+		state.showing = "land";
+		expect(hexGmContext({ scene, hex, view, index: null, state }).tab).toBe("land");
 	});
 
 	it("says under the note whether what the players were last told is out of date, with Tell the players where they're behind", () => {

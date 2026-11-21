@@ -144,7 +144,7 @@ export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end", "
 export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
 
 /** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
-export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "wilderness", "reroll", "appearance", "picture"]);
+export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "wilderness", "reroll", "appearance", "picture", "expand"]);
 
 /**
  * What the paint tool lays, all picked from its one palette: a terrain, the
@@ -164,11 +164,12 @@ export const REALM_TOOL_ICONS = Object.freeze({
 	wilderness: "fa-solid fa-tree",
 	reroll: "fa-solid fa-dice",
 	appearance: "fa-solid fa-palette",
-	picture: "fa-solid fa-image"
+	picture: "fa-solid fa-image",
+	expand: "fa-solid fa-expand"
 });
 
 /** The Realm tools that act at once rather than waiting for a click on the map. */
-export const REALM_BUTTONS = Object.freeze(["wilderness", "reroll", "appearance", "picture"]);
+export const REALM_BUTTONS = Object.freeze(["wilderness", "reroll", "appearance", "picture", "expand"]);
 
 /** Why part of a Realm needs a second look. */
 export const REALM_PROBLEMS = Object.freeze([

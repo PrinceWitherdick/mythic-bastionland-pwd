@@ -48,6 +48,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { onBoard } from "./board.js";
 import { BLOOD } from "./inks.js";
 import { traceHex } from "./trace-hex.js";
+import { hexNumberWords, hexNumbering } from "../rules/hex-numbers.js";
 
 /** The ink the picture's frame and the hex being pointed out are drawn in. */
 const RING = BLOOD;
@@ -317,7 +318,7 @@ function pinLabel(index) {
 	const colour = MARK_COLOURS[index];
 	return `<span class="bastionland-map-slide__pin"><svg viewBox="-10 -10 20 20" aria-hidden="true">`
 		+ `<polygon points="${points}" fill="${colour}" fill-opacity="0.35" stroke="${colour}" stroke-width="2" stroke-linejoin="round"/></svg>`
-		+ `${foundry.utils.escapeHTML(t("realm.hex", lining.hexes[index]))}</span>`;
+		+ `${foundry.utils.escapeHTML(hexNumberWords(lining.hexes[index], hexNumbering(lining.scene), t))}</span>`;
 }
 
 /**

@@ -4,7 +4,7 @@
  * not there yet, side by side in the middle of the view, and all of them added
  * to the Combat, which is made if there is none. It stands where a fight is
  * started from, so a fight no longer begins with a drag from the sidebar for
- * each Knight.
+ * each Knight. A Myth's Cast is brought the same way from the Referee Toolkit.
  */
 
 import { t, warn } from "../chat/cards.js";
@@ -26,14 +26,13 @@ function viewCentre(scene) {
 }
 
 /**
- * What a Knight's Token is made of, standing centred on a point of the Scene.
- * @param {Actor} actor
+ * What a Token is made of, standing centred on a point of the Scene.
+ * @param {TokenDocument} token The actor's prototype, as `getTokenDocument` gives it.
  * @param {{x: number, y: number}} centre
  * @param {number} grid The Scene's grid size.
- * @returns {Promise<object>}
+ * @returns {object}
  */
-async function tokenAt(actor, centre, grid) {
-	const token = await actor.getTokenDocument();
+function tokenAt(token, centre, grid) {
 	const corner = { x: centre.x - ((token.width ?? 1) * grid) / 2, y: centre.y - ((token.height ?? 1) * grid) / 2 };
 	const { x, y } = token.getSnappedPosition?.(corner) ?? corner;
 	return { ...token.toObject(), x: Math.round(x), y: Math.round(y) };
@@ -51,18 +50,54 @@ export async function bringCompany(scene = canvas?.scene) {
 		warn("muster.nobody");
 		return null;
 	}
-	const absent = absentFrom(standing.map((actor) => ({ id: actor.id, actor })), scene.tokens.map((token) => token.actorId));
+	return bringToFight(standing, scene, { already: "muster.alreadyHere" });
+}
+
+/**
+ * Bring some of a Myth's Cast onto a Scene and into its Combat, as the Company
+ * is brought. GMs only.
+ * @param {Actor[]} actors
+ * @param {object} [options]
+ * @param {Scene} [options.scene] The Scene on the canvas by default.
+ * @param {boolean} [options.hidden] Placed and fighting hidden from the players, as an Alt-drag places a Token.
+ * @returns {Promise<{placed: TokenDocument[], joined: TokenDocument[]}|null>}
+ */
+export async function bringCast(actors, { scene = canvas?.scene, hidden = false } = {}) {
+	if (!game.user.isGM) return null;
+	if (!scene) {
+		warn("muster.noScene");
+		return null;
+	}
+	const standing = actors.filter((actor) => actor && !actor.system?.slain);
+	if (!standing.length) return null;
+	return bringToFight(standing, scene, { hidden, already: "muster.castHere" });
+}
+
+/**
+ * Put a Token on a Scene for each of those given who has none there yet, side
+ * by side in the middle of the view, and add all their Tokens to the Combat
+ * being looked at where it's this Scene's, or one made for it.
+ * @param {Actor[]} actors Those to bring, none of them Slain.
+ * @param {Scene} scene
+ * @param {object} options
+ * @param {string} options.already Said when everybody was there and fighting already.
+ * @param {boolean} [options.hidden]
+ * @returns {Promise<{placed: TokenDocument[], joined: TokenDocument[]}>}
+ */
+async function bringToFight(actors, scene, { already, hidden = false }) {
+	const absent = absentFrom(actors.map((actor) => ({ id: actor.id, actor })), scene.tokens.map((token) => token.actorId));
 	const grid = scene.grid?.size ?? canvas?.grid?.size ?? 100;
-	const spots = musterRow(viewCentre(scene), absent.length, grid);
-	const data = await Promise.all(absent.map(({ actor }, index) => tokenAt(actor, spots[index], grid)));
+	const prototypes = await Promise.all(absent.map(({ actor }) => actor.getTokenDocument()));
+	const spots = musterRow(viewCentre(scene), prototypes.map((token) => token.width ?? 1), grid);
+	const data = prototypes.map((token, index) => tokenAt(token, spots[index], grid));
+	if (hidden) for (const token of data) token.hidden = true;
 	const placed = data.length ? await scene.createEmbeddedDocuments("Token", data) : [];
 
-	// The Combat being looked at where it's this Scene's, or one made for it.
 	const viewed = game.combats.viewed;
 	const combat = viewed && (!viewed.scene || viewed.scene.id === scene.id)
 		? viewed
 		: await CONFIG.Combat.documentClass.create({ scene: scene.id, active: true });
-	const ids = new Set(standing.map((actor) => actor.id));
+	const ids = new Set(actors.map((actor) => actor.id));
 	const theirs = scene.tokens.filter((token) => ids.has(token.actorId));
 	const joining = notYetFighting(theirs, combat.combatants.map((combatant) => combatant.tokenId));
 	if (joining.length) {
@@ -71,7 +106,7 @@ export async function bringCompany(scene = canvas?.scene) {
 
 	// Everyone brought: those placed on the Scene, and those already on it who only joined the fight.
 	const brought = [...new Map([...placed, ...joining].map((token) => [token.id, token])).values()];
-	if (!brought.length) ui.notifications.info(t("muster.alreadyHere"));
+	if (!brought.length) ui.notifications.info(t(already));
 	else ui.notifications.info(t("muster.brought", { names: brought.map((token) => token.name).join(", ") }));
 	return { placed, joined: joining };
 }

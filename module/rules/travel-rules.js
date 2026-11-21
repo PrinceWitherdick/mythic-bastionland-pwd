@@ -116,11 +116,15 @@ export function pressingSections({ season, phase } = {}, { morningSettled = fals
 /**
  * Where one side's rules sit on screen: against that edge of the Realm's map,
  * level with its top and as tall as it, as the Blank Realm sheet prints them
- * beside its map, so they follow the map as it's panned and zoomed, even off
- * the screen. Only their width stays put as it's zoomed, and they're never
- * shorter than `minHeight`. Without a map they stand against that edge of the
- * screen's room instead, from under the scene navigation down to the hotbar.
- * @param {{left: number, top: number, right: number, bottom: number}} screen The room the interface leaves, in CSS pixels.
+ * beside its map, so they follow the map as it's panned and zoomed. Where the
+ * map's top or foot runs past the screen's room, they stop at that edge of the
+ * room instead, so their heading and fold button are never off the screen,
+ * unless the whole map has been panned out of the room, when they go with it.
+ * Only their width stays put as it's zoomed, and they're never shorter than
+ * `minHeight`. Without a map they stand against that edge of the screen's room
+ * instead, from under the scene navigation down to the hotbar.
+ * @param {{left: number, top: number, right: number, bottom: number}|null} screen The room the interface leaves, in CSS pixels;
+ *   null holds them to the map alone.
  * @param {object} [options]
  * @param {"left"|"right"} [options.side]
  * @param {{left: number, top: number, right: number, bottom: number}|null} [options.map] The map on screen, in CSS pixels.
@@ -135,8 +139,12 @@ export function travelRulesPlacement(screen, { side = "right", map = null, width
 	const left = Math.round(map
 		? side === "left" ? map.left - space - wide : map.right + space
 		: side === "left" ? screen.left + space : screen.right - space - wide);
-	const top = Math.round(map ? map.top : screen.top + space);
-	const bottom = map ? map.bottom : screen.bottom - space;
+	const roomTop = screen ? screen.top + space : -Infinity;
+	const roomBottom = screen ? screen.bottom - space : Infinity;
+	// A map panned wholly above or below the room takes its rules with it, off the screen.
+	const inRoom = !map || (map.bottom > roomTop && map.top < roomBottom);
+	const top = Math.round(!map ? roomTop : inRoom ? Math.max(map.top, roomTop) : map.top);
+	const bottom = !map ? roomBottom : inRoom ? Math.min(map.bottom, roomBottom) : map.bottom;
 	return { left, top, maxHeight: Math.round(Math.max(least, bottom - top)) };
 }
 

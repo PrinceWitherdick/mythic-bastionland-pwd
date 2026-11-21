@@ -14,6 +14,7 @@ Click the **crown** (**Realm**) in the scene controls. Its tools, top to bottom:
 | **Reroll the Realm** | Rolls a new Realm onto this Scene, after asking. Tokens and anything else on the Scene stay, and so do the parts you left to draw by hand. |
 | **Realm Appearance** | Opens the Realm Appearance window. See [Realm Appearance and Skins](Realm-Appearance-and-Skins). |
 | **Import map** | Lays a picture of your own map under the Realm, or changes or removes the one there. See [Making a Realm](Making-a-Realm#importing-a-map-you-drew). |
+| **Expand the map** | Adds hexes to any side of a Realm already in play, or puts it back from the backup kept first. See [Expand the map](#expand-the-map). |
 
 The last four act at once rather than staying in hand.
 
@@ -130,6 +131,30 @@ To change one hex's picture, click it again with the same terrain in the brush. 
 **Reroll the Realm** rolls a new Realm onto the Scene in view. It asks first, and names any parts you set up to draw by hand, which it keeps. Tokens, Tiles and Drawings of your own stay. A new Realm Key is whispered to the Referees, and the Undo history is cleared.
 
 On a Realm already in play, the warning says what stays and what goes. The Company's visits and hex notes stay. Marks of things seen from afar are cleared, and so are Barriers met that the new roll takes away. A Courtier Company at the old Seat of Power moves to the new one. Any Domain ruling a Holding here is named, so you can give it its new Holding on its sheet.
+
+## Expand the map
+
+**Expand the map** makes a Realm bigger once play is under way: when the Knights come to rule more land, or the Company walks off the edge. Say how many hexes to add to the north, south, west and east. The map is drawn small with the new hexes round it, with the size it will be, such as "14 by 12, 168 hexes". A map can run to 60 hexes a side and 900 in all.
+
+Every hex keeps what it holds, and every Token, Tile, Drawing, Note, light, sound, Wall and Region stands on the land it stood on. So does everything kept for a hex: its name, the Lay of the Land, visits, what the players were told, things seen from afar, its Journal entry, threads in the Referee Toolkit, and its Timeline rows. Each player's view stays on the same land.
+
+**The new land.** **Roll its terrain** grows clusters of terrain out from the land already there, as a Realm is rolled. **Leave it blank to paint** leaves the new hexes empty for the brush. Roll is chosen for a rolled Realm, blank for one drawn by hand or laid over a picture. Tick **Roll Landmarks and Barriers into it too** for as many as a Realm has for that many hexes, hidden from the players. Barriers run only along the new hexes and never wall a hex off. No Myths, Holdings or rivers are added.
+
+**A Realm laid over a picture.** The picture stays where it was under its hexes, and the new hexes fall on bare paper. Tick **Draw the new land in the Realm's own ink** to show the system's terrain in hexes outside your picture; it won't match your drawing. Or bring in a bigger picture afterwards with **Import map**, which keeps what every hex holds.
+
+**Hex numbers.** Once hexes are added to the north or west, choose how hexes are numbered. **Keep every hex's number** leaves Column 5, Row 7 as it was; new columns to the west count down from Column 0, and new rows to the north from Row 0. Old chat cards and any numbers printed on your map stay right. **Number the map again from 1** gives every hex a new number. The hexes on old chat cards still open the right place, but the numbers printed on them and in some Timeline rows are then out of date. You can choose again at the next expansion.
+
+**The backup.** **Keep a backup of this Realm first** is ticked to start. It saves the whole Scene, with what is kept for its hexes, in a file with your world on the server, in place of the last one. Tick **Download a copy as well** to keep older ones on your computer. With the first unticked, only the download is made, and the last backup on the server stays as it was. If the backup can't be saved, you're asked whether to go on without it.
+
+Expanding forgets Undo on the map and Undo on recent Phase cards.
+
+### Putting the Realm back
+
+Once a Realm has a backup, Expand the map offers **Put the Realm back as it was on** the day it was kept. It asks first. The map, its Tokens and what is kept for its hexes go back to how they were then, and everything done on this Realm since is lost. Every expansion since the backup is undone, even one made without a backup of its own. Anything written down since for a hex that is still there follows it back, and chat cards posted since point at the right hex again; anything written for the land added loses its hex. The calendar, the Knights and everything else in the world stay as they are now. A backup is used up once the Realm is put back from it, so it can't be put back twice.
+
+### If an expansion is cut short
+
+An expansion is written in several steps. If the browser closes part way, the Realm is marked, and the next time a Referee opens it the expansion is finished from the start and you're told so. Putting a Realm back is finished the same way, from its backup. Should that backup no longer be readable, the mark is taken off so the Realm can be used again, and you're told to look it over for anything left out of place.
 
 ## See also
 

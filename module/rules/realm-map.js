@@ -123,7 +123,9 @@ export function normaliseMapPicture(picture) {
 	// Said either way: the Scene's flag is merged into, so a word left out would leave the last one written standing.
 	const bare = picture.bare === true;
 	const measured = [x, y, width, height].every((value) => Number.isFinite(value)) && width > 0 && height > 0;
-	return measured ? { src, bare, x: round(x), y: round(y), width: round(width), height: round(height) } : { src, bare };
+	// Only ever set, by an expansion whose new land the Referee has drawn in the Realm's own ink (hexHidesTerrain).
+	const ink = picture.inkOutside === true ? { inkOutside: true } : {};
+	return measured ? { src, bare, x: round(x), y: round(y), width: round(width), height: round(height), ...ink } : { src, bare, ...ink };
 }
 
 /**
@@ -578,6 +580,26 @@ export const realmPictures = (realm, g) => MAP_ROLES.flatMap((role) => {
  * @returns {boolean} Whether the system's own terrain, river and lake drawings give way to a picture.
  */
 export const hidesTerrain = (realm) => Boolean(realm.picture);
+
+/**
+ * Whether the system's own ground and water give way to the picture in one
+ * hex. Every hex of a Realm laid over a picture does, but for one whose map
+ * has grown past its picture and whose Referee chose to draw the new land in
+ * the Realm's own ink (`inkOutside`): there a hex whose centre lies outside the
+ * picture is drawn. Realms with no such word look as they always did, even
+ * where a hex at the edge lies outside the picture.
+ * @param {import("./realm.js").Realm} realm
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @returns {boolean}
+ */
+export function hexHidesTerrain(realm, g, hex) {
+	if (!hidesTerrain(realm)) return false;
+	const picture = realm.picture.players;
+	if (!picture?.inkOutside || !(picture.width > 0)) return true;
+	const { x, y } = hexCentre(g, hex);
+	return Math.abs(x - picture.x) <= picture.width / 2 && Math.abs(y - picture.y) <= picture.height / 2;
+}
 
 /**
  * The two hexes a picture is lined up by: the first of the map and the last.

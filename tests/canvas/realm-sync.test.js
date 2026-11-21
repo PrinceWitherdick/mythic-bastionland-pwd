@@ -16,6 +16,6 @@ describe("putting a Realm Scene back in order as it is drawn", () => {
 
 	it("logs a write it couldn't make rather than leaving the promise to go unheard", () => {
 		const hooks = source("module/canvas/realm-hooks.js");
-		expect(hooks).toMatch(/syncRealmScene\(canvas\?\.scene\)\.catch\(/);
+		expect(hooks).toMatch(/resumeExpansion\(scene\)\s*\.then\(\(\) => syncRealmScene\(scene\)\)\s*\.catch\(/);
 	});
 });

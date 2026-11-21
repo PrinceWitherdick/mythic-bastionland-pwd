@@ -1,4 +1,5 @@
 import { renameHex } from "../actions/hex-names.js";
+import { keepClearOfCompany } from "./clear-of-company.js";
 import { TRAVELS_CHANGED_HOOK, forgetHexBarrierMet, forgetHexPartyNote, forgetHexTold, writePartyNote } from "../actions/hex-shared.js";
 import { forgetHexVisit } from "../actions/journey.js";
 import { THREADS_CHANGED_HOOK } from "../actions/threads.js";
@@ -7,7 +8,8 @@ import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
-import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
+import { hexKey, inRealm, parseHexKey } from "../rules/realm-geometry.js";
+import { REALM_FLAG } from "../rules/realm.js";
 import { TRAVELS_SORTS, TRAVELS_VIEWS } from "../rules/travels.js";
 import { chartScrollBy, haloPoints } from "../rules/travels-chart.js";
 import { searchable } from "../rules/text.js";
@@ -487,11 +489,13 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/**
 	 * Draw again when anything the Company knows of the Realm changes, or a GM
-	 * comes or goes, which decides whether the note can be written.
+	 * comes or goes, which decides whether the note can be written. Opening
+	 * over the Company's Token, it moves aside from it.
 	 * @override
 	 */
 	_onFirstRender(context, options) {
 		super._onFirstRender(context, options);
+		keepClearOfCompany(this);
 		const redraw = (sceneId) => {
 			if (!sceneId || sceneId === this.state.realm) renderWhenIdle(this);
 		};
@@ -594,4 +598,22 @@ export function reopenablePlaces() {
 export function refreshPlaces(sceneId) {
 	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
 	if (app?.rendered && app.state.realm === sceneId) renderWhenIdle(app);
+}
+
+/**
+ * Keep the hex chosen in Places chosen after a Realm's hexes moved, as an
+ * expansion to the north or west moves them.
+ * @param {string} sceneId
+ * @param {{cols: number, rows: number}} offset
+ */
+export function followMovedPlaces(sceneId, offset) {
+	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
+	if (!app || app.state.realm !== sceneId) return;
+	const hex = parseHexKey(app.state.selected ?? "");
+	const moved = hex ? { col: hex.col + offset.cols, row: hex.row + offset.rows } : null;
+	// A hex of land taken away again, as a Realm put back from its backup takes it, is chosen no longer.
+	const scene = game.scenes?.get(sceneId);
+	const realm = scene?.flags?.[SYSTEM_ID]?.[REALM_FLAG];
+	app.state.selected = moved && realm && inRealm(realm, moved) ? hexKey(moved) : null;
+	if (app.rendered) renderWhenIdle(app);
 }

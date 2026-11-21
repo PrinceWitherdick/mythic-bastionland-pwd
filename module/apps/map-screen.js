@@ -68,6 +68,9 @@ function interfacePart(app, ids) {
 /** @type {number|null} The measured scene navigation floor, kept until the navigation itself changes. */
 let floor = null;
 
+/** @type {{left: number, top: number, right: number, bottom: number}|null} The screen's room, kept for the current run of code only (see panelScreen). */
+let room = null;
+
 /**
  * The foot of the scene navigation's own buttons. Its element is no guide: it
  * is stretched down half the screen whatever it holds, so what has to stay
@@ -93,6 +96,7 @@ export function navigationFloor() {
 /** Measure the navigation again on the next placing, after it has been drawn, folded away or rescaled. */
 export function forgetNavigationFloor() {
 	floor = null;
+	room = null;
 }
 
 /**
@@ -118,19 +122,30 @@ const MOST_CLAIMED = 0.2;
  * and above the hotbar. Each edge is clamped, so a part of the interface that
  * can't be found, or one measured far wider than an edge strip could honestly
  * be, never pushes a panel off the screen or under the sidebar.
+ *
+ * Everything that follows the map places itself on each frame the map moves,
+ * so the room is measured once for all of them: it's kept until the current
+ * run of code is over, and measured afresh on the next frame. Reading it again
+ * between their writes would make the browser lay the page out once for each.
  * @returns {{left: number, top: number, right: number, bottom: number}} In CSS pixels.
  */
 export function panelScreen() {
-	const { innerWidth: width, innerHeight: height } = window;
-	const [across, down] = [width * MOST_CLAIMED, height * MOST_CLAIMED];
-	const controls = interfacePart("controls", ["scene-controls", "ui-left"])?.right ?? 0;
-	const sidebar = interfacePart("sidebar", ["sidebar", "ui-right"])?.left ?? width;
-	return {
-		left: Math.min(Math.max(controls, 0), across),
-		top: Math.min(Math.max(navigationFloor(), 0), down),
-		right: Math.max(Math.min(sidebar, width), width - across),
-		bottom: Math.max(Math.min(hotbarFloor(), height), height - down)
-	};
+	if (!room) {
+		const { innerWidth: width, innerHeight: height } = window;
+		const [across, down] = [width * MOST_CLAIMED, height * MOST_CLAIMED];
+		const controls = interfacePart("controls", ["scene-controls", "ui-left"])?.right ?? 0;
+		const sidebar = interfacePart("sidebar", ["sidebar", "ui-right"])?.left ?? width;
+		room = {
+			left: Math.min(Math.max(controls, 0), across),
+			top: Math.min(Math.max(navigationFloor(), 0), down),
+			right: Math.max(Math.min(sidebar, width), width - across),
+			bottom: Math.max(Math.min(hotbarFloor(), height), height - down)
+		};
+		queueMicrotask(() => {
+			room = null;
+		});
+	}
+	return { ...room };
 }
 
 /**
@@ -191,9 +206,10 @@ export function followMap(place) {
 }
 
 /**
- * Hold a panel against one edge of the map, from its top to its foot. It
- * follows the map as the map is panned and zoomed, but keeps its width, so the
- * rules stay readable however far out the map is zoomed.
+ * Hold a panel against one edge of the map, from its top to its foot, kept
+ * inside the screen's room where the map runs past it. It follows the map as
+ * the map is panned and zoomed, but keeps its width, so the rules stay
+ * readable however far out the map is zoomed.
  * @param {HTMLElement|null|undefined} element
  * @param {"left"|"right"} side
  * @param {number} [width] The panel's layout width, which neither the interface scale nor Text Size changes: both are one transform on it.
@@ -202,7 +218,7 @@ export function followMap(place) {
 export function placeBesideMap(element, side, width = element?.offsetWidth ?? 0, map = mapOnScreen()) {
 	if (!element) return;
 	const scale = mapPanelScale();
-	const { left, top, maxHeight } = travelRulesPlacement(map ? null : panelScreen(), { side, map, width, scale });
+	const { left, top, maxHeight } = travelRulesPlacement(panelScreen(), { side, map, width, scale });
 
 	const { style } = element;
 	style.left = `${left}px`;

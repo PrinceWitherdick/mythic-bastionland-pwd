@@ -7,7 +7,7 @@ import { isDying, slainUpdate } from "../rules/virtues.js";
 import { phaseEndCalls } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
-import { announceFallenKnight } from "./fallen.js";
+import { announceFallenKnight, companionsOf, worldCompanions } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { companyMovedThisNight } from "./night-travel.js";
 import { weatherIn } from "./referee-rolls.js";
@@ -71,7 +71,8 @@ export function registerPhaseEndSettings() {
  * @property {boolean} wilderness Whether the Wilderness Roll follows.
  * @property {boolean} dire Whether the Night's weather was dire.
  * @property {{sky: object, weather: object, page: object}|null} sky The tables the new day's Sky and Weather are rolled on, as the Night ends, or null when they aren't.
- * @property {{actor: Actor, noSleep: boolean, deprived: boolean}[]} members Those Morning comes to, as the Night ends.
+ * @property {{actor: Actor, noSleep: boolean, deprived: boolean, companion: boolean}[]} members Those Morning comes to,
+ *   as the Night ends: the Company's Knights, and each one's steed and followers as `companion`.
  * @property {Actor[]} dying Those left Mortally Wounded and untended, who die of it.
  */
 
@@ -116,13 +117,15 @@ const wildernessLine = (calls, atBarrier) => t(`phaseEnd.wilderness.${atBarrier 
  * @param {object} options
  * @param {boolean} options.winter
  * @param {boolean} options.dire
+ * @param {boolean} [options.companions] Whether steeds or followers are listed.
  * @returns {string[]}
  */
-function morningRules({ winter, dire }) {
+function morningRules({ winter, dire, companions = false }) {
 	return [
 		t("phaseEnd.morning.rules.travel"),
 		...(winter ? [t("phaseEnd.morning.rules.winter")] : []),
 		...(dire ? [t("phaseEnd.morning.rules.dire")] : []),
+		...(companions ? [t("phaseEnd.morning.rules.companions")] : []),
 		t("phaseEnd.morning.rules.each")
 	];
 }
@@ -160,7 +163,12 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 	const likely = PHASE_END_MODES.includes(mode) ? mode : likelyPhaseMode({ phase: ending.phase, holding, atBarrier, movedTonight });
 	const dire = nightEnds && weatherIn(ending) === "dire";
 	const winter = ending.season === "winter";
-	const knights = nightEnds ? companyKnights() : [];
+	// Each Knight on a row, their steed and followers under them: Winter and lost sleep reach them too (p18).
+	const world = nightEnds ? worldCompanions({ players: false }) : [];
+	const rows = (nightEnds ? companyKnights() : []).flatMap((actor) => {
+		const included = inCompany(actor);
+		return [{ actor, included, companion: false }, ...companionsOf(actor, { companions: world }).map((companion) => ({ actor: companion, included, companion: true }))];
+	}).filter(({ actor }, index, all) => all.findIndex((row) => row.actor === actor) === index);
 	const deprived = new Set(game.settings.get(SYSTEM_ID, DEPRIVED_SETTING) ?? []);
 	const phase = t(`time.phases.${ending.phase}`);
 	// As the Company breaks camp, the Referee rolls the day's Sky and Weather (p197), where Import PDF has read them.
@@ -184,8 +192,8 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 				: null,
 			morning: nightEnds
 				? {
-					rules: morningRules({ winter, dire }),
-					members: knights.map((actor, index) => ({ index, name: actor.name, included: inCompany(actor), deprived: deprived.has(actor.id) }))
+					rules: morningRules({ winter, dire, companions: rows.some(({ companion }) => companion) }),
+					members: rows.map(({ actor, included, companion }, index) => ({ index, name: actor.name, included, companion, deprived: !companion && deprived.has(actor.id) }))
 				}
 				: null,
 			sky: Boolean(sky),
@@ -206,8 +214,8 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 		wilderness: Boolean(data.wilderness) && wildernessDue({ calls, mode: chosen, atBarrier }),
 		dire,
 		sky: data.sky ? sky : null,
-		members: knights.flatMap((actor, index) =>
-			data[`include-${index}`] ? [{ actor, noSleep: Boolean(data[`nosleep-${index}`]), deprived: Boolean(data[`deprived-${index}`]) }] : []
+		members: rows.flatMap(({ actor, companion }, index) =>
+			data[`include-${index}`] ? [{ actor, companion, noSleep: Boolean(data[`nosleep-${index}`]), deprived: !companion && Boolean(data[`deprived-${index}`]) }] : []
 		),
 		dying: wounded.filter((_actor, index) => data[`dying-${index}`])
 	};
@@ -249,15 +257,15 @@ export async function dieUntended(dying) {
  */
 export async function takeMorningLosses({ mode, dire, members }, ending) {
 	if (!game.user.isGM) return null;
-	await game.settings.set(SYSTEM_ID, DEPRIVED_SETTING, members.filter(({ deprived }) => deprived).map(({ actor }) => actor.id));
+	await game.settings.set(SYSTEM_ID, DEPRIVED_SETTING, members.filter(({ deprived, companion }) => deprived && !companion).map(({ actor }) => actor.id));
 	const winter = ending.season === "winter";
 	const rolls = [];
 	const entries = [];
 	const updates = [];
-	for (const { actor, noSleep, deprived } of members) {
+	for (const { actor, noSleep, deprived, companion = false } of members) {
 		// Who died untended through the Night isn't there by Morning to lose more.
 		if (actor.system.slain) continue;
-		const kinds = morningHardships({ mode, winter, dire }, { noSleep, deprived });
+		const kinds = morningHardships({ mode, winter, dire }, { noSleep, deprived, companion });
 		if (!kinds.length) continue;
 		const { update, taken } = await rollVirtueLosses(actor, kinds.map((kind) => ({ kind, virtue: HARDSHIPS.find(({ key }) => key === kind).virtue })));
 		rolls.push(...taken.map(({ roll }) => roll));

@@ -26,7 +26,7 @@ import {
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures, terrainExtraPictures } from "./realm-skins.js";
 import { emptyVariants, pictureOf } from "./realm-pictures.js";
 import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
-import { MAP_ROLES, hidesTerrain, normaliseRealmPicture, realmPictures, withMapPlaces } from "./realm-map.js";
+import { MAP_ROLES, hexHidesTerrain, normaliseRealmPicture, realmPictures, withMapPlaces } from "./realm-map.js";
 import { normaliseRealmSetup } from "./realm-setup.js";
 import { isOwnMyth } from "./own-myths.js";
 import {
@@ -302,7 +302,7 @@ export function realmDocuments(realm, g, textures) {
 	// ground and water are still there, still saying what each hex holds, but
 	// drawn at nothing so the drawing underneath shows through. The Holdings,
 	// Landmarks and Myths are drawn over it as on any Realm.
-	const traced = hidesTerrain(realm);
+	const traced = (hex) => hexHidesTerrain(realm, g, hex);
 	const showing = (hidden) => (hidden ? 0 : 1);
 
 	// The picture lies under the whole map. It isn't locked, so a GM can drag it
@@ -341,7 +341,7 @@ export function realmDocuments(realm, g, textures) {
 				centre: hexCentre(g, hex),
 				...shape,
 				texture: { src, fit: picture.icon ? "contain" : "fill" },
-				alpha: showing(traced || (picture.givesWay && holdingHexes.has(key))),
+				alpha: showing(traced(hex) || (picture.givesWay && holdingHexes.has(key))),
 				sort: REALM_SORT.terrain,
 				locked: true,
 				flag: { kind: "terrain", terrain, ...(roll ? { variant: roll } : {}) }
@@ -350,7 +350,7 @@ export function realmDocuments(realm, g, textures) {
 	}
 
 	const hexPiece = (hex, texture, { sort, rotation, flag }) => tileData({
-		centre: hexCentre(g, hex), ...pieceSize(g), texture, sort, locked: true, rotation: pieceRotation(g, rotation), flag, alpha: showing(traced)
+		centre: hexCentre(g, hex), ...pieceSize(g), texture, sort, locked: true, rotation: pieceRotation(g, rotation), flag, alpha: showing(traced(hex))
 	});
 	for (const piece of pieces) {
 		tiles.push({

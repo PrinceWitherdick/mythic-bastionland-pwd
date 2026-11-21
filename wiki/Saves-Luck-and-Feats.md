@@ -39,7 +39,7 @@ A failed Save leaves the Knight **Fatigued**. A Fatigued, Slain or Mortally Woun
 
 The **Recovery** box on the Knight page lists what brings each Virtue and Guard back, with a button beside each:
 
-- **Click the heart** beside VIG, CLA or SPI to **Restore** that Virtue to its maximum. A note goes to chat.
+- **Click the heart** beside VIG, CLA or SPI to **Restore** that Virtue to its maximum. A note goes to chat. If the Knight carries a Remedy for that Virtue, you're asked first whether it's the Remedy that restores it, which uses it up as the flask does, or something else.
 - **Click the mug** beside GD/Fatigue to **Rest**: GD back to full, no longer Fatigued, and no longer Exposed (unless CLA 0 is what Exposes them). A note goes to chat.
 - **Indulge your Passion** with the wine glass on its row to restore SPI.
 - **Use a Remedy** with the flask on its row: tick everyone present, and each has that Virtue restored. Using a Remedy takes a whole Phase, so the Referee moves the calendar on (a player's click asks the Referee to).

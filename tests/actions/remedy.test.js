@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 vi.mock("../../module/apps/ui.js", () => ({ confirmDialog: vi.fn() }));
+vi.mock("../../module/apps/actor-pick.js", () => ({ chooseOne: vi.fn(async () => null) }));
 vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => ({})), t: (key) => key }));
 vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-updates.js"));
 vi.mock("../../module/actions/ledger.js", () => ({ causedBy: () => ({}) }));
@@ -14,7 +15,8 @@ vi.mock("../../module/compat.js", () => ({ queryAsker: (context) => context?.use
 vi.mock("../../module/actions/knights.js", () => ({ inCompany: (actor) => Boolean(actor.riding), worldKnights: (keep) => world.filter((actor) => actor.type === "knight" && keep(actor)) }));
 vi.mock("../../module/actions/fallen.js", () => ({ companionsOf: (knight) => knight.companions ?? [], worldCompanions: () => [] }));
 
-const { onRemedyQuery, useRemedy, warnDyingAfterCombat } = await import("../../module/actions/recovery.js");
+const { onRemedyQuery, restoreFromSheet, useRemedy, warnDyingAfterCombat } = await import("../../module/actions/recovery.js");
+const { chooseOne } = await import("../../module/apps/actor-pick.js");
 const { askActiveGM } = await import("../../module/ask-gm.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { advancePhase, chooseCompany } = await import("../../module/actions/time.js");
@@ -102,6 +104,40 @@ describe("useRemedy", () => {
 		company = [];
 		await useRemedy(knight("Alys"), sustenance());
 		expect(advancePhase).not.toHaveBeenCalled();
+	});
+});
+
+describe("restoreFromSheet", () => {
+	const carrying = (...items) => knight("Alys", { items: { contents: items } });
+
+	it("restores outright where no Remedy for that Virtue is carried", async () => {
+		const alys = carrying({ name: "Stimulant", system: { remedy: "cla" } }, { name: "Spent", system: { remedy: "vig", quantity: { value: 0, max: 2 } } });
+		await restoreFromSheet(alys, "vig");
+		expect(chooseOne).not.toHaveBeenCalled();
+		expect(alys.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 12 }, {});
+	});
+
+	it("asks whether the Remedy carried restores it, and uses it up if so (p9)", async () => {
+		const item = sustenance();
+		const alys = carrying(item);
+		company = [{ actor: alys }];
+		chooseOne.mockImplementationOnce(async (choices) => choices[0]);
+		await restoreFromSheet(alys, "vig");
+		expect(chooseOne.mock.calls[0][0].map(({ name }) => name)).toEqual(["recovery.heart.remedy", "recovery.heart.without"]);
+		expect(chooseCompany).toHaveBeenCalled();
+		expect(item.delete).toHaveBeenCalled();
+	});
+
+	it("keeps the Remedy when something else restores it, and does nothing when closed", async () => {
+		const item = sustenance();
+		const alys = carrying(item);
+		chooseOne.mockImplementationOnce(async (choices) => choices[1]);
+		await restoreFromSheet(alys, "vig");
+		expect(alys.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 12 }, {});
+		expect(item.delete).not.toHaveBeenCalled();
+		alys.update.mockClear();
+		await restoreFromSheet(alys, "vig");
+		expect(alys.update).not.toHaveBeenCalled();
 	});
 });
 
