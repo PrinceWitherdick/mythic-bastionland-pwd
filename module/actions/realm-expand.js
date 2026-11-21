@@ -182,7 +182,7 @@ async function offerPutBack(scene) {
 	if (!confirmed) return false;
 	const backup = await readRealmBackup(scene);
 	if (!backup) {
-		warn(t("realm.expand.restore.unreadable"));
+		warn("realm.expand.restore.unreadable");
 		return false;
 	}
 	const done = await putRealmBack(scene, backup);
@@ -199,7 +199,7 @@ async function offerPutBack(scene) {
 export async function openExpandRealm(scene) {
 	const refused = await expansionRefused(scene);
 	if (refused) {
-		warn(t(`realm.expand.refused.${refused}`));
+		warn(`realm.expand.refused.${refused}`);
 		return false;
 	}
 	const { realm } = getRealm(scene);

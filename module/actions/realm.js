@@ -1370,13 +1370,13 @@ export async function expansionRefused(scene) {
 export async function expandRealm(scene, asked, { keepNumbers = true, land, backup } = {}) {
 	const refused = await expansionRefused(scene);
 	if (refused) {
-		warn(t(`realm.expand.refused.${refused}`));
+		warn(`realm.expand.refused.${refused}`);
 		return false;
 	}
 	const growth = normaliseGrowth(asked);
 	const problem = growthProblem(sceneGeometry(scene), growth);
 	if (problem) {
-		warn(t(`realm.expand.problems.${problem}`, OWN_SIZE_LIMITS_WORDS));
+		warn(`realm.expand.problems.${problem}`, OWN_SIZE_LIMITS_WORDS);
 		return false;
 	}
 	return queueRealmWrite(async () => {
@@ -1385,13 +1385,13 @@ export async function expandRealm(scene, asked, { keepNumbers = true, land, back
 		// The backup may have waited on the server or the Referee: the plan is made from the Realm as it stands
 		// once it's kept, with nothing awaited between making it and marking the Scene but the plan itself.
 		if (expansionUnderWay(scene)) {
-			warn(t("realm.expand.refused.underWay"));
+			warn("realm.expand.refused.underWay");
 			return false;
 		}
 		// Another Referee's expansion, made in full while this one waited, may have left no room for it.
 		const now = growthProblem(sceneGeometry(scene), growth);
 		if (now) {
-			warn(t(`realm.expand.problems.${now}`, OWN_SIZE_LIMITS_WORDS));
+			warn(`realm.expand.problems.${now}`, OWN_SIZE_LIMITS_WORDS);
 			return false;
 		}
 		const plan = await expansionPlan(scene, growth, { keepNumbers, land });
@@ -1439,7 +1439,7 @@ async function resumePutBack(scene, plan) {
 	if (!backup?.scene || !plan.outside || !plan.growth) {
 		await scene.unsetFlag(SYSTEM_ID, EXPANDING_FLAG);
 		forgetRealm(scene.id);
-		warn(t("realm.expand.restore.unfinished", { realm: scene.name }));
+		warn("realm.expand.restore.unfinished", { realm: scene.name });
 		return false;
 	}
 	await writePutBack(scene, backup.scene, plan);
