@@ -90,13 +90,18 @@ export async function writeOutsideShifts(shifts) {
 				: { _id, ...Object.fromEntries([deletionEntry(path)]) }));
 		if (updates.length) await CONFIG.JournalEntry.documentClass.updateDocuments(updates);
 	}
+	// Only those still kept: a plan written again later mustn't bring back, as a stub, one settled or deleted since.
 	if (shifts.threads) {
 		const actor = game.actors.get(shifts.threads.actor);
-		if (actor) await actor.update(Object.fromEntries(Object.entries(shifts.threads.threads).map(([id, hex]) => [`system.threads.${id}.hex`, hex])));
+		const kept = actor?.system?.threads ?? {};
+		const update = Object.fromEntries(Object.entries(shifts.threads.threads).filter(([id]) => kept[id]).map(([id, hex]) => [`system.threads.${id}.hex`, hex]));
+		if (Object.keys(update).length) await actor.update(update);
 	}
 	for (const { journal, page, keys } of shifts.timeline) {
 		const document = game.journal.get(journal)?.pages.get(page);
-		if (document) await document.update(Object.fromEntries(Object.entries(keys).map(([id, key]) => [`system.entries.${id}.key`, key])));
+		const rows = document?.system?.entries ?? {};
+		const update = Object.fromEntries(Object.entries(keys).filter(([id]) => rows[id]).map(([id, key]) => [`system.entries.${id}.key`, key]));
+		if (Object.keys(update).length) await document.update(update);
 	}
 	if (shifts.omen) await game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, shifts.omen.value);
 }
