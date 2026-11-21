@@ -99,6 +99,7 @@ import { FXMASTER_CARD_STEP, WELCOME_CARDS_STEP, postFxMasterCard, postWelcomeCa
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
 import { registerHexTargets } from "./module/chat/hex-target.js";
+import { registerPostedAt } from "./module/chat/posted-at.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
@@ -427,6 +428,8 @@ Hooks.once("init", () => {
 	registerExplorationCards();
 	// A hex a card names rings on the map when pointed at, and takes the map there when clicked.
 	registerHexTargets();
+	// Each message is stamped with the server's time, which the Realm's growth log is kept by.
+	registerPostedAt();
 	registerFallenCards();
 	// A Humiliation's dealer brought down asks whether that was the revenge (p9).
 	registerRevengeCards();

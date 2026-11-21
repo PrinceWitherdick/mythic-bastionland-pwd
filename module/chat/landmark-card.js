@@ -8,6 +8,7 @@ import { takeLandmarkOffer } from "../actions/landmarks.js";
 import { LANDMARK_OFFERS } from "../rules/landmarks.js";
 import { parseHexKey } from "../rules/realm-geometry.js";
 import { registerCardButtons, warn } from "./cards.js";
+import { postedAt } from "./posted-at.js";
 import { cardHexKey } from "../rules/realm-growth.js";
 import { hexNumbering } from "../rules/hex-numbers.js";
 
@@ -22,7 +23,7 @@ export function registerLandmarkCards() {
 			// The card names the Realm it was rolled for; without one, whatever Scene is on the canvas.
 			const scene = game.scenes.get(button.dataset.landmarkScene) ?? canvas.scene;
 			// A card posted before the map grew names the hex as it was numbered then.
-			const hex = parseHexKey(cardHexKey(button.dataset.landmarkHex, message?.timestamp, hexNumbering(scene)));
+			const hex = parseHexKey(cardHexKey(button.dataset.landmarkHex, postedAt(message), hexNumbering(scene)));
 			// The hex it names is gone, as land a Realm put back from its backup takes away.
 			if (button.dataset.landmarkHex && !hex) {
 				warn("realm.landmarks.offerGone");

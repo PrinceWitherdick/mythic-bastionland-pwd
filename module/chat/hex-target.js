@@ -9,6 +9,7 @@ import { viewAndShowHex } from "../actions/travels.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { registerCardButtons, warn } from "./cards.js";
+import { postedAt } from "./posted-at.js";
 import { cardHexKey } from "../rules/realm-growth.js";
 import { hexNumbering } from "../rules/hex-numbers.js";
 
@@ -40,7 +41,7 @@ export const smallCapsLabel = (label) => /\p{Ll}/u.test(String(label ?? "")) && 
 function chipTarget(chip) {
 	const scene = game.scenes.get(chip.dataset.hexScene) ?? null;
 	// A card posted before the map grew names the hex as it was numbered then.
-	const posted = game.messages?.get(chip.closest("[data-message-id]")?.dataset.messageId)?.timestamp;
+	const posted = postedAt(game.messages?.get(chip.closest("[data-message-id]")?.dataset.messageId));
 	return { scene, hex: parseHexKey(cardHexKey(chip.dataset.hexTarget, posted, hexNumbering(scene))) };
 }
 

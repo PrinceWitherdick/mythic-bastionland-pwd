@@ -1,5 +1,6 @@
 import { hexTarget } from "../chat/hex-target.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
+import { postedAt } from "../chat/posted-at.js";
 import { featureAt } from "../rules/realm.js";
 import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { COMPANY_PACE_SETTING, companyPace, paceSoFar } from "../rules/journey.js";
@@ -510,7 +511,7 @@ export function registerArrivals() {
 			}
 			const act = ARRIVAL_ACTIONS[button.dataset.arrival];
 			// A card posted before the map grew names its hexes as they were numbered then.
-			const moved = cardOffset(message.timestamp, hexNumbering(scene));
+			const moved = cardOffset(postedAt(message), hexNumbering(scene));
 			const hex = button.dataset.arrivalHex ? shiftHex(parseHexKey(button.dataset.arrivalHex), moved) : null;
 			const arrived = message.flags[SYSTEM_ID].arrived ?? {};
 			const now = moved.cols || moved.rows
