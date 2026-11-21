@@ -5065,7 +5065,8 @@
           "text": "The Company tried to cross a Barrier, from {from} to {to}. The {phase} is lost to it, and the Wilderness Roll is still made.",
           "waste": "Waste the {phase}"
         },
-        "travelNeedsGM": "The Company can’t travel until a Referee is logged in: nothing of the journey would be kept."
+        "travelNeedsGM": "The Company can’t travel until a Referee is logged in: nothing of the journey would be kept.",
+        "expanding": "This Realm’s map is still being expanded. Nothing on it can move until the Referee finishes."
       },
       "ruler": {
         "trek": "Trek",
