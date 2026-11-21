@@ -6,10 +6,18 @@ vi.mock("../../module/actions/attack.js", () => ({
 	joinAttack: vi.fn(async () => null),
 	showRolls: vi.fn()
 }));
-vi.mock("../../module/actions/attack-holders.js", () => ({
-	poolRerollers: vi.fn(() => []),
-	sigilHolders: vi.fn(() => [])
-}));
+vi.mock("../../module/actions/attack-holders.js", () => {
+	const poolRerollers = vi.fn(() => []);
+	const sigilHolders = vi.fn(() => []);
+	// As the real ones find them: among those this user owns, where asked.
+	const found = (list, options) => list.some(({ actor }) => !options?.owned || actor.isOwner);
+	return {
+		poolRerollers,
+		sigilHolders,
+		hasPoolReroller: vi.fn((attack, options) => found(poolRerollers(attack, options), options)),
+		hasSigilHolder: vi.fn((attack, options) => found(sigilHolders(attack, options), options))
+	};
+});
 vi.mock("../../module/chat/attack-view.js", () => ({
 	renderAttackCard: vi.fn(async () => "<section></section>"),
 	dieLabel: (die) => die.label,
@@ -32,7 +40,7 @@ vi.mock("../../module/actions/feats.js", async (importOriginal) => ({
 const { confirmDialog, inputDialog } = await import("../../module/apps/ui.js");
 const { payFeat, postFeat, rollFeat } = await import("../../module/actions/feats.js");
 const { joinAttack, showRolls } = await import("../../module/actions/attack.js");
-const { poolRerollers, sigilHolders } = await import("../../module/actions/attack-holders.js");
+const { hasSigilHolder, poolRerollers, sigilHolders } = await import("../../module/actions/attack-holders.js");
 const { rollSave } = await import("../../module/actions/saves.js");
 const { takeAttack } = await import("../../module/actions/damage.js");
 const { registerAttackCards } = await import("../../module/chat/attack-card.js");
@@ -717,7 +725,7 @@ describe("turning a die with a rune (p100)", () => {
 		sigilHolders.mockReturnValue([{ actor: { uuid: "Actor.y", name: "Ysolde", isOwner: true }, item: abilityWithUses(3), number: 3 }]);
 		expect(renderCard(attackState()).sigil.hidden).toBe(false);
 		// Only this user's Knights are scanned for a rune.
-		expect(sigilHolders).toHaveBeenLastCalledWith(expect.anything(), { owned: true });
+		expect(hasSigilHolder).toHaveBeenLastCalledWith(expect.anything(), { owned: true });
 	});
 
 	it("turns the die picked to the face asked for, and spends one of the rune's turns", async () => {

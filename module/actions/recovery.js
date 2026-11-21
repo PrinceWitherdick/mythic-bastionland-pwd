@@ -85,6 +85,17 @@ const REST_OFFER_SELECTOR = "[data-rest-after-combat]";
 const REST_OFFER_FLAG = "restAfterCombat";
 
 /**
+ * Whether a Combat's end has this actor catch their breath. A ship or wall doesn't: its GD comes back
+ * by repair, and so does a creature that counts as a structure, once destroyed (p11). The Slain rest no
+ * more, but somebody Exhausted at VIG 0 still catches their breath. One sworn to a quest keeps their GD
+ * as it is (p94), so GD alone doesn't call for a rest.
+ * @param {Actor|null|undefined} actor
+ * @returns {boolean}
+ */
+const restsAfterCombat = (actor) => Boolean(actor?.system?.guard) && actor.type !== "structure" && !actor.system.slain && !actor.system.destroyed
+	&& needsRest(actor.system, { sworn: swornToQuest(actor) });
+
+/**
  * The danger has passed (Recovery, p9): once a Combat ends, the active GM's
  * client offers the Referee a card naming everybody in it still standing who
  * needs the rest, with a button that restores their Guard, removes Fatigue
@@ -99,12 +110,7 @@ export async function restAfterCombat(combat) {
 	const actors = [];
 	for (const combatant of combat.combatants) {
 		const { actor } = combatant;
-		// A ship or wall doesn't catch its breath: its GD comes back by repair, and so does a
-		// creature that counts as a structure, once destroyed (p11).
-		// The Slain rest no more, but somebody Exhausted at VIG 0 still catches their breath.
-		// One sworn to a quest keeps their GD as it is (p94), so GD alone doesn't call for a rest.
-		if (!actor?.system?.guard || actor.type === "structure" || actors.includes(actor) || actor.system.slain || actor.system.destroyed) continue;
-		if (needsRest(actor.system, { sworn: swornToQuest(actor) })) actors.push(actor);
+		if (!actors.includes(actor) && restsAfterCombat(actor)) actors.push(actor);
 	}
 	if (!actors.length) return null;
 	const names = actors.map((actor) => actor.name).join(", ");
@@ -125,7 +131,7 @@ export async function restAfterCombat(combat) {
 export async function acceptRestAfterCombat(uuids) {
 	if (!game.user.isGM) return null;
 	const actors = [...new Set((uuids ?? []).map((uuid) => fromUuidSync(uuid)).filter(Boolean))]
-		.filter((actor) => actor.system?.guard && !actor.system.slain && !actor.system.destroyed && needsRest(actor.system, { sworn: swornToQuest(actor) }));
+		.filter(restsAfterCombat);
 	if (!actors.length) {
 		warn("recovery.afterCombatNobody");
 		return null;

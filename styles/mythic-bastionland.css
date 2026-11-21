@@ -6263,7 +6263,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* A heading of its own needs air above it, but not where it opens a column. */
-.bastionland-realm-panel__group > .bastionland-realm-panel__heading:not(:first-child) {
+.bastionland-realm-panel__group > .bastionland-heading:not(:first-child) {
 	margin-top: 0.4rem;
 }
 

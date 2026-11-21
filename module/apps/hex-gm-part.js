@@ -573,13 +573,9 @@ export const HEX_GM_ACTIONS = Object.freeze({
 		const note = target.closest(".bastionland-travels-hex__gm")?.querySelector('[name="note"]')?.value;
 		return tellPlayersAboutHex({ scene, hex, note });
 	},
-	// Leave something open in this hex, or settle what was: either changes only the Toolkit, so the hex is drawn again here.
-	async leaveOpenHere({ scene, hex, redraw }) {
-		if (await leaveOpen({ scene, hex, tied: true })) return redraw();
-	},
-	async settleThreadHere({ redraw }, target) {
-		if (await settleThread(target.closest("[data-thread-id]")?.dataset.threadId)) return redraw();
-	},
+	// Leave something open in this hex, or settle what was: the Toolkit's change draws Places again (THREADS_CHANGED_HOOK).
+	leaveOpenHere: ({ scene, hex }) => leaveOpen({ scene, hex, tied: true }),
+	settleThreadHere: (at, target) => settleThread(target.closest("[data-thread-id]")?.dataset.threadId),
 	hexJournal: ({ scene, hex }) => openHexJournal(scene, hex),
 	markVisited: ({ scene, hex }) => markHexVisited(scene, hex),
 	// Name the Landmark here from the prompt a random page prints for its type (p14, p179).

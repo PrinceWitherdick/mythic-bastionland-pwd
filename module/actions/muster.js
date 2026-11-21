@@ -12,7 +12,7 @@ import { absentFrom, musterRow, notYetFighting } from "../rules/muster.js";
 import { inCompany } from "./knights.js";
 
 /** The button's action in the tracker. */
-export const MUSTER_ACTION = "bastionlandMuster";
+const MUSTER_ACTION = "bastionlandMuster";
 
 /**
  * @param {Scene} scene
@@ -46,8 +46,7 @@ async function tokenAt(actor, centre, grid) {
  */
 export async function bringCompany(scene = canvas?.scene) {
 	if (!game.user.isGM || !scene) return null;
-	const company = game.actors.filter(inCompany);
-	const standing = company.filter((actor) => !actor.system.slain);
+	const standing = game.actors.filter((actor) => inCompany(actor) && !actor.system.slain);
 	if (!standing.length) {
 		warn("muster.nobody");
 		return null;
@@ -81,7 +80,7 @@ export async function bringCompany(scene = canvas?.scene) {
  * Add the button to the Combat tracker's controls, in the tracker's own dress.
  * @param {HTMLElement|{0: HTMLElement}} html The tracker as drawn.
  */
-export function addMusterButton(html) {
+function addMusterButton(html) {
 	const root = html instanceof HTMLElement ? html : html?.[0];
 	if (!game.user.isGM || !root || root.querySelector(`[data-action="${MUSTER_ACTION}"]`)) return;
 	const controls = root.querySelector(".encounter-controls");

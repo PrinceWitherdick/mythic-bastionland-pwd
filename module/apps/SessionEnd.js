@@ -3,7 +3,7 @@ import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { endTheSession, getSessionEnd } from "../actions/session-end.js";
-import { leaveOpen, openThreads } from "../actions/threads.js";
+import { leaveOpen, openThreads, threadById } from "../actions/threads.js";
 import { t } from "../chat/cards.js";
 import { GLORY_BUTTONS } from "../rules/glory.js";
 import { crisisRollsDue } from "../rules/season-log.js";
@@ -209,7 +209,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	 */
 	static async #onAddSituation() {
 		const id = await leaveOpen({ kind: SITUATION_KIND, kinds: [SITUATION_KIND] });
-		const added = id ? openThreads().find((thread) => thread.id === id) : null;
+		const added = id ? threadById(id) : null;
 		if (!added) return;
 		this.#listed().push({ id, name: added.name, d6: null, result: null });
 		return this.render();

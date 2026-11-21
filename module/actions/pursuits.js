@@ -8,7 +8,7 @@ import { addCourtMember, sitsAtCourt } from "./court.js";
 import { worldDomains } from "./dominion.js";
 import { isRealmScene } from "./realm.js";
 import { THREAD_KINDS } from "../rules/threads.js";
-import { addThread } from "./threads.js";
+import { addThreads } from "./threads.js";
 
 /**
  * What a pursuit between Seasons made (p17): a Knight's Service may add a
@@ -92,6 +92,7 @@ async function markDwelling() {
  */
 export async function followPursuits(company, entries, season) {
 	let dwelling = false;
+	const threads = [];
 	for (const [index, { actor, pursuit, making: said = null }] of company.entries()) {
 		if (!pursuitMakings(pursuit).length) continue;
 		// Said beside the pursuit as the Season turned, or else asked now. A Squire can't take a place at Court.
@@ -105,10 +106,11 @@ export async function followPursuits(company, entries, season) {
 		} else {
 			if (making === "dwelling") dwelling = true;
 			// A favour or a contact is kept with what's left open, till it's called on: the Referee says whose once it's known.
-			if (THREAD_KINDS.includes(making)) await addThread({ kind: making, name: t(`threads.courtesy.${making}`, { name: actor.name }), knight: actor.id });
+			if (THREAD_KINDS.includes(making)) threads.push({ kind: making, name: t(`threads.courtesy.${making}`, { name: actor.name }), knight: actor.id });
 			lines.push(t(`time.pursuitMakes.${pursuit}.made.${making}`));
 		}
 	}
-	// Once all are asked, so the palette isn't opened under the next question.
+	// Once all are asked, in one write to the Toolkit, and so the palette isn't opened under the next question.
+	if (threads.length) await addThreads(threads);
 	if (dwelling) await markDwelling();
 }

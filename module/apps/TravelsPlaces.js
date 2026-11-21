@@ -498,14 +498,14 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.#hooks = [
 			["userConnected", Hooks.on("userConnected", () => redraw(null))],
 			[TRAVELS_CHANGED_HOOK, Hooks.on(TRAVELS_CHANGED_HOOK, redraw)],
-			// What's left open in the hex shown, changed here, in the Toolkit or by another Referee.
-			[THREADS_CHANGED_HOOK, Hooks.on(THREADS_CHANGED_HOOK, () => redraw(null))],
 			// An Import PDF run while it's open names the hex's Myths and Seers from the new index.
 			[ART_INDEX_HOOK, Hooks.on(ART_INDEX_HOOK, () => {
 				this.#index = undefined;
 				renderWhenIdle(this);
 			})]
 		];
+		// What's left open in the hex shown, changed here, in the Toolkit or by another Referee: the GM's alone to see.
+		if (game.user?.isGM) this.#hooks.push([THREADS_CHANGED_HOOK, Hooks.on(THREADS_CHANGED_HOOK, () => redraw(null))]);
 	}
 
 	/** @override */

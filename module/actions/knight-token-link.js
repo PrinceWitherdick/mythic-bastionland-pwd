@@ -55,10 +55,8 @@ export async function linkExistingKnightTokens() {
 	const sceneUpdates = game.scenes
 		.map((scene) => [scene, scene.tokens.filter((token) => !token.actorLink && isKnight(game.actors.get(token.actorId)))])
 		.filter(([, tokens]) => tokens.length);
-	for (const [scene, tokens] of sceneUpdates) {
-		for (const token of tokens.filter(wentItsOwnWay)) differed.add(token.name);
-		await scene.updateEmbeddedDocuments("Token", tokens.map((token) => ({ _id: token.id, actorLink: true })));
-	}
+	for (const [, tokens] of sceneUpdates) for (const token of tokens.filter(wentItsOwnWay)) differed.add(token.name);
+	await Promise.all(sceneUpdates.map(([scene, tokens]) => scene.updateEmbeddedDocuments("Token", tokens.map((token) => ({ _id: token.id, actorLink: true })))));
 	const names = [...differed];
 	if (names.length) ui.notifications.warn(t("knightTokenLink.differed", { names: names.join(", ") }), { permanent: true });
 	return names;

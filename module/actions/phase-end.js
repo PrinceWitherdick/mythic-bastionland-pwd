@@ -2,7 +2,7 @@ import { hexLabel } from "./hex-names.js";
 import { inputDialog } from "../apps/ui.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
 import { likelyPhaseMode, morningHardships, PHASE_END_MODES, wildernessDue, wildernessTicked } from "../rules/phase-end.js";
-import { HARDSHIPS, nextPhase } from "../rules/time.js";
+import { HARDSHIPS, nextPhase, sameDay } from "../rules/time.js";
 import { isDying, slainUpdate } from "../rules/virtues.js";
 import { phaseEndCalls } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -39,9 +39,6 @@ export async function forgetDeprived() {
 /** The Morning whose losses the Night's window already asked after and took, as its day on the calendar. */
 const MORNING_SETTLED_SETTING = "morningSettled";
 
-/** The parts of a calendar that name a day. */
-const DAY_PARTS = Object.freeze(["age", "year", "season", "day"]);
-
 /**
  * Note that this Morning's sleep and supplies were asked after as the Night
  * ended, so the rules beside the map don't call for them again. GMs only.
@@ -50,7 +47,7 @@ const DAY_PARTS = Object.freeze(["age", "year", "season", "day"]);
  */
 export async function markMorningSettled(morning) {
 	if (!game.user.isGM) return null;
-	return game.settings.set(SYSTEM_ID, MORNING_SETTLED_SETTING, Object.fromEntries(DAY_PARTS.map((part) => [part, morning[part] ?? null])));
+	return game.settings.set(SYSTEM_ID, MORNING_SETTLED_SETTING, { ...morning });
 }
 
 /**
@@ -58,8 +55,7 @@ export async function markMorningSettled(morning) {
  * @returns {boolean} Whether the end of the Night before this day already took what its Morning costs.
  */
 export function morningSettled(calendar) {
-	const settled = game.settings.get(SYSTEM_ID, MORNING_SETTLED_SETTING);
-	return Boolean(settled && calendar) && DAY_PARTS.every((part) => (settled[part] ?? null) === (calendar[part] ?? null));
+	return sameDay(game.settings.get(SYSTEM_ID, MORNING_SETTLED_SETTING), calendar);
 }
 
 /** Register who went without last Morning, and the Morning last settled. Called during init. */

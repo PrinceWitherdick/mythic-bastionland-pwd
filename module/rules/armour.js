@@ -256,7 +256,7 @@ export function npcArmourUnshielded(armour, note) {
  * @param {"helm"|"shield"} word
  * @returns {{armour: number, armourNote: string}} Unchanged when the note doesn't name it.
  */
-export function npcArmourWithout(armour, note, word) {
+function npcArmourWithout(armour, note, word) {
 	const value = Math.max(0, Math.trunc(Number(armour)) || 0);
 	const armourNote = noteWithout(note, word);
 	return { armour: armourNote === String(note ?? "") ? value : Math.max(0, value - 1), armourNote };
