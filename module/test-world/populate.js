@@ -2105,7 +2105,7 @@ class TestGame {
 	/** The Knights' Chronicles, what they know of their Seers, and the GM's own notes. */
 	async writeUp() {
 		const { isolde, corvin, oswin } = this.knights;
-		const chronicle = (deeds) => `<h2>Chronicle</h2>${list(...deeds.map((deed) => foundry.utils.escapeHTML(deed)))}`;
+		const chronicle = (deeds) => list(...deeds.map((deed) => foundry.utils.escapeHTML(deed)));
 		await isolde.update({
 			"system.notes": chronicle(this.deeds.isolde),
 			"system.seerNotes": html("Hasn't been seen since the Knighting. Isolde means to ask them what her Oath was really for.")
