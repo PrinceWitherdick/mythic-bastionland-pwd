@@ -5902,25 +5902,101 @@ button.bastionland-dice:focus-visible {
 	stroke-linejoin: round;
 }
 
-/* Expand the map: the sides in two pairs, and the map drawn small with its new hexes round it. */
-.bastionland-expand__sides {
+/* Expand the map: the sides and the map, the numbers and the backup in the first column, the new land in
+   the second, one after the other in a narrow window. */
+.bastionland-expand {
+	container-type: inline-size;
+}
+
+.bastionland-expand__columns {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.4rem 1rem;
+	align-items: start;
+	gap: 0.5rem 1.6rem;
+}
+
+.bastionland-expand__column {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+@container (width < 40rem) {
+	.bastionland-expand__columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* Each side's box on its own side of the map drawn small, its new hexes round it. */
+.bastionland-expand__compass {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	grid-template-areas:
+		". north ."
+		"west map east"
+		". south .";
+	align-items: center;
+	justify-items: center;
+	gap: 0.4rem 0.6rem;
+}
+
+.bastionland-expand__side--north {
+	grid-area: north;
+}
+
+.bastionland-expand__side--south {
+	grid-area: south;
+}
+
+.bastionland-expand__side--west {
+	grid-area: west;
+}
+
+.bastionland-expand__side--east {
+	grid-area: east;
+}
+
+.bastionland-expand .bastionland-expand__side {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0;
+}
+
+/* West and East stand beside the map, so their names go under their boxes. */
+.bastionland-expand .bastionland-expand__side--west,
+.bastionland-expand .bastionland-expand__side--east {
+	flex-direction: column-reverse;
+	gap: 0.2rem;
+}
+
+.bastionland-expand .bastionland-expand__side > label,
+.bastionland-expand .bastionland-expand__side > .form-fields {
+	flex: none;
+}
+
+.bastionland-expand .bastionland-expand__side input {
+	width: 4.5rem;
 }
 
 .bastionland-expand__preview {
+	grid-area: map;
 	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.3rem;
-	margin: 0.5rem 0 0;
+	justify-content: center;
+	width: 100%;
+	margin: 0;
 }
 
 .bastionland-expand__map {
 	width: 100%;
 	max-width: 18rem;
 	max-height: 14rem;
+}
+
+.bastionland-expand__size {
+	text-align: center;
+	color: var(--bastionland-ink-soft);
 }
 
 .bastionland-expand__old,
@@ -5938,10 +6014,6 @@ button.bastionland-dice:focus-visible {
 	fill: color-mix(in srgb, var(--bastionland-rubric) 16%, transparent);
 	stroke: var(--bastionland-rubric);
 	stroke-dasharray: 2 1.5;
-}
-
-.bastionland-expand__preview figcaption {
-	color: var(--bastionland-ink-soft);
 }
 
 .bastionland-expand__problem {

@@ -139,7 +139,7 @@ export async function askToExpandRealm(scene, realm, g) {
 		ok: { label: t("realm.expand.ok"), icon: "fa-solid fa-expand" },
 		// The map is drawn as SVG.
 		drawings: true,
-		position: { width: 500 },
+		position: { width: 820 },
 		render: (_event, dialog) => {
 			wireExpandFields(dialog.element, scene, g);
 			dialog.element.querySelector("[data-expand-restore]")?.addEventListener("click", () => {
