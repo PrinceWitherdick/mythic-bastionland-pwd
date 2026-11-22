@@ -7,7 +7,7 @@ let answer;
 
 vi.mock("../../module/apps/ui.js", () => ({ inputDialog: vi.fn(async () => answer) }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key}:${Object.values(data).join("|")}` : key) }));
-vi.mock("../../module/compat.js", () => ({ deletionEntry: (path) => [path, "<gone>"] }));
+vi.mock("../../module/compat.js", () => ({ deletionUpdate: (path) => ({ [path]: "<gone>" }) }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => calendar, seasonLabel: ({ season, age }) => `${season} of age ${age}` }));
 vi.mock("../../module/actions/gm-toolkit.js", () => ({ GM_TOOLKIT_TYPE: "gmToolkit", theGmToolkit: () => toolkit }));
 vi.mock("../../module/actions/hex-names.js", () => ({ hexLabel: (hex) => `Column ${hex.col}, Row ${hex.row}` }));

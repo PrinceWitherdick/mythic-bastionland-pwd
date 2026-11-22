@@ -35,7 +35,7 @@ import { hasPoolReroller, hasSigilHolder } from "../actions/attack-holders.js";
  * @param {{name: string}[]} targets
  * @returns {string|null} Null where it's aimed at nobody in particular.
  */
-const againstLine = (targets) => (targets.length ? t("attack.against", { names: targets.map((target) => target.name).join(", ") }) : null);
+export const againstLine = (targets) => (targets.length ? t("attack.against", { names: targets.map((target) => target.name).join(", ") }) : null);
 
 /**
  * What a Pack card shows: who has brought which dice, and whether it still

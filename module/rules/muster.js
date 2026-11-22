@@ -15,17 +15,22 @@ export function absentFrom(company, onScene) {
 }
 
 /**
- * Where a row of Tokens stands: side by side, a step apart, centred on a point.
+ * Where a row of Tokens stands: side by side, edge to edge, centred on a point.
+ * A Token two grid spaces wide takes two spaces of the row, so a large Myth
+ * creature doesn't stand on its neighbours.
  * @param {{x: number, y: number}} centre
- * @param {number} count
- * @param {number} step The distance between neighbours, a grid space.
+ * @param {number[]} widths Each Token's width, in grid spaces, left to right.
+ * @param {number} step A grid space.
  * @returns {{x: number, y: number}[]} Each Token's centre, left to right.
  */
-export function musterRow(centre, count, step) {
-	return Array.from({ length: Math.max(0, count) }, (_unused, index) => ({
-		x: Math.round(centre.x + (index - (count - 1) / 2) * step),
-		y: Math.round(centre.y)
-	}));
+export function musterRow(centre, widths, step) {
+	const spans = widths.map((width) => (width > 0 ? width : 1) * step);
+	let edge = centre.x - spans.reduce((sum, span) => sum + span, 0) / 2;
+	return spans.map((span) => {
+		const x = edge + span / 2;
+		edge += span;
+		return { x: Math.round(x), y: Math.round(centre.y) };
+	});
 }
 
 /**

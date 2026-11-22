@@ -5,10 +5,14 @@
  * or clicks sees any of it.
  */
 import { hexLabel } from "../actions/hex-names.js";
+import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { registerCardButtons, warn } from "./cards.js";
+import { postedAt } from "./posted-at.js";
+import { cardHexKey } from "../rules/realm-growth.js";
+import { hexNumbering } from "../rules/hex-numbers.js";
 
 const SELECTOR = "[data-hex-target]";
 
@@ -37,7 +41,10 @@ export const smallCapsLabel = (label) => /\p{Ll}/u.test(String(label ?? "")) && 
  */
 function chipTarget(chip) {
 	const scene = game.scenes.get(chip.dataset.hexScene) ?? null;
-	return { scene, hex: parseHexKey(chip.dataset.hexTarget) };
+	// A card posted before the map grew names the hex as it was numbered then.
+	const posted = postedAt(game.messages?.get(chip.closest("[data-message-id]")?.dataset.messageId));
+	const g = isRealmScene(scene) ? sceneGeometry(scene) : null;
+	return { scene, hex: parseHexKey(cardHexKey(chip.dataset.hexTarget, posted, hexNumbering(scene), g)) };
 }
 
 /**
@@ -73,6 +80,11 @@ export function registerHexTargets() {
 			const { scene, hex } = chipTarget(chip);
 			if (scene && !mayView(scene)) {
 				warn("hexTarget.notShown");
+				return;
+			}
+			// The hex it names is gone, as land a Realm put back from its backup takes away.
+			if (scene && !hex) {
+				warn("hexTarget.gone");
 				return;
 			}
 			// A card about another Realm brings that Realm up first.

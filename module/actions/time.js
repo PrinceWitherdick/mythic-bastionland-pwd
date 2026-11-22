@@ -627,7 +627,7 @@ async function timeTurns({ newAge, before, after, company, kind, turned, note, w
 	const ticked = new Set(company.map(({ actor }) => actor));
 	const ended = seasonKey(before);
 	const others = await restoreOthers(ticked, newAge, ended);
-	// What a Service or Courtesy made goes on the report with the rest (p17, p192).
+	// What a Pilgrimage, Service, Courtesy or Duty made goes on the report with the rest (p17, p192).
 	await followPursuits(company, entries, seasonName(after));
 	// Every Season ends with the Realm's collection (p17), whether the Age turns with it or not.
 	const collection = await markCollection(ended, before.season);
@@ -984,11 +984,13 @@ export async function sufferHardship(key) {
 	if (!hardship) return null;
 
 	const name = t(`time.hardship.kinds.${key}.label`);
+	// Winter's cold and lost sleep reach a Knight's steed and followers too (p18), listed under the Knight.
 	const company = await chooseCompany({
 		title: name,
 		icon: "fa-solid fa-person-hiking",
 		intro: `${t(`time.hardship.kinds.${key}.hint`)} ${t("time.hardship.intro")}`,
-		ok: t("time.hardship.roll")
+		ok: t("time.hardship.roll"),
+		companions: hardship.anybody
 	});
 	if (!company) return null;
 	if (!company.length) {

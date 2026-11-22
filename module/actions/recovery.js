@@ -14,6 +14,7 @@ import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
 import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
 import { lapseStances } from "./stance-lapse.js";
 import { registerQuery } from "../queries.js";
+import { chooseOne } from "../apps/actor-pick.js";
 
 /**
  * Restore one Virtue of each of them to its most, all in one write.
@@ -85,6 +86,17 @@ const REST_OFFER_SELECTOR = "[data-rest-after-combat]";
 const REST_OFFER_FLAG = "restAfterCombat";
 
 /**
+ * Whether a Combat's end has this actor catch their breath. A ship or wall doesn't: its GD comes back
+ * by repair, and so does a creature that counts as a structure, once destroyed (p11). The Slain rest no
+ * more, but somebody Exhausted at VIG 0 still catches their breath. One sworn to a quest keeps their GD
+ * as it is (p94), so GD alone doesn't call for a rest.
+ * @param {Actor|null|undefined} actor
+ * @returns {boolean}
+ */
+const restsAfterCombat = (actor) => Boolean(actor?.system?.guard) && actor.type !== "structure" && !actor.system.slain && !actor.system.destroyed
+	&& needsRest(actor.system, { sworn: swornToQuest(actor) });
+
+/**
  * The danger has passed (Recovery, p9): once a Combat ends, the active GM's
  * client offers the Referee a card naming everybody in it still standing who
  * needs the rest, with a button that restores their Guard, removes Fatigue
@@ -99,12 +111,7 @@ export async function restAfterCombat(combat) {
 	const actors = [];
 	for (const combatant of combat.combatants) {
 		const { actor } = combatant;
-		// A ship or wall doesn't catch its breath: its GD comes back by repair, and so does a
-		// creature that counts as a structure, once destroyed (p11).
-		// The Slain rest no more, but somebody Exhausted at VIG 0 still catches their breath.
-		// One sworn to a quest keeps their GD as it is (p94), so GD alone doesn't call for a rest.
-		if (!actor?.system?.guard || actor.type === "structure" || actors.includes(actor) || actor.system.slain || actor.system.destroyed) continue;
-		if (needsRest(actor.system, { sworn: swornToQuest(actor) })) actors.push(actor);
+		if (!actors.includes(actor) && restsAfterCombat(actor)) actors.push(actor);
 	}
 	if (!actors.length) return null;
 	const names = actors.map((actor) => actor.name).join(", ");
@@ -125,7 +132,7 @@ export async function restAfterCombat(combat) {
 export async function acceptRestAfterCombat(uuids) {
 	if (!game.user.isGM) return null;
 	const actors = [...new Set((uuids ?? []).map((uuid) => fromUuidSync(uuid)).filter(Boolean))]
-		.filter((actor) => actor.system?.guard && !actor.system.slain && !actor.system.destroyed && needsRest(actor.system, { sworn: swornToQuest(actor) }));
+		.filter(restsAfterCombat);
 	if (!actors.length) {
 		warn("recovery.afterCombatNobody");
 		return null;
@@ -181,6 +188,33 @@ export async function restoreVirtue(actor, virtue, card = {
 	const value = actor.system.virtues[virtue].max;
 	await actor.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("recovery"));
 	await postCard(actor, "note", { icon: card.icon, text: card.text(value) });
+}
+
+/**
+ * The sheet's restore heart beside a Virtue. Restored outright, as by an
+ * Action or a new Season, unless they carry a Remedy for it: then they're asked
+ * whether it's the Remedy, which is used up and reaches everybody present (p9),
+ * or something else that restores it.
+ * @param {Actor} actor
+ * @param {string} virtue "vig", "cla" or "spi".
+ * @returns {Promise<unknown>}
+ */
+export async function restoreFromSheet(actor, virtue) {
+	const remedy = actor.items?.contents?.find((item) => item.system?.remedy === virtue && isAtHand(item.system));
+	if (!remedy) return restoreVirtue(actor, virtue);
+	const abbr = t(`virtues.${virtue}.abbr`);
+	const picked = await chooseOne([
+		{ name: t("recovery.heart.remedy", { item: remedy.name }), detail: t("recovery.heart.remedyDetail", { virtue: abbr }), remedy },
+		{ name: t("recovery.heart.without"), detail: t("recovery.heart.withoutDetail") }
+	], {
+		title: t("recovery.restore", { virtue: t(`virtues.${virtue}.label`) }),
+		message: t("recovery.heart.question", { name: actor.name, virtue: abbr }),
+		icon: "fa-solid fa-heart-pulse",
+		ok: t("recovery.restore", { virtue: abbr }),
+		full: true
+	});
+	if (!picked) return null;
+	return picked.remedy ? useRemedy(actor, picked.remedy) : restoreVirtue(actor, virtue);
 }
 
 /**

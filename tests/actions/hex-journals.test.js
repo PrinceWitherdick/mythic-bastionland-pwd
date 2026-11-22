@@ -62,6 +62,7 @@ vi.mock("../../module/actions/journey.js", () => ({
 	getHexVisits: () => journey.hexes["3,3"] ?? null
 }));
 vi.mock("../../module/actions/realm.js", () => ({
+	expansionUnderWay: () => null,
 	getRealm: (scene) => (scene?.isRealm ? { realm: realmWith() } : null),
 	hexHiddenByHand: () => ({}),
 	isDrawingRealm: () => drawing,

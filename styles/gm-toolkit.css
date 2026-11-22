@@ -979,7 +979,7 @@
 }
 
 /* Whoever has been made of a Cast entry: their name opens their sheet, the
-   cross beside it takes them out of the Cast. */
+   pawn brings them into the fight, the cross takes them out of the Cast. */
 .bastionland-gm-toolkit__cast-actor {
 	display: inline-flex;
 	align-items: center;
@@ -990,7 +990,7 @@
 	background: var(--bastionland-paper);
 }
 
-.bastionland-page :is(.bastionland-gm-toolkit__cast-open, .bastionland-gm-toolkit__cast-drop, .bastionland-gm-toolkit__cast-make) {
+.bastionland-page :is(.bastionland-gm-toolkit__cast-open, .bastionland-gm-toolkit__cast-bring, .bastionland-gm-toolkit__cast-drop, .bastionland-gm-toolkit__cast-make) {
 	width: auto;
 	height: auto;
 	min-height: 0;
@@ -1020,12 +1020,12 @@
 	object-fit: cover;
 }
 
-.bastionland-page .bastionland-gm-toolkit__cast-drop {
+.bastionland-page :is(.bastionland-gm-toolkit__cast-bring, .bastionland-gm-toolkit__cast-drop) {
 	padding: 0 0.25rem;
 	color: var(--bastionland-ink-soft);
 }
 
-.bastionland-page :is(.bastionland-gm-toolkit__cast-open, .bastionland-gm-toolkit__cast-drop):hover {
+.bastionland-page :is(.bastionland-gm-toolkit__cast-open, .bastionland-gm-toolkit__cast-bring, .bastionland-gm-toolkit__cast-drop):hover {
 	color: var(--bastionland-blood);
 }
 
@@ -1311,16 +1311,9 @@
 	font-size: 1.15rem;
 }
 
-.bastionland-page button.bastionland-gm-toolkit__site-open {
-	display: inline-flex;
+/* The sheet's own button, which centres its words; held at its label's width beside the Site's line. */
+.bastionland-page .bastionland-gm-toolkit__site-open {
 	flex: none;
-	align-items: center;
-	gap: 0.3rem;
-	width: auto;
-	height: auto;
-	min-height: var(--button-size, 2rem);
-	padding: 0.25rem 0.6rem;
-	line-height: 1.15;
 }
 
 /* ---------------------------------------------------------------- */

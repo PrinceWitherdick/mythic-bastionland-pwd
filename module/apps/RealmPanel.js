@@ -22,6 +22,7 @@ import { TERRAIN_MARKS, hidesTerrain } from "../rules/realm-map.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openRealmAppearance } from "./RealmAppearance.js";
 import { hangHeaderButtons, renderWhenIdle } from "./ui.js";
+import { hexNumberWords, hexNumbering } from "../rules/hex-numbers.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -61,9 +62,9 @@ const tallyLine = (text, count, asked) => {
  * none yet.
  * @returns {{text: string, met: boolean}}
  */
-function seatLine(realm) {
+function seatLine(realm, numbering = null) {
 	const seats = realmSeats(realm);
-	const where = seats.map((seat) => t("realm.hex", seat.hex)).join(", ");
+	const where = seats.map((seat) => hexNumberWords(seat.hex, numbering, t)).join(", ");
 	if (seats.length > 1) {
 		// Two Holdings claiming the Seat (p202), or more than the rules allow.
 		const met = seatsInOrder(realm);
@@ -269,7 +270,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 				realm.holdings.length,
 				{ min: HOLDING_COUNT, max: HOLDING_COUNT }
 			),
-			seatTally: seatLine(realm),
+			seatTally: seatLine(realm, hexNumbering(scene)),
 			// The line over the Landmarks is green once every kind is right, as the Holdings' line is.
 			landmarkTally: {
 				text: t("realm.panel.landmarkTally", LANDMARKS_PER_TYPE),

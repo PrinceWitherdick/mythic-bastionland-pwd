@@ -46,6 +46,8 @@ Click the shield to paint it with heraldry's tinctures and divisions. **Add a ch
 
 **Duel** runs a duel or a joust, with Glory staked if the fighters choose. Both Attacks resolve at the same time.
 
+**Combat buttons:** click a Token that's in a Combat and Attack, Take Damage and its three Saves come up beside it, with Morale for an NPC, so nobody has to open a sheet in the middle of a fight.
+
 #### Property
 
 Weapons, armour and gear sort themselves by die and by armour piece. Worn armour adds up to the Armour score, one piece of each type. Items can have a rarity, a count, a restock, a **Broken** mark, armour that only counts in some situations, bucklers, wooden weapons, a second way to fight, poisons, and Remedies that restore a Virtue.

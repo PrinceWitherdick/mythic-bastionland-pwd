@@ -1,0 +1,98 @@
+<div class="bastionland-dialog__body bastionland-expand">
+	{{!-- Expand the map (module/apps/realm-expand.js), in two columns. The first: how many hexes to add on each side,
+	      round the map drawn small with its new hexes, how the hexes are numbered, and the backup kept first. The
+	      second: what the new land is. --}}
+	<p>{{localize "bastionland.realm.expand.intro"}}</p>
+
+	<div class="bastionland-expand__columns">
+		<div class="bastionland-expand__column">
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.expand.sides.heading"}}</h3>
+			{{!-- Each side's box stands on its own side of the map: North above, West to the left, and so on. --}}
+			<div class="bastionland-expand__compass">
+				{{#each sides}}
+				<div class="form-group bastionland-expand__side bastionland-expand__side--{{key}}">
+					<label for="bastionland-expand-{{key}}">{{label}}</label>
+					<div class="form-fields">
+						<input id="bastionland-expand-{{key}}" type="number" name="{{key}}" value="0" min="0" max="{{max}}" step="1" data-expand-side{{#if @first}} autofocus{{/if}}>
+					</div>
+				</div>
+				{{/each}}
+				<figure class="bastionland-expand__preview">
+					<svg class="bastionland-expand__map" viewBox="{{preview.viewBox}}" aria-hidden="true" focusable="false" data-expand-map>
+						<path class="bastionland-expand__old" d="{{preview.old}}" data-expand-old></path>
+						<path class="bastionland-expand__added" d="{{preview.added}}" data-expand-added></path>
+					</svg>
+				</figure>
+			</div>
+			<p class="bastionland-expand__size" data-expand-size>{{size}}</p>
+			<p class="hint bastionland-expand__problem" data-expand-problem hidden></p>
+
+			<div class="bastionland-expand__numbering" data-expand-numbering{{#unless numberingShown}} hidden{{/unless}}>
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.expand.numbers.heading"}}</h3>
+				<fieldset class="bastionland-choice-list bastionland-choice-list--full">
+					<legend>{{localize "bastionland.realm.expand.numbers.legend"}}</legend>
+					{{#each numberings}}
+					<label class="bastionland-check">
+						<input type="radio" name="numbering" value="{{key}}" {{checked checked}}>
+						<span class="bastionland-check__label">
+							<strong>{{label}}</strong>
+							<span class="bastionland-check__detail">{{detail}}</span>
+						</span>
+					</label>
+					{{/each}}
+				</fieldset>
+			</div>
+
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.expand.backup.heading"}}</h3>
+			<label class="bastionland-check">
+				<input type="checkbox" name="backup" checked>
+				<span class="bastionland-check__label">
+					<strong>{{localize "bastionland.realm.expand.backup.keep"}}</strong>
+					<span class="bastionland-check__detail">{{localize "bastionland.realm.expand.backup.keepDetail"}}</span>
+				</span>
+			</label>
+			{{#if backup}}
+			<p class="hint">{{backup.said}}</p>
+			<button type="button" class="bastionland-button bastionland-expand__restore" data-expand-restore>
+				<i class="fa-solid fa-clock-rotate-left" inert></i>
+				<span>{{backup.label}}</span>
+			</button>
+			{{/if}}
+		</div>
+
+		<div class="bastionland-expand__column">
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.expand.land.heading"}}</h3>
+			<fieldset class="bastionland-choice-list bastionland-choice-list--full">
+				<legend>{{localize "bastionland.realm.expand.land.legend"}}</legend>
+				{{#each lands}}
+				<label class="bastionland-check">
+					<input type="radio" name="land" value="{{key}}" {{checked checked}} data-expand-land>
+					<span class="bastionland-check__label">
+						<strong>{{label}}</strong>
+						<span class="bastionland-check__detail">{{detail}}</span>
+					</span>
+				</label>
+				{{/each}}
+			</fieldset>
+			<label class="bastionland-check bastionland-expand__features" data-expand-features>
+				<input type="checkbox" name="features">
+				<span class="bastionland-check__label">
+					<strong>{{localize "bastionland.realm.expand.land.features"}}</strong>
+					<span class="bastionland-check__detail">{{localize "bastionland.realm.expand.land.featuresDetail"}}</span>
+				</span>
+			</label>
+			{{#if picture}}
+			<p class="hint">{{localize "bastionland.realm.expand.picture.intro"}}</p>
+			<label class="bastionland-check">
+				<input type="checkbox" name="inkOutside"{{#if inkOutside}} checked{{/if}}>
+				<span class="bastionland-check__label">
+					<strong>{{localize "bastionland.realm.expand.picture.ink"}}</strong>
+					<span class="bastionland-check__detail">{{localize "bastionland.realm.expand.picture.inkDetail"}}</span>
+				</span>
+			</label>
+			{{/if}}
+		</div>
+	</div>
+
+	<p class="hint">{{localize "bastionland.realm.expand.forgets"}}</p>
+</div>

@@ -4,14 +4,14 @@
 	<div class="form-group">
 		<label for="bastionland-track-col">{{localize "bastionland.gmToolkit.places.track.column"}}</label>
 		<div class="form-fields">
-			<input id="bastionland-track-col" type="number" name="col" min="1" max="{{cols}}" step="1" required autofocus>
+			<input id="bastionland-track-col" type="number" name="col" min="{{col.min}}" max="{{col.max}}" step="1" required autofocus>
 		</div>
 	</div>
 
 	<div class="form-group">
 		<label for="bastionland-track-row">{{localize "bastionland.gmToolkit.places.track.row"}}</label>
 		<div class="form-fields">
-			<input id="bastionland-track-row" type="number" name="row" min="1" max="{{rows}}" step="1" required>
+			<input id="bastionland-track-row" type="number" name="row" min="{{row.min}}" max="{{row.max}}" step="1" required>
 		</div>
 	</div>
 </div>

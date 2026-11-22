@@ -4,7 +4,7 @@ import { keepsSeat } from "../rules/property.js";
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { isBladedName } from "../rules/attack-fx.js";
 import { joinAttack, showRolls } from "../actions/attack.js";
-import { poolRerollers, sigilHolders } from "../actions/attack-holders.js";
+import { hasPoolReroller, hasSigilHolder, poolRerollers, sigilHolders } from "../actions/attack-holders.js";
 import { playDismountFx } from "../actions/attack-fx.js";
 import { duelOf } from "../actions/duel.js";
 import { mountedNow } from "../rules/duel.js";
@@ -994,7 +994,7 @@ async function spendAttackUse(item) {
 async function onReroll(message) {
 	const attack = attackOf(message);
 	if (!canReroll(attack)) return warn("attack.reroll.closed");
-	const able = poolRerollers(attack).filter(({ actor }) => actor.isOwner);
+	const able = poolRerollers(attack, { owned: true });
 	if (!able.length) return warn("attack.reroll.none");
 	const actor = await chooseActor(able.map((entry) => entry.actor), { title: t("attack.reroll.button"), message: t("attack.reroll.who"), icon: "fa-solid fa-rotate" });
 	const { item } = able.find((entry) => entry.actor === actor) ?? {};
@@ -1068,8 +1068,8 @@ function activateAttackCard(message, html) {
 			button.hidden = attack.targets.length > 0 && !theirs;
 		}
 		// Shown to whoever owns the Knight whose Ability or rune it is.
-		if (attackAction === "reroll") button.hidden = !poolRerollers(attack).some(({ actor }) => actor.isOwner);
-		if (attackAction === "sigil") button.hidden = !sigilHolders(attack, { owned: true }).length;
+		if (attackAction === "reroll") button.hidden = !hasPoolReroller(attack, { owned: true });
+		if (attackAction === "sigil") button.hidden = !hasSigilHolder(attack, { owned: true });
 	}
 	if (denyButton || joinButton) {
 		const refresh = () => {

@@ -506,7 +506,8 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 			expect(corvin.system.fatigued).toBe(true);
 			for (const knight of [isolde, corvin, oswin]) {
 				expect(knight.system.steed).toMatch(/^Actor\./);
-				expect(knight.system.notes).toContain("<h2>Chronicle</h2>");
+				expect(knight.system.notes).toMatch(/^<ul>/);
+				expect(knight.system.notes).not.toContain("<h2>Chronicle</h2>");
 				expect(knight.items.some((item) => item.type === "weapon")).toBe(true);
 				expect(knight.items.some((item) => item.type === "armour")).toBe(true);
 			}

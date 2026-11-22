@@ -115,18 +115,21 @@ export function pressingSections({ season, phase } = {}, { morningSettled = fals
 
 /**
  * Where one side's rules sit on screen: against that edge of the Realm's map,
- * level with its top and as tall as it, as the Blank Realm sheet prints them
- * beside its map, so they follow the map as it's panned and zoomed, even off
- * the screen. Only their width stays put as it's zoomed, and they're never
- * shorter than `minHeight`. Without a map they stand against that edge of the
- * screen's room instead, from under the scene navigation down to the hotbar.
- * @param {{left: number, top: number, right: number, bottom: number}} screen The room the interface leaves, in CSS pixels.
+ * level with its top and its foot, as the Blank Realm sheet prints them beside
+ * its map, so they follow the map as it's panned, zoomed and grown. They keep
+ * to the map's top and foot even where those run past the screen, as on a map
+ * made taller than the screen has room for. Only their width stays put as it's
+ * zoomed. Without a map they stand against that edge of the screen's room
+ * instead, from under the scene navigation down to the hotbar, never shorter
+ * than `minHeight`.
+ * @param {{left: number, top: number, right: number, bottom: number}|null} screen The room the interface leaves, in CSS pixels;
+ *   null holds them to the map alone.
  * @param {object} [options]
  * @param {"left"|"right"} [options.side]
  * @param {{left: number, top: number, right: number, bottom: number}|null} [options.map] The map on screen, in CSS pixels.
  * @param {number} [options.width] The rules' own width, before the interface scale.
  * @param {number} [options.gap] Between the map's edge, or the screen room's, and the rules.
- * @param {number} [options.minHeight]
+ * @param {number} [options.minHeight] The least height without a map.
  * @param {number} [options.scale] The interface scale, which each of these grows with.
  * @returns {{left: number, top: number, maxHeight: number}}
  */
@@ -135,9 +138,9 @@ export function travelRulesPlacement(screen, { side = "right", map = null, width
 	const left = Math.round(map
 		? side === "left" ? map.left - space - wide : map.right + space
 		: side === "left" ? screen.left + space : screen.right - space - wide);
-	const top = Math.round(map ? map.top : screen.top + space);
-	const bottom = map ? map.bottom : screen.bottom - space;
-	return { left, top, maxHeight: Math.round(Math.max(least, bottom - top)) };
+	if (map) return { left, top: Math.round(map.top), maxHeight: Math.round(map.bottom) - Math.round(map.top) };
+	const top = Math.round(screen.top + space);
+	return { left, top, maxHeight: Math.round(Math.max(least, screen.bottom - space - top)) };
 }
 
 /**

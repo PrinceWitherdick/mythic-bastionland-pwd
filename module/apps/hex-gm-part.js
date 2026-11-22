@@ -62,15 +62,17 @@ import { inputDialog } from "./ui.js";
 /**
  * What the window showing the part keeps between draws: the tab of rolls last
  * shown, the page the Landmark's name was last flipped to, and whether a roll
- * is under way.
+ * is under way, and the hex last drawn.
  * @typedef {object} HexGmState
- * @property {HexGmTab} tab
+ * @property {HexGmTab} tab The tab last chosen.
+ * @property {string|null} [drawn] The key of the hex last drawn, so a hex drawn again, as after a roll, stays on its tab.
+ * @property {HexGmTab|null} [showing] The tab it was drawn on.
  * @property {{key: string, myth: string, page: number}|null} prompted
  * @property {boolean} rolling
  */
 
 /** @returns {HexGmState} */
-export const hexGmState = () => ({ prompted: null, rolling: false, tab: "land" });
+export const hexGmState = () => ({ prompted: null, rolling: false, tab: "land", drawn: null, showing: null });
 
 /** The line under the GM's note for each way the players' telling can stand beside it, and its icon. */
 const TOLD_SAYS = Object.freeze({
@@ -107,6 +109,24 @@ export function sparkTab(spark, holding) {
 	return "land";
 }
 
+/** What stands in a hex, in the order its tab is opened on: a Myth first, then a Holding, then a Landmark. */
+const STANDING_TABS = Object.freeze(["myth", "holding", "landmark"]);
+
+/**
+ * The tab a hex opens on: the one last chosen, where the hex has it, unless that
+ * was The Land and something stands here, when it opens on what stands here.
+ * A hex drawn again, as after a roll, stays on the tab it's on.
+ * @param {Record<HexGmTab, boolean>} shown Which tabs the hex has.
+ * @param {HexGmTab} remembered The tab last chosen.
+ * @param {HexGmTab|null} [showing] The tab the hex is on, where it's the hex drawn last.
+ * @returns {HexGmTab}
+ */
+export function openingTab(shown, remembered, showing = null) {
+	if (showing && shown[showing]) return showing;
+	if (remembered !== "land" && shown[remembered]) return remembered;
+	return STANDING_TABS.find((key) => shown[key]) ?? "land";
+}
+
 /**
  * What only a GM sees of a hex, below what the players know of it.
  * @param {object} data
@@ -139,7 +159,9 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 	const land = keptRolls(under("land"));
 	const held = holding ? keptRolls(under("holding")) : null;
 	const shown = { people: true, land: true, myth: Boolean(myth), landmark: Boolean(landmark), holding };
-	const tab = shown[state.tab] ? state.tab : "land";
+	const tab = openingTab(shown, state.tab, state.drawn === hexKey(hex) ? state.showing : null);
+	state.drawn = hexKey(hex);
+	state.showing = tab;
 	const counts = { people: people.length, land: land.count, myth: 0, landmark: 0, holding: held?.count ?? 0 };
 	const pages = index?.spark ?? [];
 	let notice = null;
@@ -504,6 +526,7 @@ function wireHexGmTabs(part, state) {
 	const tabs = [...part.querySelectorAll("[data-hex-tab]")];
 	const show = (chosen) => {
 		state.tab = chosen.dataset.hexTab;
+		state.showing = state.tab;
 		for (const tab of tabs) {
 			const active = tab === chosen;
 			tab.classList.toggle("is-active", active);
@@ -573,13 +596,9 @@ export const HEX_GM_ACTIONS = Object.freeze({
 		const note = target.closest(".bastionland-travels-hex__gm")?.querySelector('[name="note"]')?.value;
 		return tellPlayersAboutHex({ scene, hex, note });
 	},
-	// Leave something open in this hex, or settle what was: either changes only the Toolkit, so the hex is drawn again here.
-	async leaveOpenHere({ scene, hex, redraw }) {
-		if (await leaveOpen({ scene, hex, tied: true })) return redraw();
-	},
-	async settleThreadHere({ redraw }, target) {
-		if (await settleThread(target.closest("[data-thread-id]")?.dataset.threadId)) return redraw();
-	},
+	// Leave something open in this hex, or settle what was: the Toolkit's change draws Places again (THREADS_CHANGED_HOOK).
+	leaveOpenHere: ({ scene, hex }) => leaveOpen({ scene, hex, tied: true }),
+	settleThreadHere: (at, target) => settleThread(target.closest("[data-thread-id]")?.dataset.threadId),
 	hexJournal: ({ scene, hex }) => openHexJournal(scene, hex),
 	markVisited: ({ scene, hex }) => markHexVisited(scene, hex),
 	// Name the Landmark here from the prompt a random page prints for its type (p14, p179).

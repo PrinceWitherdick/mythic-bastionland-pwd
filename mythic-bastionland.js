@@ -79,6 +79,7 @@ import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { BastionlandToken, registerTokenHeraldryHooks } from "./module/canvas/BastionlandToken.js";
+import { registerCombatRingHooks, registerCombatRingSetting } from "./module/canvas/combat-ring.js";
 import { registerRealmTokenRuler } from "./module/canvas/realm-token-ruler.js";
 import { registerSoloPlaceables } from "./module/canvas/solo-placeables.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
@@ -99,6 +100,7 @@ import { FXMASTER_CARD_STEP, WELCOME_CARDS_STEP, postFxMasterCard, postWelcomeCa
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
 import { registerHexTargets } from "./module/chat/hex-target.js";
+import { registerPostedAt } from "./module/chat/posted-at.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
@@ -161,6 +163,7 @@ import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasR
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 import { registerRemedyQuery, registerRestAfterCombat, restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
+import { registerHandOverQuery } from "./module/actions/hand-over.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
 import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, POWER_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, fillPowerKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
@@ -426,6 +429,8 @@ Hooks.once("init", () => {
 	registerExplorationCards();
 	// A hex a card names rings on the map when pointed at, and takes the map there when clicked.
 	registerHexTargets();
+	// Each message is stamped with the server's time, which the Realm's growth log is kept by.
+	registerPostedAt();
 	registerFallenCards();
 	// A Humiliation's dealer brought down asks whether that was the revenge (p9).
 	registerRevengeCards();
@@ -513,6 +518,9 @@ Hooks.once("init", () => {
 	// Solo play keeps the Realm's secrets off the Referee's map too.
 	registerSoloPlaceables();
 	registerTokenHeraldryHooks();
+	// A click on a Token in a Combat puts Attack, Take Damage and its Saves round it.
+	registerCombatRingSetting();
+	registerCombatRingHooks();
 	// Foundry's own Undo key reaches the Realm layer; Redo has no key of Foundry's.
 	game.keybindings.register(SYSTEM_ID, "redoRealm", {
 		name: "bastionland.realm.keybinding.redo.name",
@@ -638,6 +646,8 @@ Hooks.once("init", () => {
 	// parting a Knight and Squire, and restoring the Company members a Remedy reaches.
 	registerCompanionQueries();
 	registerRemedyQuery();
+	// A possession a player hands to a character they don't own.
+	registerHandOverQuery();
 	// The card that offers everybody their rest once a Combat ends.
 	registerRestAfterCombat();
 

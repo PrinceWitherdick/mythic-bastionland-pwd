@@ -5,7 +5,7 @@ A fight in Mythic Bastionland is a run of Attacks, and in this system each one i
 ## Making an Attack
 
 1. **Target** the Token (or Tokens) you're attacking. Hold `T` over a Token, or use Foundry's target tool.
-2. **Click Attack** on your Knight sheet's action bar, or press `1` for the **Attack** macro on your hotbar, which leaves the sheet shut and the map in view.
+2. **Click Attack** on your Knight sheet's action bar, press `1` for the **Attack** macro on your hotbar, or click your Token in a Combat and press **Attack** beside it (see [Combat buttons on a Token](#combat-buttons-on-a-token)).
 3. **Tick what you attack with**, check the situation, and press **Roll Attack**.
 
 A Slain or Mortally Wounded Knight can't Attack; you're told why. Nobody can Attack themself, and a target who is already Slain, destroyed or wiped out is named as such in the dialog.
@@ -136,6 +136,10 @@ A duel card follows the two duelists, showing who has rolled and who is yet to A
 - In a sparring bout, a duelist who is knocked down is out of it, and can't Attack until the bout ends.
 - **(Name) wins** or **No victor** ends the duel, after a confirmation, moving any Glory staked. A sparring bout is shaken off then too, or when the Combat ends or time passes.
 - If a duelist is deleted or Slain, the duel closes by itself with no victor, and no staked Glory moves. The Referee can give any that's due by hand.
+
+## Combat buttons on a Token
+
+Once a Combat has begun, click your Token on the map: **Attack** and **Take Damage** come up on its left, and your **VIG**, **CLA** and **SPI** Saves on its right, each with its score. Each does just what the same control on your sheet does. They go away when you click anywhere else on the map, click the Token again, or press one. Shift-click, the target tool and dragging the Token don't open them. Turn them off in **Combat Buttons on a Clicked Token** (see [Your Settings and Accessibility](Your-Settings-and-Accessibility)).
 
 ## On the map
 

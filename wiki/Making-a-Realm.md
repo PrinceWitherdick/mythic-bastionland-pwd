@@ -144,7 +144,7 @@ Then paint every hex. The first page of Creating a Realm opens with a **Paint ev
 
 ### Changing the picture later
 
-**Import map** in the Realm tools opens the same picture fields for the Realm on screen. Choosing a different layout lays the Realm's hexes out anew to match, keeping what each hex holds and moving the Company with its hex. A Realm keeps its number of hexes once made: for a different count, make a New Realm from the map.
+**Import map** in the Realm tools opens the same picture fields for the Realm on screen. Choosing a different layout lays the Realm's hexes out anew to match, keeping what each hex holds and moving the Company with its hex. To add hexes once the Realm is made, use **Expand the map**. See [Expand the map](Painting-and-Editing-the-Realm#expand-the-map).
 
 If your map already draws its Holdings and Landmarks, as a Hex Kit map does, fade the system's own icons and hex lines over it in Realm Appearance. See [Icons and Hex Lines](Realm-Appearance-and-Skins#icons-and-hex-lines).
 

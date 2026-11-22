@@ -9,7 +9,7 @@
 
 import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
-import { deletionEntry } from "../compat.js";
+import { deletionUpdate } from "../compat.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { THREAD_KINDS, lastRoll, newThread, threadList, threadsAt, withRoll } from "../rules/threads.js";
 import { COMPANY_TRACK } from "../rules/timeline.js";
@@ -38,6 +38,21 @@ export const openThreads = () => threadList(theGmToolkit()?.system?.threads);
  * @returns {(import("../rules/threads.js").Thread & {id: string})[]} What's left open in one hex of a Realm.
  */
 export const threadsInHex = (scene, hex) => (scene && hex ? threadsAt(openThreads(), scene.id, hexKey(hex)) : []);
+
+/**
+ * @param {string} id
+ * @returns {(import("../rules/threads.js").Thread & {id: string})|undefined} The open thread of that id.
+ */
+export const threadById = (id) => openThreads().find((entry) => entry.id === id);
+
+/**
+ * @param {import("../rules/threads.js").Thread} thread
+ * @returns {{realm: Scene|null, hex: {col: number, row: number}|null}} The Realm and hex it's tied to, where it still has them.
+ */
+function threadPlace(thread) {
+	const realm = thread.scene ? game.scenes.get(thread.scene) ?? null : null;
+	return { realm, hex: realm ? parseHexKey(thread.hex) : null };
+}
 
 /**
  * @param {{age?: number, season?: string}|null} when
@@ -69,8 +84,7 @@ function knightChoices(knight) {
  */
 export function threadView(thread, { scene = null } = {}) {
 	const knight = thread.knight ? game.actors.get(thread.knight)?.name ?? "" : "";
-	const realm = thread.scene ? game.scenes.get(thread.scene) ?? null : null;
-	const hex = realm ? parseHexKey(thread.hex) : null;
+	const { realm, hex } = threadPlace(thread);
 	const rolled = lastRoll(thread);
 	const fate = rolled
 		? t("threads.rolled", { result: t(`refereeRolls.tables.unresolved.results.${rolled.result}`), when: seasonOf(rolled.when) || t("threads.before") })
@@ -101,7 +115,7 @@ export function threadView(thread, { scene = null } = {}) {
  * @param {boolean} [given.editing] Whether it's a thing already on the list.
  * @returns {Promise<{kind: string, name: string, knight: string, scene: string, hex: string}|null>}
  */
-export async function askThread({ kind = THREAD_KINDS[0], kinds = THREAD_KINDS, name = "", knight = "", scene = null, hex = null, tied = true, editing = false } = {}) {
+async function askThread({ kind = THREAD_KINDS[0], kinds = THREAD_KINDS, name = "", knight = "", scene = null, hex = null, tied = true, editing = false } = {}) {
 	const data = await inputDialog({
 		title: t(editing ? "threads.editTitle" : "threads.addTitle"),
 		icon: "fa-solid fa-link",
@@ -154,16 +168,28 @@ async function writeThreads(update) {
 }
 
 /**
+ * Leave several things open in one write, listed in the order given. GMs only.
+ * @param {Partial<import("../rules/threads.js").Thread>[]} given Each one's kind and name at least.
+ * @returns {Promise<string[]>} The ids of those kept: none where there's no Toolkit to keep them.
+ */
+export async function addThreads(given) {
+	const opened = getCalendar();
+	const now = Date.now();
+	const update = {};
+	given.forEach((one, index) => {
+		const thread = newThread({ ...one, opened: one.opened ?? opened, at: one.at ?? now + index });
+		if (thread) update[`system.threads.${foundry.utils.randomID()}`] = thread;
+	});
+	const ids = Object.keys(update).map((path) => path.slice("system.threads.".length));
+	return ids.length && (await writeThreads(update)) ? ids : [];
+}
+
+/**
  * Leave something open. GMs only.
  * @param {Partial<import("../rules/threads.js").Thread>} given Its kind and name at least.
  * @returns {Promise<string|null>} Its id, or null where it has no name or there's no Toolkit to keep it.
  */
-export async function addThread(given) {
-	const thread = newThread({ ...given, opened: given.opened ?? getCalendar(), at: given.at ?? Date.now() });
-	if (!thread) return null;
-	const id = foundry.utils.randomID();
-	return (await writeThreads({ [`system.threads.${id}`]: thread })) ? id : null;
-}
+export const addThread = async (given) => (await addThreads([given]))[0] ?? null;
 
 /**
  * Ask what to leave open, then keep it.
@@ -184,10 +210,9 @@ export async function leaveOpen(given = {}) {
  * @returns {Promise<boolean>}
  */
 export async function editThread(id, scene = null, hex = null) {
-	const thread = openThreads().find((entry) => entry.id === id);
+	const thread = threadById(id);
 	if (!game.user.isGM || !thread) return false;
-	const realm = thread.scene ? game.scenes.get(thread.scene) ?? null : null;
-	const at = realm ? parseHexKey(thread.hex) : null;
+	const { realm, hex: at } = threadPlace(thread);
 	const asked = await askThread({
 		kind: thread.kind,
 		name: thread.name,
@@ -238,11 +263,10 @@ export async function keepThreadRolls(rolls, when = getCalendar()) {
  * @returns {Promise<boolean>}
  */
 export async function settleThread(id) {
-	const thread = openThreads().find((entry) => entry.id === id);
+	const thread = threadById(id);
 	if (!game.user.isGM || !thread) return false;
-	if (!(await writeThreads(Object.fromEntries([deletionEntry(`system.threads.${id}`)])))) return false;
-	const realm = thread.scene ? game.scenes.get(thread.scene) ?? null : null;
-	const hex = realm ? parseHexKey(thread.hex) : null;
+	if (!(await writeThreads(deletionUpdate(`system.threads.${id}`)))) return false;
+	const { realm, hex } = threadPlace(thread);
 	// The Timeline's line is written behind it, each thread's writes taking their turn, so whoever settled it
 	// sees the list change at once.
 	Promise.resolve()

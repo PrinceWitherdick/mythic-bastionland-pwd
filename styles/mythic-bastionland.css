@@ -2654,7 +2654,7 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page prose-mirror,
 .bastionland-page .editor-content {
 	min-height: 6rem;
-	padding: 0.4rem 0.6rem;
+	padding: 0.6rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
 	background: rgb(var(--bastionland-sheen-rgb) / calc(0.25 * var(--bastionland-sheen)));
@@ -2670,6 +2670,22 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page prose-mirror {
 	display: flex;
 	flex-direction: column;
+	padding: 0;
+}
+
+/*
+ * The text stands as far from the frame above as at the sides. The frame
+ * itself has no padding round an editor, whose `.editor-content` keeps it, or
+ * the two added up; and the first and last of what's written keep no margin of
+ * their own at the frame, or a paragraph's, a list's or a heading's margin
+ * stood the words further off at the top.
+ */
+.bastionland-page .editor-content > :first-child {
+	margin-top: 0;
+}
+
+.bastionland-page .editor-content > :last-child {
+	margin-bottom: 0;
 }
 
 .bastionland-page prose-mirror.active {
@@ -5115,11 +5131,10 @@ a.button:focus:not(:focus-visible) {
 
 /*
  * Travel and Exploration down the sides of the screen while a Realm Scene is
- * up, as the Blank Realm sheet prints them beside its map. They're furniture
- * of the screen rather than of the map, so panning and zooming the Realm
- * leaves them the same size in the same place: where they stand, and how tall
- * they may grow, is set from the room the interface leaves them. How wide they
- * are is one knob, read back when they are placed. They sit over the canvas,
+ * up, as the Blank Realm sheet prints them beside its map, from its top to its
+ * foot: where they stand, and how tall they may grow, is set from the map on
+ * screen, or without one from the room the interface leaves them. How wide
+ * they are is one knob, read back when they are placed. They sit over the canvas,
  * under the Token HUD (which comes after it on the page), the sidebar and
  * windows, and grow with the interface scale and Text Size. Neither is a
  * window, so Text Size can't zoom them as it zooms the system's pages: they
@@ -5902,6 +5917,129 @@ button.bastionland-dice:focus-visible {
 	stroke-linejoin: round;
 }
 
+/* Expand the map: the sides and the map, the numbers and the backup in the first column, the new land in
+   the second, one after the other in a narrow window. */
+.bastionland-expand {
+	container-type: inline-size;
+}
+
+.bastionland-expand__columns {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 0.5rem 1.6rem;
+}
+
+.bastionland-expand__column {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+@container (width < 40rem) {
+	.bastionland-expand__columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* Each side's box on its own side of the map drawn small, its new hexes round it. */
+.bastionland-expand__compass {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	grid-template-areas:
+		". north ."
+		"west map east"
+		". south .";
+	align-items: center;
+	justify-items: center;
+	gap: 0.4rem 0.6rem;
+}
+
+.bastionland-expand__side--north {
+	grid-area: north;
+}
+
+.bastionland-expand__side--south {
+	grid-area: south;
+}
+
+.bastionland-expand__side--west {
+	grid-area: west;
+}
+
+.bastionland-expand__side--east {
+	grid-area: east;
+}
+
+.bastionland-expand .bastionland-expand__side {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0;
+}
+
+/* West and East stand beside the map, so their names go under their boxes. */
+.bastionland-expand .bastionland-expand__side--west,
+.bastionland-expand .bastionland-expand__side--east {
+	flex-direction: column-reverse;
+	gap: 0.2rem;
+}
+
+.bastionland-expand .bastionland-expand__side > label,
+.bastionland-expand .bastionland-expand__side > .form-fields {
+	flex: none;
+}
+
+.bastionland-expand .bastionland-expand__side input {
+	width: 4.5rem;
+}
+
+.bastionland-expand__preview {
+	grid-area: map;
+	display: flex;
+	justify-content: center;
+	width: 100%;
+	margin: 0;
+}
+
+.bastionland-expand__map {
+	width: 100%;
+	max-width: 18rem;
+	max-height: 14rem;
+}
+
+.bastionland-expand__size {
+	text-align: center;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-expand__old,
+.bastionland-expand__added {
+	stroke-width: 1;
+	stroke-linejoin: round;
+}
+
+.bastionland-expand__old {
+	fill: color-mix(in srgb, var(--bastionland-ink) 14%, transparent);
+	stroke: var(--bastionland-ink);
+}
+
+.bastionland-expand__added {
+	fill: color-mix(in srgb, var(--bastionland-rubric) 16%, transparent);
+	stroke: var(--bastionland-rubric);
+	stroke-dasharray: 2 1.5;
+}
+
+.bastionland-expand__problem {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-expand__restore {
+	flex: none;
+	align-self: flex-start;
+}
+
 .bastionland-realm-layout__edge {
 	fill: none;
 	stroke: var(--bastionland-ink-soft);
@@ -5974,6 +6112,82 @@ button.bastionland-company-button:hover,
 button.bastionland-company-button:focus-visible {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
+}
+
+/*
+ * The combat buttons round a Token in a Combat (module/canvas/combat-ring.js):
+ * Attack, Take Damage and Morale in a column on its left, its Saves on its
+ * right, each column centred on the Token and growing away from it. They float
+ * over the map, so they're drawn as the Company's button is: paper, the
+ * floating panel's corner and the lift. Foundry places and scales the window
+ * as it does its own Token HUD; the columns are set beside it here, under
+ * #hud so Foundry's own rules for its HUD's columns don't outweigh them.
+ */
+#hud #bastionland-combat-ring {
+	position: absolute;
+	pointer-events: none;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col {
+	position: absolute;
+	top: 50%;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	translate: 0 -50%;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col.left {
+	right: calc(100% + 0.75rem);
+	align-items: flex-end;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col.right {
+	left: calc(100% + 0.75rem);
+	align-items: flex-start;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__button {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.4rem;
+	width: max-content;
+	height: 2.1rem;
+	min-height: 0;
+	margin: 0;
+	padding: 0 0.75rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 6px;
+	background: var(--bastionland-paper);
+	box-shadow: var(--bastionland-lift);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	white-space: nowrap;
+	pointer-events: auto;
+	cursor: pointer;
+	/* Foundry gives every button a half-second transition on every property it has. */
+	transition: none;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__button:hover,
+#hud #bastionland-combat-ring .bastionland-combat-ring__button:focus-visible {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__button > i {
+	flex: none;
+	width: 1.25em;
+	margin: 0;
+	text-align: center;
+}
+
+/* The Virtue's score beside its name, in the figures the sheet's score boxes use. */
+#hud #bastionland-combat-ring .bastionland-combat-ring__value {
+	font-family: var(--bastionland-font-body);
+	font-variant-numeric: tabular-nums;
 }
 
 /* The Company off the map is the one thing standing between the Referee and
@@ -6263,7 +6477,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* A heading of its own needs air above it, but not where it opens a column. */
-.bastionland-realm-panel__group > .bastionland-realm-panel__heading:not(:first-child) {
+.bastionland-realm-panel__group > .bastionland-heading:not(:first-child) {
 	margin-top: 0.4rem;
 }
 

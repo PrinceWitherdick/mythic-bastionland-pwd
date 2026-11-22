@@ -1,7 +1,8 @@
-{{!-- One actor in a Cast: their name opens their sheet, the cross takes them out of it. --}}
+{{!-- One actor in a Cast: their name opens their sheet, the pawn brings them into the fight, the cross takes them out of it. --}}
 <span class="bastionland-gm-toolkit__cast-actor" data-uuid="{{uuid}}">
 	<button type="button" class="bastionland-gm-toolkit__cast-open" data-action="openCastActor" data-tooltip="{{localize 'bastionland.gmToolkit.cast.open'}}">
 		{{#if img}}<img src="{{img}}" alt="">{{/if}}{{name}}
 	</button>
+	<button type="button" class="bastionland-gm-toolkit__cast-bring" data-action="bringCastActor" data-tooltip="{{localize 'bastionland.gmToolkit.cast.bring'}}" aria-label="{{localize 'bastionland.gmToolkit.cast.bring'}}"><i class="fa-solid fa-chess-pawn" inert></i></button>
 	<button type="button" class="bastionland-gm-toolkit__cast-drop" data-action="dropFromCast" data-tooltip="{{localize 'bastionland.gmToolkit.cast.remove'}}" aria-label="{{localize 'bastionland.gmToolkit.cast.remove'}}"><i class="fa-solid fa-xmark" inert></i></button>
 </span>

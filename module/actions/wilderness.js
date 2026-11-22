@@ -149,11 +149,15 @@ export function registerOmenEntered() {
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @param {import("../rules/time.js").Calendar} [when] The Phase they came in, this one by default.
- * @param {boolean} [omen] It showed an Omen, which may keep a camp from sleeping (p18).
+ * @param {boolean} [omen] It showed an Omen, which may keep a camp from sleeping (p18). An Omen already
+ *   met in this Phase and hex stays met, whatever a later roll there shows.
  * @returns {Promise<unknown>}
  */
-export const markOmenOnEntering = (scene, hex, when = getCalendar(), omen = false) =>
-	game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, { when: { ...when }, scene: scene.id, hex: { col: hex.col, row: hex.row }, omen });
+export function markOmenOnEntering(scene, hex, when = getCalendar(), omen = false) {
+	const said = game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING);
+	const metHere = Boolean(said?.omen && said.scene === scene.id && samePhase(said.when, when) && sameHex(said.hex, hex));
+	return game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, { when: { ...when }, scene: scene.id, hex: { col: hex.col, row: hex.row }, omen: omen || metHere });
+}
 
 /**
  * Whether the roll made this Phase before it ended, where the Company stands,

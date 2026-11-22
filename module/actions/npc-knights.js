@@ -7,6 +7,7 @@ import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/crea
 import { KNIGHT_TYPE, NPC_KNIGHT_START, NPC_KNIGHT_TYPE, becomesNpcKnight, isKnight, isNpcKnight, kindStamp } from "../rules/knight-types.js";
 import { rollKnightName } from "../rules/knight-names.js";
 import { findByRef } from "../rules/knight-refs.js";
+import { oncePerKey } from "../rules/queue.js";
 import { escapeHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { kitWeaponNames } from "./abilities.js";
@@ -146,7 +147,7 @@ export async function onJoinQuery(data = {}, context = {}) {
 const heldByPlayer = (actor) => isNpcKnight(actor) && Boolean(actor.hasPlayerOwner) && !actor.isToken;
 
 /** NPC Knights on their way into the Company, so a second change of owner doesn't bring them twice. */
-const joining = new Set();
+const joining = oncePerKey();
 
 /**
  * Bring an NPC Knight a player now owns into the Company, and tell the Referee,
@@ -154,17 +155,13 @@ const joining = new Set();
  * @param {Actor} actor
  * @returns {Promise<void>}
  */
-async function joinAsHeld(actor) {
-	if (joining.has(actor.id)) return;
-	joining.add(actor.id);
+const joinAsHeld = (actor) => joining(actor.id, async () => {
 	try {
 		if (await setKnightKind(actor, false)) ui.notifications.info(t("npcKnight.joinedWhenHeld", { name: actor.name }));
 	} catch (error) {
 		console.warn(`${SYSTEM_ID} | Couldn't bring ${actor.name} into the Company`, error);
-	} finally {
-		joining.delete(actor.id);
 	}
-}
+});
 
 /**
  * An NPC Knight is the Referee's to play, so one given to a player becomes a

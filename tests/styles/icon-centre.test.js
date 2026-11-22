@@ -491,6 +491,48 @@ describe("centring the letters", () => {
 		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
 	});
 
+	/*
+	 * A Cast member on the Toolkit's Myths page carries a pawn, which brings them
+	 * into the fight, beside the × that takes them out of the Cast. The pawn is
+	 * drawn by the ×'s rules and nothing else, so it sits where the × does.
+	 */
+	it("draws a Cast member's pawn by the same rules as their ×, and moves it by none of its own", () => {
+		const chip = readFileSync(join(root, "templates/actor/gm-toolkit/cast-actor.hbs"), "utf8");
+		expect(chip).toMatch(/<button type="button" class="bastionland-gm-toolkit__cast-bring" data-action="bringCastActor"[^>]*><i class="[^"]+" inert><\/i><\/button>/);
+		expect(rule("gm-toolkit.css", ".bastionland-gm-toolkit__cast-actor")["align-items"]).toBe("center");
+		// Their shared rules name both in one :is(), so any mention of the class counts.
+		const naming = (name) => rules.filter(({ selectors }) => selectors.some((selector) => new RegExp(`\\.${name}(?![\\w-])`).test(selector)));
+		const [bring, drop] = ["bastionland-gm-toolkit__cast-bring", "bastionland-gm-toolkit__cast-drop"].map(naming);
+		expect(bring.length).toBeGreaterThan(0);
+		expect(bring.map(({ body }) => body.trim())).toEqual(drop.map(({ body }) => body.trim()));
+	});
+
+	/*
+	 * The Toolkit's Sites page had its own Journal and Open the Site buttons,
+	 * whose own line height and padding left their words off the middle in
+	 * Foundry. They are the sheet's button now, held at their label's width
+	 * beside the Site's line, and move their words by nothing of their own.
+	 */
+	it("draws a Site's Journal and Open the Site buttons as the sheet's own button", () => {
+		const places = readFileSync(join(root, "templates/actor/gm-toolkit/places.hbs"), "utf8");
+		const buttons = [...places.matchAll(/<button [^>]*bastionland-gm-toolkit__site-open[^>]*>/g)].map(([tag]) => tag);
+		expect(buttons).toHaveLength(2);
+		for (const tag of buttons) expect(tag).toMatch(/class="bastionland-button bastionland-gm-toolkit__site-open"/);
+		expect(rule("gm-toolkit.css", ".bastionland-page .bastionland-gm-toolkit__site-open")).toEqual({ flex: "none" });
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => selector.includes("bastionland-gm-toolkit__site-open")));
+		const moved = own.filter(({ body }) => /(^|;|\s)(display|height|min-height|line-height|padding|padding-(top|bottom|block)|align-items|vertical-align):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
+	// A Chronicle's or notes' words stand as far from the frame above as at the sides.
+	it("insets the words of rich text on a sheet alike at the top and the sides", () => {
+		expect(rule("mythic-bastionland.css", ".bastionland-page prose-mirror").padding).toBe("0");
+		expect(rule("mythic-bastionland.css", ".bastionland-page .editor-content > :first-child")).toEqual({ "margin-top": "0" });
+		expect(rule("mythic-bastionland.css", ".bastionland-page .editor-content > :last-child")).toEqual({ "margin-bottom": "0" });
+		const shared = rule("mythic-bastionland.css", ".bastionland-page prose-mirror,\n.bastionland-page .editor-content");
+		expect(shared.padding.split(/\s+/)).toHaveLength(1);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

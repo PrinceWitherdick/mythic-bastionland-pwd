@@ -12,6 +12,7 @@ import { hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { hexFlagEditor } from "./hex-flags.js";
 import { isRealmScene } from "./realm.js";
+import { hexNumberWords, hexNumbering } from "../rules/hex-numbers.js";
 
 /**
  * The names the GM gives hexes, read wherever a hex is called by name: the
@@ -51,7 +52,7 @@ export const renameHex = (scene, hex, name) => editHexNames(scene, (names) => se
  * @param {Scene|null} scene The Realm it's in.
  * @returns {string} e.g. "The Weeping Fen (Column 5, Row 7)", or "Column 5, Row 7" while it has no name.
  */
-export const hexLabel = (hex, scene) => hexLabelText(hex, hexName(scene, hex), t);
+export const hexLabel = (hex, scene) => hexLabelText(hex, hexName(scene, hex), t, hexNumbering(scene));
 
 /**
  * How a window's heading calls a hex: by its name over its column and row.
@@ -62,5 +63,5 @@ export const hexLabel = (hex, scene) => hexLabelText(hex, hexName(scene, hex), t
  */
 export function hexHeading(scene, hex) {
 	const name = hexName(scene, hex);
-	return { ...headingWords(name, t("realm.hex", hex)), rename: game.user?.isGM ? { value: name } : null };
+	return { ...headingWords(name, hexNumberWords(hex, hexNumbering(scene), t)), rename: game.user?.isGM ? { value: name } : null };
 }

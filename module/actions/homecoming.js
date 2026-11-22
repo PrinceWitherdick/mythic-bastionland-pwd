@@ -14,6 +14,7 @@ import { OWN_LANDMARK, REALM_FLAG, TERRAIN, holdingName, terrainAt } from "../ru
 import { realmFlag } from "../rules/realm-documents.js";
 import { inCompany, worldKnights } from "./knights.js";
 import { landmarkName } from "../rules/landmarks.js";
+import { hexNumbering, hexPointWords } from "../rules/hex-numbers.js";
 
 /**
  * The Crisis Roll's other time, coming home after a long time away (p20): a
@@ -99,7 +100,7 @@ export function holdingOptions(selected, realms = realmHoldings(), { domain = nu
 		|| holdingRulers(realms, domains, sceneId, holding.id).every((ruler) => ruler === domain);
 	return realms.flatMap(({ sceneId, holdings }) => holdings.filter((holding) => holding.id && open({ sceneId, holding })).map((holding) => {
 		const value = holdingRef(sceneId, holding.id);
-		const label = `${holdingName(holding, t)} ${t("realm.readout.coordinates", holding.hex)}`;
+		const label = `${holdingName(holding, t)} ${hexPointWords(holding.hex, hexNumbering(game.scenes.get(sceneId)), t)}`;
 		return { value, label: many ? `${label}, ${game.scenes.get(sceneId)?.name ?? ""}` : label, selected: value === selected };
 	}));
 }

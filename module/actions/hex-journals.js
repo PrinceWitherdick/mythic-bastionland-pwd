@@ -19,7 +19,7 @@ import { JOURNAL_FOLDER_COLOR, flaggedFolder } from "./folders.js";
 import { afterBurst, entrySnapshot, openKeptJournal, pageByRole, pageMarkdown, withHtml, writePlannedPages } from "./kept-journals.js";
 import { getHexLore, getHexRecord, writeHexNotes } from "./hex-lore.js";
 import { partyNoteBy } from "./hex-shared.js";
-import { isDrawingRealm, isRealmScene, realmWritesSettled } from "./realm.js";
+import { expansionUnderWay, isDrawingRealm, isRealmScene, realmWritesSettled } from "./realm.js";
 import { changedHexKeys, hexStoreFlags, realmSceneChanges } from "./scene-changes.js";
 import { barrierMetLines, toldLines, travelsSources, visitsText } from "./travels.js";
 
@@ -312,6 +312,8 @@ const hexFlags = () => [...hexStoreFlags()].filter(([, { journal }]) => journal)
  * @returns {boolean}
  */
 export function syncDue(scene, changes = null) {
+	// Brought up to date once the expansion is written, when every hex's entry has moved with it.
+	if (expansionUnderWay(scene)) return false;
 	const flags = changes?.flags?.[SYSTEM_ID];
 	if (changes && !flags) return false;
 	if (!isDrawingRealm(scene)) return true;

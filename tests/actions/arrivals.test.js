@@ -51,7 +51,7 @@ vi.mock("../../module/actions/myth-notes.js", async () => {
 	const { withoutResolved } = await import("../../module/rules/myth-notes.js");
 	return { liveRealm: () => withoutResolved(realm, notes) };
 });
-vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }), isRealmScene: (scene) => Boolean(scene?.realm) }));
+vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }), isRealmScene: (scene) => Boolean(scene?.realm), sceneGeometry: () => g }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn(), weatherIn: () => weather }));
 vi.mock("../../module/actions/steeds.js", () => ({ gallop: vi.fn() }));
 // The Phase's end is time.js's to test: here only that it's asked, and what it answers.
@@ -245,6 +245,15 @@ describe("a move followed", () => {
 		vi.mocked(postCard).mockClear();
 		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
 		expect(lastCard().actions.map(({ key }) => key)).toEqual(["endPhase"]);
+	});
+
+	it("does nothing for a hex past the map's edge, as land a put-back took away leaves it", async () => {
+		weather = "dire";
+		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
+		const moves = vi.mocked(setCompanyHex).mock.calls.length;
+		expect(await press("stay", "14,5")).toBe(false);
+		expect(setCompanyHex).toHaveBeenCalledTimes(moves);
+		weather = null;
 	});
 
 	it("ends the Phase the Company travelled in, asked as spent travelling (p18)", async () => {

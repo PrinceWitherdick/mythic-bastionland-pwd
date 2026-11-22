@@ -6,7 +6,7 @@ import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { companyPlacementDone, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
 import { keyChoices, plural, postCard, t, warn } from "../chat/cards.js";
-import { deletionEntry, scenePaper, tileReading, tileSettling } from "../compat.js";
+import { deletionEntry, replacementEntry, scenePaper, tileReading, tileSettling } from "../compat.js";
 import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, companyStartContext, resolveCompanyPicture, wireCompanyPicture, wireCompanyStart } from "../apps/company-picture.js";
@@ -39,11 +39,32 @@ import { generateRealm, keepMythPicks } from "../rules/realm-generator.js";
 import { mythRollKey } from "../rules/realm-myths.js";
 import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
 import { barrierEdges, BOOK_LAYOUT, realmGeometry, sameHex } from "../rules/realm-geometry.js";
+import {
+	EXPANDING_FLAG,
+	PLACEABLE_COLLECTIONS,
+	REALM_BACKUP_FLAG,
+	PLACEABLE_TYPES,
+	REALM_GROWTH_FLAG,
+	growRealm,
+	growthOffset,
+	growthProblem,
+	growthSince,
+	grownGeometry,
+	loggedGrowth,
+	normaliseGrowth,
+	pixelShift,
+	placeableShifts,
+	putBackGrowth,
+	reverseOffset,
+	shiftHex,
+	shiftedHexFlags
+} from "../rules/realm-growth.js";
+import { serverNow } from "../server-now.js";
 import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { NO_COMPANY_FLAG, companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
+import { NOT_A_MOVE, NO_COMPANY_FLAG, companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { announceStart } from "./starts.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireMapSizeFields } from "../apps/map-size-fields.js";
@@ -544,7 +565,8 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
  * @returns {Promise<boolean>} Whether anything was written.
  */
 async function changeRealm(scene, edit, { operation = {}, record = false } = {}) {
-	if (!game.user.isGM || !isRealmScene(scene)) return false;
+	// While an expansion is written, the Realm read from the Scene may be half moved.
+	if (!game.user.isGM || !isRealmScene(scene) || expansionUnderWay(scene)) return false;
 	return queueRealmWrite(async () => {
 		const textures = currentRealmTextures(scene);
 		const g = sceneGeometry(scene);
@@ -680,7 +702,7 @@ export function forgetRealmHistory(sceneId) {
  * @returns {Promise<{changed: boolean, problems: object[]}|null>}
  */
 export async function syncRealmScene(scene) {
-	if (!game.user.isGM || !game.users?.activeGM?.isSelf || !isRealmScene(scene)) return null;
+	if (!game.user.isGM || !game.users?.activeGM?.isSelf || !isRealmScene(scene) || expansionUnderWay(scene)) return null;
 	const g = sceneGeometry(scene);
 	const textures = currentRealmTextures(scene);
 	const { realm, problems: readProblems, changed } = await queueRealmWrite(async () => {
@@ -1163,6 +1185,383 @@ export async function setRealmLayout(scene, layout) {
 	await restandCompany(scene, company);
 	return { relaid: true, trimmed };
 }
+
+/**
+ * @param {Scene|null|undefined} scene
+ * @returns {object|null} The expansion being written on a Realm Scene, if one is: while it is, nothing else
+ *   reads or writes the Realm, since its Tiles and its flag may for a moment disagree.
+ */
+export const expansionUnderWay = (scene) => scene?.flags?.[SYSTEM_ID]?.[EXPANDING_FLAG] ?? null;
+
+/** The update option an expansion's Scene write carries, with how far the hexes moved, so each client can follow. */
+export const EXPANDED_OPTION = "realmExpanded";
+
+/** Called on this client once an expansion is written, with the Scene and how far its hexes moved on the page. */
+export const REALM_EXPANDED_HOOK = `${SYSTEM_ID}.realmExpanded`;
+
+/**
+ * Work out a whole expansion as plain data before any of it is written: every
+ * document's place, every flag re-keyed and the Realm as it'll stand. Every
+ * value is the one to be written, so the plan can be written again from the
+ * start should the first writing be cut short.
+ * @param {Scene} scene
+ * @param {import("../rules/realm-growth.js").Growth} growth
+ * @param {object} options
+ * @param {boolean} options.keepNumbers
+ * @param {(grown: object, from: object, to: object) => object} [options.land] Fills the new land; blank if not given.
+ * @returns {Promise<object>}
+ */
+async function expansionPlan(scene, growth, { keepNumbers, land = (grown) => grown }) {
+	const from = sceneGeometry(scene);
+	const to = grownGeometry(from, growth);
+	const offset = growthOffset(growth);
+	const shift = pixelShift(from, growth);
+	const { realm } = getRealm(scene);
+	const target = land(growRealm(realm, from, growth), from, to);
+
+	const documents = Object.fromEntries(PLACEABLE_TYPES.map((type) => [type, scene[PLACEABLE_COLLECTIONS[type]]?.map((document) => document._source) ?? []]));
+	const { Token: tokens = [], ...embedded } = placeableShifts(documents, from, growth, { systemId: SYSTEM_ID, realmFlag: REALM_FLAG });
+	const flags = scene.flags?.[SYSTEM_ID] ?? {};
+	const initial = scene._source.initial;
+	const { outsideShifts } = await import("./realm-expand.js");
+	return {
+		version: 1,
+		by: game.user.id,
+		growth,
+		from: { size: from.size, cols: from.cols, rows: from.rows, layout: from.layout },
+		shift,
+		embedded,
+		tokens,
+		company: shiftHex(companyTokenHex(scene), offset),
+		scene: {
+			width: to.width,
+			height: to.height,
+			gridType: to.gridType,
+			realm: realmFlagChanges(realmFlag(scene), target, to) ?? { set: {}, drop: [] },
+			initial: Number.isFinite(initial?.x) && Number.isFinite(initial?.y) ? { x: Math.round(initial.x + shift.dx), y: Math.round(initial.y + shift.dy) } : null,
+			growth: loggedGrowth(flags[REALM_GROWTH_FLAG], growth, { when: serverNow(), keepNumbers })
+		},
+		outside: outsideShifts(scene.id, offset),
+		target
+	};
+}
+
+/**
+ * The Scene update an expansion's plan makes: its size and grid, the Realm's
+ * flag, everything kept for each hex written whole under its new keys, where
+ * it opens, and the growth logged. What's kept for each hex isn't in the plan,
+ * as a long-played Realm's would make it hundreds of kilobytes: it's re-keyed
+ * from the Scene as it stands, unless this write is already made, which the
+ * mark on the Scene says, so a plan written again never moves it twice.
+ * @param {Scene} scene
+ * @param {object} plan From expansionPlan.
+ * @returns {object}
+ */
+function expansionSceneUpdate(scene, { scene: changes, growth, sceneWritten = false }) {
+	const flag = (key) => `flags.${SYSTEM_ID}.${key}`;
+	const hexFlags = sceneWritten ? {} : shiftedHexFlags(scene.flags?.[SYSTEM_ID] ?? {}, growthOffset(growth));
+	return Object.fromEntries([
+		[`${flag(EXPANDING_FLAG)}.sceneWritten`, true],
+		["width", changes.width],
+		["height", changes.height],
+		["grid.type", changes.gridType],
+		...realmFlagEntries(changes.realm),
+		...Object.entries(hexFlags).map(([key, value]) => (value === null || value === undefined ? deletionEntry(flag(key)) : replacementEntry(flag(key), value))),
+		...(changes.initial ? [["initial.x", changes.initial.x], ["initial.y", changes.initial.y]] : []),
+		replacementEntry(flag(REALM_GROWTH_FLAG), changes.growth)
+	]);
+}
+
+/**
+ * @param {string} type One of PLACEABLE_TYPES.
+ * @param {{_id: string}[]} updates
+ * @returns {object} The options a write moving a Realm's documents with its hexes takes: no animation, no
+ *   move of the Company's, and Tokens moved straight to their place, not stopped by a wall or what moving costs.
+ */
+const quietMoves = (type, updates) => ({
+	animate: false,
+	[NOT_A_MOVE]: true,
+	...(type === "Token" ? { movement: Object.fromEntries(updates.map(({ _id }) => [_id, { constrainOptions: { ignoreWalls: true, ignoreCost: true } }])) } : {})
+});
+
+/**
+ * Write an expansion's plan, from the first write to the last. Every value is
+ * written whole, so a plan cut short and written again lands where it would
+ * have. Run inside queueRealmWrite, with the Scene marked (EXPANDING_FLAG).
+ * @param {Scene} scene
+ * @param {object} plan From expansionPlan.
+ * @returns {Promise<void>}
+ */
+async function writeExpansion(scene, plan) {
+	// Moved before the Scene changes size: that redraws the canvas, and documents written into a canvas being drawn go astray.
+	for (const [type, updates] of Object.entries(plan.embedded)) {
+		const standing = updates.filter(({ _id }) => scene.getEmbeddedDocument(type, _id));
+		if (standing.length) await scene.updateEmbeddedDocuments(type, standing, quietMoves(type, standing));
+	}
+	const { writeOutsideShifts } = await import("./realm-expand.js");
+	await writeOutsideShifts(plan.outside);
+	const sceneWritten = Boolean(expansionUnderWay(scene)?.sceneWritten);
+	// Each client follows the hexes once: a write made again, after the first landed, says nothing of the move.
+	const follow = sceneWritten ? {} : { [SYSTEM_ID]: { [EXPANDED_OPTION]: { ...plan.shift, ...growthOffset(plan.growth) } } };
+	await scene.update(expansionSceneUpdate(scene, { ...plan, sceneWritten }), follow);
+	forgetRealm(scene.id);
+	const { canvasRedrawn } = await import("./realm-map.js");
+	await canvasRedrawn(scene);
+
+	// Tokens are moved once the Scene is big enough to hold them, as Foundry keeps a Token on its Scene.
+	const tokens = plan.tokens.filter(({ _id }) => scene.tokens.get(_id));
+	if (tokens.length) await scene.updateEmbeddedDocuments("Token", tokens, quietMoves("Token", tokens));
+	await writeRealm(scene, plan.target, sceneGeometry(scene), currentRealmTextures(scene));
+}
+
+/**
+ * What an expansion clears once written, on this client and in the world:
+ * Undo on the map and on the Phase cards, and what's held in memory for hexes
+ * that have moved. The hexes' Journal entries are brought up to date once.
+ * @param {Scene} scene
+ * @param {object} plan
+ * @returns {Promise<void>}
+ */
+async function settleExpansion(scene, plan) {
+	await scene.unsetFlag(SYSTEM_ID, EXPANDING_FLAG);
+	forgetRealmHistory(scene.id);
+	const [{ writeAdvanceRecords }, { forgetHexArrivals }, { syncHexJournals }] = await Promise.all([
+		import("./time-capture.js"),
+		import("../canvas/hex-prompt.js"),
+		import("./hex-journals.js")
+	]);
+	await writeAdvanceRecords([]);
+	forgetHexArrivals(scene.id);
+	if (plan.company) await restandCompany(scene, plan.company);
+	await syncHexJournals(scene);
+	await refreshThumbnail(scene);
+	Hooks.callAll(REALM_EXPANDED_HOOK, scene, plan.shift);
+}
+
+/**
+ * Why a Realm can't be expanded just now, if it can't: a GM only, on a Realm
+ * Scene with no picture being lined up, no look being tried out and no other
+ * expansion being written. Names live under `bastionland.realm.expand.refused`.
+ * @param {Scene|null} scene
+ * @returns {Promise<string|null>}
+ */
+export async function expansionRefused(scene) {
+	if (!game.user.isGM) return "gm";
+	if (!isRealmScene(scene)) return "realm";
+	if (expansionUnderWay(scene)) return "underWay";
+	if (previews.has(scene.id)) return "preview";
+	const { liningUpMap } = await import("../canvas/map-alignment.js");
+	if (liningUpMap(scene)) return "aligning";
+	return null;
+}
+
+/**
+ * Make a standing Realm's map bigger: hexes added on any side, every hex
+ * keeping what it holds, every Token, Tile, Drawing and the rest standing on
+ * the land it stood on, and everything kept for a hex, here and elsewhere in
+ * the world, kept for that hex still. Hexes added north or west move every old
+ * hex along as stored; whether they keep the numbers they're shown by is the
+ * Referee's choice. GMs only.
+ * @param {Scene} scene
+ * @param {unknown} asked The hexes to add on each side (normaliseGrowth).
+ * @param {object} [options]
+ * @param {boolean} [options.keepNumbers=true] Whether each hex keeps the number it's shown by.
+ * @param {(grown: object, from: object, to: object) => object} [options.land] Fills the new land; left blank if not given.
+ * @param {(scene: Scene, growth: object) => Promise<boolean>} [options.backup] Keeps a backup first; false to stop.
+ * @returns {Promise<boolean>} Whether the map grew.
+ */
+export async function expandRealm(scene, asked, { keepNumbers = true, land, backup } = {}) {
+	const refused = await expansionRefused(scene);
+	if (refused) {
+		warn(`realm.expand.refused.${refused}`);
+		return false;
+	}
+	const growth = normaliseGrowth(asked);
+	const problem = growthProblem(sceneGeometry(scene), growth);
+	if (problem) {
+		warn(`realm.expand.problems.${problem}`, OWN_SIZE_LIMITS_WORDS);
+		return false;
+	}
+	return queueRealmWrite(async () => {
+		await settleRealmTiles(scene);
+		if (backup && !(await backup(scene, growth))) return false;
+		// The backup may have waited on the server or the Referee: the plan is made from the Realm as it stands
+		// once it's kept, with nothing awaited between making it and marking the Scene but the plan itself.
+		if (expansionUnderWay(scene)) {
+			warn("realm.expand.refused.underWay");
+			return false;
+		}
+		// Another Referee's expansion, made in full while this one waited, may have left no room for it.
+		const now = growthProblem(sceneGeometry(scene), growth);
+		if (now) {
+			warn(`realm.expand.problems.${now}`, OWN_SIZE_LIMITS_WORDS);
+			return false;
+		}
+		const plan = await expansionPlan(scene, growth, { keepNumbers, land });
+		// Marked with the whole plan, so a browser closed part way finishes it next time (resumeExpansion).
+		await scene.update(Object.fromEntries([replacementEntry(`flags.${SYSTEM_ID}.${EXPANDING_FLAG}`, plan)]));
+		await writeExpansion(scene, plan);
+		await settleExpansion(scene, plan);
+		return true;
+	});
+}
+
+/**
+ * Finish an expansion cut short, such as by a browser closed part way: its
+ * plan is kept on the Scene, and written again from the start. Run by the
+ * active GM as a Realm Scene is drawn.
+ * @param {Scene|null} scene
+ * @returns {Promise<boolean>} Whether one was finished.
+ */
+export async function resumeExpansion(scene) {
+	const plan = expansionUnderWay(scene);
+	if (!plan || !game.user.isGM || !game.users?.activeGM?.isSelf) return false;
+	// Still being written by the Referee who began it, in a browser still open.
+	if (plan.by !== game.user.id && game.users.get(plan.by)?.active) return false;
+	return queueRealmWrite(async () => {
+		if (!expansionUnderWay(scene)) return false;
+		if (plan.restoring) return resumePutBack(scene, plan);
+		await writeExpansion(scene, plan);
+		await settleExpansion(scene, plan);
+		ui.notifications.info(t("realm.expand.finished", { realm: scene.name }));
+		return true;
+	});
+}
+
+/**
+ * Finish a put-back cut short, from the backup it was reading, or, where that
+ * backup can no longer be read, take the mark off so the Realm can be used
+ * again, the Referee told it may need putting right by hand.
+ * @param {Scene} scene
+ * @param {object} plan The put-back's plan, as putRealmBack marked the Scene with it.
+ * @returns {Promise<boolean>} Whether it was finished.
+ */
+async function resumePutBack(scene, plan) {
+	// Cut short after its Scene write: everything is put back but what settleExpansion clears.
+	if (plan.sceneWritten) {
+		forgetRealm(scene.id);
+		await settleExpansion(scene, { shift: { dx: plan.follow.dx, dy: plan.follow.dy }, company: null });
+		ui.notifications.info(t("realm.expand.restore.finished", { realm: scene.name }));
+		return true;
+	}
+	const { readRealmBackup } = await import("./realm-expand.js");
+	const backup = plan.kept ? await readRealmBackup(scene, plan.kept) : null;
+	if (!backup?.scene || !plan.outside || !plan.growth) {
+		await scene.unsetFlag(SYSTEM_ID, EXPANDING_FLAG);
+		forgetRealm(scene.id);
+		warn("realm.expand.restore.unfinished", { realm: scene.name });
+		return false;
+	}
+	await writePutBack(scene, backup.scene, plan);
+	await settleExpansion(scene, { shift: { dx: plan.follow.dx, dy: plan.follow.dy }, company: null });
+	ui.notifications.info(t("realm.expand.restore.finished", { realm: scene.name }));
+	return true;
+}
+
+/**
+ * Work out a put-back as plain data before any of it is written, as an
+ * expansion's plan is, so one cut short is finished from it: every growth
+ * logged since the backup was taken undone, what's kept for the Realm's hexes
+ * elsewhere in the world moved back by it, the growth undone logged, and how far
+ * each client's view and windows follow.
+ * @param {Scene} scene
+ * @param {{scene: object}} backup
+ * @returns {Promise<object>}
+ */
+async function putBackPlan(scene, backup) {
+	const saved = backup.scene;
+	const flag = saved.flags[SYSTEM_ID][REALM_FLAG];
+	const g = realmGeometry({ size: flag.size, cols: flag.cols, rows: flag.rows, layout: flag.layout });
+	const now = scene.flags?.[SYSTEM_ID]?.[REALM_GROWTH_FLAG];
+	const was = saved.flags[SYSTEM_ID][REALM_GROWTH_FLAG];
+	const undone = growthSince(now, was);
+	const offset = growthOffset(undone);
+	const shift = pixelShift(g, undone);
+	const { outsideShifts } = await import("./realm-expand.js");
+	return {
+		by: game.user.id,
+		restoring: true,
+		kept: scene.flags?.[SYSTEM_ID]?.[REALM_BACKUP_FLAG] ?? null,
+		outside: outsideShifts(scene.id, reverseOffset(offset), g),
+		growth: putBackGrowth(now, was, undone, { when: serverNow() }),
+		follow: { dx: -shift.dx, dy: -shift.dy, ...reverseOffset(offset) }
+	};
+}
+
+/**
+ * Write a put-back's plan, from the first write to the last. Every value is
+ * written whole, so a plan cut short and written again lands where it would have.
+ * @param {Scene} scene
+ * @param {object} saved The Scene as the backup holds it.
+ * @param {object} plan From putBackPlan.
+ * @returns {Promise<void>}
+ */
+async function writePutBack(scene, saved, plan) {
+	for (const type of PLACEABLE_TYPES) {
+		const collection = scene[PLACEABLE_COLLECTIONS[type]];
+		if (!collection) continue;
+		const wanted = saved[PLACEABLE_COLLECTIONS[type]] ?? [];
+		const ids = new Set(wanted.map((data) => data._id));
+		const gone = collection.filter((document) => !ids.has(document.id)).map((document) => document.id);
+		const standing = wanted.filter((data) => collection.get(data._id));
+		const missing = wanted.filter((data) => !collection.get(data._id));
+		const quiet = { animate: false, [NOT_A_MOVE]: true };
+		if (gone.length) await scene.deleteEmbeddedDocuments(type, gone, quiet);
+		// Flags written whole, so a mark the document gained since doesn't stay.
+		if (standing.length) await scene.updateEmbeddedDocuments(type, standing.map(({ flags = {}, ...data }) => ({ ...data, ...Object.fromEntries([replacementEntry("flags", flags)]) })), quietMoves(type, standing));
+		if (missing.length) await scene.createEmbeddedDocuments(type, missing, { ...quiet, keepId: true });
+	}
+	const { writeOutsideShifts } = await import("./realm-expand.js");
+	await writeOutsideShifts(plan.outside);
+	// The backup is used up: put back once, what's kept outside the Scene has been moved back already.
+	// The mark stays, saying this write is made, until settleExpansion has run: a put-back cut short
+	// after this point is still finished next time, and not written twice.
+	const flags = { ...saved.flags?.[SYSTEM_ID], [REALM_GROWTH_FLAG]: plan.growth, [EXPANDING_FLAG]: { ...plan, sceneWritten: true } };
+	delete flags[REALM_BACKUP_FLAG];
+	await scene.update(Object.fromEntries([
+		["width", saved.width],
+		["height", saved.height],
+		["grid.type", saved.grid?.type],
+		...(saved.initial ? [["initial", saved.initial]] : []),
+		replacementEntry(`flags.${SYSTEM_ID}`, flags)
+	]), { [SYSTEM_ID]: { [EXPANDED_OPTION]: plan.follow } });
+	forgetRealm(scene.id);
+	const { canvasRedrawn } = await import("./realm-map.js");
+	await canvasRedrawn(scene);
+}
+
+/**
+ * Put a Realm Scene back as a backup holds it: its size, grid and flags, and
+ * every Tile, Drawing, Token and other placeable with the ids they had, since
+ * Domains name their Holdings by their Tile's id. What's kept for its hexes
+ * elsewhere in the world (their Journal entries, the Toolkit's threads, the
+ * Timeline's rows, the Omen waiting) is moved back by every growth logged since
+ * the backup was taken, so what was written since follows its hex back;
+ * whatever was kept for a hex of the land added loses its hex rather than
+ * landing on another. Everything else done on this Realm since is lost. The
+ * backup is used up, so it can't be put back twice. GMs only.
+ * @param {Scene} scene
+ * @param {{scene: object}} backup As keepRealmBackup saved it.
+ * @returns {Promise<boolean>} Whether it was put back.
+ */
+export async function putRealmBack(scene, backup) {
+	if (!game.user.isGM || !isRealmScene(scene) || !backup?.scene || expansionUnderWay(scene)) return false;
+	const saved = backup.scene;
+	if (!saved.flags?.[SYSTEM_ID]?.[REALM_FLAG]) return false;
+	return queueRealmWrite(async () => {
+		if (expansionUnderWay(scene)) return false;
+		const plan = await putBackPlan(scene, backup);
+		// Marked with the plan, so nothing reads the Realm while its documents and its flag disagree,
+		// and a browser closed part way finishes it next time (resumeExpansion).
+		await scene.update(Object.fromEntries([replacementEntry(`flags.${SYSTEM_ID}.${EXPANDING_FLAG}`, plan)]));
+		await writePutBack(scene, saved, plan);
+		await settleExpansion(scene, { shift: { dx: plan.follow.dx, dy: plan.follow.dy }, company: null });
+		return true;
+	});
+}
+
+/** The limits a problem with a growth names. */
+const OWN_SIZE_LIMITS_WORDS = Object.freeze({ cols: OWN_SIZE_LIMITS.cols.max, rows: OWN_SIZE_LIMITS.rows.max, hexes: OWN_SIZE_LIMITS.hexes });
 
 /**
  * Picture a Realm Scene in the Scenes directory as it's drawn now.

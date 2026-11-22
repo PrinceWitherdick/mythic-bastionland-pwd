@@ -13,6 +13,7 @@ import { read } from "../client-settings.js";
 import { followMap, hotbarFloor, mapOnScreen, panelScreen } from "../apps/map-screen.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { landmarkLabelKey } from "../rules/landmarks.js";
+import { hexNumbering, hexPointWords } from "../rules/hex-numbers.js";
 
 /** World setting: whether the readout leads with the hex's column and row, for everyone at the table. */
 const COORDINATES_SETTING = "hexCoordinates";
@@ -132,7 +133,7 @@ const showsCoordinates = () => game.settings.get(SYSTEM_ID, COORDINATES_SETTING)
  * @returns {string} e.g. "(5, 7) Forest · Castle, Seat of Power · visited", or "The Weeping Fen (5, 7) · Bog"
  *   for a hex with a name. Empty where the hex holds nothing worth naming.
  */
-export function describeHex(summary, { coordinates = false, name = "", sighted = null, visited = false } = {}) {
+export function describeHex(summary, { coordinates = false, name = "", sighted = null, visited = false, numbering = null } = {}) {
 	const parts = [];
 	// Only a GM is told of what's hidden, so only a GM sees it marked.
 	const marked = (text, revealed) => (revealed === false ? t("realm.readout.hidden", { name: text }) : text);
@@ -151,7 +152,7 @@ export function describeHex(summary, { coordinates = false, name = "", sighted =
 	if (sighted) parts.push(sighted.note ? t("seenFromAfar.readoutNote", { note: sighted.note }) : t("seenFromAfar.readout"));
 	if (visited) parts.push(t("realm.readout.visited"));
 	const text = parts.join(" · ");
-	const where = coordinates ? t("realm.readout.coordinates", summary.hex) : "";
+	const where = coordinates ? hexPointWords(summary.hex, numbering, t) : "";
 	if (name) return [where ? `${name} ${where}` : name, text].filter(Boolean).join(" · ");
 	if (!where) return text;
 	return text ? `${where} ${text}` : where;
@@ -230,7 +231,7 @@ export function updateHexReadout({ force = false } = {}) {
 	// The players see a hex's name once it's one of their places, so naming a hex ahead of them gives nothing away.
 	const named = hexName(scene, hex);
 	const name = named && (game.user.isGM || knownToPlayers({ visits: visited, record, mark: sighted })) ? named : "";
-	const text = describeHex(summary, { coordinates: showsCoordinates(), name, sighted, visited });
+	const text = describeHex(summary, { coordinates: showsCoordinates(), name, sighted, visited, numbering: hexNumbering(scene) });
 	const notes = describeHexNotes({ told: record?.told?.at(-1)?.note, party: record?.party?.text });
 	chip.replaceChildren(...[text, notes].filter(Boolean).map((line, index) => {
 		const span = document.createElement("span");

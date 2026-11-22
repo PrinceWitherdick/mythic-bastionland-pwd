@@ -5,6 +5,7 @@ import { openPlaces } from "../apps/TravelsPlaces.js";
 import { hexAt } from "../rules/realm-geometry.js";
 import { onBoard } from "./board.js";
 import { takingMapClick } from "./map-click.js";
+import { hexNumberWords, hexNumbering } from "../rules/hex-numbers.js";
 
 /**
  * A double-click on open ground of a Realm opens the Company's places with
@@ -51,7 +52,7 @@ export function travelsClickHex(event) {
 function openHexInPlaces(scene, hex) {
 	if (!game.user?.isGM && !hexOpenable(scene, hex)) {
 		// Not one of their places, so they know it by its column and row alone.
-		ui.notifications.info(t("travels.notVisited", { hex: t("realm.hex", hex) }));
+		ui.notifications.info(t("travels.notVisited", { hex: hexNumberWords(hex, hexNumbering(scene), t) }));
 		return null;
 	}
 	return openPlaces({ sceneId: scene.id, hex });

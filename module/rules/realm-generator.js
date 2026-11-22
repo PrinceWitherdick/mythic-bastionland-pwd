@@ -7,7 +7,7 @@
  * and setup roll the same Realm. Pure, so it can be tested without Foundry.
  */
 import { createRandom } from "./random.js";
-import { BLOG_LANDMARKS, BLOG_LANDMARK_TYPES, BOOK_LANDMARK_TYPES, GUARDED_LANDMARK, HOLDING_STYLES, LAKE, LANDMARK_VARIANTS, PAIRED_LANDMARK, TERRAIN, emptyRealm } from "./realm.js";
+import { BLOG_LANDMARKS, BLOG_LANDMARK_TYPES, barrierCount, BOOK_LANDMARK_TYPES, GUARDED_LANDMARK, HOLDING_STYLES, LAKE, LANDMARK_VARIANTS, PAIRED_LANDMARK, TERRAIN, emptyRealm } from "./realm.js";
 import { keptHexes, mendPictures, rollPictures } from "./realm-pictures.js";
 import { BOOK_SETUP, SETUP_PARTS, isBookSetup, normaliseRealmSetup, setupBarriers } from "./realm-setup.js";
 import {
@@ -131,17 +131,22 @@ function scaledSpacings(spacings, g, count, bookCount) {
  * the land already drawn, favouring compact shapes.
  * @param {{cluster: number, lakes: number}} rules The die for a cluster's size, and the most lake clusters.
  * @param {Set<string>} [dry] Hexes a lake mustn't cover, where kept Holdings stand.
+ * @param {number[]|null} [start] Terrain already drawn, grown out from.
+ * @param {Set<number>|null} [fill] The only hexes to fill, by index; every blank hex if not given.
  * @returns {number[]} Terrain for each hex in `hexIndex` order.
  */
-function generateTerrain(random, g, { cluster: sizeDie, lakes: maxLakes }, dry = new Set()) {
-	const terrain = new Array(g.cols * g.rows).fill(0);
-	const isSet = (hex) => terrain[hexIndex(g, hex)] > 0;
+function generateTerrain(random, g, { cluster: sizeDie, lakes: maxLakes }, dry = new Set(), start = null, fill = null) {
+	// Given land already drawn, the clusters grow out from it, as new land added beside a standing Realm does.
+	const terrain = start ? [...start] : new Array(g.cols * g.rows).fill(0);
+	const hasLand = (hex) => terrain[hexIndex(g, hex)] > 0;
+	// Only the hexes asked for are filled: an old hex left blank to paint stays blank.
+	const isSet = (hex) => hasLand(hex) || Boolean(fill && !fill.has(hexIndex(g, hex)));
 	let lakes = 0;
 
 	for (;;) {
 		const open = allHexes(g).filter((hex) => !isSet(hex));
 		if (!open.length) return terrain;
-		const frontier = open.filter((hex) => neighbours(g, hex).some(({ hex: next }) => isSet(next)));
+		const frontier = open.filter((hex) => neighbours(g, hex).some(({ hex: next }) => hasLand(next)));
 		const start = random.pick(frontier.length ? frontier : open);
 
 		let type = random.die(TERRAIN.length);
@@ -482,4 +487,68 @@ function placeBarriers(random, g, realm, target) {
 		if (!isConnected(g, chosen)) chosen.delete(key);
 	}
 	return [...chosen].map((edge) => ({ id: null, edge, revealed: false }));
+}
+
+/**
+ * Land added round a standing Realm, rolled as the book rolls a Realm's
+ * terrain (p14): clusters of d12 hexes growing out from the land already
+ * there, with no more lakes than the share of hexes added allows. Old hexes
+ * keep their terrain and pictures; only the new pick theirs. With `features`,
+ * Landmarks and Barriers are rolled into the new land too, at the book's
+ * density for the hexes added, hidden from the players: Landmarks only in new
+ * hexes, Barriers only on edges touching one and never walling a hex off.
+ * Myths, Holdings and rivers are never added: a Realm has its six.
+ * Its own path, apart from generateRealm's, so every seed still rolls the Realm it always has.
+ * @param {object} options
+ * @param {string} options.seed
+ * @param {import("./realm.js").Realm} options.realm Already moved onto the grown map, its new land 0.
+ * @param {object} options.geometry The grown map's.
+ * @param {{col: number, row: number}[]} options.added The new hexes.
+ * @param {boolean} [options.terrain] Roll the new land's terrain; false leaves it blank to paint.
+ * @param {boolean} [options.features]
+ * @returns {import("./realm.js").Realm}
+ */
+export function rollNewLand({ seed, realm, geometry: g, added, terrain: rollTerrain = true, features = false }) {
+	const rules = normaliseRealmSetup(realm.setup);
+	const random = createRandom(`${seed}:land`);
+	const share = added.length / (g.cols * g.rows);
+	const isNew = new Set(added.map((hex) => hexIndex(g, hex)));
+	const dry = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
+	let grown = realm;
+	if (rollTerrain) {
+		const terrain = generateTerrain(random, g, { cluster: rules.cluster, lakes: Math.round(rules.lakes * share) }, dry, realm.terrain, isNew);
+		// The new hexes' pictures, none grouped with an old hex's, so every old hex shows what it showed.
+		const old = new Set(allHexes(g).map((hex) => hexIndex(g, hex)).filter((index) => !isNew.has(index)));
+		const kept = new Set([...old, ...keptHexes(g, realm)]);
+		const rolled = rollPictures(g, terrain, createRandom(`${seed}:land:pictures`).float, kept);
+		grown = { ...realm, terrain, variants: terrain.map((_, index) => (isNew.has(index) ? rolled[index] : realm.variants?.[index] ?? 0)) };
+	}
+	if (!features || !added.length) return grown;
+
+	const extra = createRandom(`${seed}:land:features`);
+	const perHex = (rules.landmarks.min + rules.landmarks.max) / 2 * BOOK_LANDMARK_TYPES.length / BOOK_HEXES;
+	const taken = featureHexes(grown);
+	const landmarks = [];
+	const seers = new Set(grown.landmarks.flatMap((landmark) => (landmark.seer ? [`${landmark.seer.d6}-${landmark.seer.d12}`] : [])));
+	for (let left = Math.round(added.length * perHex); left > 0; left--) {
+		const open = added.filter((hex) => !taken.has(hexKey(hex)));
+		if (!open.length) break;
+		const hex = furthestOf(extra, g, open, [...grown.landmarks, ...landmarks].map((landmark) => landmark.hex));
+		const type = extra.pick([...BOOK_LANDMARK_TYPES]);
+		taken.add(hexKey(hex));
+		landmarks.push({ id: null, hex, type, name: "", seer: type === "sanctum" ? uniqueRoll(extra, seers) : null, revealed: false });
+	}
+
+	const blocked = barrierEdges(grown);
+	let candidates = interiorEdges(g).filter((key) => !blocked.has(key) && parseEdgeKey(g, key).some((hex) => isNew.has(hexIndex(g, hex))));
+	const barriers = [];
+	const target = barrierCount({ cols: added.length, rows: 1 });
+	for (let tries = 0; barriers.length < target && tries < BARRIER_TRIES && candidates.length; tries++) {
+		const key = extra.pick(candidates);
+		candidates = candidates.filter((candidate) => candidate !== key);
+		blocked.add(key);
+		if (isConnected(g, blocked)) barriers.push({ id: null, edge: key, revealed: false });
+		else blocked.delete(key);
+	}
+	return { ...grown, landmarks: [...grown.landmarks, ...landmarks], barriers: [...grown.barriers, ...barriers] };
 }

@@ -1,6 +1,6 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, rollDicePool, t, warn } from "../chat/cards.js";
-import { attackCardContext, cardTarget, packCardContext, plainNote } from "../chat/attack-view.js";
+import { againstLine, attackCardContext, cardTarget, packCardContext, plainNote } from "../chat/attack-view.js";
 import { combatPlace, marksOn } from "../chat/gambit-marks.js";
 import {
 	ALTERNATE_FLAGS,
@@ -356,7 +356,7 @@ function aimFor(joining, duel) {
  * @returns {string}
  */
 function aimLine(targets) {
-	return targets.length ? t("attack.against", { names: targets.map(({ name }) => name).join(", ") }) : t("attack.againstNobody");
+	return againstLine(targets) ?? t("attack.againstNobody");
 }
 
 /**
@@ -416,7 +416,7 @@ function sameTargets(a, b) {
  * @param {Actor} actor
  * @param {{uuid: string, name: string}[]} aimedAt
  * @param {object} by
- * @returns {{chargeBarred: string|null, weaknesses: object[], individuals: object|null, lasting: object[], signature: string}}
+ * @returns {{chargeBarred: string|null, weaknesses: object[], individuals: object|null, lasting: object[], said: string[], signature: string}}
  */
 function weighTargets(actor, aimedAt, { joining, duel, mount, warband, ticks, combatant }) {
 	// Nobody on foot among the targets leaves the steed nobody to trample.
@@ -429,8 +429,10 @@ function weighTargets(actor, aimedAt, { joining, duel, mount, warband, ticks, co
 	const aimedActors = aimedAt.map(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid).filter(Boolean);
 	const lasting = diceAimedAt(lastingDiceOf(actor, combatant), aimedActors).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
 	const said = [
-		...aimedAt.filter((target) => standingOf(target).swarm).map(({ name }) => name),
+		// A swarm aimed at is named, so a Blast, which isn't Impaired by it, can be chosen before rolling.
+		...aimedAt.filter((target) => standingOf(target).swarm).map(({ name }) => t("attack.swarmHint", { name })),
 		...aimedAt.flatMap(targetDownHint),
+		// A helm that Impairs a foe's first ever Attack at its wearer (p42): said, for the Referee to judge.
 		...aimedAt.flatMap(({ uuid }) => wornWarnings(fromUuidSync(uuid)?.actor))
 	];
 	const signature = JSON.stringify([
@@ -442,7 +444,7 @@ function weighTargets(actor, aimedAt, { joining, duel, mount, warband, ticks, co
 		lasting,
 		said
 	]);
-	return { chargeBarred, weaknesses, individuals, lasting, signature };
+	return { chargeBarred, weaknesses, individuals, lasting, said, signature };
 }
 
 /** Boxes drawn for the targets themselves, which open as the new targets have them rather than as answered. */
@@ -958,6 +960,7 @@ function whyCantAttack(actor) {
  * @param {boolean} opening.startsImpaired Impaired before anything is ticked.
  * @param {import("../rules/gambit-marks.js").Mark[]} opening.marks
  * @param {{uuid: string, name: string}[]} opening.aimedAt
+ * @param {string[]} opening.said What's said of the targets, as weighTargets words it.
  * @param {ReturnType<typeof weaknessesOf>} opening.weaknesses
  * @param {object[]} opening.offers
  * @param {{ours: number, theirs: number}|null} opening.sides
@@ -967,7 +970,7 @@ function whyCantAttack(actor) {
  * @param {Actor[]} opening.leaders
  * @returns {object}
  */
-function attackDialogContext({ actor, joining, sources, armed, wielded, remembered, ticks, individuals, mounted, duel, mount, chargeBarred, startsImpaired, marks, aimedAt, weaknesses, offers, sides, lasting, combatant, warband, leaders }) {
+function attackDialogContext({ actor, joining, sources, armed, wielded, remembered, ticks, individuals, mounted, duel, mount, chargeBarred, startsImpaired, marks, aimedAt, said, weaknesses, offers, sides, lasting, combatant, warband, leaders }) {
 	const { conditions } = actor.system;
 	return {
 		// Who the blow is at, said before it's rolled.
@@ -995,15 +998,11 @@ function attackDialogContext({ actor, joining, sources, armed, wielded, remember
 		chargeBarred,
 		exhausted: conditions.exhausted,
 		impaired: startsImpaired,
-		// A swarm aimed at is named, so a Blast, which isn't Impaired by it, can be chosen before rolling.
 		marks: [
 			// A broken Warband follows no orders, and fights only for itself (p11): said, not refused.
 			...(actor.system.warband?.broken ? [t("attack.brokenWarband", { name: actor.name })] : []),
 			...marks.map((mark) => mark.hint),
-			...aimedAt.filter((target) => standingOf(target).swarm).map(({ name }) => t("attack.swarmHint", { name })),
-			...aimedAt.flatMap(targetDownHint),
-			// A helm that Impairs a foe's first ever Attack at its wearer (p42): said, for the Referee to judge.
-			...aimedAt.flatMap(({ uuid }) => wornWarnings(fromUuidSync(uuid)?.actor))
+			...said
 		],
 		weaknesses: weaknesses.map(({ name, text, die }, index) => ({
 			index,
@@ -1192,15 +1191,25 @@ async function planAttack(actor, joining = null) {
 	// What was answered before the targets changed, opened on again.
 	let answered = null;
 	let data;
-	let aimWeighed;
+	let aimWeighed = null;
 	for (;;) {
 		// Nobody makes an Attack at themself.
 		if (!joining && targetsSelf(actor, aimedAt)) {
 			warn("attack.selfTarget", { name: actor.name });
 			return null;
 		}
-		aimWeighed = weighTargets(actor, aimedAt, { joining, duel: weighedIn, mount, warband, ticks, combatant });
-		const { chargeBarred, weaknesses, individuals, lasting } = aimWeighed;
+		const weighed = weighTargets(actor, aimedAt, { joining, duel: weighedIn, mount, warband, ticks, combatant });
+		// Targeted anew, though they draw the dialog no differently: the blow is rolled at them as answered.
+		const retargeted = aimWeighed !== null;
+		const unchanged = retargeted && weighed.signature === aimWeighed.signature;
+		aimWeighed = weighed;
+		if (unchanged) break;
+		if (retargeted) {
+			// What these targets change, such as a weakness or a steed's trample, is shown before it's rolled.
+			ui.notifications.info(t("attack.retargeted", { name: actor.name }));
+			answered = data;
+		}
+		const { chargeBarred, weaknesses, individuals, lasting, said } = aimWeighed;
 		let stopFollowingAim = () => {};
 		const prefill = answered;
 		data = await Promise.resolve(inputDialog({
@@ -1209,7 +1218,7 @@ async function planAttack(actor, joining = null) {
 			template: "attack",
 			context: attackDialogContext({
 				actor, joining, sources, armed, wielded, remembered, ticks, individuals, mounted, duel, mount, chargeBarred,
-				startsImpaired, marks, aimedAt, weaknesses, offers, sides, lasting, combatant, warband, leaders
+				startsImpaired, marks, aimedAt, said, weaknesses, offers, sides, lasting, combatant, warband, leaders
 			}),
 			ok: { label: t(joining ? "attack.joinRoll" : "attack.roll"), icon: "fa-solid fa-dice" },
 			render: (_event, dialog) => {
@@ -1224,19 +1233,8 @@ async function planAttack(actor, joining = null) {
 		const inDuelNow = duel && data.duel ? duel : null;
 		const now = aimFor(null, inDuelNow);
 		if (inDuelNow === weighedIn && sameTargets(now, aimedAt)) break;
-		if (targetsSelf(actor, now)) {
-			warn("attack.selfTarget", { name: actor.name });
-			return null;
-		}
-		const weighedNow = weighTargets(actor, now, { joining, duel: inDuelNow, mount, warband, ticks, combatant });
-		const unchanged = weighedNow.signature === aimWeighed.signature;
 		aimedAt = now;
 		weighedIn = inDuelNow;
-		aimWeighed = weighedNow;
-		if (unchanged) break;
-		// What these targets change, such as a weakness or a steed's trample, is shown before it's rolled.
-		ui.notifications.info(t("attack.retargeted", { name: actor.name }));
-		answered = data;
 	}
 	if (!data) return null;
 	const { weaknesses, lasting } = aimWeighed;
