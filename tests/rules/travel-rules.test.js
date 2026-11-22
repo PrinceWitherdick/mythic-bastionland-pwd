@@ -104,10 +104,14 @@ describe("travelRulesPlacement", () => {
 		expect(travelRulesPlacement(screen, { side: "left", map, width: 380 })).toEqual({ left: 108, top: 100, maxHeight: 800 });
 	});
 
-	it("stops at the screen room's top and foot where the map runs past them, so its heading stays in sight", () => {
+	it("keeps to the map's top and foot where the map runs past the screen, as a map grown taller does", () => {
 		const map = { left: 500, top: -300, right: 1100, bottom: 1400 };
-		expect(travelRulesPlacement(screen, { side: "right", map, width: 380 })).toEqual({ left: 1112, top: 52, maxHeight: 976 });
-		expect(travelRulesPlacement(screen, { side: "left", map, width: 380 })).toEqual({ left: 108, top: 52, maxHeight: 976 });
+		expect(travelRulesPlacement(screen, { side: "right", map, width: 380 })).toEqual({ left: 1112, top: -300, maxHeight: 1700 });
+		expect(travelRulesPlacement(screen, { side: "left", map, width: 380 })).toEqual({ left: 108, top: -300, maxHeight: 1700 });
+	});
+
+	it("keeps to the map's top and foot on whole pixels, their height the gap between them", () => {
+		expect(travelRulesPlacement(screen, { map: { left: 500, top: 100.4, right: 1100, bottom: 900.6 }, width: 380 })).toMatchObject({ top: 100, maxHeight: 801 });
 	});
 
 	it("goes off the screen with a map panned wholly above or below the room, rather than standing over empty canvas", () => {
@@ -120,8 +124,8 @@ describe("travelRulesPlacement", () => {
 		expect(travelRulesPlacement(null, { side: "right", map, width: 380 })).toEqual({ left: 1112, top: -300, maxHeight: 1700 });
 	});
 
-	it("is never shorter than can be read, however far out the map is zoomed", () => {
-		expect(travelRulesPlacement(screen, { map: { left: 700, top: 500, right: 900, bottom: 600 }, width: 380 })).toMatchObject({ top: 500, maxHeight: 240 });
+	it("is as short as the map, however far out the map is zoomed", () => {
+		expect(travelRulesPlacement(screen, { map: { left: 700, top: 500, right: 900, bottom: 600 }, width: 380 })).toMatchObject({ top: 500, maxHeight: 100 });
 	});
 
 	it("grows its gap from the map with the interface scale", () => {

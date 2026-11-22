@@ -9,8 +9,8 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /**
  * A sheet of rules held against one edge of a Realm Scene's map, as the Blank
  * Realm sheet prints them beside its map, from its top to its foot. It follows
- * the map as the Realm is panned and zoomed, growing taller or shorter with it
- * but never wider.
+ * the map as the Realm is panned, zoomed and expanded, growing taller or
+ * shorter with it but never wider.
  * It draws itself again as the rulebook comes and goes, for the link to its
  * page.
  */

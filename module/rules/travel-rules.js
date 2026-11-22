@@ -115,14 +115,13 @@ export function pressingSections({ season, phase } = {}, { morningSettled = fals
 
 /**
  * Where one side's rules sit on screen: against that edge of the Realm's map,
- * level with its top and as tall as it, as the Blank Realm sheet prints them
- * beside its map, so they follow the map as it's panned and zoomed. Where the
- * map's top or foot runs past the screen's room, they stop at that edge of the
- * room instead, so their heading and fold button are never off the screen,
- * unless the whole map has been panned out of the room, when they go with it.
- * Only their width stays put as it's zoomed, and they're never shorter than
- * `minHeight`. Without a map they stand against that edge of the screen's room
- * instead, from under the scene navigation down to the hotbar.
+ * level with its top and its foot, as the Blank Realm sheet prints them beside
+ * its map, so they follow the map as it's panned, zoomed and grown. They keep
+ * to the map's top and foot even where those run past the screen, as on a map
+ * made taller than the screen has room for. Only their width stays put as it's
+ * zoomed. Without a map they stand against that edge of the screen's room
+ * instead, from under the scene navigation down to the hotbar, never shorter
+ * than `minHeight`.
  * @param {{left: number, top: number, right: number, bottom: number}|null} screen The room the interface leaves, in CSS pixels;
  *   null holds them to the map alone.
  * @param {object} [options]
@@ -130,7 +129,7 @@ export function pressingSections({ season, phase } = {}, { morningSettled = fals
  * @param {{left: number, top: number, right: number, bottom: number}|null} [options.map] The map on screen, in CSS pixels.
  * @param {number} [options.width] The rules' own width, before the interface scale.
  * @param {number} [options.gap] Between the map's edge, or the screen room's, and the rules.
- * @param {number} [options.minHeight]
+ * @param {number} [options.minHeight] The least height without a map.
  * @param {number} [options.scale] The interface scale, which each of these grows with.
  * @returns {{left: number, top: number, maxHeight: number}}
  */
@@ -139,13 +138,9 @@ export function travelRulesPlacement(screen, { side = "right", map = null, width
 	const left = Math.round(map
 		? side === "left" ? map.left - space - wide : map.right + space
 		: side === "left" ? screen.left + space : screen.right - space - wide);
-	const roomTop = screen ? screen.top + space : -Infinity;
-	const roomBottom = screen ? screen.bottom - space : Infinity;
-	// A map panned wholly above or below the room takes its rules with it, off the screen.
-	const inRoom = !map || (map.bottom > roomTop && map.top < roomBottom);
-	const top = Math.round(!map ? roomTop : inRoom ? Math.max(map.top, roomTop) : map.top);
-	const bottom = !map ? roomBottom : inRoom ? Math.min(map.bottom, roomBottom) : map.bottom;
-	return { left, top, maxHeight: Math.round(Math.max(least, bottom - top)) };
+	if (map) return { left, top: Math.round(map.top), maxHeight: Math.round(map.bottom) - Math.round(map.top) };
+	const top = Math.round(screen.top + space);
+	return { left, top, maxHeight: Math.round(Math.max(least, screen.bottom - space - top)) };
 }
 
 /**

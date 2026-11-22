@@ -155,8 +155,9 @@ export function panelScreen() {
  *
  * Foundry's animated pans and zooms, the mouse wheel's among them, move the
  * stage frame by frame but may only call canvasPan at their end. So each frame
- * the stage is looked at too, and `place` called only if it moved, which keeps
- * whatever is placed on the map all the way through.
+ * the stage is looked at too, and the Scene's map within it, and `place` called
+ * only if either moved, which keeps whatever is placed on the map all the way
+ * through, and against a map grown or cut down where the view stayed put.
  * @param {() => void} place
  * @returns {() => void} Stops following.
  */
@@ -185,12 +186,13 @@ export function followMap(place) {
 	].map(([name, fn]) => [name, Hooks.on(name, fn)]);
 
 	const ticker = canvas?.app?.ticker;
-	/** @type {number[]} The stage's pivot, scale and position when last placed. */
+	/** @type {number[]} The stage's pivot, scale and position, and the Scene's map within it, when last placed. */
 	let last = [];
 	const tick = () => {
 		const stage = canvas.stage;
 		if (!stage) return;
-		const now = [stage.pivot.x, stage.pivot.y, stage.scale.x, stage.position.x, stage.position.y];
+		const rect = canvas.dimensions?.sceneRect;
+		const now = [stage.pivot.x, stage.pivot.y, stage.scale.x, stage.position.x, stage.position.y, rect?.x, rect?.y, rect?.width, rect?.height];
 		if (now.every((value, index) => value === last[index])) return;
 		last = now;
 		place();
@@ -206,10 +208,10 @@ export function followMap(place) {
 }
 
 /**
- * Hold a panel against one edge of the map, from its top to its foot, kept
- * inside the screen's room where the map runs past it. It follows the map as
- * the map is panned and zoomed, but keeps its width, so the rules stay
- * readable however far out the map is zoomed.
+ * Hold a panel against one edge of the map, from its top to its foot, even
+ * where the map runs past the screen. It follows the map as the map is panned,
+ * zoomed and grown, but keeps its width, so the rules stay readable however
+ * far out the map is zoomed.
  * @param {HTMLElement|null|undefined} element
  * @param {"left"|"right"} side
  * @param {number} [width] The panel's layout width, which neither the interface scale nor Text Size changes: both are one transform on it.
