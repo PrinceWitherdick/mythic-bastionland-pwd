@@ -180,6 +180,51 @@ describe("who the Attack dialog says the blow is at", () => {
 		expect(postCard).toHaveBeenCalled();
 	});
 
+	it("checks the form again as this user's targets change, so several targets without a Blast show before it's rolled", async () => {
+		const hooks = new Map();
+		globalThis.Hooks = { on: vi.fn((name, fn) => { hooks.set(name, fn); return 7; }), off: vi.fn() };
+		const line = { textContent: "" };
+		const form = { dispatchEvent: vi.fn(), querySelectorAll: () => [], querySelector: () => null, addEventListener: () => {} };
+		inputDialog.mockImplementationOnce(async ({ render }) => {
+			render(null, { element: { querySelector: (selector) => (selector === "[data-attack-aim]" ? line : selector === "form" ? form : null), querySelectorAll: () => [], addEventListener: () => {} } });
+			hooks.get("targetToken")(game.user);
+			return null;
+		});
+		await attack(tal());
+		expect(form.dispatchEvent).toHaveBeenCalledOnce();
+		expect(form.dispatchEvent.mock.calls[0][0].type).toBe("change");
+		delete globalThis.Hooks;
+	});
+
+	it("opens again where a second foe is targeted while it stood open, since several need a Blast", async () => {
+		const moss = combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" });
+		target(moss);
+		inputDialog.mockImplementationOnce(async () => {
+			target(moss, combatant({ uuid: "Actor.wren", name: "Wren", type: "knight" }));
+			return { "source.sword": true };
+		});
+		await attack(tal());
+		expect(inputDialog).toHaveBeenCalledTimes(2);
+		expect(ui.notifications.info).toHaveBeenCalledWith("bastionland.attack.retargeted");
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("is rolled at those it was weighed at, though somebody else is targeted while its Smite is rolled", async () => {
+		const { rollFeat } = await import("../../module/actions/feats.js");
+		const moss = combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" });
+		target(moss);
+		inputDialog.mockImplementationOnce(async () => ({ "source.sword": true, smite: "bonus" }));
+		rollFeat.mockImplementationOnce(async () => {
+			target(combatant({ uuid: "Actor.wren", name: "Wren", type: "knight" }));
+			return null;
+		});
+		await attack(tal());
+		expect(rollFeat).toHaveBeenCalled();
+		const posted = JSON.stringify(postCard.mock.calls);
+		expect(posted).toContain("Scene.s.Token.Moss");
+		expect(posted).not.toContain("Scene.s.Token.Wren");
+	});
+
 	it("rolls at once where the foe targeted while it stood open changes nothing it weighed", async () => {
 		inputDialog.mockImplementationOnce(async () => {
 			target(combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" }));

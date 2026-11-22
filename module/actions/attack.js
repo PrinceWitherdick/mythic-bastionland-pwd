@@ -376,7 +376,10 @@ function followAim(dialog, duel = null) {
 	// A dialog opened again on an unticked duel says so straight away.
 	if (duelBox && !duelBox.checked) show();
 	const id = Hooks.on("targetToken", (user) => {
-		if (user === game.user) show();
+		if (user !== game.user) return;
+		show();
+		// What the dialog checks at its targets, such as several of them without a Blast, is read again too.
+		dialog.element.querySelector?.("form")?.dispatchEvent(new Event("change"));
 	});
 	return () => {
 		Hooks.off("targetToken", id);
@@ -431,6 +434,8 @@ function weighTargets(actor, aimedAt, { joining, duel, mount, warband, ticks, co
 		...aimedAt.flatMap(({ uuid }) => wornWarnings(fromUuidSync(uuid)?.actor))
 	];
 	const signature = JSON.stringify([
+		// Several targets need a Blast, which the dialog checks before it's rolled.
+		aimedAt.length > 1,
 		chargeBarred,
 		weaknesses.map(({ uuid, name, text, die }) => [uuid, name, text, die]),
 		individuals,
@@ -1308,7 +1313,8 @@ async function planAttack(actor, joining = null) {
 	const blast = isBlastAttack({ granted: declared.blast, smite: smite?.mode, againstIndividuals, weapons: chosen.map((item) => item.system) });
 	// An Attack in a duel is against the other duelist, whatever else is targeted.
 	const inDuel = duel && choice.duel ? duel : null;
-	const targets = aimFor(joining, inDuel);
+	// Those the dialog weighed it at, not whoever is targeted now: a Token targeted during the Smite roll isn't weighed.
+	const targets = aimedAt;
 	// The dialog counted a Smite for a Blast, but an Impaired Attack loses its Smite, and with it the
 	// Blast, so it can no longer be made at several targets (p8).
 	if (!joining && targets.length > 1 && !blast) {

@@ -42,6 +42,7 @@ import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
 import { MYTH_VERSE_VERSION } from "../rules/book-art.js";
 import { isSeerRecord } from "../rules/knight-refs.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, CITY_QUEST_WORTHINESS, cityQuestOver, worthyOfCityQuest } from "../rules/city-quest.js";
+import { taskCount } from "../rules/council-tasks.js";
 import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenRows, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { rulingKnightOf } from "../rules/dominion.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
@@ -955,7 +956,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const counted = (key, name, count) => (count > 1 ? t(`threads.${key}Many`, { name, count }) : t(`threads.${key}`, { name }));
 		const domains = worldDomains().flatMap((domain) => {
 			const crises = domain.system.crises?.length ?? 0;
-			const tasks = Object.keys(domain.system.tasks ?? {}).length;
+			const tasks = taskCount(domain.system.tasks);
 			return [crises ? counted("alsoCrises", domain.name, crises) : null, tasks ? counted("alsoTasks", domain.name, tasks) : null].filter(Boolean);
 		});
 		return { list: openThreads().map((thread) => threadView(thread, { scene })), also: [...myths, ...domains] };
