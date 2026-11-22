@@ -42,18 +42,18 @@ afterEach(() => {
 
 describe("keepRealmBackup", () => {
 	it("keeps the server's backup and names it on the Scene", async () => {
-		expect(await keepRealmBackup(scene, { west: 1 }, { download: true })).toBe(true);
+		expect(await keepRealmBackup(scene, { west: 1 })).toBe(true);
 		expect(uploadFile).toHaveBeenCalledOnce();
-		expect(foundry.utils.saveDataToFile).toHaveBeenCalledOnce();
+		expect(foundry.utils.saveDataToFile).not.toHaveBeenCalled();
 		expect(scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG]).toEqual({ path: "worlds/w/bastionland-backups/realm-vale.json", when: 1000 });
 	});
 
-	it("only downloads a copy when no server backup is asked for, leaving the one named as it was", async () => {
-		expect(await keepRealmBackup(scene, { west: 1 }, { server: false, download: true })).toBe(true);
-		expect(foundry.utils.saveDataToFile).toHaveBeenCalledOnce();
-		expect(uploadFile).not.toHaveBeenCalled();
-		expect(confirmDialog).not.toHaveBeenCalled();
-		expect(scene.setFlag).not.toHaveBeenCalled();
+	it("asks whether to go on when the server's backup can't be saved, naming no new one", async () => {
+		uploadFile.mockResolvedValueOnce(null);
+		confirmDialog.mockResolvedValueOnce(false);
+		expect(await keepRealmBackup(scene, { west: 1 })).toBe(false);
+		expect(confirmDialog).toHaveBeenCalledOnce();
 		expect(scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG]).toEqual({ path: "worlds/w/older.json", when: 5 });
 	});
+
 });

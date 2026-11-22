@@ -16,7 +16,6 @@ import { HEX_JOURNAL_FLAG } from "../rules/hex-journal.js";
 import { randomSeed } from "../rules/random.js";
 import { rollNewLand } from "../rules/realm-generator.js";
 import { REALM_BACKUP_FLAG, newLandHexes, sameOmenEntered, shiftJournalFlag, shiftOmenEntered, shiftThreads, shiftTimelineKey } from "../rules/realm-growth.js";
-import { slugify } from "../rules/book-art.js";
 import { serverNow } from "../server-now.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { theGmToolkit } from "./gm-toolkit.js";
@@ -125,25 +124,18 @@ const backupData = (scene, growth) => ({
 });
 
 /**
- * Keep a backup of a Realm Scene before it grows: if asked, one file on the
- * server for each Scene, the latest, as Foundry gives no way to delete a file,
- * which the Realm can be put back from; and, if asked, a copy for this
- * computer, for a Referee who keeps older ones. Should the server's file not
- * be saved, the Referee is asked whether to go on without it. A copy for this
- * computer alone leaves the server's file, and the way back to it, as they were.
+ * Keep a backup of a Realm Scene before it grows: one file on the server for
+ * each Scene, the latest, as Foundry gives no way to delete a file, which the
+ * Realm can be put back from. Should it not be saved, the Referee is asked
+ * whether to go on without it.
  * @param {Scene} scene
  * @param {import("../rules/realm-growth.js").Growth} growth
- * @param {object} [options]
- * @param {boolean} [options.server=true]
- * @param {boolean} [options.download]
  * @returns {Promise<boolean>} Whether to go on.
  */
-export async function keepRealmBackup(scene, growth, { server = true, download = false } = {}) {
+export async function keepRealmBackup(scene, growth) {
 	const data = backupData(scene, growth);
 	const text = JSON.stringify(data);
 	const name = `realm-${scene.id}.json`;
-	if (download) foundry.utils.saveDataToFile(text, "application/json", `${slugify(scene.name) || "realm"}-backup.json`);
-	if (!server) return true;
 	const dir = backupDir();
 	await ensureDirectories([`worlds/${game.world.id}`, dir]);
 	const path = await uploadFile(dir, new File([text], name, { type: "application/json" }));
@@ -228,7 +220,7 @@ export async function openExpandRealm(scene) {
 	const grew = await expandRealm(scene, choice.growth, {
 		keepNumbers: choice.keepNumbers,
 		land,
-		backup: choice.backup || choice.download ? (target, growth) => keepRealmBackup(target, growth, { server: Boolean(choice.backup), download: Boolean(choice.download) }) : null
+		backup: choice.backup ? keepRealmBackup : null
 	});
 	if (grew) {
 		const g = sceneGeometry(scene);

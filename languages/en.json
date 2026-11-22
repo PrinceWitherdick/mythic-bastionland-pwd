@@ -5133,16 +5133,14 @@
           "heading": "Hex numbers",
           "legend": "How the hexes are numbered",
           "keep": "Keep every hex's number",
-          "keepDetail": "Column 5, Row 7 stays Column 5, Row 7. New columns to the west count down from Column 0, and new rows to the north from Row 0. Old chat cards and any numbers printed on your map stay right.",
+          "keepDetail": "Old hexes keep their numbers. New columns to the west and new rows to the north are numbered 0, -1, -2 and so on.",
           "renumber": "Number the map again from 1",
-          "renumberDetail": "The top-left hex becomes Column 1, Row 1 and every hex takes a new number. The numbers printed on old chat cards and in some Timeline rows will be out of date, though their hexes still open the right place."
+          "renumberDetail": "Every hex gets a new number, counting from Column 1, Row 1 at the top left. No negative numbers, but numbers on old chat cards will be out of date."
         },
         "backup": {
           "heading": "Backup",
           "keep": "Keep a backup of this Realm first",
           "keepDetail": "Saved on the server with your world, in place of the last one. It holds this Realm's map and what is kept for its hexes.",
-          "download": "Download a copy as well",
-          "downloadDetail": "Saved on this computer, so you can keep older ones.",
           "kept": "A backup of this Realm was kept before it was expanded, on {when}. Putting it back undoes every expansion since.",
           "restore": "Put the Realm back as it was on {when}",
           "failedTitle": "No Backup",

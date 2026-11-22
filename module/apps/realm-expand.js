@@ -119,7 +119,6 @@ function wireExpandFields(element, scene, g) {
  * @property {boolean} [features] Roll Landmarks and Barriers into the new land too.
  * @property {boolean} [keepNumbers]
  * @property {boolean} [backup] Keep a backup on the server first.
- * @property {boolean} [download] And a copy to save on this computer.
  * @property {boolean} [inkOutside] Draw new land outside a picture in the Realm's own ink.
  */
 
@@ -160,7 +159,6 @@ export async function askToExpandRealm(scene, realm, g) {
 		features: Boolean(data.features),
 		keepNumbers: data.numbering !== "renumber",
 		backup: Boolean(data.backup),
-		download: Boolean(data.download),
 		inkOutside: Boolean(data.inkOutside)
 	};
 }
