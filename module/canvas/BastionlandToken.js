@@ -7,6 +7,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { onCompanyDoubleClick } from "./travels-click.js";
 import { isKnight } from "../rules/knight-types.js";
 import { openRingOnClick } from "./combat-ring.js";
+import { tokenInFog } from "./realm-fog.js";
 
 /** Token flag set when the heraldry badge is hidden on that Token. */
 export const HIDE_HERALDRY_FLAG = "hideHeraldry";
@@ -27,6 +28,15 @@ export class BastionlandToken extends foundry.canvas.placeables.Token {
 
 	/** Counts draws, so a slow load that's been overtaken is dropped. */
 	#heraldryDraws = 0;
+
+	/**
+	 * A Token standing in a hex the Fog of War hides from this client isn't
+	 * seen there, unless it's the Company or this client's own.
+	 * @override
+	 */
+	get isVisible() {
+		return super.isVisible && !tokenInFog(this);
+	}
 
 	/** The Knight's painting, or "" for anyone else or a Knight who hasn't painted any. */
 	get knightHeraldry() {

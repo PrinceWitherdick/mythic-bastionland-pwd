@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { describeHex, describeHexNotes, readoutPlacement } from "../../module/canvas/hex-readout.js";
+import { describeHex, describeHexNotes, foggedSummary, readoutPlacement } from "../../module/canvas/hex-readout.js";
 
 const summary = (more = {}) => ({ hex: { col: 5, row: 7 }, terrain: null, holding: null, myth: null, landmark: null, ...more });
 
@@ -54,6 +54,23 @@ describe("describeHex", () => {
 	it("ends with visited where the Company has been", () => {
 		expect(describeHex(summary({ terrain: "hills" }), { visited: true })).toBe("bastionland.realm.terrain.hills · bastionland.realm.readout.visited");
 		expect(describeHex(summary(), { coordinates: true, visited: true })).toBe("bastionland.realm.readout.coordinates(5,7) bastionland.realm.readout.visited");
+	});
+});
+
+describe("a hex in the Fog of War", () => {
+	const known = summary({ terrain: "forest", holding: { style: "town", name: "Oakwall", seat: false, revealed: true }, myth: { number: 3, revealed: true } });
+
+	it("tells only where it is, and what was seen there from afar", () => {
+		const fogged = foggedSummary(known, false);
+		expect(fogged).toEqual({ hex: { col: 5, row: 7 }, holding: null });
+		expect(describeHex(fogged, { unexplored: true })).toBe("bastionland.realmFog.readout.unexplored");
+		expect(describeHex(fogged, { unexplored: true, coordinates: true, sighted: { note: "" } }))
+			.toBe("bastionland.realm.readout.coordinates(5,7) bastionland.realmFog.readout.unexplored · bastionland.seenFromAfar.readout");
+	});
+
+	it("names its Holding while the Holdings show through", () => {
+		const fogged = foggedSummary(known, true);
+		expect(describeHex(fogged, { unexplored: true })).toBe("bastionland.realmFog.readout.unexplored · Oakwall");
 	});
 });
 

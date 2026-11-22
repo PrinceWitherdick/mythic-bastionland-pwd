@@ -24,6 +24,7 @@ import { rollUpHolding } from "../actions/people.js";
 import { calendarLabel, getCalendar, momentLabel } from "../actions/calendar.js";
 import { castActors, castKey } from "../actions/myth-cast.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
+import { hexFoggedForPlayers, realmFogOn, toggleRealmFogAt } from "../actions/realm-fog.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { realmKnown, secretsKeptOn } from "../actions/solo.js";
 import { findCompany, wildernessRoll } from "../actions/wilderness.js";
@@ -169,6 +170,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 	else if (!pages.length) notice = t("spark.noText");
 	const landmarkLabel = landmark ? t(landmarkLabelKey(landmark)) : null;
 	const bookPrompt = Boolean(landmark) && hasBookPrompt(landmark.type);
+	// Whether the Fog of War still lies over the hex for the players, while the Realm has it on.
+	const fogged = realmFogOn(scene) ? hexFoggedForPlayers(scene, hex) : null;
 	return {
 		// The players' part names the land of a hex they know; a hex they don't is named here.
 		terrain: !view.openable && terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
@@ -201,7 +204,10 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		// may be keeping it out till the Referee lets it on.
 		explore: !secretsKeptOn(scene) || (sameHex(findCompany(scene, g, { selected: false }).hex, hex) && !heldBackFrom(scene, hex)),
 		note: record?.note ?? "",
-		told: toldContext(record?.note ?? "", view.told),
+		// Telling the players of a hex in the fog offers to lift it as well, never by itself.
+		told: { ...toldContext(record?.note ?? "", view.told), liftFog: fogged === true },
+		// The fog's own button, beside the visits, while the Realm has it on.
+		fog: fogged === null ? null : { fogged },
 		// Any hex can have a Journal entry, where the setting makes them: one with nothing kept gets it when the GM asks.
 		journal: hexJournalsOn(),
 		// A tab for each kind of roll here, the Landmark's named by its type; only the one last chosen is shown.
@@ -591,11 +597,14 @@ export const HEX_GM_ACTIONS = Object.freeze({
 		const { spark } = target.dataset;
 		if (spark) return editPerson(scene, hex, spark);
 	},
-	// The note as it stands in its box, saved or not.
+	// The note as it stands in its box, saved or not, and the fog lifted too where the box beside the button is ticked.
 	tellHex({ scene, hex }, target) {
 		const note = target.closest(".bastionland-travels-hex__gm")?.querySelector('[name="note"]')?.value;
-		return tellPlayersAboutHex({ scene, hex, note });
+		const liftFog = Boolean(target.closest("[data-told-say]")?.querySelector('[name="tellLiftsFog"]')?.checked);
+		return tellPlayersAboutHex({ scene, hex, note, liftFog });
 	},
+	// Lift the Fog of War from this hex, or let it back over it.
+	toggleFog: ({ scene, hex }) => toggleRealmFogAt(scene, hex),
 	// Leave something open in this hex, or settle what was: the Toolkit's change draws Places again (THREADS_CHANGED_HOOK).
 	leaveOpenHere: ({ scene, hex }) => leaveOpen({ scene, hex, tied: true }),
 	settleThreadHere: (at, target) => settleThread(target.closest("[data-thread-id]")?.dataset.threadId),

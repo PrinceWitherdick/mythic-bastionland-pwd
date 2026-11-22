@@ -43,7 +43,7 @@
 		{{#each says}}
 		<p class="bastionland-hex-lore__told-state is-{{key}}" data-told-say="{{key}}" {{#unless (eq key ../state)}}hidden{{/unless}}>
 			<i class="{{icon}}" inert></i>
-			<span>{{text}}{{#if tell}} <button type="button" class="bastionland-hex-lore__told-tell" data-action="tellHex">{{tell}}</button>{{/if}}</span>
+			<span>{{text}}{{#if tell}} <button type="button" class="bastionland-hex-lore__told-tell" data-action="tellHex">{{tell}}</button>{{#if ../liftFog}} <label class="bastionland-hex-lore__told-lift"><input type="checkbox" name="tellLiftsFog"> <span>{{localize "bastionland.realmFog.tellLifts"}}</span></label>{{/if}}{{/if}}</span>
 		</p>
 		{{/each}}
 	</div>

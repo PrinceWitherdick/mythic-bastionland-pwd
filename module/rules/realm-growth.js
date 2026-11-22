@@ -458,6 +458,8 @@ export const HEX_FLAG_SHIFTS = Object.freeze({
 	hexLore: shiftHexStore,
 	trackedHexes: shiftHexStore,
 	journey: shiftHexStore,
+	// The Fog of War keeps its on, and whether Holdings show through, beside its hexes.
+	realmFog: shiftHexStore,
 	hexShared: shiftShared,
 	sighted: shiftSighted,
 	heldBack: shiftHeldBack,

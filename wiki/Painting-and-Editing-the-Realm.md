@@ -10,13 +10,15 @@ Click the **crown** (**Realm**) in the scene controls. Its tools, top to bottom:
 | --- | --- |
 | **Inspect hexes** | Click a hex to open it in Places. While a Realm is being drawn, **Edit this hex** opens beside Places too. |
 | **Paint the Realm** | Picks up the brush and opens the palette. See below. |
+| **Fog brush** | Lifts the Fog of War from a hex, or lets it back. Shows only while this Realm's fog is on. See [Fog of War](#fog-of-war). |
 | **Wilderness Roll** | Makes the Wilderness Roll for the hex the Company stands in. See [Exploring the Wilderness](Exploring-the-Wilderness#the-wilderness-roll). |
 | **Reroll the Realm** | Rolls a new Realm onto this Scene, after asking. Tokens and anything else on the Scene stay, and so do the parts you left to draw by hand. |
 | **Realm Appearance** | Opens the Realm Appearance window. See [Realm Appearance and Skins](Realm-Appearance-and-Skins). |
+| **Fog of War** | Opens the Fog of War window for this Realm. See [Fog of War](#fog-of-war). |
 | **Import map** | Lays a picture of your own map under the Realm, or changes or removes the one there. See [Making a Realm](Making-a-Realm#importing-a-map-you-drew). |
 | **Expand the map** | Adds hexes to any side of a Realm already in play, or puts it back from the backup kept first. See [Expand the map](#expand-the-map). |
 
-The last four act at once rather than staying in hand.
+The last five act at once rather than staying in hand.
 
 ## The palette
 
@@ -155,6 +157,39 @@ Once a Realm has a backup, Expand the map offers **Put the Realm back as it was 
 ### If an expansion is cut short
 
 An expansion is written in several steps. If the browser closes part way, the Realm is marked, and the next time a Referee opens it the expansion is finished from the start and you're told so. Putting a Realm back is finished the same way, from its backup. Should that backup no longer be readable, the mark is taken off so the Realm can be used again, and you're told to look it over for anything left out of place.
+
+## Fog of War
+
+A Realm can hide its land from the players until the Company gets there. This is a house rule, off on every Realm until you turn it on, and each Realm has its own.
+
+With the fog on, the players see the edge of every hex, and nothing inside one they haven't reached: no terrain, rivers, Holdings, Landmarks, Myths or map picture. A fogged hex looks like plain paper in the Realm's own paper colour. Barriers that have been revealed, the Company Token, the players' own Tokens and the marks of things seen from afar still show. Other Tokens in a fogged hex don't. The label under the pointer reads **Unexplored**.
+
+You see the fog as a thin veil, so you can still read the map and see what the players can't. Played alone, you see it as the players do.
+
+The fog lifts from a hex when:
+
+- the Company arrives there,
+- you lift it with the brush, the hex's own button, or the window,
+- you press **Mark it on the players' map** on a vantage point's card, which lifts it from the hex and the six around it (played alone, this happens by itself),
+- a Myth or Landmark there is marked on the players' map,
+- or you tell the players about the hex with **Lift the fog here too** ticked.
+
+### The Fog of War window
+
+Open it from **Fog of War** in the Realm tools.
+
+- **Fog of War on this Realm** turns it on and off. Turning it off keeps what you lifted, for when you turn it on again.
+- **Holdings show through the fog** keeps every Holding and Seat, and the arms they fly, on the players' map.
+- **Lift all the fog** and **Bring the fog back everywhere** each ask first. A hex you fog again clears once more when the Company next arrives there.
+- **Pick up the fog brush** puts the brush in your hand.
+
+### The fog brush
+
+Click a hex to lift its fog, or click again to let it back. Drag across hexes to do the same to all of them: a drag that starts in the fog lifts it, and one that starts in the clear brings it back. While the brush is in hand, your veil lies thicker, so you can see what you've painted.
+
+### In Places
+
+While the fog is on, a hex's visits line in Places has **Lift the fog** or **Let the fog back**. Under the Referee's note, **Tell the players** has a **Lift the fog here too** box beside it while the hex is fogged. It starts unticked each time.
 
 ## See also
 

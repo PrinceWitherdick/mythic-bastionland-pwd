@@ -49,7 +49,7 @@ vi.mock("../../module/actions/calendar.js", () => ({ calendarLabel: () => "", se
 vi.mock("../../module/actions/company.js", () => ({ COMPANY_FLAG: "company", companyTokenHex: () => ({ col: 1, row: 2 }), findCompanyToken: () => null, wentSomewhere: () => false }));
 vi.mock("../../module/actions/hex-lore.js", () => ({ hexesWithPeopleIn: () => new Set() }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineArrivals: vi.fn(), timelinePartyNote: vi.fn(), timelineNoteForgotten: vi.fn() }));
-vi.mock("../../module/actions/solo.js", () => ({ keptFromMe: () => false, realmKnown: (whole) => whole }));
+vi.mock("../../module/actions/solo.js", () => ({ keptFromMe: () => false, secretsKeptOn: () => false, realmKnown: (whole) => whole }));
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (at) => at?.id === "realm",
 	getRealm: (at) => (at?.id === "realm" ? { realm } : null),

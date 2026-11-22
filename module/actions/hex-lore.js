@@ -22,6 +22,7 @@ import {
 import { editedPerson, hexesWithPeople, personView } from "../rules/people.js";
 import { OMEN_COUNT, barriersAround, featureAt, hexSummary, holdingName } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
+import { liftRealmFog } from "./realm-fog.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
@@ -372,9 +373,10 @@ export async function throwForGms(formula) {
  * @param {string} [options.note] What's in the note box now, saved first: a click
  *   straight from typing lands before the box's own change is written.
  * @param {boolean} [options.quiet] Tell without the "told" notification, for a caller telling many at once.
+ * @param {boolean} [options.liftFog] Lift the Realm's Fog of War from the hex as well, once it's told.
  * @returns {Promise<ChatMessage|null>}
  */
-export async function tellPlayersAboutHex({ scene, hex, note, quiet = false }) {
+export async function tellPlayersAboutHex({ scene, hex, note, quiet = false, liftFog = false }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
 	if (typeof note === "string" && note.trim() !== (getHexRecord(scene, hex)?.note ?? "")) {
 		await writeHexNote(scene, hex, note);
@@ -406,6 +408,8 @@ export async function tellPlayersAboutHex({ scene, hex, note, quiet = false }) {
 			console.error(`${SYSTEM_ID} | Couldn't keep what the players were told of ${where}`, error);
 		}
 		if (!quiet) ui.notifications.info(t("hexLore.told", { hex: where }));
+		// The Referee may lift the Fog of War from it as they tell of it, so the players see what they've heard of.
+		if (liftFog) await liftRealmFog(scene, [hex], "told");
 	}
 	return message;
 }

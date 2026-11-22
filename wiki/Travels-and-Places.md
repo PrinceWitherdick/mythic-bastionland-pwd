@@ -15,6 +15,8 @@ A hex is one of your places once the Company has:
 
 Only those hexes open in Places, and only those show a name the Referee has given them. Every Holding you can see on the map is drawn on the chart, even before you visit it. Myths, Landmarks and Barriers stay off your record until they are revealed or found.
 
+If the Referee plays with the **Fog of War**, a hex you haven't reached shows only its edges on the map, and the label under the pointer says **Unexplored**. The fog clears as the Company arrives, or when the Referee lifts it. The chart leaves out Holdings in fogged hexes, unless the Referee lets them show through.
+
 ## Opening Places
 
 - **Places**, the map-and-pin button just left of the sidebar on a Realm.

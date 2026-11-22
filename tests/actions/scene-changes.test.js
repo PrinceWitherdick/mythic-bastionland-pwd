@@ -25,6 +25,18 @@ describe("shownHexFlag", () => {
 		expect(shownHexFlag("sighted")).toBe(true);
 		expect(shownHexFlag("companyMoves")).toBe(false);
 		expect(shownHexFlag("companyLastHex")).toBe(false);
+		expect(shownHexFlag("realmFog")).toBe(true);
+	});
+});
+
+describe("the Fog of War", () => {
+	it("reads as kept for its hexes, its on and off as well as its hexes", () => {
+		const hexes = realmSceneChanges(flags({ realmFog: { version: 1, hexes: { "2,3": { lifted: { by: "hand", at: 1 } } } } }));
+		expect(hexes.realm).toBe(false);
+		expect(hexes.hexFlags).toEqual(new Set(["realmFog"]));
+		const options = realmSceneChanges(flags({ realmFog: { on: true, version: 1 } }));
+		expect(options.realm).toBe(false);
+		expect(changedHexKeys(flags({ realmFog: { on: true, version: 1 } }), "realmFog")).toBeNull();
 	});
 });
 

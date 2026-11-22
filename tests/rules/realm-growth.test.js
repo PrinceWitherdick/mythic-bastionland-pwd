@@ -270,6 +270,13 @@ describe("stores kept for each hex", () => {
 		expect(changes).toEqual({ hexNames: { hexes: { "3,2": { name: "Ford" } } }, companyMoves: null });
 	});
 
+	it("re-keys the Fog of War's hexes and keeps whether it's on", () => {
+		const realmFog = { version: 1, on: true, holdings: true, hexes: { "1,1": { lifted: { by: "hand", at: 4 } }, "2,1": { veiled: { after: 3 } } } };
+		expect(shiftedHexFlags({ realmFog }, offset)).toEqual({
+			realmFog: { version: 1, on: true, holdings: true, hexes: { "3,2": { lifted: { by: "hand", at: 4 } }, "4,2": { veiled: { after: 3 } } } }
+		});
+	});
+
 	it("moves Journal entries, threads, Timeline keys and the waiting Omen of this Realm only", () => {
 		expect(shiftJournalFlag({ scene: "S", hex: "5,7" }, "S", offset)).toEqual({ flag: { scene: "S", hex: "7,8" }, sort: 7008 });
 		expect(shiftJournalFlag({ scene: "T", hex: "5,7" }, "S", offset)).toBeNull();

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { realmGeometry, edgeKey } from "../../module/rules/realm-geometry.js";
+import { realmGeometry, edgeKey, hexCentre, hexKey, neighbours } from "../../module/rules/realm-geometry.js";
 import { emptyRealm, TERRAIN } from "../../module/rules/realm.js";
 import { withBookText } from "../../module/rules/book-text.js";
 
@@ -27,7 +27,17 @@ vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => scene?.isRealm !== false,
 	sceneGeometry: () => g,
 	getRealm: () => ({ realm }),
-	hexHiddenByHand: () => ({ terrain: false, holding: false, seat: false })
+	hexHiddenByHand: () => ({ terrain: false, holding: false, seat: false }),
+	// A fake Tile is placed by its middle already.
+	tileCentreOn: () => (tile) => tile
+}));
+// The Realm's Fog of War: off, unless a test turns it on, over the hexes it names.
+let fogOn = false;
+let fogged = new Set();
+const liftRealmFogBy = vi.fn(async () => true);
+vi.mock("../../module/actions/realm-fog.js", () => ({
+	foggedForPlayers: () => (fogOn ? fogged : new Set()),
+	liftRealmFogBy: (...args) => liftRealmFogBy(...args)
 }));
 // The Realm and the hex the Company stands in; a Scene that's no Realm warns and gives nothing.
 vi.mock("../../module/actions/wilderness.js", () => ({
@@ -91,6 +101,8 @@ function fakeScene(tiles = [], drawings = []) {
 }
 
 beforeEach(() => {
+	fogOn = false;
+	fogged = new Set();
 	answer = null;
 	asked = null;
 	phases = 0;
@@ -502,5 +514,71 @@ describe("markOnPlayersMap", () => {
 	it("marks nothing for a player", async () => {
 		game.user.isGM = false;
 		expect(await markOnPlayersMap(fakeScene([{ id: "a", hidden: true }]), ["a"])).toBe(0);
+	});
+});
+
+describe("the Fog of War, lifted by what the Company sees", () => {
+	const where = hex(6, 6);
+	const around = neighbours(g, where).map(({ hex: next }) => next);
+
+	beforeEach(() => {
+		fogOn = true;
+		fogged = new Set([where, ...around, hex(1, 1)].map(hexKey));
+	});
+
+	it("offers to lift it from the Hex and the six around, from a vantage point, with nothing else to mark", async () => {
+		await lookFromVantage({ scene: { id: "scene", flags: {}, update: vi.fn() } });
+		const { mark } = lastCard();
+		expect(mark.ids).toBe("");
+		expect(mark.lift.split(";").sort()).toEqual([where, ...around].map(hexKey).sort());
+		expect(liftRealmFogBy).not.toHaveBeenCalled();
+	});
+
+	it("offers only the hexes the fog still lies over", async () => {
+		fogged = new Set([hexKey(around[0])]);
+		await lookFromVantage({ scene: { id: "scene", flags: {}, update: vi.fn() } });
+		expect(lastCard().mark.lift).toBe(hexKey(around[0]));
+	});
+
+	it("offers nothing from a vantage point while the Realm has no fog", async () => {
+		fogOn = false;
+		await lookFromVantage({ scene: { id: "scene", flags: {}, update: vi.fn() } });
+		expect(lastCard().mark).toBeNull();
+	});
+
+	it("lifts it at once, played alone", async () => {
+		game.settings.get = (_scope, key) => (key === "soloPlay" ? true : "public");
+		const scene = { ...fakeScene(), flags: {}, update: vi.fn() };
+		await lookFromVantage({ scene });
+		expect(lastCard().mark).toBeNull();
+		const [[liftedFrom, [{ hexes, by }]]] = liftRealmFogBy.mock.calls;
+		expect(liftedFrom).toBe(scene);
+		expect(by).toBe("vantage");
+		expect(hexes).toHaveLength(7);
+	});
+
+	it("lifts it from the hexes the Mark button names, and says so where nothing else was marked", async () => {
+		const scene = fakeScene();
+		expect(await markOnPlayersMap(scene, [], { lift: [where, around[0]] })).toBe(0);
+		expect(liftRealmFogBy).toHaveBeenCalledWith(scene, [{ hexes: [where, around[0]], by: "vantage" }, { hexes: [], by: "marked" }]);
+		expect(ui.notifications.info).toHaveBeenCalledWith(format("bastionland.realmFog.lifted", { count: 2 }));
+	});
+
+	it("lifts it from a marked Landmark's hex, and not for a Barrier", async () => {
+		const centre = hexCentre(g, hex(1, 1));
+		const scene = fakeScene([{ id: "landmark", hidden: true, ...centre }], [{ id: "edge", hidden: true }]);
+		expect(await markOnPlayersMap(scene, ["landmark", "edge"])).toBe(2);
+		expect(liftRealmFogBy).toHaveBeenCalledOnce();
+		expect(liftRealmFogBy).toHaveBeenCalledWith(scene, [{ hexes: [], by: "vantage" }, { hexes: [hex(1, 1)], by: "marked" }]);
+		expect(ui.notifications.info).toHaveBeenCalledWith(format("bastionland.explore.marked", { count: 2 }));
+		liftRealmFogBy.mockClear();
+		await markOnPlayersMap(fakeScene([], [{ id: "edge", hidden: true }]), ["edge"]);
+		expect(liftRealmFogBy).not.toHaveBeenCalled();
+	});
+
+	it("lifts nothing while the Realm has no fog", async () => {
+		fogOn = false;
+		await markOnPlayersMap(fakeScene([{ id: "landmark", hidden: true, ...hexCentre(g, hex(1, 1)) }]), ["landmark"], { lift: [where] });
+		expect(liftRealmFogBy).not.toHaveBeenCalled();
 	});
 });

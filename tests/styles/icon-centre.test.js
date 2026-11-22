@@ -573,4 +573,18 @@ describe("centring the letters", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");
 		expect(rule("mythic-bastionland.css", ".bastionland-page .bastionland-domain__footer .bastionland-button").flex).toMatch(/^0 0 /);
 	});
+
+	/*
+	 * The Fog of War's buttons, in its window, beside a hex's visits and on the
+	 * vantage card, and the tick box after Tell the players, were measured offline
+	 * (mythic-fog/render.mjs: 0 to 0.7px at 1x, 1.25x and 1.5x, 2026-11-22) as the
+	 * shared button and row draw them. None may move its words off what was measured.
+	 */
+	it("draws the Fog of War's buttons by the shared rules, and its tick box on its words' middle with no nudge", () => {
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => /bastionland-(realm-fog__tools|travels-hex__fog)/.test(selector)));
+		const moved = own.filter(({ body }) => /(^|;|\s)(height|min-height|line-height|padding|padding-(top|bottom|block)|align-items|vertical-align|top|transform):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+		expect(rule("mythic-bastionland.css", ".bastionland-hex-lore__told-lift")["align-items"]).toBe("center");
+		expect(rule("mythic-bastionland.css", ".bastionland-hex-lore__told-lift > input")).toEqual({ flex: "none", margin: "0" });
+	});
 });

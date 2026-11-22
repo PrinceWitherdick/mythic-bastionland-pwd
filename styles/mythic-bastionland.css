@@ -6879,6 +6879,21 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-blood);
 }
 
+/* Lift the fog here too, the tick box after Tell the players while the Fog of War lies over the hex. */
+.bastionland-hex-lore__told-lift {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	margin-inline-start: 0.6em;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.bastionland-hex-lore__told-lift > input {
+	flex: none;
+	margin: 0;
+}
+
 .bastionland-hex-lore__told-state.is-current > i {
 	color: var(--bastionland-verdigris);
 }
@@ -9983,6 +9998,33 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-visited-marks-window .form-footer button {
+	flex: 1;
+}
+
+/* The Fog of War window (module/apps/RealmFog.js): two tick boxes, then the
+   buttons that lift the fog, bring it back, or pick up its brush. */
+.bastionland-realm-fog__intro {
+	margin: 0;
+}
+
+.bastionland-realm-fog__tools {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+/* One under another, the column's width: no 8rem basis, which a column would take as height. */
+.bastionland-realm-fog__tools > .bastionland-button {
+	flex: none;
+}
+
+/* With the fog off, what only works with it on fades, as a row that can't be used does. */
+.bastionland-realm-fog .bastionland-button:disabled,
+.bastionland-realm-fog .bastionland-check:has(input:disabled) {
+	opacity: 0.5;
+}
+
+.bastionland-realm-fog-window .form-footer button {
 	flex: 1;
 }
 

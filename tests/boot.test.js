@@ -345,8 +345,14 @@ describe("system boot", () => {
 		canvas.scene = realmScene;
 		const control = realm.layerClass.prepareSceneControls();
 		expect(control).toMatchObject({ name: "realm", layer: "realm", activeTool: "inspect" });
-		expect(Object.keys(control.tools)).toEqual([...REALM_TOOLS]);
+		// The fog brush comes only with the Realm's Fog of War on; its window is always there to turn it on.
+		expect(Object.keys(control.tools)).toEqual(REALM_TOOLS.filter((name) => name !== "fog"));
 		for (const name of REALM_BUTTONS) expect(control.tools[name].button).toBe(true);
+		realmScene.flags[SYSTEM_ID].realmFog = { on: true };
+		realmScene.getFlag = (scope, flag) => realmScene.flags[scope]?.[flag];
+		expect(Object.keys(realm.layerClass.prepareSceneControls().tools)).toEqual([...REALM_TOOLS]);
+		expect(realm.layerClass.prepareSceneControls().tools.fog.button).toBeUndefined();
+		delete realmScene.flags[SYSTEM_ID].realmFog;
 
 		game.user.isGM = false;
 		expect(realm.layerClass.prepareSceneControls()).toBeNull();

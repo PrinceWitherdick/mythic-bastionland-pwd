@@ -1,0 +1,33 @@
+{{!-- The Fog of War of the Realm on the canvas; see module/apps/RealmFog.js.
+      Each control is written as it changes, so there's nothing to send. --}}
+<div class="bastionland-realm-fog dialog-form">
+	<div class="dialog-content">
+		{{#if none}}
+		<p class="bastionland-empty">{{localize "bastionland.realmFog.noRealm"}}</p>
+		{{else}}
+		<p class="bastionland-realm-fog__intro">{{localize "bastionland.realmFog.intro" realm=realm}}</p>
+		<label class="bastionland-check">
+			<input type="checkbox" name="on" {{checked on}}>
+			<span class="bastionland-check__label">
+				{{localize "bastionland.realmFog.on.name"}}
+				<span class="bastionland-check__detail">{{localize "bastionland.realmFog.on.hint"}}</span>
+			</span>
+		</label>
+		<label class="bastionland-check">
+			<input type="checkbox" name="holdings" {{checked holdings}} {{disabled locked}}>
+			<span class="bastionland-check__label">
+				{{localize "bastionland.realmFog.holdings.name"}}
+				<span class="bastionland-check__detail">{{localize "bastionland.realmFog.holdings.hint"}}</span>
+			</span>
+		</label>
+		<div class="bastionland-realm-fog__tools">
+			<button type="button" class="bastionland-button" data-action="liftAll" {{disabled locked}}><i class="fa-solid fa-sun" inert></i> {{localize "bastionland.realmFog.liftAll"}}</button>
+			<button type="button" class="bastionland-button" data-action="veilAll" {{disabled locked}}><i class="fa-solid fa-cloud" inert></i> {{localize "bastionland.realmFog.veilAll"}}</button>
+			<button type="button" class="bastionland-button" data-action="brush" {{disabled locked}}><i class="fa-solid fa-paintbrush" inert></i> {{localize "bastionland.realmFog.brush"}}</button>
+		</div>
+		{{/if}}
+	</div>
+	<footer class="form-footer">
+		<button type="button" data-action="close"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.realmFog.done"}}</button>
+	</footer>
+</div>

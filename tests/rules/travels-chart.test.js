@@ -248,3 +248,25 @@ describe("zooming the chart", () => {
 		expect(wheelZoomFactor(100000)).toBeCloseTo(1 / 1.2);
 	});
 });
+
+describe("the chart under the Fog of War", () => {
+	const fresh = (fog) => ({ ...sources(), journey: emptyJourney(), shared: emptyShared(), fog });
+
+	it("leaves out a Holding in a hex the fog hides, unless the Holdings show through it", () => {
+		const fogged = new Set([hexKey(town)]);
+		expect(holdingsKnown(fresh({ fogged, holdingsFogged: fogged }))).toEqual([]);
+		expect(holdingsKnown(fresh({ fogged, holdingsFogged: new Set() })).map((view) => view.key)).toEqual([hexKey(town)]);
+	});
+
+	it("colours a hex heard of by its terrain once the fog is lifted from it, as the map shows it", () => {
+		const s = sources();
+		const told = hex(9, 9);
+		s.realm.terrain[hexIndex(g, told)] = TERRAIN.indexOf("forest") + 1;
+		const forest = palette.solid[TERRAIN.indexOf("forest")];
+		const fillOf = (svg) => svg.match(new RegExp(`data-hex="${hexKey(told)}"[^>]*><title>[^<]*</title><polygon[^>]* fill="([^"]+)"`))[1];
+		const base = { palette, title: "Chart", label: (view) => view.key };
+		expect(fillOf(travelsChart(views(s), g, base))).toBe(palette.paper);
+		expect(fillOf(travelsChart(views(s), g, { ...base, fogged: new Set([hexKey(told)]) }))).toBe(palette.paper);
+		expect(fillOf(travelsChart(views(s), g, { ...base, fogged: new Set() }))).toBe(forest);
+	});
+});

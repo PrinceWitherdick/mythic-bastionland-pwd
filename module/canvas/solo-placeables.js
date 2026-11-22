@@ -1,6 +1,7 @@
 import { secretsKeptOn } from "../actions/solo.js";
 import { realmFlag } from "../rules/realm-documents.js";
 import { hidesKind } from "../rules/solo.js";
+import { liftingHoldings } from "./realm-fog.js";
 
 /**
  * Foundry draws a hidden Tile or Drawing for every GM. In solo play the Referee
@@ -51,9 +52,12 @@ export function leaveSecretsOffList(tab, element) {
 	}
 }
 
-/** Draw Realm Tiles and Drawings with solo play's secrets kept. Called during init. */
+/**
+ * Draw Realm Tiles and Drawings with solo play's secrets kept, and the Holdings
+ * over a Realm's Fog of War where they show through it. Called during init.
+ */
 export function registerSoloPlaceables() {
-	CONFIG.Tile.objectClass = keepingSecrets(CONFIG.Tile.objectClass);
+	CONFIG.Tile.objectClass = liftingHoldings(keepingSecrets(CONFIG.Tile.objectClass));
 	CONFIG.Drawing.objectClass = keepingSecrets(CONFIG.Drawing.objectClass);
 	Hooks.on("renderPlaceableTab", leaveSecretsOffList);
 }

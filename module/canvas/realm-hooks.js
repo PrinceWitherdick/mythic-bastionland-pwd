@@ -19,6 +19,7 @@ import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
 import { JOURNEY_FLAG } from "../actions/journey.js";
+import { REALM_FOG_FLAG, forgetRealmFog } from "../actions/realm-fog.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
@@ -30,6 +31,7 @@ import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
 import { followMovedHexes, refreshHexEditor } from "../apps/HexEditor.js";
 import { followMovedPlaces, refreshPlaces, registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
 import { registerVisitedMarksMenu } from "../apps/VisitedMarks.js";
+import { refreshRealmFog } from "../apps/RealmFog.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { registerTurnedBackQuery } from "./barrier-found.js";
@@ -38,6 +40,7 @@ import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
 import { drawHoldingArms, drawHoldingArmsSoon, registerHoldingArmsHooks } from "./holding-arms.js";
+import { clearRealmFog, drawRealmFog, refreshFoggedPlaceables } from "./realm-fog.js";
 import { registerTravelsClick } from "./travels-click.js";
 import { refreshTravelsButtons } from "./travels-controls.js";
 import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.js";
@@ -82,9 +85,22 @@ function showChanges() {
 			// What the Company saw from afar, which the Realm's Tiles or the Scene's marks may have changed,
 			// and where it has been, which only its Journey changes.
 			if (kind === "realm" || flags.has(SIGHTED_FLAG)) drawSightedMarks();
-			if (kind === "realm" || flags.has(JOURNEY_FLAG)) drawVisitedMarks();
+			// The Fog of War, which the Company's arrivals clear. A move that clears no hex leaves it as it was,
+			// and what it hides with it: who stands in its hexes, the marks of where it has been, and the arms.
+			const fogFlag = flags.has(REALM_FOG_FLAG);
+			const journey = flags.has(JOURNEY_FLAG);
+			const fogMoved = (kind === "realm" || fogFlag || journey) && drawRealmFog();
+			const hiding = kind === "realm" || fogFlag || fogMoved;
+			// Whether the Holdings show through it.
+			if (hiding) refreshFoggedPlaceables();
+			// Its window, and its brush among the Realm tools, which comes and goes as it's turned on and off.
+			if (fogFlag) {
+				refreshRealmFog(sceneId);
+				canvas.realm?.constructor.refreshFogTool();
+			}
+			if (hiding || journey) drawVisitedMarks();
 			// The arms each Holding flies, which a Holding moved, hidden, faded, renamed or granted changes.
-			if (kind === "realm") drawHoldingArmsSoon();
+			if (hiding) drawHoldingArmsSoon();
 		}
 	}
 	changedScenes.clear();
@@ -189,6 +205,8 @@ export function registerRealmHooks() {
 	};
 	for (const name of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(name, onOwnMyth);
 	Hooks.on("updateScene", (scene, changes) => {
+		// The hexes in the fog are read again after any change to the Scene: its fog, its visits, its size.
+		forgetRealmFog(scene.id);
 		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
 		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").
 		const { realm, system, hexFlags: written } = realmSceneChanges(changes);
@@ -210,6 +228,7 @@ export function registerRealmHooks() {
 	});
 	Hooks.on("deleteScene", (scene) => {
 		forgetRealm(scene.id);
+		forgetRealmFog(scene.id);
 		forgetRealmHistory(scene.id);
 		forgetHexArrivals(scene.id);
 	});
@@ -228,6 +247,8 @@ export function registerRealmHooks() {
 		if (!sceneId) return;
 		refreshRealmPanel(sceneId);
 		refreshRealmDrawing(sceneId);
+		// The fog is the paper's own colour.
+		if (sceneId === canvas?.scene?.id) drawRealmFog();
 	});
 
 	// The hex readout, and Travel and Exploration beside the map. The rules stay
@@ -239,11 +260,14 @@ export function registerRealmHooks() {
 	// `canvasReady` is what clears the rules away with the last Scene.
 	Hooks.on("canvasReady", () => {
 		attachHexReadout();
+		drawRealmFog();
 		drawSightedMarks();
 		drawVisitedMarks();
 		drawHoldingArms();
 		// Their show-or-hide and the Places window, beside the sidebar.
 		refreshTravelsButtons();
+		// The Fog of War window works on the Realm on the canvas.
+		refreshRealmFog();
 		showRealmRules();
 		// Where the Company got to while the GM was looking at another Scene.
 		offerWaitingArrival();
@@ -258,6 +282,7 @@ export function registerRealmHooks() {
 	});
 	Hooks.on("canvasTearDown", () => {
 		detachHexReadout();
+		clearRealmFog();
 		setTimeout(() => {
 			if (!isRealmScene(canvas?.scene)) {
 				closeTravelRules();

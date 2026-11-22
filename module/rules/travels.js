@@ -285,7 +285,8 @@ export function travelsList(sources, viewOf = hexViews(sources)) {
 /**
  * The Holdings the players can see on the map, as the hexes they stand in.
  * Every Holding is known from the start, so the chart draws one before the
- * Company ever goes there; one the GM hid by hand stays hidden.
+ * Company ever goes there; one the GM hid by hand stays hidden, and so does one
+ * the Fog of War hides, unless the Realm's Holdings show through it.
  * @param {TravelsSources} sources
  * @param {Set<string>} [known] The keys of hexes already on the chart, left out.
  * @param {ReturnType<typeof hexViews>} [viewOf]
@@ -294,6 +295,7 @@ export function travelsList(sources, viewOf = hexViews(sources)) {
 export function holdingsKnown(sources, known = new Set(), viewOf = hexViews(sources)) {
 	const hexes = new Map((sources.realm?.holdings ?? [])
 		.filter((holding) => holding.hex && !known.has(hexKey(holding.hex)))
+		.filter((holding) => !sources.fog?.holdingsFogged.has(hexKey(holding.hex)))
 		.map((holding) => [hexKey(holding.hex), holding.hex]));
 	return [...hexes.values()].sort(byPlace).map((hex) => viewOf(hex)).filter((view) => view.holding);
 }

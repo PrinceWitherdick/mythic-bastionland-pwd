@@ -38,6 +38,7 @@ import { calendarLabel, seasonLabel } from "./calendar.js";
 import { companyTokenHex, findCompanyToken } from "./company.js";
 import { hexesWithPeopleIn } from "./hex-lore.js";
 import { getHexNames, hexName } from "./hex-names.js";
+import { foggedForMe, holdingsFoggedForMe } from "./realm-fog.js";
 import { getHexShared, getHexSharedRecord, partyNoteBy } from "./hex-shared.js";
 import { getHexVisits, getJourney, realmKnownToPlayers, visitsLabel } from "./journey.js";
 import { getRealm, getRealmLook, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
@@ -70,8 +71,20 @@ export function travelsSources(scene) {
 		handHidden,
 		companyHex: companyTokenHex(scene),
 		gm: Boolean(game.user?.isGM),
-		numbering: hexNumbering(scene)
+		numbering: hexNumbering(scene),
+		// The Fog of War, where it hides hexes from whoever is looking: the players, or the Referee playing alone.
+		fog: fogFor(scene)
 	};
+}
+
+/**
+ * @param {Scene} scene
+ * @returns {{fogged: Set<string>, holdingsFogged: Set<string>}|null} The hexes the Fog of War hides from this
+ *   client, and those whose Holdings it hides; null where it hides none.
+ */
+function fogFor(scene) {
+	const fogged = foggedForMe(scene);
+	return fogged.size ? { fogged, holdingsFogged: holdingsFoggedForMe(scene) } : null;
 }
 
 /**
@@ -529,7 +542,8 @@ export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], fil
 			label: chartLabel,
 			selected: picked,
 			route: route ? routeOf(sources.journey) : null,
-			holdings: holdingsKnown(sources, new Set(every.map((one) => one.key)), viewOf)
+			holdings: holdingsKnown(sources, new Set(every.map((one) => one.key)), viewOf),
+			fogged: sources.fog?.fogged ?? null
 		}),
 		route,
 		legend: LEGEND_KINDS.map((kind) => ({ glyph: legendGlyph(kind, palette), label: t(`travels.chart.key.${kind}`) })),

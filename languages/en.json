@@ -5130,7 +5130,9 @@
         "reroll": "Reroll the Realm",
         "appearance": "Realm Appearance",
         "picture": "Import map",
-        "expand": "Expand the map"
+        "expand": "Expand the map",
+        "fog": "Fog brush",
+        "fogOfWar": "Fog of War"
       },
       "expand": {
         "title": "Expand the Map",
@@ -5621,6 +5623,35 @@
         "apply": "Apply",
         "applied": "{name} is being redrawn in the new look.",
         "appliedDefault": "New Realms will start with this look."
+      }
+    },
+    "realmFog": {
+      "title": "Fog of War",
+      "intro": "With the fog on, the players see the edge of every hex of {realm}, and nothing inside one until the Company gets there or you lift the fog from it.",
+      "noRealm": "Open a Realm on the canvas to set its Fog of War.",
+      "on": {
+        "name": "Fog of War on this Realm",
+        "hint": "Off unless you turn it on. Only this Realm changes."
+      },
+      "holdings": {
+        "name": "Holdings show through the fog",
+        "hint": "Every Holding and Seat stays on the players' map, fog or not."
+      },
+      "liftAll": "Lift all the fog",
+      "liftAllAsk": "Lift the fog from every hex of {realm}?",
+      "veilAll": "Bring the fog back everywhere",
+      "veilAllAsk": "Fog every hex of {realm} again, even where the Company has been? A hex clears again when the Company next arrives there.",
+      "brush": "Pick up the fog brush",
+      "done": "Done",
+      "lift": "Lift the fog",
+      "liftHint": "Let the players see this hex before the Company gets there.",
+      "veil": "Let the fog back",
+      "veilHint": "Hide this hex from the players again. It clears when the Company next arrives.",
+      "tellLifts": "Lift the fog here too",
+      "lifted": "The fog lifts from {count} hexes.",
+      "liftedOne": "The fog lifts from 1 hex.",
+      "readout": {
+        "unexplored": "Unexplored"
       }
     },
     "realmDrawing": {

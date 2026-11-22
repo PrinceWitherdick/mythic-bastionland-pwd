@@ -27,6 +27,8 @@ import { wheelNotches } from "./timeline-scroll.js";
  * @property {string|null} [selected]             The key of the hex chosen.
  * @property {{col: number, row: number}[]|null} [route] The hexes come into, in the order they were, to draw the way between.
  * @property {import("./travels.js").PlayerHexView[]} [holdings] Holdings known but not otherwise on the chart, drawn on the faint grid.
+ * @property {Set<string>|null} [fogged] The hexes the Fog of War hides, where it's on: a hex not reached but
+ *   out of it takes its terrain's colour, as the map shows it.
  */
 
 /** @param {number} value @returns {number} To a tenth of a pixel, which is all a drawing needs. */
@@ -125,7 +127,7 @@ export function routeStretches(g, route) {
  * @param {ChartOptions} options
  * @returns {string} SVG markup.
  */
-export function travelsChart(views, g, { palette, title, label, selected = null, route = null, holdings = [] }) {
+export function travelsChart(views, g, { palette, title, label, selected = null, route = null, holdings = [], fogged = null }) {
 	const known = new Map(views.map((view) => [view.key, view]));
 	const sides = directionNames(g);
 	const r = g.radius;
@@ -140,7 +142,9 @@ export function travelsChart(views, g, { palette, title, label, selected = null,
 		const visited = Boolean(view.visits);
 		const terrain = TERRAIN.indexOf(view.terrain);
 		// A hex reached whose terrain the GM hid still shows it was reached, in the rule's colour.
-		const fill = !visited ? palette.paper : terrain >= 0 ? palette.solid[terrain] : palette.rule;
+		// One the fog was lifted from shows its terrain as the map does, though the Company hasn't been.
+		const lifted = !visited && Boolean(fogged) && !fogged.has(view.key) && terrain >= 0;
+		const fill = lifted ? palette.solid[terrain] : !visited ? palette.paper : terrain >= 0 ? palette.solid[terrain] : palette.rule;
 		const name = label(view);
 		const parts = [
 			`<title>${escapeHTML(name)}</title>`,

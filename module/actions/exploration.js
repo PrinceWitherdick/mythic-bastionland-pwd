@@ -12,12 +12,13 @@ import {
 	folkloreToMark,
 	surveyFrom
 } from "../rules/exploration.js";
-import { sameHex } from "../rules/realm-geometry.js";
+import { hexAt, hexKey, sameHex } from "../rules/realm-geometry.js";
 import { directionName, wayItLies, whereItLies } from "./told-where.js";
 import { featureAt } from "../rules/realm.js";
 import { capitalise } from "../rules/text.js";
 import { VIRTUES, typedD20 } from "../rules/virtues.js";
-import { isRealmScene } from "./realm.js";
+import { isRealmScene, sceneGeometry, tileCentreOn } from "./realm.js";
+import { foggedForPlayers, liftRealmFogBy } from "./realm-fog.js";
 import { rollLabelledSave } from "./saves.js";
 import { offerSightings } from "./sighted.js";
 import { fogHidesTheWay } from "./sky-weather.js";
@@ -249,6 +250,8 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 		...(landmark && !landmark.revealed ? [featureId(realm.landmarks, here.hex, landmark.type)] : []),
 		...realm.barriers.filter((barrier) => !barrier.revealed && barriers.includes(barrier.edge)).map((barrier) => barrier.id)
 	].filter(Boolean);
+	// The Fog of War over the Hex and, seen from the vantage point, the hexes around: lifted once the Referee marks the map.
+	const lift = vantage ? fogLiftedBySight(scene, [where, ...survey.around.map((step) => step.hex)]) : [];
 
 	await postCard(null, "survey", {
 		scene: scene?.id ?? null,
@@ -266,9 +269,9 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 			holding: step.holding ? t("explore.survey.someHolding") : null
 		})),
 		hint: fogged ? t("skyWeather.fog.vantage") : t(vantage ? "explore.survey.vantageHint" : "explore.survey.sweepHint"),
-		mark: markButton(ids)
+		mark: markButton(ids, lift)
 	}, { mode: "gm" });
-	if (ids.length && keptFromMe()) await markOnPlayersMap(scene, ids);
+	if ((ids.length || lift.length) && keptFromMe()) await markOnPlayersMap(scene, ids, { lift });
 	if (survey.vantage) await offerSightings({ scene, realm, g, where });
 	return survey;
 }
@@ -304,24 +307,47 @@ async function rollExplorationSave(actor, virtue, rolled = null) {
 }
 
 /**
- * A card's button for marking what it told of on the players' map. Played
- * alone, the Referee is the one told, so it's marked at once instead and there's no button.
- * @param {string[]} ids Tile and Drawing ids.
- * @returns {{label: string, ids: string}|null}
+ * The hexes a look from a vantage point lifts the Fog of War from: those it
+ * took in -- the Hex itself, and the six around it unless the weather's fog
+ * hid them -- that it still lies over.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}[]} seen
+ * @returns {{col: number, row: number}[]} None while the Realm has no Fog of War.
  */
-const markButton = (ids) => (ids.length && !keptFromMe() ? { label: t("explore.mark"), ids: ids.join(",") } : null);
+function fogLiftedBySight(scene, seen) {
+	const fogged = foggedForPlayers(scene);
+	return seen.filter((hex) => fogged.has(hexKey(hex)));
+}
+
+/**
+ * A card's button for marking what it told of on the players' map, and
+ * lifting the Fog of War from the hexes it names. Played alone, the Referee
+ * is the one told, so it's marked at once instead and there's no button.
+ * @param {string[]} ids Tile and Drawing ids.
+ * @param {{col: number, row: number}[]} [lift] Hexes to lift the fog from.
+ * @returns {{label: string, ids: string, lift: string}|null} The hexes' keys joined by ";", as each holds a comma.
+ */
+const markButton = (ids, lift = []) => ((ids.length || lift.length) && !keptFromMe()
+	? { label: t("explore.mark"), ids: ids.join(","), lift: lift.map(hexKey).join(";") }
+	: null);
 
 /**
  * Show the players what the Company was told or saw: the Myths, Landmarks and
  * Barriers named are drawn on the map the players see. A Myth or a Landmark is a
  * Tile and a Barrier is a Drawing (module/rules/realm-documents.js), so each id
- * is looked for in both collections rather than the Tiles alone. GMs only.
+ * is looked for in both collections rather than the Tiles alone. Where the
+ * Realm has its Fog of War on, the fog lifts from the hex of each Tile named,
+ * so what's marked is seen, and from the hexes a vantage point took in. GMs only.
  * @param {Scene} scene
  * @param {string[]} ids Tile and Drawing ids.
+ * @param {object} [options]
+ * @param {{col: number, row: number}[]} [options.lift] Hexes seen from a vantage point, to lift the fog from.
  * @returns {Promise<number>} How many were marked.
  */
-export async function markOnPlayersMap(scene, ids) {
+export async function markOnPlayersMap(scene, ids, { lift = [] } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return 0;
+	// Read before the marking: the set read later is a new one, so this stays as it was.
+	const fogged = foggedForPlayers(scene);
 	let marked = 0;
 	for (const [type, collection] of [["Tile", scene.tiles], ["Drawing", scene.drawings]]) {
 		const updates = ids
@@ -332,6 +358,28 @@ export async function markOnPlayersMap(scene, ids) {
 		await scene.updateEmbeddedDocuments(type, updates);
 		marked += updates.length;
 	}
-	ui.notifications.info(t(marked ? "explore.marked" : "explore.markedNothing", { count: marked }));
+	const lifted = fogged.size ? await liftMarkedFog(scene, ids, lift, fogged) : 0;
+	if (marked || !lifted) ui.notifications.info(t(marked ? "explore.marked" : "explore.markedNothing", { count: marked }));
+	else ui.notifications.info(t(lifted === 1 ? "realmFog.liftedOne" : "realmFog.lifted", { count: lifted }));
 	return marked;
+}
+
+/**
+ * Lift the Fog of War from the hexes a marking shows the players: each named
+ * Tile's, and those seen from a vantage point. A Barrier, which runs between
+ * hexes and is drawn over the fog, lifts none.
+ * @param {Scene} scene
+ * @param {string[]} ids
+ * @param {{col: number, row: number}[]} lift
+ * @param {Set<string>} fogged The hexes in the fog before the marking.
+ * @returns {Promise<number>} How many hexes it lifted from.
+ */
+async function liftMarkedFog(scene, ids, lift, fogged) {
+	const g = sceneGeometry(scene);
+	const tiles = ids.map((id) => scene.tiles?.get(id)).filter(Boolean).map(tileCentreOn(scene));
+	const marked = tiles.map((tile) => hexAt(g, tile)).filter(Boolean);
+	const lifting = new Set([...lift, ...marked].map(hexKey).filter((key) => fogged.has(key)));
+	if (!lifting.size) return 0;
+	await liftRealmFogBy(scene, [{ hexes: lift, by: "vantage" }, { hexes: marked, by: "marked" }]);
+	return lifting.size;
 }
