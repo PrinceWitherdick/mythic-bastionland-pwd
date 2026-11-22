@@ -2654,7 +2654,7 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page prose-mirror,
 .bastionland-page .editor-content {
 	min-height: 6rem;
-	padding: 0.4rem 0.6rem;
+	padding: 0.6rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
 	background: rgb(var(--bastionland-sheen-rgb) / calc(0.25 * var(--bastionland-sheen)));
@@ -2670,6 +2670,22 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page prose-mirror {
 	display: flex;
 	flex-direction: column;
+	padding: 0;
+}
+
+/*
+ * The text stands as far from the frame above as at the sides. The frame
+ * itself has no padding round an editor, whose `.editor-content` keeps it, or
+ * the two added up; and the first and last of what's written keep no margin of
+ * their own at the frame, or a paragraph's, a list's or a heading's margin
+ * stood the words further off at the top.
+ */
+.bastionland-page .editor-content > :first-child {
+	margin-top: 0;
+}
+
+.bastionland-page .editor-content > :last-child {
+	margin-bottom: 0;
 }
 
 .bastionland-page prose-mirror.active {

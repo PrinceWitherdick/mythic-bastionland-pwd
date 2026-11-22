@@ -524,6 +524,15 @@ describe("centring the letters", () => {
 		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
 	});
 
+	// A Chronicle's or notes' words stand as far from the frame above as at the sides.
+	it("insets the words of rich text on a sheet alike at the top and the sides", () => {
+		expect(rule("mythic-bastionland.css", ".bastionland-page prose-mirror").padding).toBe("0");
+		expect(rule("mythic-bastionland.css", ".bastionland-page .editor-content > :first-child")).toEqual({ "margin-top": "0" });
+		expect(rule("mythic-bastionland.css", ".bastionland-page .editor-content > :last-child")).toEqual({ "margin-bottom": "0" });
+		const shared = rule("mythic-bastionland.css", ".bastionland-page prose-mirror,\n.bastionland-page .editor-content");
+		expect(shared.padding.split(/\s+/)).toHaveLength(1);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");
