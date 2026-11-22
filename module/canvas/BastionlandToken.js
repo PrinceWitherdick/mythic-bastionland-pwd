@@ -6,6 +6,7 @@ import { t } from "../chat/cards.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { onCompanyDoubleClick } from "./travels-click.js";
 import { isKnight } from "../rules/knight-types.js";
+import { openRingOnClick } from "./combat-ring.js";
 
 /** Token flag set when the heraldry badge is hidden on that Token. */
 export const HIDE_HERALDRY_FLAG = "hideHeraldry";
@@ -96,6 +97,16 @@ export class BastionlandToken extends foundry.canvas.placeables.Token {
 	_canView(user, event) {
 		if (!this.isCompany) return super._canView(user, event);
 		return Boolean(this.layer.active && !this.isPreview && !this.layer._draggedToken);
+	}
+
+	/**
+	 * A plain click that lets go of a Token in a Combat also puts its combat
+	 * buttons round it (module/canvas/combat-ring.js).
+	 * @inheritDoc
+	 */
+	_onUnclickLeft(event) {
+		super._onUnclickLeft(event);
+		openRingOnClick(this, event);
 	}
 
 	/**

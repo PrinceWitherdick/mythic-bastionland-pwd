@@ -1040,6 +1040,12 @@
       "fail": "Fail",
       "target": "Needs {value} or less"
     },
+    "combatRing": {
+      "label": "{name}’s combat buttons",
+      "fight": "Fight",
+      "saves": "Saves",
+      "save": "Roll a {virtue} Save, against {value}"
+    },
     "morale": {
       "title": "Morale",
       "holds": "Holds firm.",
@@ -6067,6 +6073,10 @@
       "artPreviews": {
         "name": "Larger Art on Hover",
         "hint": "Show a larger copy of a Knight’s, Seer’s or Myth’s picture beside it while the pointer is over it."
+      },
+      "combatRing": {
+        "name": "Combat Buttons on a Clicked Token",
+        "hint": "Clicking a Token in a Combat puts Attack, Take Damage and its Saves beside it, and Morale for an NPC, so you needn't open its sheet."
       }
     },
     "dice": {

@@ -34,7 +34,7 @@ export const SETTING_GROUPS = Object.freeze([
 	{
 		id: "windows",
 		title: "bastionland.settingsTab.groups.windows",
-		keys: ["artPreviews", "restoreOpenSheets", "phaseBannerShown", "travelRulesShown", "hexReadoutShown", "visitedMarksShown", "showTours"],
+		keys: ["artPreviews", "restoreOpenSheets", "phaseBannerShown", "travelRulesShown", "hexReadoutShown", "visitedMarksShown", "combatRing", "showTours"],
 		menus: ["visitedMarks"]
 	},
 	{

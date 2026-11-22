@@ -6114,6 +6114,82 @@ button.bastionland-company-button:focus-visible {
 	color: var(--bastionland-paper);
 }
 
+/*
+ * The combat buttons round a Token in a Combat (module/canvas/combat-ring.js):
+ * Attack, Take Damage and Morale in a column on its left, its Saves on its
+ * right, each column centred on the Token and growing away from it. They float
+ * over the map, so they're drawn as the Company's button is: paper, the
+ * floating panel's corner and the lift. Foundry places and scales the window
+ * as it does its own Token HUD; the columns are set beside it here, under
+ * #hud so Foundry's own rules for its HUD's columns don't outweigh them.
+ */
+#hud #bastionland-combat-ring {
+	position: absolute;
+	pointer-events: none;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col {
+	position: absolute;
+	top: 50%;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	translate: 0 -50%;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col.left {
+	right: calc(100% + 0.75rem);
+	align-items: flex-end;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col.right {
+	left: calc(100% + 0.75rem);
+	align-items: flex-start;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__button {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.4rem;
+	width: max-content;
+	height: 2.1rem;
+	min-height: 0;
+	margin: 0;
+	padding: 0 0.75rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 6px;
+	background: var(--bastionland-paper);
+	box-shadow: var(--bastionland-lift);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	white-space: nowrap;
+	pointer-events: auto;
+	cursor: pointer;
+	/* Foundry gives every button a half-second transition on every property it has. */
+	transition: none;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__button:hover,
+#hud #bastionland-combat-ring .bastionland-combat-ring__button:focus-visible {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__button > i {
+	flex: none;
+	width: 1.25em;
+	margin: 0;
+	text-align: center;
+}
+
+/* The Virtue's score beside its name, in the figures the sheet's score boxes use. */
+#hud #bastionland-combat-ring .bastionland-combat-ring__value {
+	font-family: var(--bastionland-font-body);
+	font-variant-numeric: tabular-nums;
+}
+
 /* The Company off the map is the one thing standing between the Referee and
    play, so its button is filled in rubric and a ring swells out from it until
    it's hovered. The ring is a layer of its own that only grows and fades, so

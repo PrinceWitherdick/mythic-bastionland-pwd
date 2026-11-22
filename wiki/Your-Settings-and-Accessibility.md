@@ -48,6 +48,7 @@ The coloured cards for the Phase and the Season keep their own inks under a dark
 | **Travel Rules beside the Realm Map** | On | Travel on the left of a Realm's map and Rest and Exploration on its right. A Referee who hides them hides the roll buttons they hold too. See [Exploring the Wilderness](Exploring-the-Wilderness). |
 | **Name the Realm Hex under the Pointer** | On | The label under the map naming the terrain of the hex you point at, and what stands there. |
 | **Mark the Hexes the Company Has Been To** | On | The marks on every hex of a Realm the Company has come into. The footprints button beside the sidebar does the same. |
+| **Combat Buttons on a Clicked Token** | On | Clicking a Token in a Combat puts Attack, Take Damage and its Saves beside it, and Morale for an NPC. See [Combat for Players](Combat-for-Players#combat-buttons-on-a-token). |
 | **Start the Tours by Themselves** | On | Whether Foundry Tours about making a Realm start on their own. Off, they wait in **Tour Management** for you to play. |
 
 Under them, **Choose the Mark** opens the **Visited Marks** window: pick a **Pencilled Ring**, a **Tick** (the default), a **Cross** or the **Hex Edge**, each in a colour of your choosing, with **Default Colours** to go back. **Right-clicking the footprints button** beside the sidebar opens the same window. See [Travels and Places](Travels-and-Places).
