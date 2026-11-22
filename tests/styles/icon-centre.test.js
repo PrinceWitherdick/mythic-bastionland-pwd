@@ -507,6 +507,23 @@ describe("centring the letters", () => {
 		expect(bring.map(({ body }) => body.trim())).toEqual(drop.map(({ body }) => body.trim()));
 	});
 
+	/*
+	 * The Toolkit's Sites page had its own Journal and Open the Site buttons,
+	 * whose own line height and padding left their words off the middle in
+	 * Foundry. They are the sheet's button now, held at their label's width
+	 * beside the Site's line, and move their words by nothing of their own.
+	 */
+	it("draws a Site's Journal and Open the Site buttons as the sheet's own button", () => {
+		const places = readFileSync(join(root, "templates/actor/gm-toolkit/places.hbs"), "utf8");
+		const buttons = [...places.matchAll(/<button [^>]*bastionland-gm-toolkit__site-open[^>]*>/g)].map(([tag]) => tag);
+		expect(buttons).toHaveLength(2);
+		for (const tag of buttons) expect(tag).toMatch(/class="bastionland-button bastionland-gm-toolkit__site-open"/);
+		expect(rule("gm-toolkit.css", ".bastionland-page .bastionland-gm-toolkit__site-open")).toEqual({ flex: "none" });
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => selector.includes("bastionland-gm-toolkit__site-open")));
+		const moved = own.filter(({ body }) => /(^|;|\s)(display|height|min-height|line-height|padding|padding-(top|bottom|block)|align-items|vertical-align):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

@@ -1311,16 +1311,9 @@
 	font-size: 1.15rem;
 }
 
-.bastionland-page button.bastionland-gm-toolkit__site-open {
-	display: inline-flex;
+/* The sheet's own button, which centres its words; held at its label's width beside the Site's line. */
+.bastionland-page .bastionland-gm-toolkit__site-open {
 	flex: none;
-	align-items: center;
-	gap: 0.3rem;
-	width: auto;
-	height: auto;
-	min-height: var(--button-size, 2rem);
-	padding: 0.25rem 0.6rem;
-	line-height: 1.15;
 }
 
 /* ---------------------------------------------------------------- */
