@@ -1278,9 +1278,23 @@
         "name": "By name",
         "most": "Most visited first"
       },
+      "group": {
+        "label": "Arrange",
+        "kind": "By Kind",
+        "none": "One List"
+      },
+      "more": {
+        "all": "Show all {count}",
+        "fewer": "Show fewer"
+      },
       "sections": {
         "ofNote": "Places of Note",
         "ofNoteHint": "Where the Company found something, was told something or wrote a note.",
+        "holdings": "Holdings",
+        "myths": "Myths",
+        "landmarks": "Landmarks",
+        "other": "Other Finds",
+        "otherHint": "Barriers, things told, notes and things seen from afar.",
         "wilderness": "Wilderness",
         "heardOf": "Heard Of",
         "heardOfHint": "Told of, written about or seen from afar, but not reached yet."
@@ -1315,6 +1329,32 @@
         "toldGM": "The Company was told of {place}",
         "met":"{name} was turned back by the {direction} Barrier of {place}",
         "noted": "{name} wrote the Company’s note on {place}",
+        "kinds": {
+          "label": "Show only",
+          "all": "All",
+          "first": "First Visits",
+          "arrived": "Arrivals",
+          "told": "Told",
+          "met": "Barriers",
+          "noted": "Notes"
+        },
+        "run": {
+          "lead": "Travelled through {count} hexes, from",
+          "to": "to",
+          "fresh": "({count} for the first time)",
+          "freshAll": "(all for the first time)",
+          "each": "Each hex of this ride"
+        },
+        "tally": {
+          "reached": "{count} hexes reached",
+          "reachedOne": "1 hex reached",
+          "told": "{count} told",
+          "met": "{count} Barriers met",
+          "metOne": "1 Barrier met",
+          "noted": "{count} notes",
+          "notedOne": "1 note"
+        },
+        "earlier": "Show {count} earlier days",
         "forget": {
           "arrived": "Forget this visit",
           "told": "Forget this telling",

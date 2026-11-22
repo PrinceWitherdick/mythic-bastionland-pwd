@@ -23,6 +23,8 @@ const REM = 16;
  */
 const BADGES = [
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-icon" },
+	// The Places rows' marks for a telling and a note.
+	{ sheet: "mythic-bastionland.css", selector: ".bastionland-travels__mark" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page .bastionland-knighthood-help" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page .bastionland-heraldry-painter__arms-counterchange" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-site__step-number" },
@@ -224,6 +226,39 @@ describe("centring the letters", () => {
 		expect(css).toMatch(new RegExp(`${leaf.replace(/[.>]/g, "\\$&")},[^{]*\\{[^}]*font-size: 0\\.75em;`));
 		expect(rule("gm-toolkit.css", leaf)).toEqual({ position: "relative", top: "-0.1667em" });
 		expect(readFileSync(join(root, "templates/actor/gm-toolkit/time.hbs"), "utf8")).toContain('<h2 class="bastionland-heading"><i class="{{thisSeason.icon}}" inert></i> {{thisSeason.label}}</h2>');
+	});
+
+	/*
+	 * The Places window's folding heads are headings, so all capitals, with a
+	 * chevron before the words and a count after them in the body face: both rise
+	 * to the capitals' middle, the same at either heading size. A ride's chevron,
+	 * in a disc taller than a line of its words, is centred on their first line,
+	 * and a row's title line opens with a strut as tall as the corner beside it,
+	 * so the two share a middle when the terrain wraps under the title. Measured
+	 * offline with render-tame.mjs's probe at 1×, 1.25× and 1.5× (2026-11-22):
+	 * chevrons and head counts ≤0.2px, a filter pill's count 0.5px, a ride's
+	 * chevron 0.2px, the corner against the title 0.3px; before, heads sat 0.6
+	 * to 1.8px low, the ride's chevron 2.5px and a wrapped row's corner 4.9px.
+	 */
+	it("raises a folding head's chevron and count to its capitals, and centres a ride's chevron on its first line", () => {
+		const fold = rule("mythic-bastionland.css", ".bastionland-page .bastionland-travels__fold");
+		expect(fold).toMatchObject({ display: "inline-flex", "align-items": "center", "text-transform": "inherit" });
+		expect(rule("mythic-bastionland.css", ".bastionland-travels__fold > i")).toMatchObject({ position: "relative", top: "-0.21rem", "font-size": "0.7rem" });
+		expect(rule("mythic-bastionland.css", ".bastionland-travels__fold > .bastionland-travels__count")).toMatchObject({ position: "relative", top: "-0.24rem", "font-family": "var(--bastionland-font-body)" });
+		// A filter pill's count is plain words inside the pill's block, moved by nothing.
+		const count = rule("mythic-bastionland.css", ".bastionland-travels__count");
+		expect(Object.keys(count).filter((name) => /^(display|line-height|padding|vertical-align|top|translate|transform|position)/.test(name))).toEqual([]);
+		const ride = rule("mythic-bastionland.css", ".bastionland-travels-journey__ride");
+		expect(ride).toMatchObject({ "font-size": "var(--bastionland-font-text)", "line-height": "1.3" });
+		expect(rule("mythic-bastionland.css", ".bastionland-page .bastionland-travels-journey__unfold")).toMatchObject({
+			"align-self": "start",
+			height: "1.5rem",
+			"margin-block": `calc((${ride["line-height"]} * ${ride["font-size"]} - 1.5rem) / 2)`
+		});
+		expect(rule("mythic-bastionland.css", ".bastionland-travels__open > .bastionland-travels__head::before").height)
+			.toBe(rule("mythic-bastionland.css", ".bastionland-travels__corner")["min-height"]);
+		const list = readFileSync(join(root, "templates/apps/parts/travels-list.hbs"), "utf8");
+		expect(list).toContain('<i class="fa-solid fa-chevron-right" inert></i>\n\t\t<span>{{heading}}</span>\n\t\t{{#if count}}<span class="bastionland-travels__count">{{count}}</span>{{/if}}');
 	});
 
 	/*

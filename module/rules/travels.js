@@ -174,6 +174,60 @@ const NOTEWORTHY = new Set(["holding", "landmark", "myth", "told", "noted", "bar
  */
 export const ofNote = (view) => viewTags(view).some((tag) => NOTEWORTHY.has(tag));
 
+/** How the places of note can be arranged, the first the default: gathered by kind, or as one list. */
+export const TRAVELS_GROUPS = Object.freeze(["kind", "none"]);
+
+/** The kinds the places of note are gathered by, in the order their groups show. */
+export const PLACE_KINDS = Object.freeze(["holding", "myth", "landmark", "other"]);
+
+/**
+ * @param {PlayerHexView} view
+ * @returns {string} One of PLACE_KINDS: the first of a Holding, a Myth and a Landmark the hex has, else "other".
+ */
+export const placeKind = (view) => PLACE_KINDS.find((kind) => kind !== "other" && view[kind]) ?? "other";
+
+/**
+ * Gather places by kind, each hex once.
+ * @param {PlayerHexView[]} views
+ * @returns {{kind: string, views: PlayerHexView[]}[]} In PLACE_KINDS order, a kind with no place left out, each kind's places in the order given.
+ */
+export function groupByKind(views) {
+	return PLACE_KINDS
+		.map((kind) => ({ kind, views: views.filter((view) => placeKind(view) === kind) }))
+		.filter((group) => group.views.length > 0);
+}
+
+/** How many rows a list of places shows before the rest wait behind a button. */
+export const LIST_CAP = 8;
+
+/** How many days an open Season of the journey shows before the earlier ones wait behind a button. */
+export const DAYS_CAP = 7;
+
+/**
+ * How many of a list show. All of them once the cap is lifted, when no more
+ * than two would wait (never "show 1 more"), or when the one to keep in sight
+ * would be among those waiting.
+ * @param {number} count How many there are.
+ * @param {object} [options]
+ * @param {number} [options.cap]
+ * @param {boolean} [options.lifted] Whether the cap was lifted.
+ * @param {number} [options.keep] Where the chosen one stands in the list, -1 for none.
+ * @returns {number}
+ */
+export function shownOf(count, { cap = LIST_CAP, lifted = false, keep = -1 } = {}) {
+	return lifted || count <= cap + 2 || keep >= cap ? count : cap;
+}
+
+/**
+ * @param {PlayerHexView[]} views
+ * @returns {Record<string, number>} How many of the hexes carry each of viewTags' tags; a tag none carries is left out.
+ */
+export function tagCounts(views) {
+	const counts = {};
+	for (const view of views) for (const tag of viewTags(view)) counts[tag] = (counts[tag] ?? 0) + 1;
+	return counts;
+}
+
 /** The orders the places can be listed in, the first the default. */
 export const TRAVELS_SORTS = Object.freeze(["last", "name", "most"]);
 
@@ -342,6 +396,60 @@ export function journeyLog(sources, viewOf = hexViews(sources)) {
 		when,
 		days: [...days.values()].sort(byDate).map(({ entries: kept }) => ({ entries: kept }))
 	}));
+}
+
+/** What the journey's lines can be narrowed to, in the order the filters show them. */
+export const JOURNEY_KINDS = Object.freeze(["first", "arrived", "told", "met", "noted"]);
+
+/**
+ * @param {JourneyEntry} entry
+ * @returns {string[]} What a line is, for the journey's filter: an arrival, and a first one as well where it was; else its own kind.
+ */
+export const entryKinds = (entry) => (entry.kind === "arrived" && entry.first ? ["arrived", "first"] : [entry.kind]);
+
+/** How many arrivals in a row make a ride, told in one line. */
+export const RUN_MIN = 3;
+
+/**
+ * A day's lines with its rides gathered: RUN_MIN or more arrivals in a row
+ * within one Phase become one run, and every other line stays as it is.
+ * Arrivals kept with no date share one Phase.
+ * @param {JourneyEntry[]} entries A day's lines, in the order they went.
+ * @returns {({run: JourneyEntry[]}|{entry: JourneyEntry})[]} In the same order.
+ */
+export function dayItems(entries) {
+	const items = [];
+	let run = [];
+	const close = () => {
+		if (run.length >= RUN_MIN) items.push({ run });
+		else items.push(...run.map((entry) => ({ entry })));
+		run = [];
+	};
+	const phaseOf = (entry) => entry.when?.phase ?? "";
+	for (const entry of entries) {
+		if (entry.kind !== "arrived") {
+			close();
+			items.push({ entry });
+			continue;
+		}
+		if (run.length && phaseOf(run[0]) !== phaseOf(entry)) close();
+		run.push(entry);
+	}
+	close();
+	return items;
+}
+
+/**
+ * @param {JourneySeason} season
+ * @returns {{reached: number, told: number, met: number, noted: number}}
+ *   What a Season held: every arrival, the tellings, the Barriers met and the notes.
+ */
+export function seasonTally(season) {
+	const tally = { reached: 0, told: 0, met: 0, noted: 0 };
+	for (const { entries } of season.days) {
+		for (const entry of entries) tally[entry.kind === "arrived" ? "reached" : entry.kind] += 1;
+	}
+	return tally;
 }
 
 /**

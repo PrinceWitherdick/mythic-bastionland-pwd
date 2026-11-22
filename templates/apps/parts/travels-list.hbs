@@ -1,30 +1,20 @@
 {{!-- The Company's places on one Realm: as a list, as a chart, and as the journey's log. Shared by the Places window and the Knight sheet. --}}
-{{#*inline "travels-chips"}}
-{{#if (or told noted)}}
-<span class="bastionland-travels__chips">
-	{{#if told}}<span class="bastionland-travels__chip bastionland-pill"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.travels.chips.told"}}</span>{{/if}}
-	{{#if noted}}<span class="bastionland-travels__chip bastionland-pill"><i class="fa-solid fa-pen-nib" inert></i> {{localize "bastionland.travels.chips.note"}}</span>{{/if}}
-</span>
-{{/if}}
-{{/inline}}
+{{!-- One place, in two lines: its name, where it is and its terrain; then what stands there and the visits.
+      The far right holds small marks for a telling and a note, where the Company is, and the crosshairs. --}}
 {{#*inline "travels-row"}}
-<li class="bastionland-travels__row{{#if selected}} is-selected{{/if}}" data-search="{{search}}" data-tags="{{tags}}">
+<li class="bastionland-travels__row{{#if selected}} is-selected{{/if}}" data-search="{{search}}" data-tags="{{tags}}"{{#if over}} data-over{{/if}}>
 	<button type="button" class="bastionland-travels__open" data-action="pickTravelsHex" data-hex="{{hex}}"{{#if selected}} aria-current="true"{{/if}}>
-		{{!-- The terrain chip sits beside the title while there's room, and wraps under it when there isn't.
-		      The Told and Note chips do the same at the end of the last line above the visits. --}}
 		<span class="bastionland-travels__head">
 			<span class="bastionland-travels__title">{{#if name}}{{name}}{{else}}{{title}}{{/if}}</span>
+			{{#if coords}}<span class="bastionland-travels__coords">{{coords}}</span>{{/if}}
 			{{#if terrain}}<span class="bastionland-hex-lore__terrain bastionland-pill bastionland-pill--small-caps">{{terrain}}</span>{{/if}}
-			{{#unless lines.length}}{{> travels-chips}}{{/unless}}
 		</span>
-		{{#each lines}}
-		<span class="bastionland-travels__line bastionland-travels__more"><span>{{this}}</span>{{#if @last}}{{> travels-chips ..}}{{/if}}</span>
-		{{/each}}
-		<span class="bastionland-travels__line bastionland-travels__visits">{{visits}}</span>
+		<span class="bastionland-travels__line">{{about}}</span>
 	</button>
-	{{!-- The title line's right end: where the Company is, then the crosshairs that show it on the map. --}}
-	{{#if (or here onMap)}}
+	{{#if corner}}
 	<span class="bastionland-travels__corner">
+		{{#if told}}<span class="bastionland-travels__mark" role="img" aria-label="{{localize 'bastionland.travels.chips.told'}}" data-tooltip="{{localize 'bastionland.travels.chips.told'}}"><i class="fa-solid fa-comment" inert></i></span>{{/if}}
+		{{#if noted}}<span class="bastionland-travels__mark" role="img" aria-label="{{localize 'bastionland.travels.chips.note'}}" data-tooltip="{{localize 'bastionland.travels.chips.note'}}"><i class="fa-solid fa-pen-nib" inert></i></span>{{/if}}
 		{{#if here}}<span class="bastionland-travels__chip bastionland-pill bastionland-travels__chip--here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}
 		{{#if onMap}}
 		<button type="button" class="bastionland-icon" data-action="showTravelsHex" data-hex="{{hex}}" data-tooltip="{{localize 'bastionland.travels.showOnMap'}}" aria-label="{{localize 'bastionland.travels.showOnMap'}}"><i class="fa-solid fa-location-crosshairs" inert></i></button>
@@ -33,21 +23,44 @@
 	{{/if}}
 </li>
 {{/inline}}
-{{!-- How many hexes the Company has visited. --}}
-{{#*inline "travels-summary"}}
-<p class="bastionland-travels__summary{{#if top}} bastionland-travels__summary--top{{/if}}">{{summary}}</p>
+{{!-- A heading that folds what's under it: a chevron, its words, and how many it holds. --}}
+{{#*inline "travels-fold-head"}}
+<h3 class="bastionland-heading{{#if small}} bastionland-heading--small{{/if}} bastionland-travels__fold-head">
+	<button type="button" class="bastionland-travels__fold" data-travels-fold="{{key}}" aria-expanded="{{#if folded}}false{{else}}true{{/if}}">
+		<i class="fa-solid fa-chevron-right" inert></i>
+		<span>{{heading}}</span>
+		{{#if count}}<span class="bastionland-travels__count">{{count}}</span>{{/if}}
+	</button>
+</h3>
 {{/inline}}
+{{!-- A folding list of places, those past its cap waiting behind the button under it. --}}
 {{#*inline "travels-section"}}
-{{#if rows.length}}
-<section class="bastionland-travels__section" data-search-section{{#if counted}} data-counted{{/if}}>
-	<h3 class="bastionland-heading">{{heading}}</h3>
-	{{#if hint}}<p class="bastionland-hint">{{hint}}</p>{{/if}}
-	{{#if counted}}{{> travels-summary}}{{/if}}
-	<ul class="bastionland-travels__list">
-		{{#each rows}}{{> travels-row}}{{/each}}
-	</ul>
+<section class="bastionland-travels__section" data-search-section{{#if folded}} data-folded{{/if}}>
+	{{> travels-fold-head}}
+	<div class="bastionland-travels__fold-body" data-fold-body>
+		{{#if hint}}<p class="bastionland-hint">{{hint}}</p>{{/if}}
+		<ul class="bastionland-travels__list"{{#if capped}} data-capped{{/if}}>
+			{{#each rows}}{{> travels-row}}{{/each}}
+		</ul>
+		{{#if more}}<button type="button" class="bastionland-add bastionland-travels__more" data-travels-more="{{key}}">{{more}}</button>{{/if}}
+	</div>
 </section>
-{{/if}}
+{{/inline}}
+{{!-- One line of the journey. --}}
+{{#*inline "travels-entry"}}
+<li class="bastionland-travels-journey__entry bastionland-travels-journey__entry--{{kind}}{{#if forget}} bastionland-travels-journey__entry--forgettable bastionland-reveal-host{{/if}}" data-search="{{search}}" data-tags="{{tags}}" data-kinds="{{kinds}}">
+	<span class="bastionland-travels-journey__phase{{#if phaseRepeat}} is-repeat{{/if}}">{{phase}}</span>
+	<button type="button" class="bastionland-travels-journey__open" data-action="pickTravelsHex" data-hex="{{hex}}">
+		<i class="{{icon}}" inert></i>
+		<span class="bastionland-travels-journey__said">{{said}}</span>
+		{{#if about}}<span class="bastionland-travels__line">{{about}}</span>{{/if}}
+		{{#if note}}<span class="bastionland-travels-journey__note">{{note}}</span>{{/if}}
+	</button>
+	{{!-- A GM's × in the Places window forgets the line, and what it stands for. --}}
+	{{#with forget}}
+	<button type="button" class="bastionland-icon bastionland-travels-journey__forget bastionland-reveal" data-action="forgetJourney" data-kind="{{../kind}}" data-hex="{{../hex}}" data-ref="{{ref}}" aria-label="{{label}}" data-tooltip="{{label}}"><i class="fa-solid fa-xmark" inert></i></button>
+	{{/with}}
+</li>
 {{/inline}}
 <div class="bastionland-travels" data-scene-id="{{sceneId}}">
 	{{#if noRealm}}
@@ -75,26 +88,41 @@
 	{{#if none}}
 	<p class="bastionland-hint">{{localize "bastionland.travels.none"}}</p>
 	{{else}}
-	<div class="bastionland-travels__filters" role="group" aria-label="{{localize 'bastionland.travels.filters.label'}}">
+	{{!-- What the places hold narrows the list and the chart; the journey has pills of its own, by what happened. --}}
+	<div class="bastionland-travels__filters" data-travels-filters role="group" aria-label="{{localize 'bastionland.travels.filters.label'}}" {{#if viewShown.journey}}hidden{{/if}}>
 		{{#each filters}}
-		<button type="button" class="bastionland-travels__filter bastionland-pill" data-travels-filter="{{key}}" aria-pressed="{{#if pressed}}true{{else}}false{{/if}}">{{label}}</button>
+		<button type="button" class="bastionland-travels__filter bastionland-pill" data-travels-filter="{{key}}" aria-pressed="{{#if pressed}}true{{else}}false{{/if}}" {{#if disabled}}disabled{{/if}}>{{label}}<span class="bastionland-travels__count">{{count}}</span></button>
 		{{/each}}
 	</div>
 	<p class="bastionland-hint bastionland-travels__no-match" hidden>{{localize "bastionland.travels.noMatch"}}</p>
 
 	<section class="bastionland-travels__view" data-view="places" {{#unless viewShown.places}}hidden{{/unless}}>
-		<label class="bastionland-travels__sort">
-			<span>{{localize "bastionland.travels.sort.label"}}</span>
-			<select data-travels-sort>
-				{{#each sorts}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
-			</select>
-		</label>
-		{{!-- The count sits under the Places of Note hint, or tops the page while that section is missing or hidden
-		      by a search or filter. --}}
-		{{> travels-summary top=true}}
-		{{> travels-section rows=ofNote heading=(localize "bastionland.travels.sections.ofNote") hint=(localize "bastionland.travels.sections.ofNoteHint") counted=true}}
-		{{> travels-section rows=wilderness heading=(localize "bastionland.travels.sections.wilderness") hint=""}}
-		{{> travels-section rows=heardOf heading=(localize "bastionland.travels.sections.heardOf") hint=(localize "bastionland.travels.sections.heardOfHint")}}
+		{{!-- How the places of note are arranged, and the order within. --}}
+		<div class="bastionland-travels__arrange">
+			<ul class="bastionland-choices bastionland-choices--inline" aria-label="{{localize 'bastionland.travels.group.label'}}">
+				{{#each groups}}
+				<li>
+					<button type="button" class="bastionland-choice bastionland-pill{{#if pressed}} is-active{{/if}}" data-travels-group="{{key}}" aria-pressed="{{#if pressed}}true{{else}}false{{/if}}">{{label}}</button>
+				</li>
+				{{/each}}
+			</ul>
+			<label class="bastionland-travels__sort">
+				<span>{{localize "bastionland.travels.sort.label"}}</span>
+				<select data-travels-sort>
+					{{#each sorts}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+				</select>
+			</label>
+		</div>
+		{{!-- How many hexes the Company has visited. --}}
+		<p class="bastionland-travels__summary">{{summary}}</p>
+		{{#with ofNoteGroups}}
+		<div class="bastionland-travels__groups" data-search-section>
+			<h3 class="bastionland-heading">{{heading}}</h3>
+			<p class="bastionland-hint">{{hint}}</p>
+			{{#each sections}}{{> travels-section}}{{/each}}
+		</div>
+		{{/with}}
+		{{#each sections}}{{> travels-section}}{{/each}}
 	</section>
 
 	<section class="bastionland-travels__view" data-view="chart" {{#unless viewShown.chart}}hidden{{/unless}}>
@@ -120,28 +148,44 @@
 		{{#if journeyNone}}
 		<p class="bastionland-hint">{{localize "bastionland.travels.journey.none"}}</p>
 		{{else}}
-		{{#each journey}}
-		<section class="bastionland-travels-journey__season" data-search-section>
-			<h3 class="bastionland-heading">{{heading}}</h3>
-			{{#each days}}
-			<ol class="bastionland-travels-journey__day" data-search-section>
-				{{#each entries}}
-				<li class="bastionland-travels-journey__entry bastionland-travels-journey__entry--{{kind}}{{#if forget}} bastionland-travels-journey__entry--forgettable bastionland-reveal-host{{/if}}" data-search="{{search}}" data-tags="{{tags}}">
-					<span class="bastionland-travels-journey__phase">{{phase}}</span>
-					<button type="button" class="bastionland-travels-journey__open" data-action="pickTravelsHex" data-hex="{{hex}}">
-						<i class="{{icon}}" inert></i>
-						<span class="bastionland-travels-journey__said">{{said}}</span>
-						{{#if about}}<span class="bastionland-travels__line">{{about}}</span>{{/if}}
-						{{#if note}}<span class="bastionland-travels-journey__note">{{note}}</span>{{/if}}
-					</button>
-					{{!-- A GM's × in the Places window forgets the line, and what it stands for. --}}
-					{{#with forget}}
-					<button type="button" class="bastionland-icon bastionland-travels-journey__forget bastionland-reveal" data-action="forgetJourney" data-kind="{{../kind}}" data-hex="{{../hex}}" data-ref="{{ref}}" aria-label="{{label}}" data-tooltip="{{label}}"><i class="fa-solid fa-xmark" inert></i></button>
-					{{/with}}
-				</li>
-				{{/each}}
-			</ol>
+		<div class="bastionland-travels__filters" role="group" aria-label="{{localize 'bastionland.travels.journey.kinds.label'}}">
+			{{#each journeyKinds}}
+			<button type="button" class="bastionland-travels__filter bastionland-pill" data-travels-kind="{{key}}" aria-pressed="{{#if pressed}}true{{else}}false{{/if}}">{{label}}</button>
 			{{/each}}
+		</div>
+		{{#each journey}}
+		{{!-- A Season: its tally reads while it's folded; open, its earlier days wait behind the button. --}}
+		<section class="bastionland-travels-journey__season" data-search-section{{#if folded}} data-folded{{/if}}>
+			{{> travels-fold-head}}
+			{{#if tally}}<p class="bastionland-hint bastionland-travels-journey__tally">{{tally}}</p>{{/if}}
+			<div class="bastionland-travels__fold-body" data-fold-body{{#if capped}} data-capped{{/if}}>
+				{{#each days}}
+				<ol class="bastionland-travels-journey__day" data-search-section{{#if over}} data-over{{/if}}>
+					{{#each items}}
+					{{#if run}}
+					{{#with run}}
+					{{!-- A ride: its arrivals in one line, which the chevron unfolds. Narrowed, the line goes and its arrivals stand for themselves. --}}
+					<li class="bastionland-travels-journey__run" data-search-section{{#if folded}} data-folded{{/if}}>
+						<div class="bastionland-travels-journey__entry bastionland-travels-journey__run-line">
+							<span class="bastionland-travels-journey__phase{{#if phaseRepeat}} is-repeat{{/if}}">{{phase}}</span>
+							<span class="bastionland-travels-journey__ride">
+								<button type="button" class="bastionland-icon bastionland-travels-journey__unfold" data-travels-fold="{{key}}" aria-expanded="{{#if folded}}false{{else}}true{{/if}}" aria-label="{{unfold}}" data-tooltip="{{unfold}}"><i class="fa-solid fa-chevron-right" inert></i></button>
+								<span class="bastionland-travels-journey__said">{{lead}} <button type="button" class="bastionland-travels-journey__place" data-action="pickTravelsHex" data-hex="{{from.hex}}">{{from.label}}</button> {{join}} <button type="button" class="bastionland-travels-journey__place" data-action="pickTravelsHex" data-hex="{{to.hex}}">{{to.label}}</button>{{#if fresh}} <span class="bastionland-travels__line">{{fresh}}</span>{{/if}}</span>
+							</span>
+						</div>
+						<ol class="bastionland-travels-journey__run-lines" data-fold-body>
+							{{#each entries}}{{~> travels-entry}}{{/each}}
+						</ol>
+					</li>
+					{{/with}}
+					{{else}}
+					{{#with entry}}{{~> travels-entry}}{{/with}}
+					{{/if}}
+					{{/each}}
+				</ol>
+				{{/each}}
+				{{#if more}}<button type="button" class="bastionland-add bastionland-travels__more" data-travels-more="{{key}}">{{more}}</button>{{/if}}
+			</div>
 		</section>
 		{{/each}}
 		{{/if}}

@@ -6,17 +6,28 @@ import { hexCentre, inRealm, parseHexKey } from "../rules/realm-geometry.js";
 import { realmPalette } from "../rules/realm-skins.js";
 import { sightedMarks } from "../rules/sighted.js";
 import { searchable } from "../rules/text.js";
+import { seasonKey } from "../rules/time.js";
 import {
+	DAYS_CAP,
+	JOURNEY_KINDS,
+	LIST_CAP,
 	TRAVELS_FILTERS,
+	TRAVELS_GROUPS,
 	TRAVELS_SORTS,
 	TRAVELS_VIEWS,
+	dayItems,
+	entryKinds,
+	groupByKind,
 	holdingsKnown,
 	journeyLog,
 	hexViewOf,
 	hexViews,
 	pickTravelsRealm,
+	seasonTally,
 	seasonYearsOn,
+	shownOf,
 	sortViews,
+	tagCounts,
 	travelsList,
 	viewSearchWords,
 	viewTags,
@@ -160,18 +171,22 @@ const visitsLine = (view, words) => (view.visits ? visitsText(view.visits) : (wo
  */
 function rowContext(view, onMap, selected, people = null) {
 	const words = wordsOf(view);
+	const [told, noted] = [view.told.length > 0, Boolean(view.party)];
 	return {
+		// Whether anything sits at the row's far right.
+		corner: told || noted || view.here || onMap,
 		key: view.key,
 		hex: view.key,
 		title: words.title,
 		name: words.name,
+		// Beside a hex's name, where it is; a hex with no name is titled by that already.
+		coords: words.name ? words.coords : "",
 		terrain: words.terrain,
-		// Under the title: where a named hex is, then what stands in it.
-		lines: [words.name && words.coords, words.features.join(", ")].filter(Boolean),
-		visits: visitsLine(view, words),
+		// Under the title, in one line: what stands in it, but for a name the title gave already, then how often the Company has been.
+		about: [...words.features.filter((feature) => feature !== words.name), visitsLine(view, words)].filter(Boolean).join(" · "),
 		here: view.here,
-		told: view.told.length > 0,
-		noted: Boolean(view.party),
+		told,
+		noted,
 		selected: view.key === selected,
 		onMap,
 		tags: tagsOf(view, people),
@@ -217,6 +232,8 @@ function journeyEntryContext(entry, forgettable = false, people = null) {
 		about: entry.kind === "arrived" && entry.first ? about : "",
 		note: entry.kind === "told" ? entry.note : "",
 		forget: forgettable ? { ref: entry.ref, label: t(`travels.journey.forget.${entry.kind}`) } : null,
+		// What the line is, for the journey's own filter.
+		kinds: entryKinds(entry).join(" "),
 		tags: tagsOf(view, people),
 		search: searchable([said, about, entry.note ?? "", searchText(view)].join(" "))
 	};
@@ -226,15 +243,105 @@ function journeyEntryContext(entry, forgettable = false, people = null) {
  * @param {import("../rules/travels.js").JourneySeason[]} log
  * @param {boolean} [forgettable] Whether each line has an × to forget it.
  * @param {Set<string>|null} [people] The hexes with someone rolled up in them, for a Referee.
- * @returns {object[]} The journey log, worded: a heading for each Season, and its days.
+ * @returns {object[]} The journey log, worded: a heading and a tally for each Season, and its days.
  */
 function journeyContext(log, forgettable = false, people = null) {
 	const yearsOn = seasonYearsOn(log);
 	return log.map((season, index) => ({
+		key: `journey:${season.when ? seasonKey(season.when) : "undated"}`,
 		heading: season.when ? seasonHeading(season.when, yearsOn[index]) : t("travels.journey.undated"),
-		days: season.days.map((day) => ({ entries: day.entries.map((entry) => journeyEntryContext(entry, forgettable, people)) }))
+		tally: tallyLine(seasonTally(season)),
+		days: season.days.map((day) => ({ items: dayItemsContext(day.entries, forgettable, people) }))
 	}));
 }
+
+/**
+ * @param {ReturnType<typeof seasonTally>} tally
+ * @returns {string} What a Season held, in a line, such as "14 hexes reached, 3 told, 1 Barrier met"; "" for nothing.
+ */
+function tallyLine(tally) {
+	const part = (key, count, one = `${key}One`) => (count > 0 ? t(`travels.journey.tally.${count === 1 ? one : key}`, { count }) : "");
+	return [part("reached", tally.reached), part("told", tally.told, "told"), part("met", tally.met), part("noted", tally.noted)].filter(Boolean).join(", ");
+}
+
+/**
+ * A day of the journey, worded: each line, and each ride gathered into one
+ * line that unfolds. The Phase is said once for each run of lines sharing it.
+ * @param {import("../rules/travels.js").JourneyEntry[]} entries
+ * @param {boolean} forgettable
+ * @param {Set<string>|null} people
+ * @returns {object[]} Each either {entry} or {run}.
+ */
+function dayItemsContext(entries, forgettable, people) {
+	let before = null;
+	return dayItems(entries).map((item) => {
+		const lead = item.run ? item.run[0] : item.entry;
+		const phase = lead.when ? t(`time.phases.${lead.when.phase}`) : "";
+		const phaseRepeat = phase === before;
+		before = phase;
+		if (item.entry) return { entry: { ...journeyEntryContext(item.entry, forgettable, people), phaseRepeat } };
+		const place = (entry) => ({ hex: entry.view.key, label: wordsOf(entry.view).title });
+		const fresh = item.run.filter((entry) => entry.first).length;
+		return {
+			run: {
+				// Named by its first arrival, so it stays folded or open while the page is drawn again.
+				key: `run:${item.run[0].ref}`,
+				phase,
+				phaseRepeat,
+				lead: t("travels.journey.run.lead", { count: item.run.length }),
+				join: t("travels.journey.run.to"),
+				from: place(item.run[0]),
+				to: place(item.run.at(-1)),
+				fresh: fresh ? t(fresh === item.run.length ? "travels.journey.run.freshAll" : "travels.journey.run.fresh", { count: fresh }) : "",
+				unfold: t("travels.journey.run.each"),
+				// The ride's own line says the Phase for them all.
+				entries: item.run.map((entry) => ({ ...journeyEntryContext(entry, forgettable, people), phaseRepeat: true }))
+			}
+		};
+	});
+}
+
+/**
+ * @param {number} count How many there are.
+ * @param {number} shown How many show, from shownOf.
+ * @param {boolean} lifted Whether the cap was lifted.
+ * @param {number} cap
+ * @param {string} all The words that lift the cap.
+ * @returns {string} The words on the button under a capped list, or one whose cap can be put back; "" for no button.
+ */
+function moreLabel(count, shown, lifted, cap, all) {
+	if (shown < count) return all;
+	return lifted && count > cap + 2 ? t("travels.more.fewer") : "";
+}
+
+/**
+ * Fold the journey as it's being looked at: the latest Season open and the
+ * rest folded until one is clicked, each ride folded into its line, and an
+ * open Season's earlier days waiting behind a button.
+ * @param {ReturnType<typeof journeyContext>} seasons
+ * @param {Record<string, boolean>} folds What was folded or opened by hand, by key.
+ * @param {Set<string>} more The keys whose cap was lifted.
+ * @returns {object[]}
+ */
+function foldJourney(seasons, folds, more) {
+	return seasons.map((season, index) => {
+		const lifted = more.has(season.key);
+		const shown = shownOf(season.days.length, { cap: DAYS_CAP, lifted });
+		return {
+			...season,
+			folded: folds[season.key] ?? index > 0,
+			capped: shown < season.days.length,
+			more: moreLabel(season.days.length, shown, lifted, DAYS_CAP, t("travels.journey.earlier", { count: season.days.length - shown })),
+			days: season.days.map((day, at) => ({
+				over: at >= shown,
+				items: day.items.map((item) => (item.run ? { run: { ...item.run, folded: folds[item.run.key] ?? true } } : item))
+			}))
+		};
+	});
+}
+
+/** The heading each kind of place of note is gathered under, in bastionland.travels.sections. */
+const KIND_HEADINGS = Object.freeze({ holding: "holdings", myth: "myths", landmark: "landmarks", other: "other" });
 
 /**
  * @param {import("../rules/time.js").Calendar} when
@@ -309,6 +416,10 @@ export function travelsRealmChoice(chosen = null) {
  * @property {string} [view]     One of TRAVELS_VIEWS.
  * @property {string} [filter]   One of TRAVELS_FILTERS, or "" for every place.
  * @property {string} [sort]     One of TRAVELS_SORTS.
+ * @property {string} [group]    One of TRAVELS_GROUPS: how the places of note are arranged.
+ * @property {string} [kind]     One of JOURNEY_KINDS, or "" for every line of the journey.
+ * @property {Record<string, boolean>} [folds] What was folded (true) or opened (false) by hand, by key; the rest keep to how they start.
+ * @property {Set<string>} [more] The keys of the lists whose cap was lifted.
  * @property {string|null} [selected] The key of the hex chosen.
  * @property {boolean} [route]   Whether the chart draws the way the Company went.
  * @property {boolean} [detail]  Whether the page shows the chosen hex beside its list.
@@ -321,7 +432,7 @@ export function travelsRealmChoice(chosen = null) {
  * @param {TravelsLook} [look]
  * @returns {object}
  */
-export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], filter = "", sort = TRAVELS_SORTS[0], selected = null, route = false, detail = false, gmPart = null } = {}) {
+export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], filter = "", sort = TRAVELS_SORTS[0], group = TRAVELS_GROUPS[0], kind = "", folds = {}, more = new Set(), selected = null, route = false, detail = false, gmPart = null } = {}) {
 	const { scenes, scene } = travelsRealmChoice(chosen);
 	const sources = travelsSources(scene);
 	if (!sources) return { realms: scenes, noRealm: true };
@@ -341,11 +452,56 @@ export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], fil
 	const filterKeys = people ? TRAVELS_FILTERS.flatMap((key) => (key === "myth" ? [key, PEOPLE_FILTER] : [key])) : TRAVELS_FILTERS;
 	const by = TRAVELS_SORTS.includes(sort) ? sort : TRAVELS_SORTS[0];
 	const title = (one) => wordsOf(one).title;
-	const rows = (views) => sortViews(views, by, title).map((one) => rowContext(one, onMap, picked, people));
+	/**
+	 * One folding section of the Places page: its places in order, those past the cap waiting behind its button.
+	 * @param {string} key What it folds and is capped by.
+	 * @param {import("../rules/travels.js").PlayerHexView[]} views
+	 * @param {string} heading
+	 * @param {{hint?: string, small?: boolean, atRest?: boolean}} [how] Its hint, whether it's a group under a heading, and whether it starts folded.
+	 * @returns {object}
+	 */
+	const section = (key, views, heading, { hint = "", small = false, atRest = false } = {}) => {
+		const sorted = sortViews(views, by, title);
+		const lifted = more.has(key);
+		// The chosen hex's row never waits behind the cap.
+		const count = shownOf(sorted.length, { lifted, keep: sorted.findIndex((one) => one.key === picked) });
+		return {
+			key,
+			heading,
+			hint,
+			small,
+			count: sorted.length,
+			folded: folds[key] ?? atRest,
+			capped: count < sorted.length,
+			more: moreLabel(sorted.length, count, lifted, LIST_CAP, t("travels.more.all", { count: sorted.length })),
+			rows: sorted.map((one, index) => ({ ...rowContext(one, onMap, picked, people), over: index >= count }))
+		};
+	};
+	const arranged = TRAVELS_GROUPS.includes(group) ? group : TRAVELS_GROUPS[0];
+	const noted = { heading: t("travels.sections.ofNote"), hint: t("travels.sections.ofNoteHint") };
+	// The places of note, gathered by kind under their heading or as one list; then the leads; then the plain wilderness, folded.
+	const kinds = arranged === "kind" && list.ofNote.length
+		? groupByKind(list.ofNote).map((one) => section(`places:${one.kind}`, one.views, t(`travels.sections.${KIND_HEADINGS[one.kind]}`), {
+			small: true,
+			hint: one.kind === "other" ? t("travels.sections.otherHint") : ""
+		}))
+		: null;
+	const sections = [
+		!kinds && list.ofNote.length && section("places:ofNote", list.ofNote, noted.heading, { hint: noted.hint }),
+		list.heardOf.length && section("places:heardOf", list.heardOf, t("travels.sections.heardOf"), { hint: t("travels.sections.heardOfHint") }),
+		list.wilderness.length && section("places:wilderness", list.wilderness, t("travels.sections.wilderness"), { atRest: true })
+	].filter(Boolean);
 	const shown = TRAVELS_VIEWS.includes(view) ? view : TRAVELS_VIEWS[0];
 	const narrowed = filterKeys.includes(filter) ? filter : "";
+	// How many places each filter would leave, so a click is never a guess.
+	const tagged = tagCounts(every);
+	const filterCount = (key) => {
+		if (!key) return every.length;
+		return key === PEOPLE_FILTER ? every.filter((one) => people.has(one.key)).length : tagged[key] ?? 0;
+	};
+	const journeyKind = JOURNEY_KINDS.includes(kind) ? kind : "";
 	// A GM forgets a line of the journey in the Places window, never on a Knight's sheet.
-	const log = journeyContext(journeyLog(sources, viewOf), Boolean(gmPart), people);
+	const log = foldJourney(journeyContext(journeyLog(sources, viewOf), Boolean(gmPart), people), folds, more);
 	const palette = realmPalette(getRealmLook(scene).palette);
 	// A GM outside solo play sees the page as the players do, and the summary says so.
 	const asPlayers = Boolean(game.user?.isGM) && !keptFromMe();
@@ -357,11 +513,16 @@ export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], fil
 		views: TRAVELS_VIEWS.map((key) => ({ key, label: t(`travels.views.${key}`), shown: key === shown })),
 		viewShown: Object.fromEntries(TRAVELS_VIEWS.map((key) => [key, key === shown])),
 		filters: [{ key: "", label: t("travels.filters.all") }, ...filterKeys.map((key) => ({ key, label: t(`travels.filters.${key}`) }))]
-			.map((one) => ({ ...one, pressed: one.key === narrowed })),
+			.map((one) => {
+				const [count, pressed] = [filterCount(one.key), one.key === narrowed];
+				return { ...one, pressed, count, disabled: count === 0 && !pressed };
+			}),
 		sorts: TRAVELS_SORTS.map((key) => ({ key, label: t(`travels.sort.${key}`), selected: key === by })),
-		ofNote: rows(list.ofNote),
-		wilderness: rows(list.wilderness),
-		heardOf: rows(list.heardOf),
+		groups: TRAVELS_GROUPS.map((key) => ({ key, label: t(`travels.group.${key}`), pressed: key === arranged })),
+		ofNoteGroups: kinds && { ...noted, sections: kinds },
+		sections,
+		journeyKinds: [{ key: "", label: t("travels.journey.kinds.all") }, ...JOURNEY_KINDS.map((key) => ({ key, label: t(`travels.journey.kinds.${key}`) }))]
+			.map((one) => ({ ...one, pressed: one.key === journeyKind })),
 		chart: travelsChart(every, sources.g, {
 			palette,
 			title: t("travels.chart.title"),

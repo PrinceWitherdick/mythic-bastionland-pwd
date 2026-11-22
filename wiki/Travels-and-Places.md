@@ -29,13 +29,17 @@ Only those hexes open in Places, and only those show a name the Referee has give
 
 | Page | What it shows |
 | --- | --- |
-| **Places** | Your places in three lists: **Places of Note** (where you found something, were told something or wrote a note), **Wilderness**, and **Heard Of** (not reached yet). |
+| **Places** | Your places in folding lists: **Places of Note** (where you found something, were told something or wrote a note), gathered into **Holdings**, **Myths**, **Landmarks** and **Other Finds**; then **Heard Of** (not reached yet); then **Wilderness**, which starts folded. Each heading shows how many it holds. |
 | **Chart** | A drawn chart of the Realm as your Company knows it, with a key. |
-| **Journey** | Where the Company went, Season by Season, each line with its Phase: arrivals, tellings, Barriers met and notes written. |
+| **Journey** | Where the Company went, Season by Season: arrivals, tellings, Barriers met and notes written. The latest Season is open and the rest are folded, each with a tally of what it held. |
 
-- **Search the places** narrows all three pages.
-- **Show only** narrows the Places list: **All**, **Holdings**, **Landmarks**, **Myths**, **Told**, **Noted** or **Not Visited**.
-- **Order** sorts it by **Last reached first**, **By name** or **Most visited first**.
+- **Search the places** narrows all three pages. While you search, every fold opens and every list shows in full.
+- **Show only** narrows the Places list and the Chart: **All**, **Holdings**, **Landmarks**, **Myths**, **Told**, **Noted** or **Not Visited**. Each shows how many places it would leave.
+- **By Kind** or **One List** arranges the Places of Note in groups or as a single list.
+- **Order** sorts each list by **Last reached first**, **By name** or **Most visited first**.
+- **Click a heading** to fold or unfold it. A long list shows its first 8 places; **Show all** under it shows the rest.
+- A row's small **speech bubble** and **pen** say the Referee told you something of that hex, and that the Company wrote a note there.
+- On the **Journey**, three or more hexes ridden through in one Phase are told in one line; the **chevron** beside it shows each hex. Its own **Show only** narrows it to **First Visits**, **Arrivals**, **Told**, **Barriers** or **Notes**. An open Season shows its latest 7 days, with a button for the earlier ones.
 - **Hover a row** to ring that hex on the map. The **crosshair** at a row's end shows the hex on the map, ringed in green until your next click.
 - **Click a row, a hex on the chart, or a line of the Journey** to open that hex on the right.
 

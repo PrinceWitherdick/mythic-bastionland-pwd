@@ -449,6 +449,8 @@
 	.bastionland-item__equip,
 	.bastionland-move,
 	.bastionland-add,
+	.bastionland-travels__fold,
+	.bastionland-travels-journey__place,
 	.bastionland-unchosen__by-hand,
 	.bastionland-chooser__start,
 	.bastionland-chooser__group,
@@ -7569,8 +7571,92 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	gap: 0.3rem;
 }
 
-.bastionland-travels__section .bastionland-heading {
+.bastionland-travels__section .bastionland-heading,
+.bastionland-travels__groups > .bastionland-heading {
 	margin: 0.35rem 0 0;
+}
+
+/* The places of note gathered by kind: one heading over a folding group for each kind. */
+.bastionland-travels__groups {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+/* What a folding head folds away: a section's hint, rows and button, or a Season's days. */
+.bastionland-travels__fold-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+/* Folded, the body goes; capped, so do the rows past the cap. A page narrowed by a
+   search or a filter opens every fold and lifts every cap by itself, and puts them
+   back when it's narrowed no longer. Never done with `hidden`, which is the
+   filter's alone: the chart fades the hexes whose rows are hidden. */
+.bastionland-travels__view:not([data-narrowed]) [data-folded] > [data-fold-body],
+.bastionland-travels__view:not([data-narrowed]) [data-capped] > [data-over],
+.bastionland-travels__view[data-narrowed] [data-travels-more] {
+	display: none;
+}
+
+/* A heading that folds: its chevron, its words and how many it holds are one
+   button, in the heading's own hand, and the hairline runs on from it. */
+.bastionland-page .bastionland-travels__fold {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 0.4rem;
+	letter-spacing: inherit;
+	text-transform: inherit;
+}
+
+.bastionland-page .bastionland-travels__fold:hover {
+	color: var(--bastionland-blood);
+}
+
+/* The chevron, at the size of the Referee Toolkit's folds, points down once open.
+   It and the count rise to the middle of the heading's capitals, as its hairline does:
+   a heading is all capitals, which stand above the middle of the Caps face's line box.
+   Measured offline against the capitals at both heading sizes (≤0.3px at 1×, 1.25× and 1.5×). */
+.bastionland-travels__fold > i {
+	position: relative;
+	top: -0.21rem;
+	width: 0.7rem;
+	font-size: 0.7rem;
+	text-align: center;
+	transition: rotate 120ms;
+}
+
+.bastionland-travels__fold[aria-expanded="true"] > i,
+.bastionland-travels__view[data-narrowed] .bastionland-travels__fold > i,
+.bastionland-travels__view:not([data-narrowed]) .bastionland-travels-journey__unfold[aria-expanded="true"] > i {
+	rotate: 90deg;
+}
+
+/* How many a head or a filter holds, in the softer ink. */
+.bastionland-travels__count {
+	margin-inline-start: 0.35rem;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+}
+
+.bastionland-travels__fold > .bastionland-travels__count {
+	position: relative;
+	top: -0.24rem;
+	margin-inline-start: 0;
+	font-family: var(--bastionland-font-body);
+	letter-spacing: 0;
+}
+
+.bastionland-travels__fold:hover > .bastionland-travels__count {
+	color: inherit;
+}
+
+/* The quiet button under a capped list, at the list's left edge. */
+.bastionland-page .bastionland-travels__more {
+	flex: none;
+	align-self: flex-start;
 }
 
 .bastionland-travels__list {
@@ -7582,10 +7668,10 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	list-style: none;
 }
 
-/* Each place is one row: the whole of its words open it, its chips get a line
-   of their own above the visits, and the far right of the title's line holds
-   the Company's here chip and the crosshairs that show it on the map. The words
-   share the row's columns, so only the title gives way to that corner; every
+/* Each place is one row of two lines: the whole of its words open it, and the
+   far right of the title's line holds the marks for a telling and a note, the
+   Company's here chip and the crosshairs that show it on the map. The words
+   share the row's columns, so only the title gives way to that corner; the
    line under it runs the full width. */
 .bastionland-travels__row {
 	display: grid;
@@ -7625,20 +7711,26 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	grid-column: 1 / -1;
 }
 
-/* The title's line, beside the corner: the title, then the hex's terrain in the
-   Lay of the Land's square chip, which wraps under the title when it can't fit.
-   A line that the Told and Note chips end wraps under it the same way. */
-.bastionland-travels__open > .bastionland-travels__head,
-.bastionland-travels__more {
+/* The title's line, beside the corner: the title, where a named hex is, then
+   its terrain in the Lay of the Land's square chip, which wraps under the title
+   when it can't fit. */
+.bastionland-travels__open > .bastionland-travels__head {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.15rem 0.5rem;
-}
-
-.bastionland-travels__open > .bastionland-travels__head {
 	grid-column: 1;
 	min-height: 1.8rem;
+}
+
+/* A strut as tall as the corner opens the title's line, so the two share a middle
+   when the terrain wraps under the title too. Its margin takes back the gap after it. */
+.bastionland-travels__open > .bastionland-travels__head::before {
+	content: "";
+	flex: none;
+	width: 0;
+	height: 1.8rem;
+	margin-inline-end: -0.5rem;
 }
 
 .bastionland-travels__title {
@@ -7654,15 +7746,23 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-size: var(--bastionland-font-note);
 }
 
-.bastionland-travels__visits {
-	font-style: italic;
+/* Where a named hex is, beside its name. */
+.bastionland-travels__coords {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
 }
 
-.bastionland-travels__chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.25rem;
-	margin: 0.1rem 0;
+/* A small mark for a telling or a note: a glyph in the icon button's whole-pixel
+   box (24px round 14px), saying what it is when pointed at. Not a button. */
+.bastionland-travels__mark {
+	display: inline-grid;
+	flex: none;
+	place-items: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.875rem;
+	cursor: help;
 }
 
 /* A pill like the GM Toolkit's chips: trimmed to the capitals, then padded
@@ -7689,7 +7789,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin-top: 0.15rem;
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.3rem;
 	min-height: 1.8rem;
 }
 
@@ -7842,16 +7942,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-weight: bold;
 }
 
-/* The count of hexes visited, under the Places of Note hint in the same small print. */
+/* The count of hexes visited, topping the Places page in small print. */
 .bastionland-travels__summary {
 	margin: 0;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
-}
-
-/* The count tops the page only while the Places of Note section isn't there to hold it. */
-.bastionland-travels__view:has(> [data-counted]:not([hidden])) > .bastionland-travels__summary--top {
-	display: none;
 }
 
 /* What the places can be narrowed to, one at a time. */
@@ -7886,6 +7981,19 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-paper);
 }
 
+/* A pressed filter's count takes the pill's own ink, set back a little. */
+.bastionland-travels__filter[aria-pressed="true"] > .bastionland-travels__count {
+	color: inherit;
+	opacity: 0.7;
+}
+
+/* A filter with nothing behind it can't be pressed. */
+.bastionland-page .bastionland-travels__filter:disabled {
+	border-color: var(--bastionland-rule);
+	background: var(--bastionland-paper);
+	opacity: 0.5;
+}
+
 .bastionland-travels__view {
 	display: flex;
 	flex-direction: column;
@@ -7893,16 +8001,34 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-travels__view[hidden],
+.bastionland-travels__filters[hidden],
+.bastionland-travels__section[hidden],
+.bastionland-travels__groups[hidden],
+.bastionland-travels__row[hidden],
+.bastionland-travels-journey__season[hidden],
 .bastionland-travels-journey__day[hidden],
 .bastionland-travels-journey__entry[hidden] {
 	display: none;
+}
+
+/* How the places of note are arranged, at the left, and their order, at the right. */
+.bastionland-travels__arrange {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.3rem 0.5rem;
+}
+
+.bastionland-travels__arrange > .bastionland-choices {
+	margin: 0;
 }
 
 .bastionland-travels__sort {
 	display: flex;
 	align-items: center;
 	gap: 0.4rem;
-	align-self: flex-end;
+	margin-inline-start: auto;
 	font-size: var(--bastionland-font-note);
 }
 
@@ -8063,6 +8189,79 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	letter-spacing: 0.04em;
 }
 
+/* The Phase is written once for each run of lines that share it; its place is
+   kept, so the lines stay in their column. Narrowed, each line that's left says its own. */
+.bastionland-travels__view:not([data-narrowed]) .bastionland-travels-journey__phase.is-repeat {
+	visibility: hidden;
+}
+
+/* What a Season held, under its head, read while it's folded too. */
+.bastionland-travels .bastionland-travels-journey__tally {
+	font-style: normal;
+}
+
+/* A ride: three or more arrivals in a row told in one line, which its chevron unfolds. */
+.bastionland-travels-journey__run {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+
+/* The chevron stands where a line's icon does, then the words, which wrap as prose. */
+.bastionland-travels-journey__ride {
+	display: grid;
+	grid-template-columns: 1.5rem minmax(0, 1fr);
+	align-items: baseline;
+	gap: 0 0.25rem;
+	padding: 0.1rem 0;
+	font-size: var(--bastionland-font-text);
+	line-height: 1.3;
+}
+
+/* The chevron's disc is taller than a line of the words, so it's centred on their first line. */
+.bastionland-page .bastionland-travels-journey__unfold {
+	align-self: start;
+	width: 1.5rem;
+	height: 1.5rem;
+	margin-block: calc((1.3 * var(--bastionland-font-text) - 1.5rem) / 2);
+}
+
+.bastionland-travels-journey__unfold > i {
+	font-size: 0.7rem;
+	transition: rotate 120ms;
+}
+
+/* The two ends of a ride, each opening its hex: a word in bold that reddens when pointed at. */
+.bastionland-page .bastionland-travels-journey__place {
+	display: inline;
+	font-weight: bold;
+}
+
+.bastionland-page .bastionland-travels-journey__place:hover {
+	color: var(--bastionland-blood);
+}
+
+/* Unfolded, a ride's arrivals stand in the lines' own column, ruled off down their left. */
+.bastionland-travels-journey__run-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-travels__view:not([data-narrowed]) .bastionland-travels-journey__run-lines .bastionland-travels-journey__open {
+	border-left: 2px solid var(--bastionland-rule);
+	border-radius: 0;
+	padding-left: 0.5rem;
+}
+
+/* Narrowed, a ride's line goes and the arrivals that match stand for themselves. */
+.bastionland-travels__view[data-narrowed] .bastionland-travels-journey__run-line {
+	display: none;
+}
+
 .bastionland-page .bastionland-travels-journey__open {
 	display: grid;
 	grid-template-columns: 1.2rem minmax(0, 1fr);
@@ -8120,6 +8319,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	.bastionland-travels-journey__entry {
 		grid-template-columns: minmax(0, 1fr);
 		gap: 0;
+	}
+
+	/* Stacked, a Phase said already leaves no blank line. */
+	.bastionland-travels__view:not([data-narrowed]) .bastionland-travels-journey__phase.is-repeat {
+		display: none;
 	}
 
 	.bastionland-travels-journey__entry--forgettable {
