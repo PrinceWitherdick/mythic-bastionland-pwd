@@ -344,14 +344,12 @@ const flaggedActor = (message, key) => fromUuidSync(flaggedUuid(message, key));
  * reload doesn't offer it again, and only by whoever may deal it.
  * @param {object} card
  * @param {string} card.selector What marks the button.
- * @param {string} card.flag The flag naming whoever takes it, as flaggedActor reads it.
+ * @param {string} card.flag The flag naming whoever takes it, as flaggedActor reads it;
+ *   it also names the damage.<flag>NotYours, <flag>Rolled and <flag>Cause words.
  * @param {number} card.faces The die rolled.
  * @param {string} card.icon The note's, that says what was rolled.
- * @param {() => void} card.notYours Warns somebody who may not deal it.
- * @param {(name: string, damage: number) => string} card.rolled What the note says.
- * @param {() => string} card.cause What dealt it, said on the Damage card.
  */
-function registerRolledDamage({ selector, flag, faces, icon, notYours, rolled, cause }) {
+function registerRolledDamage({ selector, flag, faces, icon }) {
 	registerCardButtons({
 		selector,
 		once: true,
@@ -359,13 +357,13 @@ function registerRolledDamage({ selector, flag, faces, icon, notYours, rolled, c
 		handler: async (_button, message) => {
 			const actor = flaggedActor(message, flag);
 			if (!actor?.isOwner) {
-				notYours();
+				warn(`damage.${flag}NotYours`);
 				return false;
 			}
 			const roll = await new Roll(`1d${faces}`).evaluate();
-			await postCard(actor, "note", { icon, text: rolled(actor.name, roll.total) }, { rolls: [roll] });
+			await postCard(actor, "note", { icon, text: t(`damage.${flag}Rolled`, { name: actor.name, damage: roll.total }) }, { rolls: [roll] });
 			// Rolled and posted, it's spent even if the Damage window is closed.
-			await takeDamage(actor, { damage: roll.total, ranged: false, cause: cause() });
+			await takeDamage(actor, { damage: roll.total, ranged: false, cause: t(`damage.${flag}Cause`) });
 			return true;
 		}
 	});
@@ -377,10 +375,7 @@ export function registerUnhorsed() {
 		selector: UNHORSED_SELECTOR,
 		flag: "unhorsed",
 		faces: DISMOUNT_FACES,
-		icon: "fa-solid fa-horse",
-		notYours: () => warn("damage.unhorsedNotYours"),
-		rolled: (name, damage) => t("damage.unhorsedRolled", { name, damage }),
-		cause: () => t("damage.unhorsedCause")
+		icon: "fa-solid fa-horse"
 	});
 }
 
@@ -1018,10 +1013,7 @@ export function registerAbilityBlows() {
 		selector: BACKLASH_SELECTOR,
 		flag: "backlash",
 		faces: 6,
-		icon: "fa-solid fa-hourglass-half",
-		notYours: () => warn("damage.backlashNotYours"),
-		rolled: (name, damage) => t("damage.backlashRolled", { name, damage }),
-		cause: () => t("damage.backlashCause")
+		icon: "fa-solid fa-hourglass-half"
 	});
 	registerCardButtons({
 		selector: RALLY_SELECTOR,
