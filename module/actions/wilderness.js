@@ -110,9 +110,9 @@ export function realmAndCompany(scene, hex = null) {
  * The Realm the Company stands in, found without a word to anybody: the one on
  * the canvas, then the one the players are shown, then any other, each first
  * where the Company's own Token is.
- * @returns {Scene|null}
+ * @returns {Scene|null} Null where no Realm shows where the Company is.
  */
-function companyRealm() {
+export function companyRealm() {
 	const realms = [...new Set([canvas?.scene, game.scenes.active, ...game.scenes])].filter((scene) => scene && isRealmScene(scene));
 	return realms.find((scene) => findCompanyToken(scene)) ?? realms.find((scene) => findCompany(scene, sceneGeometry(scene)).hex) ?? null;
 }

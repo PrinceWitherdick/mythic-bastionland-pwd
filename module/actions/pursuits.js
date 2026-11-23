@@ -7,6 +7,7 @@ import { canHoldPost } from "../rules/dominion.js";
 import { addCourtMember, sitsAtCourt } from "./court.js";
 import { knightDomain, worldDomains } from "./dominion.js";
 import { getRealm, isRealmScene } from "./realm.js";
+import { companyRealm } from "./wilderness.js";
 import { THREAD_KINDS } from "../rules/threads.js";
 import { addThreads } from "./threads.js";
 import { beginDesign } from "./grand-designs.js";
@@ -93,8 +94,11 @@ async function markWithBrush(brush) {
 	}
 }
 
-/** @returns {Scene|null} The Realm in view, or else the one the players are on. */
-const realmScene = () => [globalThis.canvas?.scene, game.scenes?.active].find((scene) => isRealmScene(scene)) ?? null;
+/**
+ * @returns {Scene|null} The Realm the Company is in, whichever the Referee is looking at; where no Realm
+ *   shows where it is, the Realm in view, or else the one the players are on.
+ */
+const realmScene = () => companyRealm() ?? [globalThis.canvas?.scene, game.scenes?.active].find((scene) => isRealmScene(scene)) ?? null;
 
 /**
  * What a Pilgrimage learnt of the Realm that nobody knew (p17): where a Myth
@@ -124,7 +128,8 @@ async function learnWhere(actor, kind) {
 		ok: t("time.pursuitMakes.pilgrimage.show"),
 		search: named.length > 8 ? { label: t("time.pursuitMakes.pilgrimage.search"), none: t("time.pursuitMakes.pilgrimage.found") } : null
 	});
-	if (!picked) return t("time.pursuitMakes.pilgrimage.made.other");
+	// Closed without a pick: nothing is shown, and the report doesn't say something was learnt.
+	if (!picked) return t("time.pursuitMakes.pilgrimage.notShown", { name: actor.name });
 	// Loaded here, as exploration.js reaches back to time.js, which calls on this.
 	const { markOnPlayersMap } = await import("./exploration.js");
 	await markOnPlayersMap(scene, [picked.feature.id]);

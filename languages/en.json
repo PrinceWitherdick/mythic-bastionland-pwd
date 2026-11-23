@@ -1718,6 +1718,7 @@
           "search": "Find by name or hex",
           "found": "Nothing hidden matches that.",
           "noRealm": "Pilgrimage: something learnt of the Realm, though no Realm is open to show it on.",
+          "notShown": "Pilgrimage: nothing {name} learnt was shown on the players’ map; mark it by hand once it’s decided.",
           "noneHidden": {
             "myth": "Pilgrimage: every Myth is already on the players’ map.",
             "landmark": "Pilgrimage: every Landmark is already on the players’ map."

@@ -9,6 +9,8 @@ let notices;
 let useTool;
 /** The Realm in view, as getRealm reads it. */
 let realm;
+/** The Scene the Company is found on, as companyRealm finds it; null where it's on none. */
+let companyScene;
 
 vi.mock("../../module/apps/ui.js", () => ({
 	chooseDialog: vi.fn(async (options) => {
@@ -32,6 +34,7 @@ vi.mock("../../module/actions/grand-designs.js", () => ({ beginDesign: vi.fn(asy
 vi.mock("../../module/actions/hex-names.js", () => ({ hexLabel: (hex) => `${hex.col},${hex.row}` }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null, mythLookup: (_index, myth) => ({ name: `Myth ${myth.number}` }) }));
 vi.mock("../../module/actions/exploration.js", () => ({ markOnPlayersMap: vi.fn(async () => 1) }));
+vi.mock("../../module/actions/wilderness.js", () => ({ companyRealm: () => companyScene }));
 
 const { followPursuits } = await import("../../module/actions/pursuits.js");
 
@@ -45,6 +48,7 @@ beforeEach(() => {
 	notices = [];
 	useTool = vi.fn();
 	realm = null;
+	companyScene = null;
 	globalThis.canvas = { realm: { useTool }, scene: {} };
 	globalThis.ui = { notifications: { info: (text) => notices.push(text) } };
 	globalThis.foundry = { utils: { randomID: () => "newId" } };
@@ -206,6 +210,31 @@ describe("followPursuits", () => {
 		expect(markOnPlayersMap).toHaveBeenCalledOnce();
 		expect(entries[0].lines[0]).toContain("Greyhallow");
 		expect(entries[1].lines).toEqual(["time.pursuitMakes.pilgrimage.noneHidden.myth"]);
+	});
+
+	it("shows what a Pilgrimage learnt on the Company's Realm, not the one the Referee is looking at", async () => {
+		const { markOnPlayersMap } = await import("../../module/actions/exploration.js");
+		markOnPlayersMap.mockClear();
+		companyScene = { id: "company" };
+		realm = { myths: [{ id: "m2", number: 2, hex: { col: 4, row: 5 }, revealed: false }], landmarks: [] };
+		const entries = [{ lines: [] }];
+		await followPursuits([{ actor: knight("Tal"), pursuit: "pilgrimage", making: "myth" }], entries, "Winter");
+		expect(markOnPlayersMap).toHaveBeenCalledWith(companyScene, ["m2"]);
+		expect(markOnPlayersMap).not.toHaveBeenCalledWith(canvas.scene, expect.anything());
+	});
+
+	it("says nothing was shown, rather than that something was learnt, when the Referee picks no Myth", async () => {
+		const { markOnPlayersMap } = await import("../../module/actions/exploration.js");
+		markOnPlayersMap.mockClear();
+		realm = {
+			myths: [{ id: "m2", number: 2, hex: { col: 4, row: 5 }, revealed: false }, { id: "m3", number: 3, hex: { col: 6, row: 1 }, revealed: false }],
+			landmarks: []
+		};
+		const entries = [{ lines: [] }];
+		answers = [null];
+		await followPursuits([{ actor: knight("Tal"), pursuit: "pilgrimage", making: "myth" }], entries, "Winter");
+		expect(markOnPlayersMap).not.toHaveBeenCalled();
+		expect(entries[0].lines).toEqual(['time.pursuitMakes.pilgrimage.notShown {"name":"Tal"}']);
 	});
 
 	it("says to open a Realm where there's none to learn of", async () => {
