@@ -17,6 +17,8 @@ Only those hexes open in Places, and only those show a name the Referee has give
 
 If the Referee plays with the **Fog of War**, a hex you haven't reached shows only its edges on the map, and the label under the pointer says **Unexplored**. The fog clears as the Company arrives, or when the Referee lifts it. The chart leaves out Holdings in fogged hexes, unless the Referee lets them show through.
 
+![A Realm under the Fog of War as the players see it: plain paper hexes with only their edges, and the Company's trail of ticked hexes showing their terrain](images/painting-and-editing-the-realm-fog-players.webp)
+
 ## Opening Places
 
 - **Places**, the map-and-pin button just left of the sidebar on a Realm.
@@ -25,7 +27,7 @@ If the Referee plays with the **Fog of War**, a hex you haven't reached shows on
 - **Double-click the Company Token** to open the hex it stands in.
 - **Click a row** on your Knight's **Travels** tab. See [below](#the-travels-tab).
 
-![The Places window as a player sees it, the Chart on the left, and on the right the hex with What the Referee Told You, two told notes with their dates, and The Company's Note](images/travels-and-places-player-window.webp)
+![The Places window as a player sees it, the Chart on the left under the Show only pills and their counts, and on the right the hex with What the Referee Told You, two told notes with their dates, and The Company's Note](images/travels-and-places-player-window.webp)
 
 ## The three pages
 
@@ -46,6 +48,8 @@ If the Referee plays with the **Fog of War**, a hex you haven't reached shows on
 - **Click a row, a hex on the chart, or a line of the Journey** to open that hex on the right.
 
 The page you last chose is remembered in your browser.
+
+![The Journey page, the latest Season open with its tally, a Morning ride through 3 hexes unfolded under its chevron, a Barrier met and a note, and the earlier Seasons folded with their tallies](images/travels-and-places-journey.webp)
 
 ### Zooming the chart
 
@@ -76,7 +80,7 @@ The note is kept through the Referee's browser, so a Referee has to be signed in
 
 ## The Travels tab
 
-![The Knight sheet's Travels page open on the Chart, the places the Company has been drawn on a small hex map below the filter pills](images/travels-and-places-travels-tab.webp)
+![The Knight sheet's Travels page open on the Chart, the places the Company has been drawn on a small hex map below the filter pills and their counts](images/travels-and-places-travels-tab.webp)
 
 Every Knight's sheet, and every Squire's, has a **Travels** tab with the same three pages for the Realm. Clicking a place there opens Places on that hex. On the sheet the chart is kept to a comfortable size and centred, so widening the sheet doesn't grow it.
 

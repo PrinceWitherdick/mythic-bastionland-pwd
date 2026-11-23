@@ -164,7 +164,11 @@ A Realm can hide its land from the players until the Company gets there. This is
 
 With the fog on, the players see the edge of every hex, and nothing inside one they haven't reached: no terrain, rivers, Holdings, Landmarks, Myths or map picture. A fogged hex looks like plain paper in the Realm's own paper colour. Barriers that have been revealed, the Company Token, the players' own Tokens and the marks of things seen from afar still show. Other Tokens in a fogged hex don't. The label under the pointer reads **Unexplored**.
 
+![A Realm as the players see it under the fog: plain paper hexes with only their edges, and the Company's winding trail of ticked hexes showing their terrain, the Company Token, a Barrier, a Seat with its arms and two things seen from afar](images/painting-and-editing-the-realm-fog-players.webp)
+
 You see the fog as a thin veil, so you can still read the map and see what the players can't. Played alone, you see it as the players do.
+
+![The same Realm as the Referee sees it: every hex's terrain, the river, Holdings, Barriers and Myth numbers drawn faintly under a pale veil, and the Company's trail clear and full strength](images/painting-and-editing-the-realm-fog-referee.webp)
 
 The fog lifts from a hex when:
 
@@ -178,6 +182,8 @@ The fog lifts from a hex when:
 
 Open it from **Fog of War** in the Realm tools.
 
+![The Fog of War window: a line on what the players see, Fog of War on this Realm ticked, Holdings show through the fog unticked, then Lift all the fog, Bring the fog back everywhere and Pick up the fog brush, and Done at the foot](images/painting-and-editing-the-realm-fog-window.webp)
+
 - **Fog of War on this Realm** turns it on and off. Turning it off keeps what you lifted, for when you turn it on again.
 - **Holdings show through the fog** keeps every Holding and Seat, and the arms they fly, on the players' map.
 - **Lift all the fog** and **Bring the fog back everywhere** each ask first. A hex you fog again clears once more when the Company next arrives there.
@@ -188,6 +194,8 @@ Open it from **Fog of War** in the Realm tools.
 Click a hex to lift its fog, or click again to let it back. Drag across hexes to do the same to all of them: a drag that starts in the fog lifts it, and one that starts in the clear brings it back. While the brush is in hand, your veil lies thicker, so you can see what you've painted.
 
 ### In Places
+
+![The top of a fogged hex in Places: its column and row, The Company knows nothing of this hex yet, and the visits line reading Not visited yet with Count a Visit and Lift the fog](images/painting-and-editing-the-realm-fog-places.webp)
 
 While the fog is on, a hex's visits line in Places has **Lift the fog** or **Let the fog back**. Under the Referee's note, **Tell the players** has a **Lift the fog here too** box beside it while the hex is fogged. It starts unticked each time.
 

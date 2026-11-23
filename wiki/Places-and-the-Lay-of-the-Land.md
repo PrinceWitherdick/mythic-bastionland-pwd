@@ -15,7 +15,7 @@ This page is the Referee's side. What players see is on [Travels and Places](Tra
 
 The window is the same one players have, wider for a Referee. A hint at the top reminds you that players see these same pages, and that only the Lay of the Land is yours alone.
 
-![The Places window on Gravenmoor, the Places page list on the left with Places of Note, Wilderness and Heard Of, and on the right a visited hex with its name heading, the Company's Note, and the Lay of the Land below with its What's here not](images/places-and-the-lay-of-the-land-window.webp)
+![The Places window on Gravenmoor, the Places page on the left with a count on each Show only pill, By Kind, and the Places of Note gathered under folding Holdings, Landmarks and Other Finds headings, and on the right Merrow Tower with the Company's Note and the Lay of the Land open on its Holding tab](images/places-and-the-lay-of-the-land-window.webp)
 
 ## The three pages
 
@@ -42,6 +42,8 @@ On the **Chart** page:
 - **Ctrl and the mouse wheel** zoom about the pointer. **Double-click** the chart to zoom in there, and again to go back to whole. Once zoomed, **drag with either mouse button** to move about; a throw glides a little. **Whole chart** zooms back out.
 
 On the **Journey** page, three or more hexes ridden through in one Phase are told in one line, and the **chevron** beside it shows each hex. Its own **Show only** narrows the page to **First Visits**, **Arrivals**, **Told**, **Barriers** or **Notes**. An open Season shows its latest 7 days, with a button for the earlier ones. **Click a line** to open its hex. **Hover a line** and an **×** appears at its end: forget that visit, that telling, that Barrier line, or the Company's note. A Barrier forgotten here stays on the map.
+
+![The Journey page, the latest Season open with its tally, a Morning ride through 3 hexes unfolded under its chevron, a Barrier met and a note, and the earlier Seasons folded with their tallies](images/travels-and-places-journey.webp)
 
 ## The chosen hex
 
