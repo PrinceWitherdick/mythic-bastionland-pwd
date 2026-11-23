@@ -6,11 +6,11 @@
  * back to it.
  */
 import { t } from "../chat/cards.js";
-import { OWN_SIZE_LIMITS } from "../rules/realm-setup.js";
+import { OWN_SIZE_LIMITS, OWN_SIZE_LIMITS_WORDS } from "../rules/realm-setup.js";
+import { hexNumbering } from "../rules/hex-numbers.js";
 import {
 	GROWTH_SIDES,
 	REALM_BACKUP_FLAG,
-	REALM_GROWTH_FLAG,
 	growsAtAll,
 	growthPreview,
 	growthProblem,
@@ -44,7 +44,7 @@ export function realmBackup(scene) {
  * @param {number} when
  * @returns {string} The day and time, as the Referee's browser writes them.
  */
-const dateText = (when) => new Date(when).toLocaleString();
+export const dateText = (when) => new Date(when).toLocaleString();
 
 /**
  * @param {Scene} scene
@@ -69,7 +69,7 @@ function expandContext(scene, realm, g) {
 		picture,
 		inkOutside: Boolean(realm.picture?.players?.inkOutside),
 		// Offered once hexes are added north or west, or an earlier expansion has already moved them.
-		numberingShown: hasShifted(scene.flags?.[SYSTEM_ID]?.[REALM_GROWTH_FLAG]),
+		numberingShown: hasShifted(hexNumbering(scene)),
 		numberings: NUMBERINGS.map((key, index) => ({ key, label: t(`realm.expand.numbers.${key}`), detail: t(`realm.expand.numbers.${key}Detail`), checked: index === 0 })),
 		backup: backup ? { said: t("realm.expand.backup.kept", { when: dateText(backup.when) }), label: t("realm.expand.backup.restore", { when: dateText(backup.when) }) } : null
 	};
@@ -84,7 +84,7 @@ function expandContext(scene, realm, g) {
  * @param {object} g
  */
 function wireExpandFields(element, scene, g) {
-	const shifted = hasShifted(scene.flags?.[SYSTEM_ID]?.[REALM_GROWTH_FLAG]);
+	const shifted = hasShifted(hexNumbering(scene));
 	const ok = element.querySelector("button[data-action='ok']");
 	const read = () => normaliseGrowth(Object.fromEntries([...element.querySelectorAll("[data-expand-side]")].map((input) => [input.name, input.value])));
 	const update = () => {
@@ -101,7 +101,7 @@ function wireExpandFields(element, scene, g) {
 		const shown = problem && problem !== "nothing";
 		if (said) {
 			said.hidden = !shown;
-			said.textContent = shown ? t(`realm.expand.problems.${problem}`, { cols: OWN_SIZE_LIMITS.cols.max, rows: OWN_SIZE_LIMITS.rows.max, hexes: OWN_SIZE_LIMITS.hexes }) : "";
+			said.textContent = shown ? t(`realm.expand.problems.${problem}`, OWN_SIZE_LIMITS_WORDS) : "";
 		}
 		if (ok) ok.disabled = Boolean(problem);
 		const numbering = element.querySelector("[data-expand-numbering]");

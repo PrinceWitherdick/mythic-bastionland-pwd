@@ -8,7 +8,8 @@ import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
-import { hexKey, inRealm, parseHexKey } from "../rules/realm-geometry.js";
+import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
+import { shiftHexKey } from "../rules/realm-growth.js";
 import { REALM_FLAG } from "../rules/realm.js";
 import { TRAVELS_GROUPS, TRAVELS_SORTS, TRAVELS_VIEWS } from "../rules/travels.js";
 import { chartScrollBy, haloPoints } from "../rules/travels-chart.js";
@@ -686,11 +687,8 @@ export function refreshPlaces(sceneId) {
 export function followMovedPlaces(sceneId, offset) {
 	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
 	if (!app || app.state.realm !== sceneId) return;
-	const hex = parseHexKey(app.state.selected ?? "");
-	const moved = hex ? { col: hex.col + offset.cols, row: hex.row + offset.rows } : null;
 	// A hex of land taken away again, as a Realm put back from its backup takes it, is chosen no longer.
-	const scene = game.scenes?.get(sceneId);
-	const realm = scene?.flags?.[SYSTEM_ID]?.[REALM_FLAG];
-	app.state.selected = moved && realm && inRealm(realm, moved) ? hexKey(moved) : null;
+	const realm = game.scenes?.get(sceneId)?.flags?.[SYSTEM_ID]?.[REALM_FLAG];
+	app.state.selected = realm ? shiftHexKey(app.state.selected ?? "", offset, realm) : null;
 	if (app.rendered) renderWhenIdle(app);
 }

@@ -8,7 +8,7 @@
  */
 
 import { t, warn } from "../chat/cards.js";
-import { absentFrom, musterRow, notYetFighting } from "../rules/muster.js";
+import { absentFrom, musterRow } from "../rules/muster.js";
 import { inCompany } from "./knights.js";
 
 /** The button's action in the tracker. */
@@ -85,10 +85,10 @@ export async function bringCast(actors, { scene = canvas?.scene, hidden = false 
  * @returns {Promise<{placed: TokenDocument[], joined: TokenDocument[]}>}
  */
 async function bringToFight(actors, scene, { already, hidden = false }) {
-	const absent = absentFrom(actors.map((actor) => ({ id: actor.id, actor })), scene.tokens.map((token) => token.actorId));
+	const absent = absentFrom(actors, scene.tokens.map((token) => token.actorId));
 	const grid = scene.grid?.size ?? canvas?.grid?.size ?? 100;
 	// Made in the Scene, so each snaps to the Scene's own grid and not Foundry's default square one.
-	const prototypes = await Promise.all(absent.map(({ actor }) => actor.getTokenDocument({}, { parent: scene })));
+	const prototypes = await Promise.all(absent.map((actor) => actor.getTokenDocument({}, { parent: scene })));
 	const spots = musterRow(viewCentre(scene), prototypes.map((token) => token.width ?? 1), grid);
 	const data = prototypes.map((token, index) => tokenAt(token, spots[index], grid));
 	if (hidden) for (const token of data) token.hidden = true;
@@ -100,7 +100,7 @@ async function bringToFight(actors, scene, { already, hidden = false }) {
 		: await CONFIG.Combat.documentClass.create({ scene: scene.id, active: true });
 	const ids = new Set(actors.map((actor) => actor.id));
 	const theirs = scene.tokens.filter((token) => ids.has(token.actorId));
-	const joining = notYetFighting(theirs, combat.combatants.map((combatant) => combatant.tokenId));
+	const joining = absentFrom(theirs, combat.combatants.map((combatant) => combatant.tokenId));
 	if (joining.length) {
 		await combat.createEmbeddedDocuments("Combatant", joining.map((token) => ({ tokenId: token.id, sceneId: scene.id, actorId: token.actorId, hidden: token.hidden })));
 	}

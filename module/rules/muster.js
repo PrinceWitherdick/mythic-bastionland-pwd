@@ -4,17 +4,6 @@
  */
 
 /**
- * Those of the Company with no Token on the Scene yet. The Slain stay where they fell.
- * @param {{id: string, slain?: boolean}[]} company
- * @param {Iterable<string|null|undefined>} onScene The Actor id of each Token already on the Scene.
- * @returns {{id: string}[]}
- */
-export function absentFrom(company, onScene) {
-	const here = new Set(onScene);
-	return company.filter((member) => !member.slain && !here.has(member.id));
-}
-
-/**
  * Where a row of Tokens stands: side by side, edge to edge, centred on a point.
  * A Token two grid spaces wide takes two spaces of the row, so a large Myth
  * creature doesn't stand on its neighbours.
@@ -34,12 +23,13 @@ export function musterRow(centre, widths, step) {
 }
 
 /**
- * The Tokens to add to a Combat: those given that aren't in it already.
- * @param {{id: string}[]} tokens
- * @param {Iterable<string|null|undefined>} fighting The Token id of each combatant.
- * @returns {{id: string}[]}
+ * Those to add, to a Scene or a Combat: those given that aren't in it already.
+ * @template {{id: string}} T
+ * @param {T[]} given Actors to stand on a Scene, or Tokens to join a Combat.
+ * @param {Iterable<string|null|undefined>} there The id of each already in it: each Token's Actor, or each combatant's Token.
+ * @returns {T[]}
  */
-export function notYetFighting(tokens, fighting) {
-	const inIt = new Set(fighting);
-	return tokens.filter((token) => !inIt.has(token.id));
+export function absentFrom(given, there) {
+	const inIt = new Set(there);
+	return given.filter((item) => !inIt.has(item.id));
 }

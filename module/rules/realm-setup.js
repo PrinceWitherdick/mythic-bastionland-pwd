@@ -83,6 +83,9 @@ export const OWN_SIZE_LIMITS = Object.freeze({
 	hexes: SETUP_LIMITS.cols.max * SETUP_LIMITS.rows.max
 });
 
+/** The limits a problem with a map's size names, as its words take them. */
+export const OWN_SIZE_LIMITS_WORDS = Object.freeze({ cols: OWN_SIZE_LIMITS.cols.max, rows: OWN_SIZE_LIMITS.rows.max, hexes: OWN_SIZE_LIMITS.hexes });
+
 /** @type {Readonly<Record<"cols"|"rows", "cols"|"rows">>} */
 /** Each side of the map, and the other. */
 export const OTHER_SIDE = Object.freeze({ cols: "rows", rows: "cols" });

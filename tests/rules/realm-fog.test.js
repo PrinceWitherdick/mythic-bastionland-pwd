@@ -11,7 +11,6 @@ import {
 	fogPolygon,
 	foggedKeys,
 	hexCleared,
-	holdingsShowThrough,
 	lastOrder,
 	liftFog,
 	normaliseFog,
@@ -205,7 +204,7 @@ describe("fogPolygon", () => {
 	});
 });
 
-describe("tokenFogged and holdingsShowThrough", () => {
+describe("tokenFogged", () => {
 	it("hides a stranger's Token in the fog, not the Company or one's own", () => {
 		expect(tokenFogged({ fogged: true, company: false, owner: false })).toBe(true);
 		expect(tokenFogged({ fogged: true, company: true, owner: false })).toBe(false);
@@ -213,9 +212,7 @@ describe("tokenFogged and holdingsShowThrough", () => {
 		expect(tokenFogged({ fogged: false, company: false, owner: false })).toBe(false);
 	});
 
-	it("shows Holdings through only a fog that's on", () => {
-		expect(holdingsShowThrough({ on: true, holdings: true })).toBe(true);
-		expect(holdingsShowThrough({ on: false, holdings: true })).toBe(false);
+	it("lies above the map's Tiles", () => {
 		expect(FOG_SORT_LAYER).toBe(550);
 	});
 });

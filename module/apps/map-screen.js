@@ -22,8 +22,15 @@ const SIDEBAR_SLIDE = 300;
  */
 export function mapOnScreen() {
 	const rect = canvas?.ready ? canvas.dimensions?.sceneRect : null;
-	if (!rect) return null;
-	// As Foundry lines its HUD up with the canvas.
+	return rect ? rectOnScreen(rect) : null;
+}
+
+/**
+ * @param {{x: number, y: number, width: number, height: number}} rect In the canvas's own pixels.
+ * @returns {{left: number, top: number, right: number, bottom: number}} Where it is on screen, in CSS pixels,
+ *   as Foundry lines its HUD up with the canvas. The canvas must be ready.
+ */
+export function rectOnScreen(rect) {
 	const origin = canvas.primary.getGlobalPosition();
 	const zoom = canvas.stage.scale.x;
 	return {
@@ -220,7 +227,8 @@ export function followMap(place) {
 export function placeBesideMap(element, side, width = element?.offsetWidth ?? 0, map = mapOnScreen()) {
 	if (!element) return;
 	const scale = mapPanelScale();
-	const { left, top, maxHeight } = travelRulesPlacement(panelScreen(), { side, map, width, scale });
+	// The room the interface leaves matters only to a panel with no map to stand against.
+	const { left, top, maxHeight } = travelRulesPlacement(map ? null : panelScreen(), { side, map, width, scale });
 
 	const { style } = element;
 	style.left = `${left}px`;

@@ -4,6 +4,7 @@ const { writeOutsideShifts } = await import("../../module/actions/realm-expand.j
 
 let toolkit;
 let page;
+let book;
 
 beforeEach(() => {
 	toolkit = {
@@ -13,10 +14,9 @@ beforeEach(() => {
 	};
 	page = {
 		id: "page",
-		system: { entries: { row1: { key: "visit:vale:4,5" } } },
-		update: vi.fn(async () => {})
+		system: { entries: { row1: { key: "visit:vale:4,5" } } }
 	};
-	const book = { id: "book", pages: { get: (id) => (id === page.id ? page : undefined) } };
+	book = { id: "book", pages: { get: (id) => (id === page.id ? page : undefined) }, updateEmbeddedDocuments: vi.fn(async () => []) };
 	globalThis.game = {
 		actors: { get: (id) => (id === toolkit.id ? toolkit : undefined) },
 		journal: { get: (id) => (id === book.id ? book : undefined) },
@@ -40,7 +40,7 @@ describe("writeOutsideShifts", () => {
 			omen: null
 		});
 		expect(toolkit.update).toHaveBeenCalledWith({ "system.threads.kept.hex": "7,6" });
-		expect(page.update).toHaveBeenCalledWith({ "system.entries.row1.key": "visit:vale:7,6" });
+		expect(book.updateEmbeddedDocuments).toHaveBeenCalledWith("JournalEntryPage", [{ _id: "page", "system.entries.row1.key": "visit:vale:7,6" }]);
 	});
 
 	it("writes nothing where everything it would move is gone", async () => {
@@ -51,7 +51,7 @@ describe("writeOutsideShifts", () => {
 			omen: null
 		});
 		expect(toolkit.update).not.toHaveBeenCalled();
-		expect(page.update).not.toHaveBeenCalled();
+		expect(book.updateEmbeddedDocuments).not.toHaveBeenCalled();
 	});
 
 	const omenOnly = (from, value) => ({ journal: [], threads: null, timeline: [], omen: { from, value } });

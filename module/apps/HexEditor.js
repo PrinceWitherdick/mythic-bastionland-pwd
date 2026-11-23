@@ -3,7 +3,7 @@ import { getRealm, sceneGeometry, stepRealmHistory } from "../actions/realm.js";
 import { realmKnown } from "../actions/solo.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
-import { inRealm } from "../rules/realm-geometry.js";
+import { shiftHex } from "../rules/realm-growth.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { placeArt } from "./art-preview.js";
 import { HEX_FEATURE_ACTIONS, chooseHexMyth, hexEditContext, rollHexMyth, writeHexEditField } from "./hex-edit.js";
@@ -170,10 +170,10 @@ export function refreshHexEditor(sceneId) {
  */
 export function followMovedHexes(sceneId, offset) {
 	if (!editor?.rendered || editor.sceneId !== sceneId || !editor.hex) return;
-	const hex = { col: editor.hex.col + offset.cols, row: editor.hex.row + offset.rows };
 	// A hex of land taken away again, as a Realm put back from its backup takes it, is no hex to edit.
 	const scene = game.scenes?.get(sceneId);
-	if (!scene || !inRealm(sceneGeometry(scene), hex)) {
+	const hex = scene ? shiftHex(editor.hex, offset, sceneGeometry(scene)) : null;
+	if (!hex) {
 		editor.close();
 		return;
 	}

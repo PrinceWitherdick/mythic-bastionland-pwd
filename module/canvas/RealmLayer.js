@@ -62,11 +62,15 @@ const FEATURE_BRUSHES = {
  * @property {() => Promise<unknown>} [write] What's written in its place, for a drag that leaves the Realm as it is.
  */
 
-/** @returns {PaintDrag} Terrain painted on every hex crossed, in the palette's brush. */
-function terrainDrag() {
+/**
+ * @param {{color: number, alpha: number}} highlight
+ * @returns {Pick<PaintDrag, "highlight"|"course"|"hexes"|"extend"|"ready">} A drag taking in every hex it
+ *   crosses, once each, in no order.
+ */
+function crossingDrag(highlight) {
 	const crossed = new Map();
 	return {
-		highlight: { color: VERDIGRIS, alpha: 0.3 },
+		highlight,
 		course: false,
 		hexes: () => [...crossed.values()],
 		extend(_g, hex) {
@@ -74,9 +78,14 @@ function terrainDrag() {
 			crossed.set(hexKey(hex), hex);
 			return true;
 		},
-		ready: () => crossed.size > 0,
-		lay: (realm, g) => paintTerrain(realm, g, [...crossed.values()], RealmPanel.terrain)
+		ready: () => crossed.size > 0
 	};
+}
+
+/** @returns {PaintDrag} Terrain painted on every hex crossed, in the palette's brush. */
+function terrainDrag() {
+	const drag = crossingDrag({ color: VERDIGRIS, alpha: 0.3 });
+	return { ...drag, lay: (realm, g) => paintTerrain(realm, g, drag.hexes(), RealmPanel.terrain) };
 }
 
 /**
@@ -88,19 +97,8 @@ function terrainDrag() {
  */
 function fogDrag(scene, start) {
 	const lifting = hexFoggedForPlayers(scene, start);
-	const crossed = new Map();
-	return {
-		highlight: { color: lifting ? VERDIGRIS : INK_HEX, alpha: 0.3 },
-		course: false,
-		hexes: () => [...crossed.values()],
-		extend(_g, hex) {
-			if (!hex || crossed.has(hexKey(hex))) return false;
-			crossed.set(hexKey(hex), hex);
-			return true;
-		},
-		ready: () => crossed.size > 0,
-		write: () => (lifting ? liftRealmFog(scene, [...crossed.values()], "hand") : veilRealmFog(scene, [...crossed.values()]))
-	};
+	const drag = crossingDrag({ color: lifting ? VERDIGRIS : INK_HEX, alpha: 0.3 });
+	return { ...drag, write: () => (lifting ? liftRealmFog(scene, drag.hexes(), "hand") : veilRealmFog(scene, drag.hexes())) };
 }
 
 /**

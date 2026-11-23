@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../module/actions/realm.js", () => ({ isRealmScene: (scene) => Boolean(scene?.realm) }));
 vi.mock("../../module/actions/company.js", () => ({ findCompanyToken: (scene) => scene.company ?? null }));
-vi.mock("../../module/apps/map-screen.js", () => ({ panelScreen: () => ({ left: 60, top: 40, right: 1620, bottom: 1000 }) }));
+vi.mock("../../module/apps/map-screen.js", async (importOriginal) => ({ rectOnScreen: (await importOriginal()).rectOnScreen, panelScreen: () => ({ left: 60, top: 40, right: 1620, bottom: 1000 }) }));
 vi.mock("../../module/apps/ui.js", () => ({ viewport: () => ({ width: 1920, height: 1080 }) }));
 
 const { clearOfToken, companyOnScreen, keepClearOfCompany } = await import("../../module/apps/clear-of-company.js");

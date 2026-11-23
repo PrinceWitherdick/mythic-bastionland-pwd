@@ -49,12 +49,12 @@ export function poolRerollers(attack, options) {
 
 /**
  * Whether anybody making a joint Attack could roll its whole pool again, as
- * poolRerollers finds them, stopping at the first.
+ * poolRerollers finds them.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {{owned?: boolean}} [options]
  * @returns {boolean}
  */
-export const hasPoolReroller = (attack, options) => attackingActors(attack, options).some((actor) => poolRerollsOf(actor).some(readyToReroll));
+export const hasPoolReroller = (attack, options) => poolRerollers(attack, options).length > 0;
 
 /**
  * The number a Knight's rune could turn on this card: the one it's etched
@@ -91,9 +91,9 @@ export function sigilHolders(attack, options) {
 
 /**
  * Whether any Knight's rune could turn one of a card's dice, as sigilHolders
- * finds them, stopping at the first.
+ * finds them.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {{owned?: boolean}} [options]
  * @returns {boolean}
  */
-export const hasSigilHolder = (attack, options) => worldKnights(askable(options)).some((actor) => sigilsOf(actor).some((item) => sigilTurns(attack, item) !== null));
+export const hasSigilHolder = (attack, options) => sigilHolders(attack, options).length > 0;

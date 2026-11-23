@@ -19,7 +19,7 @@ import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
 import { JOURNEY_FLAG } from "../actions/journey.js";
-import { REALM_FOG_FLAG, forgetRealmFog } from "../actions/realm-fog.js";
+import { REALM_FOG_FLAG, forgetRealmFog, realmFogOn } from "../actions/realm-fog.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
@@ -91,8 +91,8 @@ function showChanges() {
 			const journey = flags.has(JOURNEY_FLAG);
 			const fogMoved = (kind === "realm" || fogFlag || journey) && drawRealmFog();
 			const hiding = kind === "realm" || fogFlag || fogMoved;
-			// Whether the Holdings show through it.
-			if (hiding) refreshFoggedPlaceables();
+			// Whether the Holdings show through it: nothing to do on a Realm whose fog is off and stays so.
+			if (hiding && (fogFlag || realmFogOn(canvas.scene))) refreshFoggedPlaceables();
 			// Its window, and its brush among the Realm tools, which comes and goes as it's turned on and off.
 			if (fogFlag) {
 				refreshRealmFog(sceneId);
@@ -205,11 +205,12 @@ export function registerRealmHooks() {
 	};
 	for (const name of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(name, onOwnMyth);
 	Hooks.on("updateScene", (scene, changes) => {
-		// The hexes in the fog are read again after any change to the Scene: its fog, its visits, its size.
-		forgetRealmFog(scene.id);
+		const { realm, system, hexFlags: written } = realmSceneChanges(changes);
+		// The hexes in the fog are read again after a change to what they're read from: the Realm and its size,
+		// its fog, its visits. Not after its weather, say, or a hex's notes.
+		if (realm || written.has(REALM_FOG_FLAG) || written.has(JOURNEY_FLAG)) forgetRealmFog(scene.id);
 		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
 		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").
-		const { realm, system, hexFlags: written } = realmSceneChanges(changes);
 		if (!isRealmScene(scene) && !system) return;
 		// Most writes are what's kept for its hexes -- the Company's visits, a hex's notes or name --
 		// which leave the Realm as it was read, and the weather, which no Realm window shows.

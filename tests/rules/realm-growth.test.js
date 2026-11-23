@@ -21,7 +21,6 @@ import {
 	newLandHexes,
 	normaliseGrowth,
 	normaliseRealmGrowth,
-	numbersKept,
 	pixelShift,
 	placeableShifts,
 	putBackGrowth,
@@ -310,7 +309,6 @@ describe("numbers shown and old chat cards", () => {
 		expect([1, 2, 3].map((col) => shownHex(hex(col, 1), twice).col)).toEqual([-2, -1, 0]);
 		expect(shownHex(hex(1, 1), twice).row).toBe(0);
 		expect(storedHex(hex(0, 0), twice)).toEqual(hex(3, 1));
-		expect(numbersKept(twice)).toBe(true);
 		expect(shownRange(realmGeometry({ cols: 15, rows: 13 }), twice)).toEqual({ col: { min: -2, max: 12 }, row: { min: 0, max: 12 } });
 	});
 
@@ -318,7 +316,6 @@ describe("numbers shown and old chat cards", () => {
 		const renumbered = loggedGrowth(loggedGrowth(null, grow(2, 1), { when: 1, keepNumbers: true }), grow(1), { when: 2, keepNumbers: false });
 		expect(shownHex(hex(4, 5), renumbered)).toEqual(hex(4, 5));
 		expect(storedHex(hex(4, 5), renumbered)).toEqual(hex(4, 5));
-		expect(numbersKept(renumbered)).toBe(false);
 		const kept = loggedGrowth(renumbered, grow(0, 2), { when: 3, keepNumbers: true });
 		expect(shownHex(hex(4, 7), kept)).toEqual(hex(4, 5));
 	});

@@ -7,7 +7,7 @@
  * Here too is Expand the map, the Realm tool that opens the window, keeps a
  * backup first, and puts a Realm back from it.
  */
-import { askToExpandRealm, realmBackup } from "../apps/realm-expand.js";
+import { askToExpandRealm, dateText, realmBackup } from "../apps/realm-expand.js";
 import { confirmDialog } from "../apps/ui.js";
 import { ensureDirectories, uploadFile } from "../book-art/files.js";
 import { t, warn } from "../chat/cards.js";
@@ -21,9 +21,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { theGmToolkit } from "./gm-toolkit.js";
 import { expandRealm, expansionRefused, getRealm, putRealmBack, sceneGeometry } from "./realm.js";
 import { findTimelineJournal, timelinePages } from "./timeline-store.js";
-
-/** The world setting keeping the Omen whose card waits, with the hex it was entered in (wilderness.js). */
-const OMEN_ENTERED_SETTING = "omenEntered";
+import { OMEN_ENTERED_SETTING } from "./wilderness.js";
 
 /**
  * @typedef {object} OutsideShifts
@@ -67,12 +65,6 @@ export function outsideShifts(sceneId, offset, g = null) {
 }
 
 /**
- * @param {OutsideShifts} shifts
- * @returns {boolean} Whether there's anything to write.
- */
-export const outsideChanges = (shifts) => Boolean(shifts.journal.length || shifts.threads || shifts.timeline.length || shifts.omen);
-
-/**
  * Write what outsideShifts worked out. Every value is written whole, so
  * writing it twice does no harm.
  * @param {OutsideShifts} shifts
@@ -96,12 +88,15 @@ export async function writeOutsideShifts(shifts) {
 		const update = Object.fromEntries(Object.entries(shifts.threads.threads).filter(([id]) => kept[id]).map(([id, hex]) => [`system.threads.${id}.hex`, hex]));
 		if (Object.keys(update).length) await actor.update(update);
 	}
+	// Each Timeline's pages in one write.
+	const pages = new Map();
 	for (const { journal, page, keys } of shifts.timeline) {
-		const document = game.journal.get(journal)?.pages.get(page);
-		const rows = document?.system?.entries ?? {};
+		const book = game.journal.get(journal);
+		const rows = book?.pages.get(page)?.system?.entries ?? {};
 		const update = Object.fromEntries(Object.entries(keys).filter(([id]) => rows[id]).map(([id, key]) => [`system.entries.${id}.key`, key]));
-		if (Object.keys(update).length) await document.update(update);
+		if (Object.keys(update).length) pages.set(book, [...(pages.get(book) ?? []), { _id: page, ...update }]);
 	}
+	for (const [book, updates] of pages) await book.updateEmbeddedDocuments("JournalEntryPage", updates);
 	// Only while the setting still holds the entry the plan moved: one entered since, on any Realm, is left as it is.
 	if (shifts.omen && sameOmenEntered(game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING), shifts.omen.from)) {
 		await game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, shifts.omen.value);
@@ -173,7 +168,7 @@ export async function readRealmBackup(scene, kept = realmBackup(scene)) {
 async function offerPutBack(scene) {
 	const kept = realmBackup(scene);
 	if (!kept) return false;
-	const when = new Date(kept.when).toLocaleString();
+	const when = dateText(kept.when);
 	const confirmed = await confirmDialog({
 		title: t("realm.expand.restore.title"),
 		icon: "fa-solid fa-clock-rotate-left",

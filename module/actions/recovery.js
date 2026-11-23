@@ -181,7 +181,7 @@ export async function warnDyingAfterCombat(combat) {
  * @param {string} virtue "vig", "cla" or "spi".
  * @param {{icon: string, text: (value: number) => string}} [card] What the card says, where it isn't the plain restoring.
  */
-export async function restoreVirtue(actor, virtue, card = {
+async function restoreVirtue(actor, virtue, card = {
 	icon: "fa-solid fa-heart-pulse",
 	text: (value) => t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })
 }) {

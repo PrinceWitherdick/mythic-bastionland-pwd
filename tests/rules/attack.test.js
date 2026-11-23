@@ -4,7 +4,6 @@ import {
 	attackDamage,
 	attackerImpaired,
 	attackersOf,
-	buildAttackPool,
 	canDeny,
 	canJoin,
 	damageAgainst,
@@ -253,26 +252,6 @@ describe("readImprovised (p194)", () => {
 		[undefined, { dice: [], name: "", unread: [] }]
 	])("reads %j as %j", (text, expected) => {
 		expect(readImprovised(text)).toEqual(expected);
-	});
-});
-
-describe("buildAttackPool", () => {
-	// The worked example on p8: mace, shield, and an ally's two daggers.
-	it("rolls every weapon and shield die together", () => {
-		const pool = buildAttackPool({ sources: ["d8", "d4", "d6", "d6"] });
-		expect(pool).toEqual({ dice: [8, 4, 6, 6], impaired: false });
-	});
-
-	it("adds bonus dice such as Smite", () => {
-		expect(buildAttackPool({ sources: ["d8"], bonus: [12] }).dice).toEqual([8, 12]);
-	});
-
-	it("rolls only a d4 when Impaired, ignoring bonus dice", () => {
-		expect(buildAttackPool({ sources: ["2d10"], bonus: [12], impaired: true })).toEqual({ dice: [4], impaired: true });
-	});
-
-	it("treats an Attack with no weapon dice as unarmed and Impaired", () => {
-		expect(buildAttackPool({ sources: [], bonus: [8] })).toEqual({ dice: [4], impaired: true });
 	});
 });
 

@@ -208,6 +208,12 @@ function impairedText({ confined = false, swarm = false, impairedWeapon = null }
 }
 
 /**
+ * @param {{name: string, reason: string}[]|undefined} setAside Weapons set aside, and why (SET_ASIDE_REASONS).
+ * @returns {string[]} A line for each. Cards rolled before weapons could be set aside have no list.
+ */
+const setAsideLines = (setAside) => (setAside ?? []).map(({ name, reason }) => t(`attack.setAside.${reason}`, { name }));
+
+/**
  * What the card says of each who joined the Attack (p8): that they did, the
  * Smite they declared with its Save, and what set aside or Impaired their share.
  * @param {import("../rules/attack.js").JoinedAttacker[]} joined
@@ -220,7 +226,7 @@ function joinedContext(joined) {
 		smiteMark: entry.smiteMark ? t("attack.smiteMarkLine") : null,
 		leader: entry.leader ? t("attack.ledBy", { name: entry.leader.name }) : null,
 		warnings: [
-			...(entry.setAside ?? []).map(({ name, reason }) => t(`attack.setAside.${reason}`, { name })),
+			...setAsideLines(entry.setAside),
 			...(entry.impaired ? [impairedText(entry)] : [])
 		]
 	}));
@@ -331,8 +337,7 @@ export function attackCardContext(attack) {
 		takeBack: !settled && attack.gambits.some((gambit) => gambit.die !== null && !withdrawLocked(gambit)) ? t("attack.takeBack") : null,
 		// A Gambit is still to be had while a die can pay for one, or Focus can.
 		gambitHelp: settled || !(gambitDice || focusable) ? null : gambitHelp(),
-		// Cards rolled before weapons could be set aside have no list.
-		setAside: (attack.setAside ?? []).map(({ name, reason }) => t(`attack.setAside.${reason}`, { name })),
+		setAside: setAsideLines(attack.setAside),
 		impaired: attack.impaired,
 		// Why: a Long weapon in a confined space, a swarm struck without a Blast, or a foe's Impair on the weapon.
 		impairedText: attack.impaired ? impairedText(attack) : null,

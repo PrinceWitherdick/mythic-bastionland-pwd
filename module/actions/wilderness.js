@@ -136,7 +136,7 @@ export function companySituation(scene = null) {
  * shown as the Company came in (p27), or a roll the Referee made by hand for
  * the Company's hex. {when, scene, hex}, or null.
  */
-const OMEN_ENTERED_SETTING = "omenEntered";
+export const OMEN_ENTERED_SETTING = "omenEntered";
 
 /** Register where a Myth's Omen showed on entering. Called during init. */
 export function registerOmenEntered() {

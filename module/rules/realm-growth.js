@@ -17,6 +17,7 @@
  * Pure, so it can be tested without Foundry.
  */
 import { OWN_SIZE_LIMITS } from "./realm-setup.js";
+import { entrySort } from "./hex-journal.js";
 import { emptyVariants } from "./realm-pictures.js";
 import { fullMapRect, normaliseRealmPicture } from "./realm-map.js";
 import { allHexes, edgeKey, hexCentre, hexIndex, hexKey, hexVertices, inRealm, parseHexKey, realmGeometry } from "./realm-geometry.js";
@@ -32,9 +33,6 @@ export const EXPANDING_FLAG = "expanding";
 
 /** The Scene flag naming the backup kept before the last expansion: its path and when it was taken. */
 export const REALM_BACKUP_FLAG = "realmBackup";
-
-/** What becomes of the land added: rolled as the book rolls terrain, or left blank to paint. */
-export const NEW_LAND = Object.freeze(["roll", "blank"]);
 
 /**
  * @typedef {{north: number, south: number, west: number, east: number}} Growth
@@ -263,10 +261,7 @@ export function growRealm(realm, from, growth) {
 
 // Placeables on the Scene.
 
-/** The Scene's own document types that stand somewhere on it, as each Foundry version may hold them. */
-export const PLACEABLE_TYPES = Object.freeze(["Tile", "Drawing", "Token", "Note", "AmbientLight", "AmbientSound", "Wall", "Region", "MeasuredTemplate"]);
-
-/** The Scene's collection of each type. */
+/** The Scene's own document types that stand somewhere on it, as each Foundry version may hold them, and the Scene's collection of each. */
 export const PLACEABLE_COLLECTIONS = Object.freeze({
 	Tile: "tiles",
 	Drawing: "drawings",
@@ -278,6 +273,9 @@ export const PLACEABLE_COLLECTIONS = Object.freeze({
 	Region: "regions",
 	MeasuredTemplate: "templates"
 });
+
+/** The types, in the order they are written. */
+export const PLACEABLE_TYPES = Object.freeze(Object.keys(PLACEABLE_COLLECTIONS));
 
 const whole = (value) => Math.round(value);
 
@@ -453,7 +451,7 @@ export function shiftHexValue(flag, offset, g = null) {
  * is re-keyed. `null` clears it; a flag not named here holds no hex.
  * @type {Readonly<Record<string, ((flag: unknown, offset: Offset, g?: object|null) => unknown)|null>>}
  */
-export const HEX_FLAG_SHIFTS = Object.freeze({
+const HEX_FLAG_SHIFTS = Object.freeze({
 	hexNames: shiftHexStore,
 	hexLore: shiftHexStore,
 	trackedHexes: shiftHexStore,
@@ -486,9 +484,6 @@ export function shiftedHexFlags(flags, offset, g = null) {
 
 // Documents outside the Scene.
 
-/** Entries run down the folder by column, then row, as entrySort in hex-journal.js. */
-const journalSort = ({ col, row }) => col * 1000 + row;
-
 /**
  * A hex Journal entry's flag and sort moved with its hex.
  * @param {{scene: string, hex: string}} flag
@@ -501,7 +496,7 @@ const journalSort = ({ col, row }) => col * 1000 + row;
 export function shiftJournalFlag(flag, sceneId, offset, g = null) {
 	if (!flag || flag.scene !== sceneId || !parseHexKey(flag.hex)) return null;
 	const moved = shiftHex(parseHexKey(flag.hex), offset, g);
-	return moved ? { flag: { ...flag, hex: hexKey(moved) }, sort: journalSort(moved) } : { flag: null };
+	return moved ? { flag: { ...flag, hex: hexKey(moved) }, sort: entrySort(moved) } : { flag: null };
 }
 
 /**
@@ -579,12 +574,18 @@ export function normaliseRealmGrowth(raw) {
 	const log = (Array.isArray(raw?.log) ? raw.log : [])
 		.filter((entry) => entry && Number.isFinite(entry.when))
 		.map((entry) => ({ when: entry.when, ...Object.fromEntries(GROWTH_SIDES.map((key) => [key, side(entry[key])])) }));
-	const origin = {
-		cols: Number.isInteger(raw?.origin?.cols) ? raw.origin.cols : 0,
-		rows: Number.isInteger(raw?.origin?.rows) ? raw.origin.rows : 0
-	};
-	return { log, origin };
+	return { log, origin: growthOrigin(raw) };
 }
+
+/**
+ * @param {unknown} raw
+ * @returns {{cols: number, rows: number}} How far the hexes' numbers have moved, read without the log,
+ *   as every hex's number shown asks it.
+ */
+const growthOrigin = (raw) => ({
+	cols: Number.isInteger(raw?.origin?.cols) ? raw.origin.cols : 0,
+	rows: Number.isInteger(raw?.origin?.rows) ? raw.origin.rows : 0
+});
 
 /**
  * The growth record once a map is grown.
@@ -639,17 +640,8 @@ export function putBackGrowth(raw, backupRaw, undone, { when }) {
  * @returns {boolean} Whether the expansions logged have moved the map's hexes, so the numbering is a choice worth offering.
  */
 export const hasShifted = (raw) => {
-	const { log } = normaliseRealmGrowth(raw);
-	return log.reduce((sum, entry) => sum + entry.west, 0) !== 0 || log.reduce((sum, entry) => sum + entry.north, 0) !== 0;
-};
-
-/**
- * @param {unknown} raw
- * @returns {boolean} Whether the hexes show other numbers than they are kept by.
- */
-export const numbersKept = (raw) => {
-	const { origin } = normaliseRealmGrowth(raw);
-	return origin.cols !== 0 || origin.rows !== 0;
+	const { cols, rows } = cardOffset(null, raw);
+	return cols !== 0 || rows !== 0;
 };
 
 /**
@@ -660,7 +652,7 @@ export const numbersKept = (raw) => {
  * @returns {{col: number, row: number}}
  */
 export function shownHex(hex, growth) {
-	const { origin } = normaliseRealmGrowth(growth);
+	const origin = growthOrigin(growth);
 	return { col: hex.col - origin.cols, row: hex.row - origin.rows };
 }
 
@@ -671,7 +663,7 @@ export function shownHex(hex, growth) {
  * @returns {{col: number, row: number}} As stored, which may lie off the map.
  */
 export function storedHex(shown, growth) {
-	const { origin } = normaliseRealmGrowth(growth);
+	const origin = growthOrigin(growth);
 	return { col: shown.col + origin.cols, row: shown.row + origin.rows };
 }
 

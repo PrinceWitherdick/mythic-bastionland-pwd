@@ -229,12 +229,6 @@ export function fogPolygon(g, hex, grow) {
 }
 
 /**
- * @param {{on: boolean, holdings: boolean}} fog
- * @returns {boolean} Whether the Realm's Holdings and Seats show through the fog.
- */
-export const holdingsShowThrough = (fog) => Boolean(fog?.on && fog.holdings);
-
-/**
  * What the Fog of War window shows of a Realm's fog.
  * @param {{on: boolean, holdings: boolean}} fog
  * @returns {{on: boolean, holdings: boolean, locked: boolean}} Whether Holdings show through, and the

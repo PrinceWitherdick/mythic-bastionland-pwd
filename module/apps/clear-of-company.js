@@ -1,6 +1,6 @@
 import { findCompanyToken } from "../actions/company.js";
 import { isRealmScene } from "../actions/realm.js";
-import { panelScreen } from "./map-screen.js";
+import { panelScreen, rectOnScreen } from "./map-screen.js";
 import { viewport } from "./ui.js";
 
 /**
@@ -52,14 +52,7 @@ export function companyOnScreen() {
 	const token = findCompanyToken(scene);
 	const bounds = token?.object?.bounds;
 	if (!bounds || (token.hidden && !game.user?.isGM)) return null;
-	const origin = canvas.primary.getGlobalPosition();
-	const zoom = canvas.stage.scale.x;
-	const box = {
-		left: origin.x + (bounds.x * zoom),
-		top: origin.y + (bounds.y * zoom),
-		right: origin.x + ((bounds.x + bounds.width) * zoom),
-		bottom: origin.y + ((bounds.y + bounds.height) * zoom)
-	};
+	const box = rectOnScreen(bounds);
 	const { width, height } = viewport();
 	return box.right > 0 && box.left < width && box.bottom > 0 && box.top < height ? box : null;
 }

@@ -154,21 +154,6 @@ export function combineDice(dice, groups = []) {
 }
 
 /**
- * Gather the dice for one Attack. An Attack with no weapon dice is unarmed,
- * and unarmed or Impaired Attacks roll a single d4 with no bonus dice.
- * @param {object} args
- * @param {string[]} [args.sources]  Damage notation of each weapon and shield used.
- * @param {number[]} [args.bonus]    Extra die sizes, such as Smite's d12.
- * @param {boolean} [args.impaired]
- * @returns {{dice: number[], impaired: boolean}}
- */
-export function buildAttackPool({ sources = [], bonus = [], impaired = false }) {
-	const weaponDice = sources.flatMap(parseDice);
-	if (impaired || weaponDice.length === 0) return { dice: [4], impaired: true };
-	return { dice: [...weaponDice, ...bonus], impaired: false };
-}
-
-/**
  * Why a chosen weapon sits out an Attack: Slow after moving (p12), purely ranged when engaged in
  * melee (p10), or a shield a foe's Trap Gambit holds (p10).
  */
