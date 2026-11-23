@@ -138,6 +138,15 @@ export function companySituation(scene = null) {
  */
 export const OMEN_ENTERED_SETTING = "omenEntered";
 
+/**
+ * @param {{scene?: string, hex?: {col: number, row: number}, when?: object}|null} said As OMEN_ENTERED_SETTING holds it.
+ * @param {Scene|null} scene
+ * @param {{col: number, row: number}} hex
+ * @param {import("../rules/time.js").Calendar} when
+ * @returns {boolean} Whether it was kept for this hex, in this Phase.
+ */
+const enteredHere = (said, scene, hex, when) => Boolean(said && said.scene === scene?.id && samePhase(said.when, when) && sameHex(said.hex, hex));
+
 /** Register where a Myth's Omen showed on entering. Called during init. */
 export function registerOmenEntered() {
 	game.settings.register(SYSTEM_ID, OMEN_ENTERED_SETTING, { scope: "world", config: false, type: Object, default: null });
@@ -155,7 +164,7 @@ export function registerOmenEntered() {
  */
 export function markOmenOnEntering(scene, hex, when = getCalendar(), omen = false) {
 	const said = game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING);
-	const metHere = Boolean(said?.omen && said.scene === scene.id && samePhase(said.when, when) && sameHex(said.hex, hex));
+	const metHere = Boolean(said?.omen) && enteredHere(said, scene, hex, when);
 	return game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, { when: { ...when }, scene: scene.id, hex: { col: hex.col, row: hex.row }, omen: omen || metHere });
 }
 
@@ -182,8 +191,7 @@ export function omenMetThisPhase(now = getCalendar()) {
  * @returns {boolean}
  */
 export function omenShownOnEntering(scene, hex, now = getCalendar()) {
-	const said = game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING);
-	return Boolean(said && said.scene === scene?.id && samePhase(said.when, now) && sameHex(said.hex, hex));
+	return enteredHere(game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING), scene, hex, now);
 }
 
 /**

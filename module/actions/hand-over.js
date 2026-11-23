@@ -6,7 +6,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { registerQuery } from "../queries.js";
 
 /** The kinds of Item that are things carried, so one handed on leaves whoever gave it. */
-export const HANDED_TYPES = Object.freeze(["weapon", "armour", "gear"]);
+const HANDED_TYPES = Object.freeze(["weapon", "armour", "gear"]);
 
 /** The query a player sends to hand a possession to a character they don't own. */
 const HAND_QUERY = `${SYSTEM_ID}.handOver`;

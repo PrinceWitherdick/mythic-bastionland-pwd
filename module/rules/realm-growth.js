@@ -20,8 +20,8 @@ import { OWN_SIZE_LIMITS } from "./realm-setup.js";
 import { entrySort } from "./hex-journal.js";
 import { movedHexRowKey, readHexRowKey } from "./timeline.js";
 import { emptyVariants } from "./realm-pictures.js";
-import { fullMapRect, normaliseRealmPicture } from "./realm-map.js";
-import { allHexes, edgeKey, hexCentre, hexIndex, hexKey, hexVertices, inRealm, parseHexKey, realmGeometry } from "./realm-geometry.js";
+import { fullMapRect, hexPath, normaliseRealmPicture, round, tenth } from "./realm-map.js";
+import { allHexes, edgeKey, hexCentre, hexIndex, hexKey, inRealm, parseHexKey, realmGeometry } from "./realm-geometry.js";
 
 /** The four sides a map can grow on, in the order the window asks. */
 export const GROWTH_SIDES = Object.freeze(["north", "south", "west", "east"]);
@@ -182,7 +182,7 @@ export function pixelShift(from, growth) {
  * @param {Growth} growth
  * @returns {Set<string>} The keys, in the grown map, of the hexes the map had before.
  */
-export function oldLandKeys(from, growth) {
+function oldLandKeys(from, growth) {
 	const offset = growthOffset(growth);
 	return new Set(allHexes(from).map((hex) => hexKey(shiftHex(hex, offset))));
 }
@@ -196,8 +196,6 @@ export function newLandHexes(from, growth) {
 	const old = oldLandKeys(from, growth);
 	return allHexes(grownGeometry(from, growth)).filter((hex) => !old.has(hexKey(hex)));
 }
-
-const hundredth = (value) => Math.round(value * 100) / 100;
 
 /**
  * A picture's place shifted with the hexes. One never lined up lies over the
@@ -214,10 +212,10 @@ export function shiftPicture(picture, { dx, dy }, from = null) {
 	if (!pictures) return null;
 	return Object.fromEntries(Object.entries(pictures).map(([role, map]) => {
 		const placed = map && !(map.width > 0) && from
-			? { ...map, ...Object.fromEntries(Object.entries(fullMapRect(from)).map(([key, value]) => [key, hundredth(value)])) }
+			? { ...map, ...Object.fromEntries(Object.entries(fullMapRect(from)).map(([key, value]) => [key, round(value)])) }
 			: map;
 		return [role, placed && Number.isFinite(placed.x) && Number.isFinite(placed.y)
-			? { ...placed, x: hundredth(placed.x + dx), y: hundredth(placed.y + dy) }
+			? { ...placed, x: round(placed.x + dx), y: round(placed.y + dy) }
 			: placed];
 	}));
 }
@@ -298,7 +296,7 @@ const shiftedPoints = (points, { dx, dy }) => (Array.isArray(points) && points.e
  * @param {{dx: number, dy: number}} shift
  * @returns {object}
  */
-export function shiftRegionShape(shape, shift) {
+function shiftRegionShape(shape, shift) {
 	if (!shape || typeof shape !== "object") return shape;
 	const moved = { ...shape };
 	if (Number.isFinite(shape.x)) moved.x = whole(shape.x + shift.dx);
@@ -495,8 +493,9 @@ export function shiftedHexFlags(flags, offset, g = null) {
  *   `flag: null` for one whose hex is gone.
  */
 export function shiftJournalFlag(flag, sceneId, offset, g = null) {
-	if (!flag || flag.scene !== sceneId || !parseHexKey(flag.hex)) return null;
-	const moved = shiftHex(parseHexKey(flag.hex), offset, g);
+	const hex = flag?.scene === sceneId ? parseHexKey(flag.hex) : null;
+	if (!hex) return null;
+	const moved = shiftHex(hex, offset, g);
 	return moved ? { flag: { ...flag, hex: hexKey(moved) }, sort: entrySort(moved) } : { flag: null };
 }
 
@@ -677,23 +676,6 @@ export function shownRange(g, growth) {
 }
 
 /**
- * A hex key on a chat card, turned into the hex it names now: moved by every
- * expansion logged after the card was posted.
- * @param {string} key
- * @param {number|null|undefined} timestamp When the card was posted.
- * @param {unknown} growth The Scene's growth flag.
- * @param {object} [g] The Scene's geometry now: a hex beyond it, as land a put-back took
- *   away from the east or south, is gone too.
- * @returns {string|null} The key now, or as it was when no expansion came after. Null for a hex
- *   that's gone, as land a Realm put back from its backup takes away: it neither lands on another hex
- *   nor is kept under its old key, which now names a different one.
- */
-export function cardHexKey(key, timestamp, growth, g = null) {
-	if (!parseHexKey(key)) return key;
-	return shiftHexKey(key, cardOffset(timestamp, growth), g);
-}
-
-/**
  * How far the hexes have moved since a card was posted: by every expansion
  * logged after it.
  * @param {number|null|undefined} timestamp When the card was posted.
@@ -706,8 +688,6 @@ export function cardOffset(timestamp, growth) {
 }
 
 // The window's little picture.
-
-const tenth = (value) => Math.round(value * 10) / 10;
 
 /** How big, in the picture's own units, each hex is across its flat sides. */
 const PREVIEW_HEX = 12;
@@ -724,10 +704,7 @@ export function growthPreview(g, raw) {
 	const growth = normaliseGrowth(raw);
 	const to = grownGeometry(from, growth);
 	const old = oldLandKeys(from, growth);
-	const path = (hex) => {
-		const [first, ...rest] = hexVertices(to, hex);
-		return `M${tenth(first.x)} ${tenth(first.y)}${rest.map(({ x, y }) => `L${tenth(x)} ${tenth(y)}`).join("")}Z`;
-	};
+	const path = (hex) => hexPath(to, hex);
 	const hexes = allHexes(to);
 	return {
 		viewBox: `-1 -1 ${tenth(to.width + 2)} ${tenth(to.height + 2)}`,

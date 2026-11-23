@@ -4,7 +4,7 @@ import { keepsSeat } from "../rules/property.js";
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { isBladedName } from "../rules/attack-fx.js";
 import { joinAttack, showRolls } from "../actions/attack.js";
-import { hasPoolReroller, hasSigilHolder, poolRerollers, sigilHolders } from "../actions/attack-holders.js";
+import { attackingActors, hasPoolReroller, hasSigilHolder, poolRerollers, sigilHolders } from "../actions/attack-holders.js";
 import { playDismountFx } from "../actions/attack-fx.js";
 import { duelOf } from "../actions/duel.js";
 import { mountedNow } from "../rules/duel.js";
@@ -482,7 +482,7 @@ async function onGambit(message, button) {
  */
 async function onFocus(message) {
 	const attack = attackOf(message);
-	const owned = attackersOf(attack).map((uuid) => fromUuidSync(uuid)).filter((actor) => actor?.isOwner);
+	const owned = attackingActors(attack, { owned: true });
 	if (!owned.length) return;
 	const unimpaired = owned.filter((actor) => !attackerImpaired(attack, actor.uuid));
 	if (!unimpaired.length) return warn("attack.impaired");

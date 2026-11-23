@@ -24,6 +24,16 @@ export const getRealmFog = (scene) => normaliseFog(isRealmScene(scene) ? scene.g
 
 /**
  * @param {Scene|null|undefined} scene
+ * @returns {{on: boolean, holdings: boolean}} Whether the Realm's fog is on, and its Holdings show through,
+ *   as getRealmFog reads them, without reading every hex's record.
+ */
+export function realmFogOptions(scene) {
+	const raw = isRealmScene(scene) ? scene.getFlag?.(SYSTEM_ID, REALM_FOG_FLAG) : null;
+	return { on: raw?.on === true, holdings: raw?.holdings === true };
+}
+
+/**
+ * @param {Scene|null|undefined} scene
  * @returns {boolean} Whether the Realm's Fog of War is on. Read off the flag alone, as every Token's
  *   visibility asks it, without reading every hex's record.
  */
@@ -57,7 +67,7 @@ const editRealmFog = (scene, edit) => editor(scene, (fog) => (fog.on ? edit(fog)
  */
 export async function setRealmFogOptions(scene, { on, holdings } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
-	const before = getRealmFog(scene);
+	const before = realmFogOptions(scene);
 	const path = (key) => `flags.${SYSTEM_ID}.${REALM_FOG_FLAG}.${key}`;
 	const update = {};
 	if (typeof on === "boolean" && on !== before.on) update[path("on")] = on;

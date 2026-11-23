@@ -14,7 +14,6 @@ import {
 	lastOrder,
 	liftFog,
 	normaliseFog,
-	realmFogContext,
 	toggleFogAt,
 	tokenFogged,
 	veilFog
@@ -224,10 +223,5 @@ describe("the Referee's tools", () => {
 		expect(realmToolNames({ fogOn: true })).toEqual([...REALM_TOOLS]);
 		expect(REALM_BUTTONS).toContain("fogOfWar");
 		expect(REALM_BUTTONS).not.toContain("fog");
-	});
-
-	it("lets the window change the rest only while the fog is on", () => {
-		expect(realmFogContext({ on: false, holdings: true })).toEqual({ on: false, holdings: true, locked: true });
-		expect(realmFogContext({ on: true, holdings: false })).toEqual({ on: true, holdings: false, locked: false });
 	});
 });

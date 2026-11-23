@@ -14,7 +14,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 	sceneGeometry: () => g
 }));
 vi.mock("../../module/actions/journey.js", () => ({ movesAsCompany: (token) => Boolean(token.company) }));
-vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key }));
+vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key, warn: (key) => ui.notifications.warn(key) }));
 // Telling the Referee what turned it back is barrier-found.js's to test.
 vi.mock("../../module/canvas/barrier-found.js", () => ({ reportTurnedBack: vi.fn() }));
 

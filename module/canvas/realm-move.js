@@ -1,7 +1,7 @@
 import { NOT_A_MOVE, forcedMove } from "../actions/company.js";
 import { movesAsCompany } from "../actions/journey.js";
 import { expansionUnderWay, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
-import { t } from "../chat/cards.js";
+import { t, warn } from "../chat/cards.js";
 import { barrierEdges, hexAt, sameHex } from "../rules/realm-geometry.js";
 import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { reportTurnedBack } from "./barrier-found.js";
@@ -57,7 +57,7 @@ export function allowRealmMove(token, movement, operation) {
 		if (operation?.[NOT_A_MOVE]) return true;
 		// Any other move while one is written, or cut short and not yet finished, would be undone by it,
 		// and would be judged against a Realm whose Tiles and flag may disagree.
-		ui.notifications.warn(t("realm.movement.expanding"));
+		warn("realm.movement.expanding");
 		return false;
 	}
 	if (travelsUnheard(token)) {

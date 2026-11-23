@@ -43,7 +43,7 @@ export const threadsInHex = (scene, hex) => (scene && hex ? threadsAt(openThread
  * @param {string} id
  * @returns {(import("../rules/threads.js").Thread & {id: string})|undefined} The open thread of that id.
  */
-export const threadById = (id) => openThreads().find((entry) => entry.id === id);
+const threadById = (id) => openThreads().find((entry) => entry.id === id);
 
 /**
  * @param {import("../rules/threads.js").Thread} thread
@@ -176,11 +176,14 @@ export async function addThreads(given) {
 	const opened = getCalendar();
 	const now = Date.now();
 	const update = {};
+	const ids = [];
 	given.forEach((one, index) => {
 		const thread = newThread({ ...one, opened: one.opened ?? opened, at: one.at ?? now + index });
-		if (thread) update[`system.threads.${foundry.utils.randomID()}`] = thread;
+		if (!thread) return;
+		const id = foundry.utils.randomID();
+		ids.push(id);
+		update[`system.threads.${id}`] = thread;
 	});
-	const ids = Object.keys(update).map((path) => path.slice("system.threads.".length));
 	return ids.length && (await writeThreads(update)) ? ids : [];
 }
 

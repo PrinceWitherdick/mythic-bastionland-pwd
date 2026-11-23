@@ -6,12 +6,14 @@ vi.mock("../../module/actions/attack.js", () => ({
 	joinAttack: vi.fn(async () => null),
 	showRolls: vi.fn()
 }));
-vi.mock("../../module/actions/attack-holders.js", () => {
+vi.mock("../../module/actions/attack-holders.js", async () => {
+	const { attackersOf } = await import("../../module/rules/attack.js");
 	const poolRerollers = vi.fn(() => []);
 	const sigilHolders = vi.fn(() => []);
 	// As the real ones find them: among those this user owns, where asked.
 	const found = (list, options) => list.some(({ actor }) => !options?.owned || actor.isOwner);
 	return {
+		attackingActors: (attack, options) => attackersOf(attack).map((uuid) => fromUuidSync(uuid)).filter(Boolean).filter((actor) => !options?.owned || actor.isOwner),
 		poolRerollers,
 		sigilHolders,
 		hasPoolReroller: vi.fn((attack, options) => found(poolRerollers(attack, options), options)),

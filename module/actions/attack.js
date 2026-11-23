@@ -1,6 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, rollDicePool, t, warn } from "../chat/cards.js";
 import { againstLine, attackCardContext, cardTarget, packCardContext, plainNote } from "../chat/attack-view.js";
+import { targeted } from "../chat/attack-flag.js";
 import { combatPlace, marksOn } from "../chat/gambit-marks.js";
 import {
 	ALTERNATE_FLAGS,
@@ -385,16 +386,6 @@ function followAim(dialog, duel = null) {
 		Hooks.off("targetToken", id);
 		duelBox?.removeEventListener("change", show);
 	};
-}
-
-/**
- * Whether any of these targets is the attacker's own Token.
- * @param {Actor} actor
- * @param {{uuid: string}[]} targets
- * @returns {boolean}
- */
-function targetsSelf(actor, targets) {
-	return targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === actor.uuid);
 }
 
 /**
@@ -1194,7 +1185,7 @@ async function planAttack(actor, joining = null) {
 	let aimWeighed = null;
 	for (;;) {
 		// Nobody makes an Attack at themself.
-		if (!joining && targetsSelf(actor, aimedAt)) {
+		if (!joining && targeted({ targets: aimedAt }, actor)) {
 			warn("attack.selfTarget", { name: actor.name });
 			return null;
 		}

@@ -1,4 +1,5 @@
-import { allHexes, hexCentre, hexKey, hexRecords, hexVertices } from "./realm-geometry.js";
+import { allHexes, hexCentre, hexKey, hexRecords } from "./realm-geometry.js";
+import { markedHexOutline } from "./realm-map.js";
 
 /**
  * A Realm's Fog of War, which the Referee may turn on for each Realm Scene: a
@@ -223,15 +224,6 @@ export function fogCoverKey({ alpha, paper, g, fogged }) {
  * @returns {number[]} The hex's corners pushed out from its middle, as flat x, y pairs PIXI draws a polygon from.
  */
 export function fogPolygon(g, hex, grow) {
-	const centre = hexCentre(g, hex);
 	const scale = g.radius > 0 ? (g.radius + grow) / g.radius : 1;
-	return hexVertices(g, hex).flatMap(({ x, y }) => [centre.x + (x - centre.x) * scale, centre.y + (y - centre.y) * scale]);
+	return markedHexOutline(g, hexCentre(g, hex), scale).flatMap(({ x, y }) => [x, y]);
 }
-
-/**
- * What the Fog of War window shows of a Realm's fog.
- * @param {{on: boolean, holdings: boolean}} fog
- * @returns {{on: boolean, holdings: boolean, locked: boolean}} Whether Holdings show through, and the
- *   buttons that lift, bring back or brush it, are locked: they can only be changed while the fog is on.
- */
-export const realmFogContext = ({ on, holdings }) => ({ on, holdings, locked: !on });

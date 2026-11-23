@@ -10,7 +10,7 @@ import { read } from "../client-settings.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { shiftHexKey } from "../rules/realm-growth.js";
-import { REALM_FLAG } from "../rules/realm.js";
+import { realmFlag } from "../rules/realm-documents.js";
 import { TRAVELS_GROUPS, TRAVELS_SORTS, TRAVELS_VIEWS } from "../rules/travels.js";
 import { chartScrollBy, haloPoints } from "../rules/travels-chart.js";
 import { searchable } from "../rules/text.js";
@@ -153,7 +153,7 @@ function setFold(button, state, folded) {
  * @param {TravelsListState} state
  * @param {HTMLElement|null|undefined} row
  */
-export function revealRow(state, row) {
+function revealRow(state, row) {
 	if (!row) return;
 	for (let fold = row.closest("[data-folded]"); fold; fold = fold.parentElement?.closest("[data-folded]")) {
 		const button = [...fold.querySelectorAll("[data-travels-fold]")].find((each) => each.closest("[data-search-section]") === fold);
@@ -688,7 +688,7 @@ export function followMovedPlaces(sceneId, offset) {
 	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
 	if (!app || app.state.realm !== sceneId) return;
 	// A hex of land taken away again, as a Realm put back from its backup takes it, is chosen no longer.
-	const realm = game.scenes?.get(sceneId)?.flags?.[SYSTEM_ID]?.[REALM_FLAG];
+	const realm = realmFlag(game.scenes?.get(sceneId));
 	app.state.selected = realm ? shiftHexKey(app.state.selected ?? "", offset, realm) : null;
 	if (app.rendered) renderWhenIdle(app);
 }

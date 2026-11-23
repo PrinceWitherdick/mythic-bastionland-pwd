@@ -4,7 +4,7 @@ import { REALM_FLAG } from "../../module/rules/realm.js";
 import { hexAt, hexTopLeft, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm } from "../../module/rules/realm-generator.js";
 import { realmSceneData, realmTextures } from "../../module/rules/realm-documents.js";
-import { EXPANDING_FLAG, REALM_BACKUP_FLAG, REALM_GROWTH_FLAG, cardHexKey, growRealm, growthOffset, shiftHex } from "../../module/rules/realm-growth.js";
+import { EXPANDING_FLAG, REALM_BACKUP_FLAG, REALM_GROWTH_FLAG, cardOffset, growRealm, growthOffset, shiftHex, shiftHexKey } from "../../module/rules/realm-growth.js";
 
 vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 	...(await importOriginal()),
@@ -12,7 +12,11 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 	warn: vi.fn()
 }));
 
-vi.mock("../../module/actions/hex-journals.js", () => ({ syncHexJournals: vi.fn(async () => {}) }));
+vi.mock("../../module/actions/hex-journals.js", async () => {
+	const { SYSTEM_ID: id } = await import("../../module/system-id.js");
+	const { HEX_JOURNAL_FLAG } = await import("../../module/rules/hex-journal.js");
+	return { syncHexJournals: vi.fn(async () => {}), hexJournalFlag: (entry) => entry?.flags?.[id]?.[HEX_JOURNAL_FLAG] ?? null };
+});
 vi.mock("../../module/canvas/hex-prompt.js", () => ({ forgetHexArrivals: vi.fn() }));
 vi.mock("../../module/actions/time-capture.js", () => ({ writeAdvanceRecords: vi.fn(async () => {}) }));
 
@@ -329,10 +333,9 @@ describe("resumeExpansion", () => {
 		scene.update.mockImplementation(realUpdate);
 		const sizedBefore = scene.log.filter(([what, changes]) => what === "scene" && "width" in changes).length;
 		expect(await resumeExpansion(scene)).toBe(true);
-		// The clients followed the first write: the one made again doesn't move their windows or view a second time.
+		// The Scene write landed, and the clients followed it: it isn't made again, so nothing moves a second time.
 		const again = scene.log.filter(([what, changes]) => what === "scene" && "width" in changes).slice(sizedBefore);
-		expect(again).toHaveLength(1);
-		expect(again[0][2]?.[SYSTEM_ID]?.realmExpanded).toBeUndefined();
+		expect(again).toHaveLength(0);
 		expect(scene.flags[SYSTEM_ID].hexNames).toEqual({ version: 1, hexes: { "7,6": { name: "Mossford" } } });
 		expect(game.journal.get("j1").flags[SYSTEM_ID].hexJournal.hex).toBe("7,6");
 		expect(scene.flags[SYSTEM_ID][REALM_GROWTH_FLAG].log).toHaveLength(1);
@@ -433,7 +436,7 @@ describe("putRealmBack", () => {
 		const logged = scene.flags[SYSTEM_ID][REALM_GROWTH_FLAG];
 		expect(logged.log.at(-1)).toEqual({ when: 2000, west: -3, north: -1, east: -1, south: -2 });
 		// A card posted on the grown map names the hex it meant again.
-		expect(cardHexKey("7,6", 1500, logged)).toBe("4,5");
+		expect(shiftHexKey("7,6", cardOffset(1500, logged))).toBe("4,5");
 		const restored = scene.log.findLast(([what, changes]) => what === "scene" && "width" in changes);
 		expect(restored[2][SYSTEM_ID].realmExpanded).toMatchObject({ cols: -3, rows: -1 });
 		expect(restored[2][SYSTEM_ID].realmExpanded.dx).toBeLessThan(0);

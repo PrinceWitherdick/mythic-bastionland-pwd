@@ -348,16 +348,16 @@ export async function markOnPlayersMap(scene, ids, { lift = [] } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return 0;
 	// Read before the marking: the set read later is a new one, so this stays as it was.
 	const fogged = foggedForPlayers(scene);
-	let marked = 0;
-	for (const [type, collection] of [["Tile", scene.tiles], ["Drawing", scene.drawings]]) {
+	// The Tiles and the Drawings at once, as neither waits on the other.
+	const counts = await Promise.all([["Tile", scene.tiles], ["Drawing", scene.drawings]].map(async ([type, collection]) => {
 		const updates = ids
 			.map((id) => collection?.get(id))
 			.filter((drawn) => drawn?.hidden)
 			.map((drawn) => ({ _id: drawn.id, hidden: false }));
-		if (!updates.length) continue;
-		await scene.updateEmbeddedDocuments(type, updates);
-		marked += updates.length;
-	}
+		if (updates.length) await scene.updateEmbeddedDocuments(type, updates);
+		return updates.length;
+	}));
+	const marked = counts[0] + counts[1];
 	const lifted = fogged.size ? await liftMarkedFog(scene, ids, lift, fogged) : 0;
 	if (marked || !lifted) ui.notifications.info(t(marked ? "explore.marked" : "explore.markedNothing", { count: marked }));
 	else ui.notifications.info(t(lifted === 1 ? "realmFog.liftedOne" : "realmFog.lifted", { count: lifted }));

@@ -414,6 +414,7 @@ export async function takeDamage(actor, preset = {}) {
 	const warband = actor.system.scale === "warband";
 	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.
 	const virtues = actor.system.virtues ?? null;
+	const character = Boolean(virtues);
 	// Damage to SPI rather than VIG never Wounds, leaves nobody dying, and Slays nobody (p68).
 	const spirit = preset.virtue === "spi" && Boolean(virtues?.spi);
 	const score = spirit ? "spi" : "vig";
@@ -437,7 +438,7 @@ export async function takeDamage(actor, preset = {}) {
 		// Whether they stand in a shieldwall on the map, which a buckler never makes. Damage taken unasked never weighs one.
 		shieldwall: virtues && bearing !== "buckler" && !preset.auto ? shieldwallOnMap(actor, bearing) : null,
 		exposed: conditions.exposed,
-		character: Boolean(virtues),
+		character,
 		warband,
 		structure,
 		stone: Boolean(actor.system.stone),
@@ -459,9 +460,9 @@ export async function takeDamage(actor, preset = {}) {
 	const warden = virtues && !dead && !preset.nonLethal && WARDED_OUTCOMES.includes(result.outcome) ? await offerWard(actor) : null;
 	if (warden) result = wardedResult(result, before.vigour);
 	// A Mortal Wound that will be shaken off, or one somebody died of, is no milestone of its own, nor one to rally against.
-	const mortallyWounded = Boolean(virtues) && !dead && result.outcome === "mortal" && !preset.nonLethal;
+	const mortallyWounded = character && !dead && result.outcome === "mortal" && !preset.nonLethal;
 
-	const update = damageUpdate(result, { character: Boolean(virtues), virtue: score, nonLethal: preset.nonLethal, fate: () => slainFate(actor, preset.by) });
+	const update = damageUpdate(result, { character, virtue: score, nonLethal: preset.nonLethal, fate: () => slainFate(actor, preset.by) });
 	// Whatever else the blow leaves on them goes in the same write.
 	if (preset.also) Object.assign(update, preset.also(result));
 	await actor.update(update, causedBy("damage"));
@@ -490,7 +491,7 @@ export async function takeDamage(actor, preset = {}) {
 		before,
 		morale,
 		name: actor.name,
-		character: Boolean(actor.system.virtues),
+		character,
 		warband,
 		structure,
 		fightsOn: Boolean(actor.system.fightsOn),

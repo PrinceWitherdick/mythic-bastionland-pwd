@@ -25,6 +25,12 @@ export const SITUATION_KIND = "situation";
  */
 
 /**
+ * @param {{age: number, year: number, season: string}|null|undefined} calendar
+ * @returns {{age: number, year: number, season: string}|null} The Season it was, as a thread keeps it.
+ */
+const seasonStamp = (calendar) => (calendar ? { age: calendar.age, year: calendar.year, season: calendar.season } : null);
+
+/**
  * Something new left open, or null where it has no name or no kind.
  * @param {Partial<Thread>} given
  * @returns {Thread|null}
@@ -40,7 +46,7 @@ export function newThread({ kind, name, knight = "", scene = "", hex = "", opene
 		// A hex means nothing without its Realm.
 		scene: place ? String(scene ?? "") : "",
 		hex: place && scene ? place : "",
-		opened: opened ? { age: opened.age, year: opened.year, season: opened.season } : null,
+		opened: seasonStamp(opened),
 		at: Number(at) || 0,
 		rolls: []
 	};
@@ -75,8 +81,7 @@ export function threadList(kept) {
  * @returns {Thread}
  */
 export function withRoll(thread, { d6, result, when = null }) {
-	const kept = when ? { age: when.age, year: when.year, season: when.season } : null;
-	return { ...thread, rolls: [...(thread.rolls ?? []), { d6, result, when: kept }] };
+	return { ...thread, rolls: [...(thread.rolls ?? []), { d6, result, when: seasonStamp(when) }] };
 }
 
 /**

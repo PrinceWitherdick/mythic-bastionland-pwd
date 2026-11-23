@@ -21,7 +21,7 @@ const askable = ({ owned = false } = {}) => (owned ? (actor) => Boolean(actor.is
  * @param {{owned?: boolean}} [options] `owned`: only those this user owns.
  * @returns {Actor[]}
  */
-const attackingActors = (attack, options) => attackersOf(attack).map((uuid) => fromUuidSync(uuid)).filter(Boolean).filter(askable(options));
+export const attackingActors = (attack, options) => attackersOf(attack).map((uuid) => fromUuidSync(uuid)).filter(Boolean).filter(askable(options));
 
 /**
  * An attacker's Abilities that roll a joint Attack's whole pool again (p62).
@@ -54,7 +54,7 @@ export function poolRerollers(attack, options) {
  * @param {{owned?: boolean}} [options]
  * @returns {boolean}
  */
-export const hasPoolReroller = (attack, options) => poolRerollers(attack, options).length > 0;
+export const hasPoolReroller = (attack, options) => attackingActors(attack, options).some((actor) => poolRerollsOf(actor).some(readyToReroll));
 
 /**
  * The number a Knight's rune could turn on this card: the one it's etched
@@ -73,7 +73,7 @@ function sigilTurns(attack, item) {
  * @param {Actor} actor
  * @returns {Item[]}
  */
-const sigilsOf = (actor) => abilitiesWith(actor.items.contents, "sigil");
+const sigilsOf = (actor) => abilitiesWith(actor.items?.contents ?? [], "sigil");
 
 /**
  * The Knights whose rune could turn one of a card's dice: etched for a number
@@ -96,4 +96,4 @@ export function sigilHolders(attack, options) {
  * @param {{owned?: boolean}} [options]
  * @returns {boolean}
  */
-export const hasSigilHolder = (attack, options) => sigilHolders(attack, options).length > 0;
+export const hasSigilHolder = (attack, options) => worldKnights(askable(options)).some((actor) => sigilsOf(actor).some((item) => sigilTurns(attack, item) !== null));

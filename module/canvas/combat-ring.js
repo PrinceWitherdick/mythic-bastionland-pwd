@@ -24,10 +24,10 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
  */
 
 /** The setting that turns them off for one person. */
-export const COMBAT_RING_SETTING = "combatRing";
+const COMBAT_RING_SETTING = "combatRing";
 
 /** @returns {boolean} Whether this person wants the buttons. */
-export const showsCombatRing = () => read(COMBAT_RING_SETTING, true) !== false;
+const showsCombatRing = () => read(COMBAT_RING_SETTING, true) !== false;
 
 /** Register the setting. Called during init. */
 export function registerCombatRingSetting() {
@@ -178,12 +178,12 @@ const boards = new WeakSet();
 const theRing = () => (ring ??= new (createCombatRingClass())());
 
 /** @returns {Promise<unknown>|undefined} Put the buttons away, if they're up. */
-export function closeCombatRing() {
+function closeCombatRing() {
 	if (ring?.rendered) return ring.close();
 }
 
 /** A press anywhere on the map: remember whose buttons were up, and put them away. */
-export function onBoardPress() {
+function onBoardPress() {
 	pressedOn = ring?.rendered ? (ring.object?.document?.id ?? null) : null;
 	return closeCombatRing();
 }
@@ -210,7 +210,7 @@ export async function openRingOnClick(token, event) {
 }
 
 /** The Combats changed: buttons on a Token no longer in one, or now defeated, go away. */
-export function syncCombatRing() {
+function syncCombatRing() {
 	if (ring?.rendered && !ringCombatantFor(ring.object)) closeCombatRing();
 }
 

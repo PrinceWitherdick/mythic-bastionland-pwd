@@ -1,7 +1,6 @@
-import { getRealmFog, liftAllRealmFog, setRealmFogOptions, veilAllRealmFog } from "../actions/realm-fog.js";
+import { liftAllRealmFog, realmFogOptions, setRealmFogOptions, veilAllRealmFog } from "../actions/realm-fog.js";
 import { isRealmScene } from "../actions/realm.js";
 import { t } from "../chat/cards.js";
-import { realmFogContext } from "../rules/realm-fog.js";
 import { escapeHTML } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { confirmDialog, singletonOpener } from "./ui.js";
@@ -43,7 +42,9 @@ export class RealmFog extends HandlebarsApplicationMixin(ApplicationV2) {
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
 		const scene = RealmFog.scene;
-		return Object.assign(context, realmFogContext(getRealmFog(scene)), { realm: scene?.name ?? "", none: !scene });
+		const { on, holdings } = realmFogOptions(scene);
+		// What lifts, brings back or brushes the fog, and whether Holdings show through it, change only while it's on.
+		return Object.assign(context, { on, holdings, locked: !on, realm: scene?.name ?? "", none: !scene });
 	}
 
 	/** @override */

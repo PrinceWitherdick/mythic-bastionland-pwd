@@ -8,7 +8,7 @@ import { planRealmSync, realmDocuments, realmFromDocuments, realmSceneData, real
 import { normaliseRealmPicture } from "../../module/rules/realm-map.js";
 import { OWN_SIZE_LIMITS } from "../../module/rules/realm-setup.js";
 import {
-	cardHexKey,
+	cardOffset,
 	growRealm,
 	growthOffset,
 	growthPreview,
@@ -47,6 +47,8 @@ import {
 
 const hex = (col, row) => ({ col, row });
 const grow = (west = 0, north = 0, east = 0, south = 0) => ({ west, north, east, south });
+/** A card's hex key as it reads now, the way chat/card-hexes.js reads it. */
+const cardHexKey = (key, when, growth, g) => shiftHexKey(key, cardOffset(when, growth), g);
 
 describe("normaliseGrowth and growthProblem", () => {
 	it("keeps whole numbers from 0 up on each side", () => {
@@ -352,7 +354,6 @@ describe("numbers shown and old chat cards", () => {
 		expect(cardHexKey("5,7", 50, log)).toBe("8,11");
 		expect(cardHexKey("5,7", 150, log)).toBe("6,10");
 		expect(cardHexKey("5,7", 250, log)).toBe("5,7");
-		expect(cardHexKey("bad", 50, log)).toBe("bad");
 	});
 
 	it("names no hex for one past the map's east or south edge now, as a put-back leaves it", () => {

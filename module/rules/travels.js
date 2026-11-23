@@ -410,7 +410,7 @@ export const JOURNEY_KINDS = Object.freeze(["first", "arrived", "told", "met", "
 export const entryKinds = (entry) => (entry.kind === "arrived" && entry.first ? ["arrived", "first"] : [entry.kind]);
 
 /** How many arrivals in a row make a ride, told in one line. */
-export const RUN_MIN = 3;
+const RUN_MIN = 3;
 
 /**
  * A day's lines with its rides gathered: RUN_MIN or more arrivals in a row

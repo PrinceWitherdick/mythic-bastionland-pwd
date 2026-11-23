@@ -19,6 +19,7 @@ import { REALM_BACKUP_FLAG, newLandHexes, sameOmenEntered, shiftJournalFlag, shi
 import { serverNow } from "../server-now.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { theGmToolkit } from "./gm-toolkit.js";
+import { hexJournalFlag } from "./hex-journals.js";
 import { expandRealm, expansionRefused, getRealm, putRealmBack, sceneGeometry } from "./realm.js";
 import { findTimelineJournal, timelinePages } from "./timeline-store.js";
 import { OMEN_ENTERED_SETTING } from "./wilderness.js";
@@ -40,7 +41,7 @@ import { OMEN_ENTERED_SETTING } from "./wilderness.js";
 export function outsideShifts(sceneId, offset, g = null) {
 	const journal = [];
 	for (const entry of game.journal ?? []) {
-		const moved = shiftJournalFlag(entry.flags?.[SYSTEM_ID]?.[HEX_JOURNAL_FLAG], sceneId, offset, g);
+		const moved = shiftJournalFlag(hexJournalFlag(entry), sceneId, offset, g);
 		if (moved) journal.push({ _id: entry.id, ...moved });
 	}
 
@@ -66,11 +67,13 @@ export function outsideShifts(sceneId, offset, g = null) {
 
 /**
  * Write what outsideShifts worked out. Every value is written whole, so
- * writing it twice does no harm.
+ * writing it twice does no harm, and each document is its own write, so all
+ * are written at once.
  * @param {OutsideShifts} shifts
  * @returns {Promise<void>}
  */
 export async function writeOutsideShifts(shifts) {
+	const writes = [];
 	if (shifts.journal.length) {
 		const path = `flags.${SYSTEM_ID}.${HEX_JOURNAL_FLAG}`;
 		const updates = shifts.journal
@@ -79,14 +82,14 @@ export async function writeOutsideShifts(shifts) {
 				? { _id, sort, [`${path}.hex`]: flag.hex }
 				// Loosed from its hex, an entry is kept as the Referee's own rather than taken for another hex's.
 				: { _id, ...Object.fromEntries([deletionEntry(path)]) }));
-		if (updates.length) await CONFIG.JournalEntry.documentClass.updateDocuments(updates);
+		if (updates.length) writes.push(CONFIG.JournalEntry.documentClass.updateDocuments(updates));
 	}
 	// Only those still kept: a plan written again later mustn't bring back, as a stub, one settled or deleted since.
 	if (shifts.threads) {
 		const actor = game.actors.get(shifts.threads.actor);
 		const kept = actor?.system?.threads ?? {};
 		const update = Object.fromEntries(Object.entries(shifts.threads.threads).filter(([id]) => kept[id]).map(([id, hex]) => [`system.threads.${id}.hex`, hex]));
-		if (Object.keys(update).length) await actor.update(update);
+		if (Object.keys(update).length) writes.push(actor.update(update));
 	}
 	// Each Timeline's pages in one write.
 	const pages = new Map();
@@ -96,11 +99,12 @@ export async function writeOutsideShifts(shifts) {
 		const update = Object.fromEntries(Object.entries(keys).filter(([id]) => rows[id]).map(([id, key]) => [`system.entries.${id}.key`, key]));
 		if (Object.keys(update).length) pages.set(book, [...(pages.get(book) ?? []), { _id: page, ...update }]);
 	}
-	for (const [book, updates] of pages) await book.updateEmbeddedDocuments("JournalEntryPage", updates);
+	for (const [book, updates] of pages) writes.push(book.updateEmbeddedDocuments("JournalEntryPage", updates));
 	// Only while the setting still holds the entry the plan moved: one entered since, on any Realm, is left as it is.
 	if (shifts.omen && sameOmenEntered(game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING), shifts.omen.from)) {
-		await game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, shifts.omen.value);
+		writes.push(game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, shifts.omen.value));
 	}
+	await Promise.all(writes);
 }
 
 /** Where a world's Realm backups are kept, under its own folder on the server. */
