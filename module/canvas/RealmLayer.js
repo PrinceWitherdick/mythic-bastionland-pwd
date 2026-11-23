@@ -90,21 +90,19 @@ function terrainDrag() {
 
 /**
  * @param {Scene} scene
- * @param {{col: number, row: number}|null} start
  * @returns {PaintDrag} The Fog of War lifted from every hex crossed, or brought back over each, as the
  *   first hex's goes: a drag that starts in the fog lifts it, one that starts in the clear brings it back.
- *   One begun off the map goes as the first hex it crosses. Written once, as it's dropped.
+ *   Written once, as it's dropped.
  */
-function fogDrag(scene, start) {
-	let lifting = start ? hexFoggedForPlayers(scene, start) : null;
-	const highlight = { color: lifting === false ? INK_HEX : VERDIGRIS, alpha: 0.3 };
-	const drag = crossingDrag(highlight);
+function fogDrag(scene) {
+	let lifting = null;
+	const drag = crossingDrag({ color: VERDIGRIS, alpha: 0.3 });
 	return {
 		...drag,
 		extend(g, hex) {
 			if (lifting === null && hex) {
 				lifting = hexFoggedForPlayers(scene, hex);
-				highlight.color = lifting ? VERDIGRIS : INK_HEX;
+				drag.highlight.color = lifting ? VERDIGRIS : INK_HEX;
 			}
 			return drag.extend(g, hex);
 		},
@@ -112,13 +110,9 @@ function fogDrag(scene, start) {
 	};
 }
 
-/**
- * @param {object} g
- * @param {{col: number, row: number}|null} start
- * @returns {PaintDrag} A river drawn hex to hex from where the drag began.
- */
-function riverDrag(g, start) {
-	let course = traceCourse(g, [], start);
+/** @returns {PaintDrag} A river drawn hex to hex from where the drag began. */
+function riverDrag() {
+	let course = [];
 	return {
 		highlight: { color: WATER, alpha: 0.25 },
 		course: true,
@@ -568,7 +562,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	 */
 	#fogClick() {
 		const scene = canvas.scene;
-		const hex = hexAt(sceneGeometry(scene), canvas.mousePosition);
+		const hex = this.hexAtPointer();
 		if (hex) this.#onClickUp(() => toggleRealmFogAt(scene, hex));
 	}
 
@@ -697,11 +691,12 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	_onDragLeftStart(event) {
 		this.#stepping = null;
 		const g = sceneGeometry(canvas.scene);
-		// Where the drag began, not where the pointer has got to by now.
+		if (this.tool === "fog") this.#drag = fogDrag(canvas.scene);
+		else this.#drag = this.drawsRiver ? riverDrag() : terrainDrag();
+		// Every drag takes in where it began first, then where the pointer has got to by now. One begun
+		// off the map goes as the first hex it crosses.
 		const origin = event.interactionData?.origin;
-		const start = (origin && hexAt(g, origin)) ?? this.hexAtPointer();
-		if (this.tool === "fog") this.#drag = fogDrag(canvas.scene, start);
-		else this.#drag = this.drawsRiver ? riverDrag(g, start) : terrainDrag();
+		if (this.#drag.extend(g, (origin && hexAt(g, origin)) ?? this.hexAtPointer())) this.refreshHighlight();
 		this.#paintHere();
 	}
 
