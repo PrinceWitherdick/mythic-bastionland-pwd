@@ -26,4 +26,10 @@ describe("postedAt", () => {
 		expect(message.updateSource).toHaveBeenCalledWith({ flags: { [SYSTEM_ID]: { [POSTED_AT_FLAG]: now } } });
 		vi.restoreAllMocks();
 	});
+
+	it("keeps the stamp of a card made again as it was, as Undo brings one back, so its hexes still move", () => {
+		const message = { flags: { [SYSTEM_ID]: { [POSTED_AT_FLAG]: 4000 } }, updateSource: vi.fn() };
+		stampPostedAt(message);
+		expect(message.updateSource).not.toHaveBeenCalled();
+	});
 });

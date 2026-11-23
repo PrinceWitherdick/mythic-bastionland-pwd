@@ -26,10 +26,13 @@ export function postedAt(message) {
 /**
  * Stamp a message about to be made by this client with the time of day. A
  * hook can't wait, so one made before the server's clock is learnt, as the
- * world loads, is by this computer's own.
+ * world loads, is by this computer's own. One made again with the stamp it
+ * had, as Undo brings back a card, keeps it, so its hexes still move with
+ * every expansion since it was first posted.
  * @param {ChatMessage} message
  */
 export function stampPostedAt(message) {
+	if (postedAt(message) !== undefined) return;
 	message.updateSource({ flags: { [SYSTEM_ID]: { [POSTED_AT_FLAG]: wallNow() } } });
 }
 
