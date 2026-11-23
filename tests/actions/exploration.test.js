@@ -37,6 +37,7 @@ let fogged = new Set();
 const liftRealmFogBy = vi.fn(async () => true);
 vi.mock("../../module/actions/realm-fog.js", () => ({
 	foggedForPlayers: () => (fogOn ? fogged : new Set()),
+	hexFoggedForPlayers: (_scene, hex) => fogOn && fogged.has(`${hex.col},${hex.row}`),
 	liftRealmFogBy: (...args) => liftRealmFogBy(...args)
 }));
 // The Realm and the hex the Company stands in; a Scene that's no Realm warns and gives nothing.

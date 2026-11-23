@@ -18,7 +18,7 @@ import { featureAt } from "../rules/realm.js";
 import { capitalise } from "../rules/text.js";
 import { VIRTUES, typedD20 } from "../rules/virtues.js";
 import { isRealmScene, sceneGeometry, tileCentreOn } from "./realm.js";
-import { foggedForPlayers, liftRealmFogBy } from "./realm-fog.js";
+import { foggedForPlayers, hexFoggedForPlayers, liftRealmFogBy } from "./realm-fog.js";
 import { rollLabelledSave } from "./saves.js";
 import { offerSightings } from "./sighted.js";
 import { fogHidesTheWay } from "./sky-weather.js";
@@ -315,8 +315,7 @@ async function rollExplorationSave(actor, virtue, rolled = null) {
  * @returns {{col: number, row: number}[]} None while the Realm has no Fog of War.
  */
 function fogLiftedBySight(scene, seen) {
-	const fogged = foggedForPlayers(scene);
-	return seen.filter((hex) => fogged.has(hexKey(hex)));
+	return seen.filter((hex) => hexFoggedForPlayers(scene, hex));
 }
 
 /**
