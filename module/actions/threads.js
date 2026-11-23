@@ -12,7 +12,7 @@ import { t } from "../chat/cards.js";
 import { deletionUpdate } from "../compat.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { THREAD_KINDS, lastRoll, newThread, threadList, threadsAt, withRoll } from "../rules/threads.js";
-import { COMPANY_TRACK } from "../rules/timeline.js";
+import { COMPANY_TRACK, timelineKeys } from "../rules/timeline.js";
 import { getCalendar, seasonLabel } from "./calendar.js";
 import { GM_TOOLKIT_TYPE, theGmToolkit } from "./gm-toolkit.js";
 import { hexLabel } from "./hex-names.js";
@@ -272,7 +272,7 @@ export async function settleThread(id) {
 	Promise.resolve()
 		.then(() => recordOnTrack(COMPANY_TRACK, {
 			source: "thread",
-			key: `thread:${id}`,
+			key: timelineKeys.thread(id),
 			title: t(`threads.settled.${thread.kind}`, { name: thread.name }),
 			...(hex ? { place: hexLabel(hex, realm) } : {})
 		}))

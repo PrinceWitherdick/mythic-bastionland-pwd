@@ -1,8 +1,8 @@
 import { hexTarget } from "../chat/hex-target.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
-import { postedAt } from "../chat/posted-at.js";
+import { cardHexes } from "../chat/card-hexes.js";
 import { featureAt } from "../rules/realm.js";
-import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
+import { hexKey, sameHex } from "../rules/realm-geometry.js";
 import { COMPANY_PACE_SETTING, companyPace, paceSoFar } from "../rules/journey.js";
 import { keyedSerialWrites } from "../rules/queue.js";
 import { samePhase } from "../rules/time.js";
@@ -17,7 +17,7 @@ import { rollFirstArrival } from "./hex-lore.js";
 import { welcomeHome } from "./homecoming.js";
 import { COMPANY_MOVED_HOOK, COMPANY_MOVES_FLAG, COMPANY_MOVE_UNDONE_HOOK, forgetMoveVisits, heldBack, setHeldBack } from "./journey.js";
 import { liveRealm } from "./myth-notes.js";
-import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { getRealm, isRealmScene } from "./realm.js";
 import { realmKnown, revealMythsReached, secretsKeptOn } from "./solo.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { revealSighted } from "./sighted.js";
@@ -25,8 +25,7 @@ import { timelineArrivals } from "./timeline-events.js";
 import { gallop } from "./steeds.js";
 import { advancePhase } from "./time.js";
 import { wildernessRoll } from "./wilderness.js";
-import { cardOffset, shiftHex, shiftKeyed } from "../rules/realm-growth.js";
-import { hexNumbering } from "../rules/hex-numbers.js";
+import { shiftKeyed } from "../rules/realm-growth.js";
 
 /**
  * What the book has happen as the Company comes into a hex, beyond the
@@ -512,14 +511,13 @@ export function registerArrivals() {
 			const act = ARRIVAL_ACTIONS[button.dataset.arrival];
 			// A card posted before the map grew names its hexes as they were numbered then.
 			// Land a put-back took away, east and south as well as west and north, leaves no hex.
-			const moved = cardOffset(postedAt(message), hexNumbering(scene));
-			const g = sceneGeometry(scene);
-			const hex = button.dataset.arrivalHex ? shiftHex(parseHexKey(button.dataset.arrivalHex), moved, g) : null;
+			const card = cardHexes(message, scene);
+			const hex = card.hex(button.dataset.arrivalHex);
 			const arrived = message.flags[SYSTEM_ID].arrived ?? {};
 			const now = {
 				...arrived,
-				...(Array.isArray(arrived.held) ? { held: arrived.held.map((at) => shiftHex(at, moved, g)).filter(Boolean) } : {}),
-				...(arrived.orders ? { orders: shiftKeyed(arrived.orders, moved, g) } : {})
+				...(Array.isArray(arrived.held) ? { held: arrived.held.map(card.shift).filter(Boolean) } : {}),
+				...(arrived.orders ? { orders: shiftKeyed(arrived.orders, card.offset, card.g) } : {})
 			};
 			return Boolean(act && (await act(scene, hex, now)));
 		}

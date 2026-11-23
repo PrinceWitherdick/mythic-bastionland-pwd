@@ -548,20 +548,14 @@
 	}
 }
 
+/* The sheets' own "add a row" bar, filling its slot with its words in the middle,
+   as tall as the cards' buttons so a Season keeps the room it had. */
 .bastionland-timeline__add-slot > .bastionland-timeline__add {
 	flex: 1;
 	justify-content: center;
 	width: auto;
-	border-style: dashed;
-	background: none;
-	color: var(--bastionland-ink-soft);
-}
-
-/* Pointed at, it answers as the sheets' own "add a row" bar does (bastionland-button--add), not as a solid button. */
-.bastionland-timeline__add-slot > .bastionland-timeline__add:not(:disabled):hover {
-	border-color: var(--bastionland-ink);
-	background: var(--bastionland-paper-deep);
-	color: var(--bastionland-ink);
+	height: 2.1rem;
+	padding: 0 0.75rem;
 }
 
 /* ---------------------------------------------------------------- */

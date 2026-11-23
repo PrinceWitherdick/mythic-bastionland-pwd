@@ -5,14 +5,11 @@
  * or clicks sees any of it.
  */
 import { hexLabel } from "../actions/hex-names.js";
-import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
-import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
+import { hexKey } from "../rules/realm-geometry.js";
 import { registerCardButtons, warn } from "./cards.js";
-import { postedAt } from "./posted-at.js";
-import { cardHexKey } from "../rules/realm-growth.js";
-import { hexNumbering } from "../rules/hex-numbers.js";
+import { cardHexes } from "./card-hexes.js";
 
 const SELECTOR = "[data-hex-target]";
 
@@ -42,9 +39,8 @@ export const smallCapsLabel = (label) => /\p{Ll}/u.test(String(label ?? "")) && 
 function chipTarget(chip) {
 	const scene = game.scenes.get(chip.dataset.hexScene) ?? null;
 	// A card posted before the map grew names the hex as it was numbered then.
-	const posted = postedAt(game.messages?.get(chip.closest("[data-message-id]")?.dataset.messageId));
-	const g = isRealmScene(scene) ? sceneGeometry(scene) : null;
-	return { scene, hex: parseHexKey(cardHexKey(chip.dataset.hexTarget, posted, hexNumbering(scene), g)) };
+	const message = game.messages?.get(chip.closest("[data-message-id]")?.dataset.messageId);
+	return { scene, hex: cardHexes(message, scene).hex(chip.dataset.hexTarget) };
 }
 
 /**

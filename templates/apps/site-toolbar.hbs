@@ -9,25 +9,25 @@
 
 	<div class="bastionland-site__tools">
 		{{#if drawing}}
-		<button type="button" data-action="rollRest" data-tooltip="{{localize 'bastionland.sites.rollRestHint'}}">
+		<button type="button" class="bastionland-button" data-action="rollRest" data-tooltip="{{localize 'bastionland.sites.rollRestHint'}}">
 			<i class="fa-solid fa-dice" inert></i><span>{{localize "bastionland.sites.rollRest"}}</span>
 		</button>
-		<button type="button" data-action="clear">
+		<button type="button" class="bastionland-button" data-action="clear">
 			<i class="fa-solid fa-eraser" inert></i><span>{{localize "bastionland.sites.clear"}}</span>
 		</button>
 		{{else}}
-		<button type="button" data-action="revealAll">
+		<button type="button" class="bastionland-button" data-action="revealAll">
 			<i class="fa-solid fa-eye" inert></i><span>{{localize "bastionland.sites.revealAll"}}</span>
 		</button>
-		<button type="button" data-action="hideAll">
+		<button type="button" class="bastionland-button" data-action="hideAll">
 			<i class="fa-solid fa-eye-slash" inert></i><span>{{localize "bastionland.sites.hideAll"}}</span>
 		</button>
 		{{/if}}
-		<button type="button" data-action="showPlayers" data-tooltip="{{localize 'bastionland.sites.showPlayersHint'}}">
+		<button type="button" class="bastionland-button" data-action="showPlayers" data-tooltip="{{localize 'bastionland.sites.showPlayersHint'}}">
 			<i class="fa-solid fa-users" inert></i><span>{{localize "bastionland.sites.showPlayers"}}</span>
 		</button>
 		{{#if journal}}
-		<button type="button" data-action="journal" data-tooltip="{{localize 'bastionland.siteJournal.openHint'}}">
+		<button type="button" class="bastionland-button" data-action="journal" data-tooltip="{{localize 'bastionland.siteJournal.openHint'}}">
 			<i class="fa-solid fa-book" inert></i><span>{{localize "bastionland.siteJournal.open"}}</span>
 		</button>
 		{{/if}}

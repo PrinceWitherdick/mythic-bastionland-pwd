@@ -1,4 +1,4 @@
-import { t } from "../chat/cards.js";
+import { plural, t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
 import { ringShownHex } from "../canvas/shown-hex.js";
 import { headingWords } from "../rules/hex-names.js";
@@ -273,8 +273,8 @@ function journeyContext(log, forgettable = false, people = null) {
  * @returns {string} What a Season held, in a line, such as "14 hexes reached, 3 told, 1 Barrier met"; "" for nothing.
  */
 function tallyLine(tally) {
-	const part = (key, count, one = `${key}One`) => (count > 0 ? t(`travels.journey.tally.${count === 1 ? one : key}`, { count }) : "");
-	return [part("reached", tally.reached), part("told", tally.told, "told"), part("met", tally.met), part("noted", tally.noted)].filter(Boolean).join(", ");
+	const part = (key, count) => (count > 0 ? plural(`travels.journey.tally.${key}`, count) : "");
+	return [part("reached", tally.reached), part("told", tally.told), part("met", tally.met), part("noted", tally.noted)].filter(Boolean).join(", ");
 }
 
 /**

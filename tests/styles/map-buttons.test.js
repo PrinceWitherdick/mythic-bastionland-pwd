@@ -7,6 +7,8 @@ const css = readFileSync(join(root, "styles", "mythic-bastionland.css"), "utf8")
 
 /** The one rule both buttons held against a Realm's map are drawn by. */
 const rule = /button\.bastionland-realm-drawing__finish,\s*button\.bastionland-company-button \{([\s\S]*?)\n\}/.exec(css);
+/** The look every button floating over the map shares: these two and the combat ring's. */
+const floating = /button\.bastionland-realm-drawing__finish,\s*button\.bastionland-company-button,\s*#hud #bastionland-combat-ring \.bastionland-combat-ring__button \{([\s\S]*?)\n\}/.exec(css);
 
 describe("the buttons held against a Realm's map", () => {
 	it("are Finish under the map and Place the Company over it, drawn alike", () => {
@@ -17,7 +19,8 @@ describe("the buttons held against a Realm's map", () => {
 	it("never animate to where the map has gone", () => {
 		// Foundry's own `button` rule is `transition: 0.5s`, which is every property,
 		// so each left and top set as the canvas pans would be slid to over half a second.
-		expect(rule[1]).toMatch(/\n\ttransition: none;/);
+		expect(floating, "the floating buttons' shared rule").not.toBeNull();
+		expect(floating[1]).toMatch(/\n\ttransition: none;/);
 	});
 });
 

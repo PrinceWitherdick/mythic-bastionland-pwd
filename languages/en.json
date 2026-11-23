@@ -1349,6 +1349,7 @@
           "reached": "{count} hexes reached",
           "reachedOne": "1 hex reached",
           "told": "{count} told",
+          "toldOne": "1 told",
           "met": "{count} Barriers met",
           "metOne": "1 Barrier met",
           "noted": "{count} notes",

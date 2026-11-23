@@ -18,6 +18,7 @@
  */
 import { OWN_SIZE_LIMITS } from "./realm-setup.js";
 import { entrySort } from "./hex-journal.js";
+import { movedHexRowKey, readHexRowKey } from "./timeline.js";
 import { emptyVariants } from "./realm-pictures.js";
 import { fullMapRect, normaliseRealmPicture } from "./realm-map.js";
 import { allHexes, edgeKey, hexCentre, hexIndex, hexKey, hexVertices, inRealm, parseHexKey, realmGeometry } from "./realm-geometry.js";
@@ -516,9 +517,6 @@ export function shiftThreads(threads, sceneId, offset, g = null) {
 	return changes;
 }
 
-/** Timeline row keys naming a hex of a Realm, as timeline.js writes them. */
-const TIMELINE_HEX_KEY = /^(visit|note):([^:]+):(\d+,\d+)$/;
-
 /**
  * @param {string} key A Timeline row's key.
  * @param {string} sceneId
@@ -528,10 +526,9 @@ const TIMELINE_HEX_KEY = /^(visit|note):([^:]+):(\d+,\d+)$/;
  *   A row whose hex is gone keeps a key naming no hex, so it neither lands on another nor is lost.
  */
 export function shiftTimelineKey(key, sceneId, offset, g = null) {
-	const match = TIMELINE_HEX_KEY.exec(String(key ?? ""));
-	if (!match || match[2] !== sceneId) return null;
-	const moved = shiftHexKey(match[3], offset, g);
-	return moved ? `${match[1]}:${sceneId}:${moved}` : `${match[1]}:${sceneId}:gone`;
+	const row = readHexRowKey(key);
+	if (!row || row.sceneId !== sceneId) return null;
+	return movedHexRowKey(row, shiftHexKey(row.hex, offset, g));
 }
 
 /**
