@@ -56,6 +56,29 @@ describe("dialogs", () => {
 		expect(styles).toContain(".bastionland-dialog .window-content");
 		expect(styles).toContain(".bastionland-dialog .dialog-form");
 	});
+
+	// A window that writes its own dialog markup has no standard-form to make
+	// its body a column, so without this its rows sit with no gap between them.
+	it("lays a hand-written dialog body out as a column", () => {
+		const chat = readFileSync(join(root, "styles/chat.css"), "utf8").replace(/\s+/g, " ");
+		expect(chat).toContain(".bastionland-dialog :is(.dialog-form, .dialog-content) { display: flex; flex-direction: column; }");
+	});
+
+	// Nor a footer laid out as a row: its Done button (Fog of War, Visited marks) would sit at the
+	// left at its own width, not fill the row as a Foundry dialog's buttons do.
+	it("lays a hand-written dialog footer out as a row", () => {
+		const chat = readFileSync(join(root, "styles/chat.css"), "utf8").replace(/\s+/g, " ");
+		expect(chat).toMatch(/\.bastionland-dialog \.form-footer \{ display: flex; flex-wrap: wrap; align-items: center;/);
+	});
+
+	// The body scrolls, and scrolling clips at its edge: with nothing below it, the bottom
+	// border of a button that ends the body (Fog of War's brush) was cut off at some sizes.
+	it("leaves room below a scrolling dialog body's last row", () => {
+		const chat = readFileSync(join(root, "styles/chat.css"), "utf8").replace(/\s+/g, " ");
+		const rule = chat.match(/\.bastionland-dialog \.dialog-content \{([^}]*)\}/)?.[1] ?? "";
+		expect(rule).toContain("overflow-y: auto");
+		expect(rule).toMatch(/padding-bottom: [1-9]/);
+	});
 });
 
 describe("dialog templates", () => {

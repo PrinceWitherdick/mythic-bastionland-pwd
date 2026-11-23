@@ -325,7 +325,8 @@
 	height: auto;
 	min-height: var(--button-size);
 	padding-block: 0.25rem;
-	line-height: 1.15;
+	/* 1.2, as a dialog's footer button (chat.css): at 1.15 Submit sat 2px high. */
+	line-height: 1.2;
 	border-radius: 3px;
 	font-family: var(--bastionland-font-caps);
 	font-size: 1rem;

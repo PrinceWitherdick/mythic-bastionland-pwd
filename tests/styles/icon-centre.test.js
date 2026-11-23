@@ -6,7 +6,7 @@ import { split } from "../mocks/css.js";
 
 const root = join(import.meta.dirname, "..", "..");
 const sheets = Object.fromEntries(
-	["mythic-bastionland.css", "chat.css", "gm-toolkit.css", "timeline.css"].map((name) => [
+	["mythic-bastionland.css", "chat.css", "gm-toolkit.css", "timeline.css", "core-windows.css"].map((name) => [
 		name,
 		readFileSync(join(root, "styles", name), "utf8")
 	])
@@ -394,6 +394,36 @@ describe("centring the letters", () => {
 		}
 	});
 
+	/*
+	 * A button that grows with its label, centring an icon and words in the
+	 * caps face: at line height 1.15 Chrome set the words 1–2px above their
+	 * small-capitals middle at every zoom (seen on Bring the fog back
+	 * everywhere's Yes and No). At 1.2 they sit on it, within half a pixel, at
+	 * 1×, 1.25× and 1.5×: probe-button-ink.mjs and probe-jitter.mjs in the
+	 * offline gallery (fixture/delete-confirm, fixture/roll-resolver,
+	 * else/apps/travels-places.hbs, dialogs/realm-expand.hbs), 2026-11-22.
+	 */
+	it.each([
+		["chat.css", ".bastionland-dialog .form-footer button"],
+		["core-windows.css", ".mythic-bastionland-roll-resolver .form-footer button"],
+		["mythic-bastionland.css", ".bastionland-hex-lore__row button"],
+		["mythic-bastionland.css", ".bastionland-hex-lore__grid > button"],
+		["mythic-bastionland.css", ".bastionland-expand .bastionland-expand__restore"]
+	])("keeps %s's %s at line height 1.2, its words on their small capitals", (sheet, selector) => {
+		expect(rule(sheet, selector)["line-height"]).toBe("1.2");
+	});
+
+	/*
+	 * Came to pass's tick sits on the line, at its capitals' middle, 2px above
+	 * the small capitals; it drops by what a small-caps pill's icon does: half
+	 * IM Fell SC's capital less its small capital, (0.6875em − 0.4375em) / 2.
+	 */
+	it("drops Came to pass's tick to the small capitals' middle", () => {
+		const icon = rule("mythic-bastionland.css", ".bastionland-season-events__mark > i");
+		expect(icon.position).toBe("relative");
+		expect(icon.top).toBe("0.125em");
+	});
+
 	it("centres a radio or tick box on the first line of a two-line choice, with no fixed nudge", () => {
 		// The body font's line box is centred on its capitals, so the box's middle on the line's
 		// middle is its capitals' too. A fixed em nudge set it 2–3px low (measured 2026-10-25).
@@ -578,7 +608,9 @@ describe("centring the letters", () => {
 	 * The Fog of War's buttons, in its window, beside a hex's visits and on the
 	 * vantage card, and the tick box after Tell the players, were measured offline
 	 * (mythic-fog/render.mjs: 0 to 0.7px at 1x, 1.25x and 1.5x, 2026-11-22) as the
-	 * shared button and row draw them. None may move its words off what was measured.
+	 * shared button and row draw them. The window's three, raised to a sheet button's
+	 * 2.1rem through --button-size, measured 0px at all three the same day. None may
+	 * move its words off what was measured.
 	 */
 	it("draws the Fog of War's buttons by the shared rules, and its tick box on its words' middle with no nudge", () => {
 		const own = rules.filter(({ selectors }) => selectors.some((selector) => /bastionland-(realm-fog__tools|travels-hex__fog)/.test(selector)));

@@ -3660,6 +3660,13 @@ a.button:focus:not(:focus-visible) {
 	letter-spacing: 0.04em;
 }
 
+/* Came to pass's tick drops to the small capitals' middle, as a small-caps
+   pill's icon does: on the line, it stood at the capitals', 2px above them. */
+.bastionland-season-events__mark > i {
+	position: relative;
+	top: 0.125em;
+}
+
 .bastionland-season-events__mark.is-waiting {
 	font-style: italic;
 }
@@ -6021,9 +6028,18 @@ button.bastionland-dice:focus-visible {
 	color: var(--bastionland-blood);
 }
 
-.bastionland-expand__restore {
+/* Should the column be too narrow for its label, the button grows taller to hold it rather than spill it. */
+.bastionland-expand .bastionland-expand__restore {
 	flex: none;
 	align-self: flex-start;
+	min-width: 0;
+	max-width: 100%;
+	height: auto;
+	min-height: 2.1rem;
+	padding-block: 0.3rem;
+	/* Not 1.15, which sets the small capitals a pixel high (see chat.css's footer buttons). */
+	line-height: 1.2;
+	text-align: center;
 }
 
 .bastionland-realm-layout__edge {
@@ -6601,7 +6617,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	height: auto;
 	min-height: var(--button-size, 2rem);
 	padding: 0.25rem 0.4rem;
-	line-height: 1.15;
+	/* Not 1.15, which sets the small capitals a pixel high (see chat.css's footer buttons). */
+	line-height: 1.2;
 	white-space: normal;
 	text-align: center;
 	overflow-wrap: break-word;
@@ -6924,7 +6941,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	min-height: 2.25rem;
 	margin: 0;
 	padding: 0.3rem 0.55rem;
-	line-height: 1.15;
+	/* Not 1.15, which set Roll a Person and the rest 1–1.5px high (see chat.css's footer buttons). */
+	line-height: 1.2;
 	white-space: normal;
 	text-align: left;
 	overflow-wrap: break-word;
@@ -9990,8 +10008,10 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	gap: 0.4rem;
 }
 
-/* One under another, the column's width: no 8rem basis, which a column would take as height. */
+/* One under another, the column's width: no 8rem basis, which a column would take as height.
+   As tall as a solid button on a sheet, not Foundry's shorter dialog button. */
 .bastionland-realm-fog__tools > .bastionland-button {
+	--button-size: 2.1rem;
 	flex: none;
 }
 

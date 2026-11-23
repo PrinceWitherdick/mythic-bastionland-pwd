@@ -644,11 +644,23 @@
 	line-height: 1.35;
 }
 
-/* The body scrolls, so a long dialog keeps its buttons in reach. */
+/* A column, so the gaps here part its rows. DialogV2 gets that from Foundry's
+   standard-form; a window that writes its own dialog markup (Fog of War,
+   Visited Marks) doesn't carry that class, whose button rules would outweigh
+   the system's, so it's laid out here. */
+.bastionland-dialog :is(.dialog-form, .dialog-content) {
+	display: flex;
+	flex-direction: column;
+}
+
+/* The body scrolls, so a long dialog keeps its buttons in reach. Scrolling clips at the
+   body's edge, which took the bottom border off a button or fieldset that ended it at
+   some sizes (Fog of War's last button); a few pixels below leave that border whole. */
 .bastionland-dialog .dialog-content {
 	flex: 1 1 auto;
 	gap: 0.7rem;
 	min-height: 0;
+	padding-bottom: 3px;
 	overflow-y: auto;
 	font-size: inherit;
 }
@@ -735,7 +747,12 @@
 	line-height: 1.2;
 }
 
+/* A row, as Foundry lays out a dialog's footer: a window whose body is a plain div,
+   not a standard form (Fog of War, Visited marks), would otherwise stack it as a block. */
 .bastionland-dialog .form-footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
 	flex: none;
 	gap: 0.5rem;
 	margin: 0;
@@ -743,13 +760,16 @@
 	border-top: 1px solid var(--bastionland-rule);
 }
 
-/* A label too long for its button wraps inside it rather than spilling over. */
+/* A label too long for its button wraps inside it rather than spilling over.
+   Line height 1.2, not 1.15: at 1.15 Chrome's pixel rounding drew Yes and No
+   a pixel above their icon at every zoom; at 1.2 their small capitals sit on
+   the icon's middle at 1×, 1.25× and 1.5× (fixture/delete-confirm). */
 .bastionland-dialog .form-footer button {
 	--button-size: 2.1rem;
 	height: auto;
 	min-height: var(--button-size);
 	padding-block: 0.25rem;
-	line-height: 1.15;
+	line-height: 1.2;
 	border-radius: 3px;
 	font-family: var(--bastionland-font-caps);
 	font-size: 1rem;
