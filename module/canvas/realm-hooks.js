@@ -223,9 +223,9 @@ export function registerRealmHooks() {
 		if (scene.id === canvas?.scene?.id && foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`)) showRealmRules();
 	});
 	// An expansion moves every hex along the page: each client keeps looking at the land it was, and its windows on their hexes.
-	Hooks.on("updateScene", (scene, _changes, options) => {
+	Hooks.on("updateScene", (scene, changes, options) => {
 		const moved = options?.[SYSTEM_ID]?.[EXPANDED_OPTION];
-		if (moved) followExpansion(scene, moved);
+		if (moved) followExpansion(scene, moved, { redrawn: ["width", "height", "grid"].some((key) => key in (changes ?? {})) });
 	});
 	Hooks.on("deleteScene", (scene) => {
 		forgetRealm(scene.id);
@@ -301,11 +301,13 @@ export function registerRealmHooks() {
  * open on a hex kept on it.
  * @param {Scene} scene
  * @param {{dx: number, dy: number, cols: number, rows: number}} moved
+ * @param {{redrawn: boolean}} options Whether the update changed the Scene's size or grid, which draws the
+ *   canvas again; one that didn't leaves no redraw to wait for, so the view stays as it is.
  */
-function followExpansion(scene, moved) {
+function followExpansion(scene, moved, { redrawn }) {
 	followMovedHexes(scene.id, moved);
 	followMovedPlaces(scene.id, moved);
-	if (scene.id !== canvas?.scene?.id || !canvas.stage) return;
+	if (!redrawn || scene.id !== canvas?.scene?.id || !canvas.stage) return;
 	// Where this client was looking, before the redraw the new size sets off resets it.
 	const { x, y } = canvas.stage.pivot;
 	const scale = canvas.stage.scale.x;
