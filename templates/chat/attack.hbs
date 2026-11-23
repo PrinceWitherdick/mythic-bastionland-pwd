@@ -144,26 +144,26 @@
 	<p class="bastionland-card__outcome">{{appliedTo}}</p>
 	{{#if applicable}}
 	<div class="bastionland-card__actions">
-		<button type="button" data-attack-action="apply" data-tooltip="{{localize 'bastionland.attack.applyHint'}}"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
+		<button type="button" data-attack-action="apply" data-tooltip="{{localize 'bastionland.attack.applyHint'}}"><i class="fa-solid fa-heart-crack" inert></i> {{localize "bastionland.attack.apply"}}</button>
 	</div>
 	{{/if}}
 	{{else}}
 	<div class="bastionland-card__actions">
-		<button type="button" data-attack-action="deny"><i class="fa-solid fa-shield-halved"></i> {{localize "bastionland.feats.deny.name"}}</button>
+		<button type="button" data-attack-action="deny"><i class="fa-solid fa-shield-halved" inert></i> {{localize "bastionland.feats.deny.name"}}</button>
 		{{#if focusable}}
-		<button type="button" data-attack-action="focus"><i class="fa-solid fa-eye"></i> {{localize "bastionland.feats.focus.name"}}</button>
+		<button type="button" data-attack-action="focus"><i class="fa-solid fa-eye" inert></i> {{localize "bastionland.feats.focus.name"}}</button>
 		{{/if}}
 		{{#if joinable}}
-		<button type="button" data-attack-action="join" data-tooltip="{{localize 'bastionland.attack.joinHint'}}"><i class="fa-solid fa-user-plus"></i> {{localize "bastionland.attack.join"}}</button>
+		<button type="button" data-attack-action="join" data-tooltip="{{localize 'bastionland.attack.joinHint'}}"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.attack.join"}}</button>
 		{{/if}}
 		{{#if reroll}}
-		<button type="button" data-attack-action="reroll" data-tooltip="{{localize 'bastionland.attack.reroll.hint'}}"><i class="fa-solid fa-rotate"></i> {{localize "bastionland.attack.reroll.button"}}</button>
+		<button type="button" data-attack-action="reroll" data-tooltip="{{localize 'bastionland.attack.reroll.hint'}}"><i class="fa-solid fa-rotate" inert></i> {{localize "bastionland.attack.reroll.button"}}</button>
 		{{/if}}
 		{{#if sigil}}
-		<button type="button" data-attack-action="sigil" data-tooltip="{{localize 'bastionland.attack.sigil.hint'}}"><i class="fa-solid fa-star"></i> {{localize "bastionland.attack.sigil.button"}}</button>
+		<button type="button" data-attack-action="sigil" data-tooltip="{{localize 'bastionland.attack.sigil.hint'}}"><i class="fa-solid fa-star" inert></i> {{localize "bastionland.attack.sigil.button"}}</button>
 		{{/if}}
 		{{#if applicable}}
-		<button type="button" data-attack-action="apply" data-tooltip="{{localize 'bastionland.attack.applyHint'}}"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
+		<button type="button" data-attack-action="apply" data-tooltip="{{localize 'bastionland.attack.applyHint'}}"><i class="fa-solid fa-heart-crack" inert></i> {{localize "bastionland.attack.apply"}}</button>
 		{{/if}}
 	</div>
 	{{#if duel}}

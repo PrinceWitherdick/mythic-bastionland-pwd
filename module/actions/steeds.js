@@ -161,9 +161,10 @@ function riddenByAnother(npc, riders) {
  * Referee or, for a player, by the Referee they ask.
  * @param {Actor} knight
  * @param {Actor} steed
+ * @param {boolean} [taken] Whether it was in the world already, rather than just brought in for them.
  * @returns {Promise<Actor|null>} The steed, or null where nothing changed.
  */
-async function rideSteed(knight, steed) {
+async function rideSteed(knight, steed, taken = true) {
 	if (knight.system.steed === steed.uuid) return steed;
 	const riders = ridersOf(steed, knight);
 	if (riddenByAnother(steed, riders)) return null;
@@ -188,7 +189,7 @@ async function rideSteed(knight, steed) {
 	// Theirs now, so replacing the other Knight's gear never sweeps it away.
 	if (led && led !== knight.id) Object.assign(shared, Object.fromEntries([COMPANION_FLAG, FOLLOWER_FLAG].map((flag) => deletionEntry(`flags.${SYSTEM_ID}.${flag}`))));
 	if (Object.keys(shared).length) await steed.update(shared);
-	await shareMade([steed], knight);
+	await shareMade([steed], knight, { taken });
 	return steed;
 }
 
@@ -201,9 +202,10 @@ async function rideSteed(knight, steed) {
  * by the Referee, they're owned as the Knight is.
  * @param {Actor} knight
  * @param {Actor} npc
+ * @param {boolean} [taken] Whether they were in the world already, rather than just brought in for them.
  * @returns {Promise<Actor|null>} The follower, or null where nothing changed.
  */
-async function takeFollower(knight, npc) {
+async function takeFollower(knight, npc, taken = true) {
 	if (!npc.isOwner) {
 		ui.notifications.warn(t("follower.notYours", { name: npc.name }));
 		return null;
@@ -223,7 +225,7 @@ async function takeFollower(knight, npc) {
 		[`flags.${SYSTEM_ID}.${FOLLOWER_FLAG}`]: true,
 		...sharedOwnership(npc, knight)
 	});
-	await shareMade([npc], knight);
+	await shareMade([npc], knight, { taken });
 	for (const rider of riders) await rider.update({ "system.steed": "" });
 	ui.notifications.info(t("follower.joined", { name: npc.name, knight: knight.name }));
 	return npc;
@@ -288,7 +290,7 @@ export async function dropCompanion(knight, npc) {
 	if (!role) return null;
 	const actor = npc.pack ? await fromCompendium(npc, knight) : npc;
 	if (!actor) return null;
-	return role === "steed" ? rideSteed(knight, actor) : takeFollower(knight, actor);
+	return role === "steed" ? rideSteed(knight, actor, !npc.pack) : takeFollower(knight, actor, !npc.pack);
 }
 
 /**
@@ -304,7 +306,7 @@ export async function gallop() {
 		icon: "fa-solid fa-horse",
 		intro: t("steed.gallop.intro"),
 		ok: t("steed.gallop.ok"),
-		knightsOnly: true
+		include: isKnight
 	});
 	if (!company?.length) return null;
 

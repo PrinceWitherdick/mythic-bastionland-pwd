@@ -2,6 +2,7 @@ import { hexName } from "../actions/hex-names.js";
 import { getHexSharedRecord } from "../actions/hex-shared.js";
 import { getHexVisits } from "../actions/journey.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { hexFoggedForMe, realmFogHoldingsShow } from "../actions/realm-fog.js";
 import { sightedMarkAt } from "../actions/sighted.js";
 import { realmKnown } from "../actions/solo.js";
 import { t } from "../chat/cards.js";
@@ -13,6 +14,7 @@ import { read } from "../client-settings.js";
 import { followMap, hotbarFloor, mapOnScreen, panelScreen } from "../apps/map-screen.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { landmarkLabelKey } from "../rules/landmarks.js";
+import { hexNumbering, hexPointWords } from "../rules/hex-numbers.js";
 
 /** World setting: whether the readout leads with the hex's column and row, for everyone at the table. */
 const COORDINATES_SETTING = "hexCoordinates";
@@ -123,17 +125,28 @@ export function registerHexReadoutSetting() {
 const showsCoordinates = () => game.settings.get(SYSTEM_ID, COORDINATES_SETTING) === true;
 
 /**
+ * What the readout tells of a hex the Fog of War hides: where it is, and its
+ * Holding while the Realm's Holdings show through the fog.
+ * @param {ReturnType<typeof hexSummary>} summary
+ * @param {boolean} holdingsShow Whether the Realm's Holdings show through its fog.
+ * @returns {ReturnType<typeof hexSummary>}
+ */
+export const foggedSummary = (summary, holdingsShow) => ({ hex: summary.hex, holding: holdingsShow ? summary.holding : null });
+
+/**
  * @param {ReturnType<typeof hexSummary>} summary
  * @param {object} [options]
  * @param {boolean} [options.coordinates] Lead with the hex's column and row.
  * @param {string} [options.name] The name the GM gave the hex, which leads before them.
  * @param {{note: string}|null} [options.sighted] Something seen standing there from afar and not yet reached (p197).
  * @param {boolean} [options.visited] The Company has been there.
+ * @param {boolean} [options.unexplored] The Fog of War hides it.
  * @returns {string} e.g. "(5, 7) Forest · Castle, Seat of Power · visited", or "The Weeping Fen (5, 7) · Bog"
  *   for a hex with a name. Empty where the hex holds nothing worth naming.
  */
-export function describeHex(summary, { coordinates = false, name = "", sighted = null, visited = false } = {}) {
+export function describeHex(summary, { coordinates = false, name = "", sighted = null, visited = false, unexplored = false, numbering = null } = {}) {
 	const parts = [];
+	if (unexplored) parts.push(t("realmFog.readout.unexplored"));
 	// Only a GM is told of what's hidden, so only a GM sees it marked.
 	const marked = (text, revealed) => (revealed === false ? t("realm.readout.hidden", { name: text }) : text);
 	if (summary.terrain) parts.push(marked(t(`realm.terrain.${summary.terrain}`), summary.terrainRevealed));
@@ -151,7 +164,7 @@ export function describeHex(summary, { coordinates = false, name = "", sighted =
 	if (sighted) parts.push(sighted.note ? t("seenFromAfar.readoutNote", { note: sighted.note }) : t("seenFromAfar.readout"));
 	if (visited) parts.push(t("realm.readout.visited"));
 	const text = parts.join(" · ");
-	const where = coordinates ? t("realm.readout.coordinates", summary.hex) : "";
+	const where = coordinates ? hexPointWords(summary.hex, numbering, t) : "";
 	if (name) return [where ? `${name} ${where}` : name, text].filter(Boolean).join(" · ");
 	if (!where) return text;
 	return text ? `${where} ${text}` : where;
@@ -222,15 +235,18 @@ export function updateHexReadout({ force = false } = {}) {
 	shown = hexKey(hex);
 	const handHidden = hexHiddenByHand(scene, hex);
 	// In solo play the Referee reads it as the Company knows it.
-	const summary = hexSummary(realmKnown(entry.realm, scene), g, hex, { showHidden: game.user.isGM, hiddenByHand: handHidden });
+	const known = hexSummary(realmKnown(entry.realm, scene), g, hex, { showHidden: game.user.isGM, hiddenByHand: handHidden });
+	// Under the Fog of War, nothing of the hex but where it is, and its Holding where those show through.
+	const unexplored = hexFoggedForMe(scene, hex);
+	const summary = unexplored ? foggedSummary(known, realmFogHoldingsShow(scene)) : known;
 	// A mark stands only while something there is still hidden.
 	const sighted = sightedMarkAt(scene, entry.realm, hex, () => handHidden);
-	const visited = Boolean(getHexVisits(scene, hex));
+	const visited = !unexplored && Boolean(getHexVisits(scene, hex));
 	const record = getHexSharedRecord(scene, hex);
 	// The players see a hex's name once it's one of their places, so naming a hex ahead of them gives nothing away.
 	const named = hexName(scene, hex);
 	const name = named && (game.user.isGM || knownToPlayers({ visits: visited, record, mark: sighted })) ? named : "";
-	const text = describeHex(summary, { coordinates: showsCoordinates(), name, sighted, visited });
+	const text = describeHex(summary, { coordinates: showsCoordinates(), name, sighted, visited, unexplored, numbering: hexNumbering(scene) });
 	const notes = describeHexNotes({ told: record?.told?.at(-1)?.note, party: record?.party?.text });
 	chip.replaceChildren(...[text, notes].filter(Boolean).map((line, index) => {
 		const span = document.createElement("span");

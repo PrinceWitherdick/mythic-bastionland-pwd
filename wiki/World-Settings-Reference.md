@@ -69,6 +69,7 @@ These are saved per browser, and each person sets their own. They sit in the sam
 | **Travel Rules beside the Realm Map** | On | Travel on the left of a Realm's map, Rest and Exploration on its right. |
 | **Name the Realm Hex under the Pointer** | On | The label under the map naming the hex you point at. |
 | **Mark the Hexes the Company Has Been To** | On | The marks on every hex the Company has come into. |
+| **Combat Buttons on a Clicked Token** | On | Attack, Take Damage and its Saves beside a Token clicked in a Combat. |
 | **Start the Tours by Themselves** | On | Whether the Realm Tours start on their own. Kept for every world you open in this browser. |
 | **Reaching a New Hex** | Open the hex in Places | For the Referee: what happens when the Company comes to rest in a hex of the Realm you are looking at. The other choice is **Nothing**. |
 | **Show the Weather Button** | On | For the Referee: the weather button in the Toolkit's banner, when FXMaster is on. Hidden, the weather last set stays and still follows the table. |

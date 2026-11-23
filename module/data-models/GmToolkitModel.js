@@ -11,7 +11,9 @@ export class GmToolkitModel extends foundry.abstract.TypeDataModel {
 			// The GM's own notes, such as the plans the players shared at the end of a session (p16).
 			notes: htmlField(),
 			// Each Season's record by its key, such as "2-winter": the GM's notes and how it ended. See rules/season-log.js.
-			seasons: new foundry.data.fields.ObjectField({ required: true, initial: {} })
+			seasons: new foundry.data.fields.ObjectField({ required: true, initial: {} }),
+			// What the table has left open, by id: favours, contacts and unresolved situations. See rules/threads.js.
+			threads: new foundry.data.fields.ObjectField({ required: true, initial: {} })
 		};
 	}
 }

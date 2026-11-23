@@ -320,9 +320,19 @@ function gather(scene, hexes, move = null) {
 function endsInNewHex(token, movement, g) {
 	if (movement?.pending?.waypoints?.length || !movement?.origin) return false;
 	const from = hexAt(g, token.getCenterPoint(movement.origin));
-	const to = hexAt(g, token.getCenterPoint());
+	const to = hexAt(g, restingPoint(token, movement));
 	return Boolean(from && to && hexKey(from) !== hexKey(to));
 }
+
+/**
+ * Where a leg of a Token's move leaves it. A dragged Token is still read at
+ * the place it set off from while the `moveToken` hook runs, so the leg's own
+ * destination is taken first, and the Token's place only where a move names none.
+ * @param {TokenDocument} token
+ * @param {object} [movement] From the `moveToken` hook.
+ * @returns {{x: number, y: number}} The centre of the Token there.
+ */
+export const restingPoint = (token, movement) => token.getCenterPoint(movement?.destination ?? undefined);
 
 /**
  * Only one browser writes each arrival, and it must be a GM's.
@@ -385,7 +395,7 @@ function noticeMove(token, movement, operation) {
 function noticeUndo(token, movement, operation) {
 	const undone = undoneMove(token, operation);
 	if (!movesAsCompany(token) || (!undone && !endsInNewHex(token, movement, sceneGeometry(token.parent)))) return;
-	Hooks.callAll(COMPANY_MOVE_UNDONE_HOOK, token.parent, hexAt(sceneGeometry(token.parent), token.getCenterPoint()), undone);
+	Hooks.callAll(COMPANY_MOVE_UNDONE_HOOK, token.parent, hexAt(sceneGeometry(token.parent), restingPoint(token, movement)), undone);
 }
 
 /**

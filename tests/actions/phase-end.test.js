@@ -64,7 +64,13 @@ vi.mock("../../module/actions/council-tasks.js", () => ({ tasksDueNotices: () =>
 vi.mock("../../module/actions/knight-tables.js", () => ({ tableRenewalNotices: () => [] }));
 vi.mock("../../module/actions/afflictions.js", () => ({ burnMorningAfflictions: vi.fn(), sufferMorningAfflictions: vi.fn() }));
 vi.mock("../../module/actions/ledger.js", () => ({ causedBy: () => ({}) }));
-vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn() }));
+/** Each Knight's steed and followers, by the Knight's id. */
+let companions = new Map();
+vi.mock("../../module/actions/fallen.js", () => ({
+	announceFallenKnight: vi.fn(),
+	companionsOf: (actor) => companions.get(actor.id) ?? [],
+	worldCompanions: () => []
+}));
 vi.mock("../../module/actions/referee-rolls.js", () => ({
 	direWeatherRisk: () => risk,
 	rollRefereeTable: vi.fn(),
@@ -78,11 +84,13 @@ vi.mock("../../module/actions/referee-rolls.js", () => ({
 }));
 
 const { advancePhase } = await import("../../module/actions/time.js");
+const { morningSettled } = await import("../../module/actions/phase-end.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { rollRefereeTable } = await import("../../module/actions/referee-rolls.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
 const { burnMorningAfflictions, sufferMorningAfflictions } = await import("../../module/actions/afflictions.js");
 const { chooseDialog } = await import("../../module/apps/ui.js");
+const { wildernessRoll } = await import("../../module/actions/wilderness.js");
 
 /** A Realm Scene with the Company's own Token standing in a hex. */
 function realmScene(id, where) {
@@ -95,7 +103,7 @@ function realmScene(id, where) {
 function standAt(where) {
 	const scene = realmScene("realm", where);
 	globalThis.canvas = { scene, tokens: { controlled: [] } };
-	game.scenes = Object.assign([scene], { active: scene });
+	game.scenes = Object.assign([scene], { active: scene, get: (id) => (id === scene.id ? scene : undefined) });
 	return scene;
 }
 
@@ -125,6 +133,7 @@ beforeEach(() => {
 	risk = "winter";
 	weather = null;
 	artIndex = null;
+	companions = new Map();
 	realm = emptyRealm(g, "wild");
 	realm.myths = [{ id: "m1", hex: hex(8, 6), number: 1, d6: 1, d12: 1, omen: 2, revealed: false }];
 	realm.holdings = [{ id: "h1", hex: hex(2, 2), style: "castle", seat: true, name: "" }];
@@ -246,9 +255,28 @@ describe("as Morning comes", () => {
 		answer = (options) => ({ mode: options.context.modes.find((mode) => mode.checked).key, "include-0": true });
 		await advancePhase();
 		expect(asked[0].context.modes.find(({ checked }) => checked).key).toBe("camp");
-		expect(asked[0].context.morning.members).toEqual([{ index: 0, name: "Alys", included: true, deprived: false }]);
+		expect(asked[0].context.morning.members).toEqual([{ index: 0, name: "Alys", included: true, companion: false, deprived: false }]);
 		expect(cardsOf("report").filter(([, , context]) => context.title === "phaseEnd.morning.title")).toHaveLength(0);
 		expect(calendar.phase).toBe("morning");
+	});
+
+	it("notes the Morning as settled, so the rules beside the map don't call for its losses again", async () => {
+		standAt(hex(6, 6));
+		game.actors = [knight("Alys")];
+		answer = { mode: "camp", "include-0": true };
+		expect(morningSettled(calendar)).toBe(false);
+		await advancePhase();
+		expect(morningSettled(calendar)).toBe(true);
+		// The Morning after is one nobody has asked about yet.
+		expect(morningSettled({ ...calendar, day: calendar.day + 1 })).toBe(false);
+	});
+
+	it("leaves the Morning unsettled when nobody of the Company was asked about", async () => {
+		standAt(hex(6, 6));
+		game.actors = [knight("Alys")];
+		answer = { mode: "camp", "include-0": false };
+		await advancePhase();
+		expect(morningSettled(calendar)).toBe(false);
 	});
 
 	it("takes SPI and CLA for travelling through the Night, and VIG in Winter, on the Morning's own card", async () => {
@@ -285,6 +313,30 @@ describe("as Morning comes", () => {
 		expect(asked[0].context.morning.members.map(({ deprived }) => deprived)).toEqual([false, true]);
 	});
 
+	it("lists a Knight's steed and followers under them, who lose only Winter's VIG and lost sleep's CLA (p18)", async () => {
+		standAt(hex(6, 6));
+		calendar.season = "winter";
+		const alys = knight("Alys");
+		const steed = { ...knight("Steed"), type: "npc", hasPlayerOwner: false };
+		steed.update = vi.fn(async (changes) => {
+			for (const [path, value] of Object.entries(changes)) steed.system.virtues[path.split(".")[2]].value = value;
+		});
+		companions.set("Alys", [steed]);
+		game.actors = [alys];
+		answer = (options) => {
+			expect(options.context.morning.members).toEqual([
+				{ index: 0, name: "Alys", included: true, companion: false, deprived: false },
+				{ index: 1, name: "Steed", included: true, companion: true, deprived: false }
+			]);
+			expect(options.context.morning.rules).toContain("phaseEnd.morning.rules.companions");
+			return { mode: "travel", "include-0": true, "include-1": true, "deprived-1": true };
+		};
+		await advancePhase();
+		expect(alys.system.virtues).toEqual({ vig: { value: 5 }, cla: { value: 5 }, spi: { value: 5 } });
+		expect(steed.system.virtues).toEqual({ vig: { value: 5 }, cla: { value: 5 }, spi: { value: 10 } });
+		expect(settings.get("deprived")).toEqual([]);
+	});
+
 	it("leaves those not with the Company alone", async () => {
 		const alys = knight("Alys");
 		game.actors = [alys];
@@ -299,6 +351,19 @@ describe("as Morning comes", () => {
 		game.actors = [alys];
 		vi.mocked(chooseDialog).mockResolvedValueOnce("hostile");
 		answer = { mode: "camp", wilderness: true, "include-0": true };
+		await advancePhase();
+		expect(vi.mocked(chooseDialog).mock.calls.at(-1)[0].title).toBe("phaseEnd.hostileOmen.title");
+		expect(alys.system.virtues.cla.value).toBe(5);
+	});
+
+	it("asks after an Omen the Referee rolled by hand earlier in the Night, though the Phase's end rolls nothing more (p18)", async () => {
+		const scene = standAt(hex(8, 6));
+		const alys = knight("Alys");
+		game.actors = [alys];
+		await wildernessRoll({ scene, mode: "camp" });
+		vi.mocked(chooseDialog).mockClear();
+		vi.mocked(chooseDialog).mockResolvedValueOnce("hostile");
+		answer = { mode: "camp", wilderness: false, "include-0": true };
 		await advancePhase();
 		expect(vi.mocked(chooseDialog).mock.calls.at(-1)[0].title).toBe("phaseEnd.hostileOmen.title");
 		expect(alys.system.virtues.cla.value).toBe(5);

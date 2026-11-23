@@ -4,6 +4,7 @@
  * next turn.
  */
 
+import { selectedActors } from "../canvas/selected.js";
 import { outOfFight } from "../rules/virtues.js";
 import { updateActors } from "./actor-updates.js";
 import { worldKnights } from "./knights.js";
@@ -20,7 +21,7 @@ export function leaderCandidates(warband) {
 	const current = warband.system.leader ? fromUuidSync(warband.system.leader) : null;
 	const actors = [
 		current,
-		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
+		...selectedActors(),
 		game.user.character,
 		...worldKnights((actor) => actor.testUserPermission(game.user, "OBSERVER"))
 	];

@@ -1,7 +1,6 @@
 import { askActiveGM } from "../ask-gm.js";
 import { gmAsker } from "../gm-asker.js";
-import { confirmDialog } from "../apps/ui.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { updateActors } from "./actor-updates.js";
 import { companionsOf, worldCompanions } from "./fallen.js";
@@ -15,6 +14,7 @@ import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
 import { restedActorUpdate, swornToQuest } from "../rules/stances.js";
 import { lapseStances } from "./stance-lapse.js";
 import { registerQuery } from "../queries.js";
+import { chooseOne } from "../apps/actor-pick.js";
 
 /**
  * Restore one Virtue of each of them to its most, all in one write.
@@ -81,34 +81,79 @@ export async function restIfAccepted(actor) {
 	return true;
 }
 
+/** What marks the button on the card offered once a Combat ends, and the flag naming who it would rest. */
+const REST_OFFER_SELECTOR = "[data-rest-after-combat]";
+const REST_OFFER_FLAG = "restAfterCombat";
+
 /**
- * The danger has passed (Recovery, p9): once a Combat ends, offer the active
- * GM to restore Guard, remove Fatigue and end a marked Exposed for everybody
- * in it still standing who needs it, on one card.
+ * Whether a Combat's end has this actor catch their breath. A ship or wall doesn't: its GD comes back
+ * by repair, and so does a creature that counts as a structure, once destroyed (p11). The Slain rest no
+ * more, but somebody Exhausted at VIG 0 still catches their breath. One sworn to a quest keeps their GD
+ * as it is (p94), so GD alone doesn't call for a rest.
+ * @param {Actor|null|undefined} actor
+ * @returns {boolean}
+ */
+const restsAfterCombat = (actor) => Boolean(actor?.system?.guard) && actor.type !== "structure" && !actor.system.slain && !actor.system.destroyed
+	&& needsRest(actor.system, { sworn: swornToQuest(actor) });
+
+/**
+ * The danger has passed (Recovery, p9): once a Combat ends, the active GM's
+ * client offers the Referee a card naming everybody in it still standing who
+ * needs the rest, with a button that restores their Guard, removes Fatigue
+ * and ends a marked Exposed. Nothing is restored until it's pressed, so a
+ * tracker emptied in the middle of a fight costs nobody anything, and the
+ * Referee isn't stopped by a second window after Foundry's own.
  * @param {Combat} combat
- * @returns {Promise<Actor[]|null>} Those rested, or null when nobody was.
+ * @returns {Promise<Actor[]|null>} Those the card offers to rest, or null when nobody needs it.
  */
 export async function restAfterCombat(combat) {
 	if (!game.users.activeGM?.isSelf || !combat?.started) return null;
 	const actors = [];
 	for (const combatant of combat.combatants) {
 		const { actor } = combatant;
-		// A ship or wall doesn't catch its breath: its GD comes back by repair, and so does a
-		// creature that counts as a structure, once destroyed (p11).
-		// The Slain rest no more, but somebody Exhausted at VIG 0 still catches their breath.
-		// One sworn to a quest keeps their GD as it is (p94), so GD alone doesn't call for a rest.
-		if (!actor?.system?.guard || actor.type === "structure" || actors.includes(actor) || actor.system.slain || actor.system.destroyed) continue;
-		if (needsRest(actor.system, { sworn: swornToQuest(actor) })) actors.push(actor);
+		if (!actors.includes(actor) && restsAfterCombat(actor)) actors.push(actor);
 	}
 	if (!actors.length) return null;
 	const names = actors.map((actor) => actor.name).join(", ");
-	const confirmed = await confirmDialog({ title: t("recovery.afterCombatTitle"), icon: "fa-solid fa-mug-hot", message: t("recovery.afterCombat", { names: foundry.utils.escapeHTML(names) }) });
-	if (!confirmed) return null;
+	await postCard(null, "note", {
+		icon: "fa-solid fa-mug-hot",
+		text: t("recovery.afterCombat", { names }),
+		action: { data: "rest-after-combat", icon: "fa-solid fa-mug-hot", label: t("sheet.accept") }
+	}, { mode: "gm", flags: { [SYSTEM_ID]: { [REST_OFFER_FLAG]: actors.map((actor) => actor.uuid) } } });
+	return actors;
+}
+
+/**
+ * Rest those a Combat's end offered to, once the Referee accepts: whoever of
+ * them still needs it, since some may have rested, fallen or gone since. GMs only.
+ * @param {string[]} uuids The Actors the card named.
+ * @returns {Promise<Actor[]|null>} Those rested, or null when nobody was.
+ */
+export async function acceptRestAfterCombat(uuids) {
+	if (!game.user.isGM) return null;
+	const actors = [...new Set((uuids ?? []).map((uuid) => fromUuidSync(uuid)).filter(Boolean))]
+		.filter(restsAfterCombat);
+	if (!actors.length) {
+		warn("recovery.afterCombatNobody");
+		return null;
+	}
+	const names = actors.map((actor) => actor.name).join(", ");
 	await updateActors(actors.map((actor) => [actor, restedActorUpdate(actor)]), causedBy("recovery"));
 	const held = actors.filter(swornToQuest).map((actor) => actor.name);
 	const text = t("recovery.restedAfterCombat", { names }) + (held.length ? ` ${t("recovery.swornHeld", { names: held.join(", ") })}` : "");
 	await postCard(null, "note", { icon: "fa-solid fa-mug-hot", text });
 	return actors;
+}
+
+/** Wire the card a Combat's end offers the Referee. Called during init. */
+export function registerRestAfterCombat() {
+	registerCardButtons({
+		selector: REST_OFFER_SELECTOR,
+		gmOnly: true,
+		// A second press would only find nobody left to rest, so the button goes once it has done its work.
+		once: true,
+		handler: async (_button, message) => Boolean(await acceptRestAfterCombat(message?.flags?.[SYSTEM_ID]?.[REST_OFFER_FLAG]))
+	});
 }
 
 /**
@@ -136,13 +181,40 @@ export async function warnDyingAfterCombat(combat) {
  * @param {string} virtue "vig", "cla" or "spi".
  * @param {{icon: string, text: (value: number) => string}} [card] What the card says, where it isn't the plain restoring.
  */
-export async function restoreVirtue(actor, virtue, card = {
+async function restoreVirtue(actor, virtue, card = {
 	icon: "fa-solid fa-heart-pulse",
 	text: (value) => t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })
 }) {
 	const value = actor.system.virtues[virtue].max;
 	await actor.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("recovery"));
 	await postCard(actor, "note", { icon: card.icon, text: card.text(value) });
+}
+
+/**
+ * The sheet's restore heart beside a Virtue. Restored outright, as by an
+ * Action or a new Season, unless they carry a Remedy for it: then they're asked
+ * whether it's the Remedy, which is used up and reaches everybody present (p9),
+ * or something else that restores it.
+ * @param {Actor} actor
+ * @param {string} virtue "vig", "cla" or "spi".
+ * @returns {Promise<unknown>}
+ */
+export async function restoreFromSheet(actor, virtue) {
+	const remedy = actor.items?.contents?.find((item) => item.system?.remedy === virtue && isAtHand(item.system));
+	if (!remedy) return restoreVirtue(actor, virtue);
+	const abbr = t(`virtues.${virtue}.abbr`);
+	const picked = await chooseOne([
+		{ name: t("recovery.heart.remedy", { item: remedy.name }), detail: t("recovery.heart.remedyDetail", { virtue: abbr }), remedy },
+		{ name: t("recovery.heart.without"), detail: t("recovery.heart.withoutDetail") }
+	], {
+		title: t("recovery.restore", { virtue: t(`virtues.${virtue}.label`) }),
+		message: t("recovery.heart.question", { name: actor.name, virtue: abbr }),
+		icon: "fa-solid fa-heart-pulse",
+		ok: t("recovery.restore", { virtue: abbr }),
+		full: true
+	});
+	if (!picked) return null;
+	return picked.remedy ? useRemedy(actor, picked.remedy) : restoreVirtue(actor, virtue);
 }
 
 /**

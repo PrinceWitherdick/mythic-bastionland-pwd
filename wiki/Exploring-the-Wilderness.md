@@ -141,6 +141,8 @@ Where something stands in a hex around, the **Seen from Afar** window lists it. 
 
 Folklore and survey cards carry one **Mark it on the players' map** button. It reveals what the card names that the players could place: the Myths their teller could point to, the Landmarks, and Barriers seen from a vantage point.
 
+Where the Realm's [Fog of War](Painting-and-Editing-the-Realm#fog-of-war) is on, the button also lifts the fog from the hex of each Myth or Landmark it marks. On a vantage point's card it lifts the fog from the Company's hex and the six around it, so the card offers the button even with nothing else to mark. In fog weather the Company sees only its own hex, so only that one clears.
+
 ## Weather
 
 With [FXMaster](Installing-and-Recommended-Modules) on, the weather falls on the Scene the players are on.

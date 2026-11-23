@@ -44,7 +44,7 @@ import { TOOLKIT_TABS } from "../module/rules/gm-toolkit.js";
 import { KNIGHTHOOD_SECTIONS } from "../module/rules/knighthood.js";
 import { DRAWING_RULES } from "../module/rules/realm-drawing.js";
 import { TRAVEL_GROUPS, TRAVEL_RULES, TRAVEL_SIDES } from "../module/rules/travel-rules.js";
-import { TRAVELS_FILTERS, TRAVELS_SORTS, TRAVELS_VIEWS } from "../module/rules/travels.js";
+import { JOURNEY_KINDS, TRAVELS_FILTERS, TRAVELS_GROUPS, TRAVELS_SORTS, TRAVELS_VIEWS } from "../module/rules/travels.js";
 import { LEGEND_KINDS } from "../module/rules/travels-chart.js";
 import { VIRTUES } from "../module/rules/virtues.js";
 import { withBookText } from "../module/rules/book-text.js";
@@ -86,7 +86,7 @@ describe("localization", () => {
 	const scriptKeys = scripts.flatMap((file) => {
 		const source = readFileSync(file, "utf8");
 		return [
-			...[...source.matchAll(/\b(?:t|localize|format)\(\s*"([\w.]+)"/g)].map((match) => `bastionland.${match[1]}`),
+			...[...source.matchAll(/\b(?:t|localize|format|(?<!\.)warn)\(\s*"([\w.]+)"/g)].map((match) => `bastionland.${match[1]}`),
 			...[...source.matchAll(/["'](bastionland\.[\w.]+)["']/g)].map((match) => match[1])
 		];
 	});
@@ -243,6 +243,13 @@ describe("localization", () => {
 		...TRAVELS_VIEWS.map((key) => `travels.views.${key}`),
 		...["all", ...TRAVELS_FILTERS].map((key) => `travels.filters.${key}`),
 		...TRAVELS_SORTS.map((key) => `travels.sort.${key}`),
+		...TRAVELS_GROUPS.map((key) => `travels.group.${key}`),
+		...["holdings", "myths", "landmarks", "other", "otherHint", "ofNote", "ofNoteHint", "heardOf", "heardOfHint", "wilderness"].map((key) => `travels.sections.${key}`),
+		"travels.more.all", "travels.more.fewer",
+		...["all", ...JOURNEY_KINDS].map((key) => `travels.journey.kinds.${key}`),
+		...["lead", "to", "fresh", "freshAll", "each"].map((key) => `travels.journey.run.${key}`),
+		...["reached", "reachedOne", "told", "met", "metOne", "noted", "notedOne"].map((key) => `travels.journey.tally.${key}`),
+		"travels.journey.earlier",
 		...LEGEND_KINDS.map((kind) => `travels.chart.key.${kind}`),
 		...["arrivedFirst", "arrived", "told", "toldGM", "met", "noted"].map((key) => `travels.journey.${key}`),
 		// Built with a GM twin by forReader in actions/travels.js.

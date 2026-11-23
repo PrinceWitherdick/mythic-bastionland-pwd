@@ -1,4 +1,4 @@
-import { askPackGroups, joinPack, packRolled, packShown, renderPackCard, rollPack, spendAttack } from "../actions/attack.js";
+import { askPackGroups, joinPack, packRolled, rollPack, spendAttack } from "../actions/attack.js";
 import { chooseActor } from "../apps/actor-pick.js";
 import { confirmDialog } from "../apps/ui.js";
 import { askActiveGM } from "../ask-gm.js";
@@ -6,9 +6,10 @@ import { queryAsker } from "../compat.js";
 import { PACK_FLAG, canJoinPack, changePack, packAttackers, unspentShares } from "../rules/pack.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { joinersFor } from "./attack-card.js";
+import { packShown, renderPackCard } from "./attack-view.js";
 import { guardedChanges, keepsRolls, onCardClick, ownedBy, statefulCard, t, warn } from "./cards.js";
 import { registerQuery } from "../queries.js";
-import { serverNow } from "../server-now.js";
+import { learntWallNow, wallNow } from "../server-now.js";
 
 /**
  * Pack cards hold an Attack before it's rolled, since everybody attacking the
@@ -137,10 +138,11 @@ async function onRoll(message) {
 	if (!game.users?.activeGM && pack.shares.some((share) => !fromUuidSync(share.actor)?.isOwner)) return warn("attack.pack.spendNeedsGM");
 	const groups = await askPackGroups(pack);
 	if (!groups) return;
+	const at = await learntWallNow();
 	const now = packNow(message);
 	if (!canJoinPack(now)) return warn("attack.pack.closed");
 	if (now.shares.length !== pack.shares.length) return warn("attack.pack.joinedMeanwhile");
-	if (!(await packCard.save(message, { type: "roll", shares: pack.shares.length, at: serverNow() }))) return;
+	if (!(await packCard.save(message, { type: "roll", shares: pack.shares.length, at }))) return;
 	let posted = null;
 	try {
 		posted = await rollPack(knight, pack, groups);
@@ -277,7 +279,8 @@ function watchStalled(message, button, theirs) {
 		const now = packNow(message);
 		return Boolean(now?.rolled && !now.message);
 	};
-	const wait = STALL_MS - (serverNow() - (pack.rolledAt ?? 0));
+	// A roll stamped ahead of this computer's clock, by one set apart from it, is waited on no longer than a whole stall.
+	const wait = STALL_MS - Math.max(0, wallNow() - (pack.rolledAt ?? 0));
 	if (wait <= 0) {
 		button.hidden = !stalled();
 		return;

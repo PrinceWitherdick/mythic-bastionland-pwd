@@ -49,6 +49,14 @@ vi.mock("../../module/actions/realm.js", () => ({
 }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn() }));
 let solo = false;
+/** The Realm's Fog of War, as its store would hand it over. */
+let fog = null;
+const toggleRealmFogAt = vi.fn();
+vi.mock("../../module/actions/realm-fog.js", () => ({
+	realmFogOn: () => Boolean(fog?.on),
+	hexFoggedForPlayers: (scene, hex) => Boolean(fog?.on) && !fog.hexes[`${hex.col},${hex.row}`]?.lifted,
+	toggleRealmFogAt: (...args) => toggleRealmFogAt(...args)
+}));
 vi.mock("../../module/actions/solo.js", () => ({ secretsKeptOn: () => solo, realmKnown: (realm) => realm }));
 vi.mock("../../module/actions/wilderness.js", () => ({ wildernessRoll: vi.fn(), findCompany: vi.fn(() => ({ hex: null, split: false })) }));
 const stepHexOmen = vi.fn();
@@ -78,7 +86,7 @@ vi.mock("../../module/apps/hex-rename.js", () => ({ wirePersonRename: vi.fn() })
 vi.mock("../../module/apps/RollPerson.js", () => ({ openRollPerson: vi.fn() }));
 vi.mock("../../module/actions/calendar.js", () => ({ momentLabel: (when) => when.label }));
 
-const { HEX_GM_ACTIONS, hexGmContext, hexGmState, sparkTab, writeHexGmField } = await import("../../module/apps/hex-gm-part.js");
+const { HEX_GM_ACTIONS, hexGmContext, hexGmState, openingTab, sparkTab, writeHexGmField } = await import("../../module/apps/hex-gm-part.js");
 
 const view = { openable: true, barriers: [], told: [] };
 
@@ -186,10 +194,36 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 		const part = hexGmContext({ scene, hex, view, index: null, state });
 		expect(part.tab).toBe("people");
 		expect(part.tabs.filter(({ active }) => active).map(({ key }) => key)).toEqual(["people"]);
+		// Chosen, as a click on the tab in a hex with a Holding chooses it.
 		state.tab = "holding";
+		state.showing = "holding";
 		expect(hexGmContext({ scene, hex, view, index: null, state }).tab).toBe("land");
 		// The choice is kept for the next hex that has a Holding.
 		expect(state.tab).toBe("holding");
+	});
+
+	it("opens a hex where something stands on its tab, unless another than the land's was chosen", () => {
+		const all = { people: true, land: true, myth: true, landmark: false, holding: true };
+		expect(openingTab(all, "land")).toBe("myth");
+		expect(openingTab({ ...all, myth: false }, "land")).toBe("holding");
+		expect(openingTab({ ...all, myth: false, holding: false, landmark: true }, "land")).toBe("landmark");
+		expect(openingTab({ ...all, myth: false, holding: false }, "land")).toBe("land");
+		expect(openingTab(all, "people")).toBe("people");
+		expect(openingTab(all, "holding")).toBe("holding");
+		// The hex drawn again after a roll stays on the tab it's on, the land's included.
+		expect(openingTab(all, "land", "land")).toBe("land");
+		expect(openingTab(all, "land", "myth")).toBe("myth");
+	});
+
+	it("keeps the hex on its tab when drawn again, and turns to what stands in the next", () => {
+		heldRealm = { ...emptyRealm(g), myths: [{ number: 2, hex, d6: 1, d12: 1, omen: 2, revealed: false }] };
+		const state = hexGmState();
+		expect(hexGmContext({ scene, hex, view, index: null, state }).tab).toBe("myth");
+		expect(state.tab).toBe("land");
+		// Chosen The Land here, and drawn again after a roll on it.
+		state.tab = "land";
+		state.showing = "land";
+		expect(hexGmContext({ scene, hex, view, index: null, state }).tab).toBe("land");
 	});
 
 	it("says under the note whether what the players were last told is out of date, with Tell the players where they're behind", () => {
@@ -359,12 +393,59 @@ describe("Places, as a GM's one view of a hex", () => {
 		expect(detail).toContain("{{#if onMap}}{{#if (or openable gm)}} data-ping{{/if}}{{/if}}");
 		const template = read("templates/apps/parts/hex-gm.hbs");
 		expect(template).not.toContain('data-action="hexJournal"');
-		expect(template).toMatch(/\{\{text\}\}\{\{#if tell\}\} <button type="button" class="bastionland-hex-lore__told-tell" data-action="tellHex">\{\{tell\}\}<\/button>\{\{\/if\}\}/);
+		// With, while the Fog of War lies over the hex, the box that lifts it as the players are told.
+		expect(template).toMatch(/\{\{text\}\}\{\{#if tell\}\} <button type="button" class="bastionland-hex-lore__told-tell" data-action="tellHex">\{\{tell\}\}<\/button>\{\{#if \.\.\/liftFog\}\} <label class="bastionland-hex-lore__told-lift"><input type="checkbox" name="tellLiftsFog">/);
 		expect(template.match(/data-action="tellHex"/g)).toHaveLength(1);
 	});
 
 	it("is where the Toolkit's places open, one row each with nothing to edit in it", () => {
 		expect(card).toContain('data-action="openHex"');
 		expect(card).not.toMatch(/<textarea|data-action="(tellHex|rollHexSet|forgetSpark|hexJournal|landmarkOffer)"/);
+	});
+});
+
+describe("the Fog of War in the Lay of the Land", () => {
+	const part = () => hexGmContext({ scene, hex, view, index: null, state: hexGmState() });
+
+	afterEach(() => {
+		fog = null;
+	});
+
+	it("offers nothing while the Realm has no fog", () => {
+		expect(part().fog).toBeNull();
+		expect(part().told.liftFog).toBe(false);
+	});
+
+	it("offers to lift the fog, beside the visits and as the players are told, where it lies", () => {
+		fog = { on: true, holdings: false, hexes: {} };
+		expect(part().fog).toEqual({ fogged: true });
+		expect(part().told.liftFog).toBe(true);
+	});
+
+	it("offers to let it back, and no box beside Tell the players, where it has been lifted", () => {
+		fog = { on: true, holdings: false, hexes: { "3,4": { lifted: { by: "hand", at: 1 } } } };
+		expect(part().fog).toEqual({ fogged: false });
+		expect(part().told.liftFog).toBe(false);
+	});
+
+	it("tells the players with the fog lifted only where the box beside the button is ticked", async () => {
+		const { tellPlayersAboutHex } = await import("../../module/actions/hex-lore.js");
+		const pressed = (checked) => ({
+			closest: (selector) => {
+				if (selector === ".bastionland-travels-hex__gm") return { querySelector: () => ({ value: "A ford." }) };
+				if (selector === "[data-told-say]") return { querySelector: () => (checked === null ? null : { checked }) };
+				return null;
+			}
+		});
+		HEX_GM_ACTIONS.tellHex({ scene, hex }, pressed(true));
+		HEX_GM_ACTIONS.tellHex({ scene, hex }, pressed(false));
+		HEX_GM_ACTIONS.tellHex({ scene, hex }, pressed(null));
+		expect(tellPlayersAboutHex.mock.calls.map(([options]) => options.liftFog)).toEqual([true, false, false]);
+		expect(tellPlayersAboutHex).toHaveBeenCalledWith({ scene, hex, note: "A ford.", liftFog: true });
+	});
+
+	it("lifts or lets back the fog with its own button", () => {
+		HEX_GM_ACTIONS.toggleFog({ scene, hex });
+		expect(toggleRealmFogAt).toHaveBeenCalledWith(scene, hex);
 	});
 });

@@ -1,6 +1,6 @@
 import { chooseOne } from "../apps/actor-pick.js";
 import { postCard, t } from "../chat/cards.js";
-import { isNpcKnight } from "../rules/knight-types.js";
+import { isKnight, isNpcKnight } from "../rules/knight-types.js";
 import { GLORY_AWARDS, changeGlory } from "../rules/glory.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
@@ -55,10 +55,22 @@ export async function awardGlory(key) {
 }
 
 /**
+ * @param {Actor|null|undefined} actor
+ * @returns {boolean} Whether they can gain Glory at all, as a Squire can't (p7).
+ */
+export const gainsGlory = (actor) => Boolean(actor?.system?.gainsGlory);
+
+/**
  * @param {Actor} actor
  * @returns {boolean} Whether a tournament or battle can give them Glory: alive, and no Squire (p7).
  */
-const winsGlory = (actor) => !actor.system?.slain && Boolean(actor.system?.gainsGlory);
+const winsGlory = (actor) => !actor.system?.slain && gainsGlory(actor);
+
+/**
+ * @param {Actor} actor
+ * @returns {boolean} Whether this is a Knight who can gain Glory, as a battle's victors are listed.
+ */
+const gloryKnight = (actor) => isKnight(actor) && gainsGlory(actor);
 
 /** @returns {Actor[]} The Referee's NPC Knights who could win Glory, listed after the Company's. */
 const npcKnightsForGlory = () => worldKnights((actor) => isNpcKnight(actor) && winsGlory(actor));
@@ -96,8 +108,7 @@ export async function awardGloryTo(key) {
 		icon: "fa-solid fa-crown",
 		intro: t(`glory.awards.${key}.intro`),
 		ok: t("glory.award"),
-		knightsOnly: true,
-		...(key === "battle" ? { later: npcKnightsForGlory(), gainsGlory: true } : {})
+		...(key === "battle" ? { later: npcKnightsForGlory(), include: gloryKnight } : { include: isKnight })
 	});
 	if (!company) return null;
 	if (!company.length) {
@@ -122,7 +133,7 @@ export async function awardGloryTo(key) {
  * @returns {Promise<Actor[]>} Those it was taken back from.
  */
 export async function takeBackGlory(key, given) {
-	const living = given.filter((actor) => actor?.system?.gainsGlory);
+	const living = given.filter(gainsGlory);
 	if (!game.user.isGM || !GLORY_AWARDS.includes(key) || !living.length) return [];
 	const title = t("glory.takeBack.title");
 	const company = await chooseCompany({
@@ -131,7 +142,7 @@ export async function takeBackGlory(key, given) {
 		intro: t("glory.takeBack.intro", { award: t(`glory.awards.${key}.label`) }),
 		ok: t("glory.takeBack.ok"),
 		present: living,
-		knightsOnly: true,
+		include: isKnight,
 		onlyGiven: true
 	});
 	if (!company?.length) return [];

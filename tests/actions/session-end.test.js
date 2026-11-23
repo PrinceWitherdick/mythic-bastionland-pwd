@@ -28,6 +28,9 @@ vi.mock("../../module/actions/time.js", () => ({
 		return turned;
 	})
 }));
+/** The rolls kept on the situations left open. */
+let keptRolls;
+vi.mock("../../module/actions/threads.js", () => ({ keepThreadRolls: vi.fn(async (...args) => keptRolls.push(args)) }));
 vi.mock("../../module/actions/season-log.js", () => ({
 	seasonRecord: (key) => ({ notes: notes[key] ?? "" }),
 	writeSeasonNotes: vi.fn(async (key, value) => {
@@ -53,6 +56,7 @@ beforeEach(() => {
 	turns = [];
 	turned = { ...calendar, season: "harvest" };
 	written = [];
+	keptRolls = [];
 	notes = {};
 	settings = new Map();
 	cards = [];
@@ -154,7 +158,7 @@ describe("endTheSession", () => {
 		await endTheSession({
 			step: "months",
 			passed: lookup("bastionland.sessionEnd.time.steps.months.card"),
-			situations: [{ number: 1, d6: 2, result: "worse" }],
+			situations: [{ id: "s1", name: "Situation 1", d6: 2, result: "worse" }],
 			glory: ["Myth Resolved: Sir Cai"],
 			plans: "Ride for the coast.",
 			recap: "The ford was held.",
@@ -171,7 +175,7 @@ describe("endTheSession", () => {
 			lookup("bastionland.sessionEnd.card.plans")
 		]);
 		expect(card.context.entries[1].lines).toEqual([format("bastionland.sessionEnd.card.situation", {
-			situation: format("bastionland.sessionEnd.situations.numbered", { number: 1 }),
+			situation: "Situation 1",
 			d6: 2,
 			result: lookup("bastionland.refereeRolls.tables.unresolved.results.worse")
 		})]);
@@ -184,25 +188,27 @@ describe("endTheSession", () => {
 	});
 
 	it("numbers each situation as the window listed it, since the table names them out loud", async () => {
-		await endTheSession({ step: "months", situations: [{ number: 3, d6: 1, result: "worst" }], shareSituations: true });
-		expect(cards[0].context.entries[1].lines[0]).toContain(format("bastionland.sessionEnd.situations.numbered", { number: 3 }));
+		await endTheSession({ step: "months", situations: [{ id: "s3", name: "Situation 3", d6: 1, result: "worst" }], shareSituations: true });
+		expect(cards[0].context.entries[1].lines[0]).toContain("Situation 3");
 	});
 
 	it("leaves a situation nobody rolled for off the card", async () => {
-		await endTheSession({ step: "months", situations: [{ number: 1, d6: null, result: null }] });
+		await endTheSession({ step: "months", situations: [{ id: "s1", name: "Situation 1", d6: null, result: null }] });
 		expect(cards[0].context.entries).toHaveLength(1);
 		expect(cards).toHaveLength(1);
 	});
 
 	it("tells the Referee alone what came of the situations unless they're shown the players", async () => {
-		const situations = [{ number: 2, d6: 4, result: "worse" }];
+		const situations = [{ id: "s2", name: "Situation 2", d6: 4, result: "worse" }];
 		await endTheSession({ step: "months", situations, glory: ["Myth Resolved: Sir Cai"] });
 		const posted = vi.mocked(ChatMessage.implementation.create).mock.calls.map(([data]) => data);
 		expect(cards).toHaveLength(2);
 		expect(cards[0].context.entries.map(({ name }) => name)).toEqual([lookup("bastionland.sessionEnd.card.time"), lookup("bastionland.sessionEnd.card.glory")]);
 		expect(posted[0].mode).toBeUndefined();
 		expect(cards[1].context.entries.map(({ name }) => name)).toEqual([lookup("bastionland.sessionEnd.card.unresolved")]);
-		expect(cards[1].context.entries[0].lines[0]).toContain(format("bastionland.sessionEnd.situations.numbered", { number: 2 }));
+		expect(cards[1].context.entries[0].lines[0]).toContain("Situation 2");
+		// The roll is kept on the situation it was made for, in the Season that was played.
+		expect(keptRolls).toEqual([[[{ id: "s2", roll: { d6: 4, result: "worse" } }], calendar]]);
 		expect(cards[1].context.hint).toBe(lookup("bastionland.sessionEnd.card.refereeOnly") ?? "bastionland.sessionEnd.card.refereeOnly");
 		expect(posted[1].mode).toBe("gm");
 	});
@@ -219,7 +225,7 @@ describe("endTheSession", () => {
 	it("tells nothing of situations rolled for a step that turns no Season or Age", async () => {
 		for (const step of ["none", "weeks"]) {
 			cards = [];
-			await endTheSession({ step, situations: [{ number: 1, d6: 1, result: "worst" }] });
+			await endTheSession({ step, situations: [{ id: "s1", name: "Situation 1", d6: 1, result: "worst" }] });
 			expect(cards).toHaveLength(1);
 			expect(cards[0].context.entries.map((entry) => entry.name)).not.toContain(lookup("bastionland.sessionEnd.card.unresolved"));
 		}
@@ -231,7 +237,7 @@ describe("endTheSession", () => {
 	});
 
 	it("posts the one card to the table when the situations are shown the players", async () => {
-		await endTheSession({ step: "months", situations: [{ number: 1, d6: 4, result: "worse" }], shareSituations: true });
+		await endTheSession({ step: "months", situations: [{ id: "s1", name: "Situation 1", d6: 4, result: "worse" }], shareSituations: true });
 		expect(cards).toHaveLength(1);
 		expect(cards[0].context.entries[1].name).toBe(lookup("bastionland.sessionEnd.card.unresolved"));
 	});

@@ -7,8 +7,9 @@
 import { hexLabel } from "../actions/hex-names.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
-import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
+import { hexKey } from "../rules/realm-geometry.js";
 import { registerCardButtons, warn } from "./cards.js";
+import { cardHexes } from "./card-hexes.js";
 
 const SELECTOR = "[data-hex-target]";
 
@@ -37,7 +38,9 @@ export const smallCapsLabel = (label) => /\p{Ll}/u.test(String(label ?? "")) && 
  */
 function chipTarget(chip) {
 	const scene = game.scenes.get(chip.dataset.hexScene) ?? null;
-	return { scene, hex: parseHexKey(chip.dataset.hexTarget) };
+	// A card posted before the map grew names the hex as it was numbered then.
+	const message = game.messages?.get(chip.closest("[data-message-id]")?.dataset.messageId);
+	return { scene, hex: cardHexes(message, scene).hex(chip.dataset.hexTarget) };
 }
 
 /**
@@ -73,6 +76,11 @@ export function registerHexTargets() {
 			const { scene, hex } = chipTarget(chip);
 			if (scene && !mayView(scene)) {
 				warn("hexTarget.notShown");
+				return;
+			}
+			// The hex it names is gone, as land a Realm put back from its backup takes away.
+			if (scene && !hex) {
+				warn("hexTarget.gone");
 				return;
 			}
 			// A card about another Realm brings that Realm up first.

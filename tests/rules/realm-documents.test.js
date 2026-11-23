@@ -23,9 +23,11 @@ import {
 	realmDocuments,
 	realmFlagChanges,
 	realmFromDocuments,
+	realmGridChanges,
 	realmSceneData,
 	realmSceneFlag,
 	realmTextures,
+	relaidTileMoves,
 	terrainPicture,
 	tilesSettled
 } from "../../module/rules/realm-documents.js";
@@ -44,6 +46,42 @@ function onScene(seed = "documents", textures = realmTextures()) {
 	};
 	return { realm, scene, snapshot };
 }
+
+describe("realmGridChanges", () => {
+	it("gives a Scene the grid type and size of its Realm's layout", () => {
+		const rows = realmGeometry({ layout: "oddRows" });
+		expect(realmGridChanges(rows)).toEqual({ grid: { type: rows.gridType }, width: rows.width, height: rows.height });
+		expect(rows.gridType).not.toBe(g.gridType);
+	});
+
+	it("is what a new Realm Scene is made with", () => {
+		const { scene } = onScene();
+		const { grid, width, height } = realmGridChanges(g);
+		expect({ width: scene.width, height: scene.height, type: scene.grid.type }).toEqual({ width, height, type: grid.type });
+	});
+});
+
+describe("relaidTileMoves", () => {
+	const to = realmGeometry({ layout: "oddRows" });
+	const hex = { col: 3, row: 4 };
+	const tile = (id, kind, at, offset = { x: -10, y: 5 }) => ({
+		source: { _id: id, x: at.x + offset.x, y: at.y + offset.y, flags: kind ? { [SYSTEM_ID]: { [REALM_FLAG]: { kind } } } : {} },
+		centre: at
+	});
+
+	it("moves each of the Realm's Tiles as far as its hex's centre moves, from where it stands", () => {
+		const was = hexCentre(g, hex);
+		const now = hexCentre(to, hex);
+		const [move] = relaidTileMoves([tile("a", "terrain", was)], g, to);
+		expect(move).toEqual({ _id: "a", x: Math.round(was.x - 10 + now.x - was.x), y: Math.round(was.y + 5 + now.y - was.y) });
+		expect(hexAt(to, { x: move.x + 10, y: move.y - 5 })).toEqual(hex);
+	});
+
+	it("leaves a picture of the map, a Tile not the Realm's and one in no hex where they are", () => {
+		const at = hexCentre(g, hex);
+		expect(relaidTileMoves([tile("map", "map", at), tile("own", null, at), tile("far", "holding", { x: -5000, y: -5000 })], g, to)).toEqual([]);
+	});
+});
 
 describe("realmTextures", () => {
 	it("draws the Blank Realm sheet's own pictures, in parchment, by default", () => {

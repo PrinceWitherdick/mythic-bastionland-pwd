@@ -1,7 +1,7 @@
-import { forcedMove } from "../actions/company.js";
+import { NOT_A_MOVE, forcedMove } from "../actions/company.js";
 import { movesAsCompany } from "../actions/journey.js";
-import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
-import { t } from "../chat/cards.js";
+import { expansionUnderWay, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { t, warn } from "../chat/cards.js";
 import { barrierEdges, hexAt, sameHex } from "../rules/realm-geometry.js";
 import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { reportTurnedBack } from "./barrier-found.js";
@@ -52,6 +52,14 @@ function hexesBefore(hexes, { from, to }) {
 export function allowRealmMove(token, movement, operation) {
 	const scene = token?.parent;
 	if (!isRealmScene(scene)) return true;
+	if (expansionUnderWay(scene)) {
+		// Every Token moved by an expansion stays on the land it stood on.
+		if (operation?.[NOT_A_MOVE]) return true;
+		// Any other move while one is written, or cut short and not yet finished, would be undone by it,
+		// and would be judged against a Realm whose Tiles and flag may disagree.
+		warn("realm.movement.expanding");
+		return false;
+	}
 	if (travelsUnheard(token)) {
 		ui.notifications.warn(t("realm.movement.travelNeedsGM"));
 		return false;

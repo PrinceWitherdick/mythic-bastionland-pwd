@@ -4,12 +4,12 @@ import {
 	attackDamage,
 	attackerImpaired,
 	attackersOf,
-	buildAttackPool,
 	canDeny,
 	canJoin,
 	damageAgainst,
 	harmBarred,
 	isAttacker,
+	jointHarmTarget,
 	isBlastAttack,
 	isIndividual,
 	lastingMarkBy,
@@ -26,6 +26,8 @@ import {
 	withdrawLocked,
 	hasDeniableDie,
 	heldAs,
+	impairment,
+	IMPAIRMENT_CAUSES,
 	isDieSpent,
 	isSettled,
 	isShieldItem,
@@ -250,26 +252,6 @@ describe("readImprovised (p194)", () => {
 		[undefined, { dice: [], name: "", unread: [] }]
 	])("reads %j as %j", (text, expected) => {
 		expect(readImprovised(text)).toEqual(expected);
-	});
-});
-
-describe("buildAttackPool", () => {
-	// The worked example on p8: mace, shield, and an ally's two daggers.
-	it("rolls every weapon and shield die together", () => {
-		const pool = buildAttackPool({ sources: ["d8", "d4", "d6", "d6"] });
-		expect(pool).toEqual({ dice: [8, 4, 6, 6], impaired: false });
-	});
-
-	it("adds bonus dice such as Smite", () => {
-		expect(buildAttackPool({ sources: ["d8"], bonus: [12] }).dice).toEqual([8, 12]);
-	});
-
-	it("rolls only a d4 when Impaired, ignoring bonus dice", () => {
-		expect(buildAttackPool({ sources: ["2d10"], bonus: [12], impaired: true })).toEqual({ dice: [4], impaired: true });
-	});
-
-	it("treats an Attack with no weapon dice as unarmed and Impaired", () => {
-		expect(buildAttackPool({ sources: [], bonus: [8] })).toEqual({ dice: [4], impaired: true });
 	});
 });
 
@@ -594,6 +576,40 @@ describe("swarmImpairs", () => {
 	});
 });
 
+describe("impairment", () => {
+	it("isn't Impaired with no cause, and names none", () => {
+		expect(impairment()).toEqual({ impaired: false, cause: null });
+		expect(impairment({ confined: false, swarm: false, condition: false, weapon: null, unarmed: false })).toEqual({ impaired: false, cause: null });
+		expect(impairment({ weapon: "" })).toEqual({ impaired: false, cause: null });
+	});
+
+	it("is Impaired by any one cause, and names it", () => {
+		for (const cause of IMPAIRMENT_CAUSES) {
+			expect(impairment({ [cause]: cause === "weapon" ? "Spear" : true })).toEqual({ impaired: true, cause });
+		}
+	});
+
+	it("names a confined Long weapon before a swarm, a swarm before a condition, a condition before a held weapon, and that before being unarmed", () => {
+		const all = { confined: true, swarm: true, condition: true, weapon: "Spear", unarmed: true };
+		expect(impairment(all).cause).toBe("confined");
+		expect(impairment({ ...all, confined: false }).cause).toBe("swarm");
+		expect(impairment({ ...all, confined: false, swarm: false }).cause).toBe("condition");
+		expect(impairment({ ...all, confined: false, swarm: false, condition: false }).cause).toBe("weapon");
+		expect(impairment({ unarmed: true, condition: false, weapon: null }).cause).toBe("unarmed");
+	});
+
+	it("names a held weapon only where nothing before it Impairs the Attack (p186)", () => {
+		expect(impairment({ condition: true, weapon: "Spear" }).cause).toBe("condition");
+		expect(impairment({ confined: true, weapon: "Spear" }).cause).toBe("confined");
+		expect(impairment({ weapon: "Spear", unarmed: true }).cause).toBe("weapon");
+	});
+
+	it("reads causes by whether they hold, not by their type", () => {
+		expect(impairment({ condition: 1 })).toEqual({ impaired: true, cause: "condition" });
+		expect(impairment({ confined: undefined, swarm: 0 })).toEqual({ impaired: false, cause: null });
+	});
+});
+
 describe("trampleJoins", () => {
 	it("tramples enemies on foot, and takes the charger's word with nobody targeted", () => {
 		expect(trampleJoins([])).toBe(true);
@@ -888,6 +904,18 @@ describe("a joint Attack", () => {
 		expect(harmBarred({}, {})).toBeNull();
 	});
 
+	it("reads a joint Attack's targets as a Warband, a structure or stone only where all of them are (p11)", () => {
+		const systems = { "Token.band": { scale: "warband" }, "Token.wall": { structure: true, stone: true }, "Token.gate": { structure: true } };
+		const actorOf = (uuid) => (systems[uuid] ? { system: systems[uuid] } : null);
+		const at = (...uuids) => ({ joined: [{ actor: "Actor.tal" }], targets: uuids.map((uuid) => ({ uuid })) });
+		expect(jointHarmTarget(at("Token.band"), actorOf)).toEqual({ warband: true, structure: false, stone: false });
+		expect(jointHarmTarget(at("Token.wall", "Token.gate"), actorOf)).toEqual({ warband: false, structure: true, stone: false });
+		// One target lost, a lone attacker, or nobody aimed at: reckoned as ever.
+		expect(jointHarmTarget(at("Token.wall", "Token.gone"), actorOf)).toEqual({});
+		expect(jointHarmTarget({ ...at("Token.band"), joined: [] }, actorOf)).toEqual({});
+		expect(jointHarmTarget(at(), actorOf)).toEqual({});
+	});
+
 	it("says when nobody's share can harm the target at all", () => {
 		expect(damageAgainst(changeAttack(moss(), tal()), { warband: true }).unharmed).toBe(true);
 		expect(damageAgainst(changeAttack(moss(), tal({ blast: true })), { warband: true }).unharmed).toBe(false);
@@ -1128,11 +1156,6 @@ describe("combat audit of 2026-10-29", () => {
 		const own = joint.dice.find((die) => die.actor === "Actor.moss");
 		expect(tal).toMatchObject({ backlash: true, rally: true });
 		expect(own).toMatchObject({ backlash: false, rally: false });
-	});
-
-	it("lets a siege weapon's or a large creature's large-scale share harm a Warband", () => {
-		expect(harmBarred({ blast: false, largeScale: true }, { warband: true })).toBeNull();
-		expect(harmBarred({ blast: false, largeScale: false }, { warband: true })).toBe("warband");
 	});
 });
 

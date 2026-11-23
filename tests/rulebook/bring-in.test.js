@@ -171,7 +171,8 @@ describe("rereadOldImport", () => {
 
 	beforeEach(() => {
 		activeGM = { isSelf: true };
-		globalThis.game = { user: { id: "me", isGM: true }, users: { get activeGM() { return activeGM; } }, time: { serverTime: 1_000_000_000 } };
+		globalThis.game = { user: { id: "me", isGM: true }, users: { get activeGM() { return activeGM; } } };
+		vi.spyOn(Date, "now").mockReturnValue(1_000_000_000);
 		globalThis.ui = { notifications: { info: vi.fn(), warn: vi.fn() } };
 		foundRulebook.mockReturnValue("");
 	});
@@ -180,6 +181,7 @@ describe("rereadOldImport", () => {
 		foundRulebook.mockReturnValue("pending");
 		delete globalThis.game;
 		delete globalThis.ui;
+		vi.restoreAllMocks();
 	});
 
 	it("reads the kept book again for a world an older Import PDF last read it for", async () => {
@@ -248,6 +250,26 @@ describe("rereadOldImport", () => {
 		rereadingBy.mockReturnValueOnce({ user: "assistant", at: 1_000_000_000 - 60 * 60_000 });
 		await rereadOldImport(() => false);
 		expect(importBookArt).toHaveBeenCalled();
+	});
+
+	it("takes over from a re-read marked by the server's uptime, as 1.0.2 marked them, though the server has since restarted", async () => {
+		// Ten minutes after a restart the uptime is small again; by the time of day the mark is long past.
+		rereadingBy.mockReturnValueOnce({ user: "assistant", at: 10 * 60_000 });
+		Date.now.mockReturnValue(Date.UTC(2026, 10, 22));
+		await rereadOldImport(() => false);
+		expect(importBookArt).toHaveBeenCalled();
+	});
+
+	it("takes over from a re-read marked well ahead of now, by a clock the server's never set", async () => {
+		rereadingBy.mockReturnValueOnce({ user: "assistant", at: 1_000_000_000 + 6 * 60_000 });
+		await rereadOldImport(() => false);
+		expect(importBookArt).toHaveBeenCalled();
+	});
+
+	it("leaves it to another Referee whose mark runs a second or so ahead, as two clocks set by the server may", async () => {
+		rereadingBy.mockReturnValueOnce({ user: "assistant", at: 1_000_000_000 + 1500 });
+		await rereadOldImport(() => false);
+		expect(importBookArt).not.toHaveBeenCalled();
 	});
 
 	it("says once that the kept book is gone, without saying it's reading it, and doesn't look again", async () => {

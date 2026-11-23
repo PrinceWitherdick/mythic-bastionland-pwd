@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { applyDoom, armourAgainst, downingOutcome, resolveDamage } from "../../module/rules/damage.js";
+import { describe, expect, it, vi } from "vitest";
+import { applyDoom, armourAgainst, damageUpdate, downingOutcome, resolveDamage } from "../../module/rules/damage.js";
 
 describe("applyDoom", () => {
 	it("turns a Mortal Wound into Slain", () => {
@@ -123,5 +123,48 @@ describe("downingOutcome", () => {
 	it("leaves one of the Cast that fights on through a Mortal Wound standing", () => {
 		expect(downingOutcome("mortal", { fightsOn: true })).toBe(false);
 		expect(downingOutcome("slain", { fightsOn: true })).toBe(true);
+	});
+});
+
+describe("damageUpdate", () => {
+	const blow = (outcome, guard = 0, vigour = 6) => ({ dealt: 9, guard, vigour, guardLoss: 3, vigourLoss: 6, outcome });
+
+	it("writes GD and VIG, and Wounds them past GD", () => {
+		expect(damageUpdate(blow("evaded", 2, 12))).toEqual({ "system.guard.value": 2, "system.virtues.vig.value": 12 });
+		expect(damageUpdate(blow("scar", 0, 12))).toEqual({ "system.guard.value": 0, "system.virtues.vig.value": 12 });
+		expect(damageUpdate(blow("wounded", 0, 10))).toEqual({ "system.guard.value": 0, "system.virtues.vig.value": 10, "system.wounded": true });
+	});
+
+	it("leaves a Mortal Wound, unless the Damage is non-lethal", () => {
+		expect(damageUpdate(blow("mortal"))).toEqual({ "system.guard.value": 0, "system.virtues.vig.value": 6, "system.mortalWound": true, "system.wounded": true });
+		expect(damageUpdate(blow("mortal"), { nonLethal: true })).toEqual({ "system.guard.value": 0, "system.virtues.vig.value": 6, "system.wounded": true });
+	});
+
+	it("marks them Slain, not dying, with what their death writes, asked for only then", () => {
+		const fate = vi.fn(() => ({ "system.fate": "Slain" }));
+		expect(damageUpdate(blow("slain", 0, 0), { fate })).toEqual({
+			"system.guard.value": 0,
+			"system.virtues.vig.value": 0,
+			"system.slain": true,
+			"system.mortalWound": false,
+			"system.fate": "Slain",
+			"system.wounded": true
+		});
+		damageUpdate(blow("mortal"), { fate });
+		expect(fate).toHaveBeenCalledOnce();
+	});
+
+	it("writes SPI for a blow that came off it, which is no Wound (p68)", () => {
+		expect(damageUpdate(blow("broken", 0, 4), { virtue: "spi" })).toEqual({ "system.guard.value": 0, "system.virtues.spi.value": 4 });
+		expect(damageUpdate(blow("wounded", 0, 8), { virtue: "spi" })).toEqual({ "system.guard.value": 0, "system.virtues.spi.value": 8 });
+	});
+
+	it("writes only GD on a ship or wall, which has no Virtues", () => {
+		expect(damageUpdate(blow("destroyed", 0, 0), { character: false })).toEqual({ "system.guard.value": 0 });
+		expect(damageUpdate(blow("slain", 0, 0), { character: false })).toEqual({ "system.guard.value": 0 });
+	});
+
+	it("leaves a warded victim's VIG as it was", () => {
+		expect(damageUpdate(blow("warded", 0, 8))).toEqual({ "system.guard.value": 0, "system.virtues.vig.value": 8 });
 	});
 });

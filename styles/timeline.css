@@ -110,12 +110,12 @@
 }
 
 .bastionland-timeline__layout > .bastionland-button:first-child {
-	border-radius: 4px 0 0 4px;
+	border-radius: 3px 0 0 3px;
 }
 
 .bastionland-timeline__layout > .bastionland-button:last-child {
 	margin-left: -1px;
-	border-radius: 0 4px 4px 0;
+	border-radius: 0 3px 3px 0;
 }
 
 .bastionland-timeline__layout > .bastionland-button[aria-pressed="true"] {
@@ -307,7 +307,7 @@
 }
 
 .bastionland-timeline__scroll:focus-visible {
-	outline: 2px solid var(--bastionland-rubric);
+	outline: 2px solid var(--bastionland-verdigris);
 	outline-offset: -2px;
 }
 
@@ -475,7 +475,7 @@
 /* The Season it is now, with nothing in it yet: there to write in. */
 .is-ghost .bastionland-timeline__period-name,
 .bastionland-timeline__period-head.is-ghost > .bastionland-timeline__period-name {
-	opacity: 0.75;
+	color: var(--bastionland-ink-soft);
 }
 
 /* The Season's turn, written under its name. */
@@ -548,13 +548,14 @@
 	}
 }
 
+/* The sheets' own "add a row" bar, filling its slot with its words in the middle,
+   as tall as the cards' buttons so a Season keeps the room it had. */
 .bastionland-timeline__add-slot > .bastionland-timeline__add {
 	flex: 1;
 	justify-content: center;
 	width: auto;
-	border-style: dashed;
-	background: none;
-	color: var(--bastionland-ink-soft);
+	height: 2.1rem;
+	padding: 0 0.75rem;
 }
 
 /* ---------------------------------------------------------------- */
@@ -712,7 +713,7 @@
 
 /* A heading holding its Season's turn is a box the notes fit in. */
 .bastionland-timeline__axis-node > .bastionland-timeline__period-head:has(.bastionland-timeline__notes) {
-	border-radius: 6px;
+	border-radius: 3px;
 }
 
 .bastionland-timeline__axis-node .bastionland-timeline__period-name {
@@ -1201,7 +1202,6 @@
 
 .bastionland-timeline-entry__tag-set > legend {
 	padding: 0 0 0.35rem;
-	font-weight: bold;
 }
 
 /* One tag pressed: each a chip in its kind's colour, the radio beneath it kept for the keyboard. */
@@ -1232,7 +1232,7 @@
 }
 
 .bastionland-timeline-entry__tag > input:focus-visible + .bastionland-timeline__kind {
-	outline: 2px solid var(--bastionland-rubric);
+	outline: 2px solid var(--bastionland-verdigris);
 	outline-offset: 2px;
 }
 

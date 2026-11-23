@@ -256,7 +256,7 @@ export function npcArmourUnshielded(armour, note) {
  * @param {"helm"|"shield"} word
  * @returns {{armour: number, armourNote: string}} Unchanged when the note doesn't name it.
  */
-export function npcArmourWithout(armour, note, word) {
+function npcArmourWithout(armour, note, word) {
 	const value = Math.max(0, Math.trunc(Number(armour)) || 0);
 	const armourNote = noteWithout(note, word);
 	return { armour: armourNote === String(note ?? "") ? value : Math.max(0, value - 1), armourNote };
@@ -333,6 +333,40 @@ export const SEVER_EFFECTS = Object.freeze(["limb", "head"]);
 export function severEffects({ severs, bladed, guard = null }) {
 	if (!severs || !bladed) return [];
 	return guard === 0 ? ["limb", "head"] : ["limb"];
+}
+
+/**
+ * @typedef {object} GreaterUpdate What carrying out a Greater effect writes, one of:
+ * @property {string} [item]      The item to update, by id, with `update`.
+ * @property {object} [update]    The item's update: broken, or no longer equipped.
+ * @property {object} [actor]     An NPC's update: its Armour and note without the helm or shield.
+ * @property {number} [from]      The NPC's Armour before.
+ * @property {number} [to]        Its Armour after.
+ * @property {boolean} [slay]     A head taken: whether it Slays, as it does only at 0 GD.
+ */
+
+/**
+ * What carrying out a Greater effect (p10) writes to the foe's sheet. A
+ * disarmed weapon or shield, or a helm knocked off, is unticked until it's
+ * back; a broken one is marked so until it's mended. An NPC's helm or shield
+ * is a point of its Armour and a word of its note, both taken away. A head
+ * taken Slays, if they're still at 0 GD (p114); a limb taken is the table's
+ * to describe, and writes nothing.
+ * @param {"disarm"|"unhelm"|"break"|"limb"|"head"} effect
+ * @param {object} [foe]
+ * @param {string|null} [foe.id]         The item's id, or null for a part of an NPC's Armour note.
+ * @param {number} [foe.armour]          An NPC's Armour.
+ * @param {string} [foe.armourNote]      What it's made of.
+ * @param {number|null} [foe.guard]      Their GD, for a head; none counts as 0.
+ * @returns {GreaterUpdate|null} Null when nothing is written.
+ */
+export function greaterEffectUpdate(effect, { id = null, armour = 0, armourNote = "", guard = null } = {}) {
+	if (effect === "limb") return null;
+	if (effect === "head") return { slay: (guard ?? 0) === 0 };
+	if (id) return { item: id, update: effect === "break" ? { "system.broken": true } : { "system.equipped": false } };
+	const from = Number(armour) || 0;
+	const { armour: to, armourNote: note } = npcArmourWithout(from, armourNote, effect === "unhelm" ? "helm" : "shield");
+	return { actor: { "system.armour": to, "system.armourNote": note }, from, to };
 }
 
 /** Words that say a weapon is made of wood, and could be broken by a Strong Gambit (p10). */

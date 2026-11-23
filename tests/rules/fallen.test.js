@@ -41,19 +41,8 @@ describe("squireOf", () => {
 
 describe("followersOf", () => {
 	it("gives those made from their Property, and whoever else serves them", () => {
+		// Not the steed, a mount; nor the Squire, who has a path of their own; nor anybody else's people.
 		expect(followersOf(knight, world)).toEqual([hireling]);
-	});
-
-	it("leaves out the steed, which is a mount rather than somebody to play", () => {
-		expect(followersOf(knight, world)).not.toContain(steed);
-	});
-
-	it("leaves out the Squire, who has a path of their own", () => {
-		expect(followersOf(knight, world)).not.toContain(squire);
-	});
-
-	it("leaves out everybody else's people", () => {
-		expect(followersOf(knight, world)).not.toContain(stranger);
 	});
 
 	it("gives none for no Knight", () => {

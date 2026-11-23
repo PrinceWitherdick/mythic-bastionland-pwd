@@ -150,6 +150,15 @@
 	 */
 	--bastionland-font-note: 15px;
 	--bastionland-font-floor: 14px;
+	/* The size a page, a dialog and a chat card set their own words in. */
+	--bastionland-font-text: 15px;
+	/*
+	 * The shadow under what floats: a panel or a button held over the map, and
+	 * a list or a preview that drops over a window. Nothing lying on a page
+	 * casts one. A shadow is dark on any paper, so these alone are raw black.
+	 */
+	--bastionland-lift: 0 2px 8px rgb(0 0 0 / 45%);
+	--bastionland-float: 0 6px 18px rgb(0 0 0 / 0.35);
 }
 
 /*
@@ -275,9 +284,25 @@
 	color: var(--bastionland-ink);
 	color-scheme: var(--bastionland-color-scheme);
 	font-family: var(--bastionland-font-body);
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 	font-variant-numeric: lining-nums;
 	line-height: 1.35;
+}
+
+/*
+ * A button with no class of its own still takes the sheet's hand: Foundry draws
+ * every button in its own sans face at 14px with a 4px corner, which a plain
+ * button on a page would keep. No specificity, so any rule of ours that says
+ * otherwise wins, and the text-like buttons below take the words around them.
+ * Foundry's button is two of its own ems tall, so its height is held at what
+ * that came to (28px): a button that sets a smaller height of its own, without
+ * lifting Foundry's minimum, would otherwise grow with the larger words.
+ */
+:where(.bastionland-page, .bastionland-dialog .window-content) :where(button, a.button) {
+	--button-size: 1.75rem;
+	border-radius: 3px;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
 }
 
 /*
@@ -424,6 +449,8 @@
 	.bastionland-item__equip,
 	.bastionland-move,
 	.bastionland-add,
+	.bastionland-travels__fold,
+	.bastionland-travels-journey__place,
 	.bastionland-unchosen__by-hand,
 	.bastionland-chooser__start,
 	.bastionland-chooser__group,
@@ -533,6 +560,7 @@ a.button:focus:not(:focus-visible) {
 	margin: 0.25rem 0 0;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
+	font-style: italic;
 }
 
 /*
@@ -661,7 +689,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-page .bastionland-knighthood-help:hover {
-	color: var(--bastionland-rubric);
+	color: var(--bastionland-blood);
 }
 
 /* The present rank's worth, in the sheet's hand, above the Glory still to win. */
@@ -1021,7 +1049,7 @@ a.button:focus:not(:focus-visible) {
 	width: 100%;
 	padding: 0.2rem;
 	border: 1.5px solid transparent;
-	border-radius: 4px;
+	border-radius: 3px;
 	color: var(--bastionland-ink);
 }
 
@@ -1122,7 +1150,7 @@ a.button:focus:not(:focus-visible) {
 	aspect-ratio: 1;
 	padding: 0.25rem;
 	border: 1.5px solid transparent;
-	border-radius: 4px;
+	border-radius: 3px;
 	background: var(--bastionland-paper-deep);
 }
 
@@ -1266,7 +1294,7 @@ a.button:focus:not(:focus-visible) {
 	height: 2.4rem;
 	padding: 0.15rem;
 	border: none;
-	border-radius: 4px;
+	border-radius: 3px;
 	background: var(--bastionland-paper-deep);
 	object-fit: contain;
 }
@@ -1331,7 +1359,7 @@ a.button:focus:not(:focus-visible) {
 	gap: 0.2rem;
 	padding: 0.1rem 0.2rem;
 	border: 1.5px solid transparent;
-	border-radius: 4px;
+	border-radius: 3px;
 }
 
 .bastionland-heraldry-painter__layer:hover {
@@ -1497,7 +1525,7 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-toolbar.bastionland-toolbar--actions button:hover {
 	background: none;
-	color: var(--bastionland-rubric);
+	color: var(--bastionland-blood);
 }
 
 /* Only the words take the underline, not the icon. */
@@ -2062,7 +2090,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-page button.bastionland-armour--score:hover {
-	color: var(--bastionland-rubric);
+	color: var(--bastionland-blood);
 }
 
 /* Item rows read as prose, so nothing is ruled off between them: the name that
@@ -2144,9 +2172,14 @@ a.button:focus:not(:focus-visible) {
 	opacity: 0.45;
 }
 
-/* Broken, or all used up: the row fades until it's mended or restocked, but its buttons don't. */
-.bastionland-item.is-unusable .bastionland-item__line > :not(.bastionland-item__controls, .bastionland-item__count),
-.bastionland-item.is-unusable .bastionland-item__description {
+/* Broken, or all used up: the row sits back until it's mended or restocked, but its buttons don't.
+   Its words take the softer ink, which still reads on parchment where faded ink didn't; only the
+   glyph that says it's worn is faded. */
+.bastionland-item.is-unusable :is(.bastionland-item__name, .bastionland-item__description) {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-item.is-unusable .bastionland-item__equip {
 	opacity: 0.5;
 }
 
@@ -2230,7 +2263,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-item__description {
-	font-size: 0.92rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-item__description > :first-child {
@@ -2623,7 +2656,7 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page prose-mirror,
 .bastionland-page .editor-content {
 	min-height: 6rem;
-	padding: 0.4rem 0.6rem;
+	padding: 0.6rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
 	background: rgb(var(--bastionland-sheen-rgb) / calc(0.25 * var(--bastionland-sheen)));
@@ -2639,6 +2672,22 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page prose-mirror {
 	display: flex;
 	flex-direction: column;
+	padding: 0;
+}
+
+/*
+ * The text stands as far from the frame above as at the sides. The frame
+ * itself has no padding round an editor, whose `.editor-content` keeps it, or
+ * the two added up; and the first and last of what's written keep no margin of
+ * their own at the frame, or a paragraph's, a list's or a heading's margin
+ * stood the words further off at the top.
+ */
+.bastionland-page .editor-content > :first-child {
+	margin-top: 0;
+}
+
+.bastionland-page .editor-content > :last-child {
+	margin-bottom: 0;
 }
 
 .bastionland-page prose-mirror.active {
@@ -2727,7 +2776,7 @@ a.button:focus:not(:focus-visible) {
 :is(.bastionland-page section.secret, section.secret.bastionland-written-notice) {
 	padding: 0 0.6rem;
 	border-width: 1px;
-	border-radius: 4px;
+	border-radius: 3px;
 }
 
 /* Foundry's Reveal button unsets its line height and lays its word out as a
@@ -2778,7 +2827,7 @@ a.button:focus:not(:focus-visible) {
 	width: 64px;
 	height: 64px;
 	border: 2px solid var(--bastionland-ink);
-	border-radius: 6px;
+	border-radius: 3px;
 	background: var(--bastionland-paper-deep);
 	object-fit: cover;
 }
@@ -2957,7 +3006,7 @@ a.button:focus:not(:focus-visible) {
 	width: 96px;
 	height: 96px;
 	border: 2px solid var(--bastionland-ink);
-	border-radius: 6px;
+	border-radius: 3px;
 	background: var(--bastionland-paper-deep);
 	object-fit: cover;
 	object-position: top;
@@ -3004,7 +3053,7 @@ a.button:focus:not(:focus-visible) {
 	box-shadow: none;
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-display);
-	font-size: 2.1rem;
+	font-size: 2.3rem;
 	line-height: 1.15;
 }
 
@@ -3062,7 +3111,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-page .bastionland-npc-header__owner-name:hover {
-	color: var(--bastionland-rubric);
+	color: var(--bastionland-blood);
 }
 
 .bastionland-npc-weakness__row {
@@ -3260,7 +3309,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-page .bastionland-council__seat:hover {
-	color: var(--bastionland-rubric);
+	color: var(--bastionland-blood);
 }
 
 .bastionland-council__tasks {
@@ -3398,7 +3447,7 @@ a.button:focus:not(:focus-visible) {
 	padding: 0.35rem 0.5rem;
 	border: 1px solid var(--bastionland-rule);
 	border-left: 4px solid var(--bastionland-rubric);
-	border-radius: 4px;
+	border-radius: 3px;
 	background: color-mix(in srgb, var(--bastionland-ink) 6%, transparent);
 }
 
@@ -3407,7 +3456,7 @@ a.button:focus:not(:focus-visible) {
 	width: 2.75rem;
 	height: 2.75rem;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 	object-fit: cover;
 	cursor: pointer;
 }
@@ -3484,15 +3533,6 @@ a.button:focus:not(:focus-visible) {
 	gap: 0.25rem;
 }
 
-.bastionland-steed__title .bastionland-icon {
-	opacity: 0;
-	transition: opacity 120ms;
-}
-
-.bastionland-steed:is(:hover, :focus-within) .bastionland-steed__title .bastionland-icon {
-	opacity: 1;
-}
-
 .bastionland-steed__text .bastionland-item__tags > span {
 	white-space: nowrap;
 }
@@ -3511,7 +3551,7 @@ a.button:focus:not(:focus-visible) {
 	width: 2.5rem;
 	height: 2.5rem;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 	object-fit: cover;
 }
 
@@ -3604,7 +3644,7 @@ a.button:focus:not(:focus-visible) {
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
 	font-weight: normal;
-	font-variant: small-caps;
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
 }
 
@@ -3616,8 +3656,15 @@ a.button:focus:not(:focus-visible) {
 .bastionland-season-events__mark {
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
-	font-variant: small-caps;
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
+}
+
+/* Came to pass's tick drops to the small capitals' middle, as a small-caps
+   pill's icon does: on the line, it stood at the capitals', 2px above them. */
+.bastionland-season-events__mark > i {
+	position: relative;
+	top: 0.125em;
 }
 
 .bastionland-season-events__mark.is-waiting {
@@ -3717,7 +3764,7 @@ a.button:focus:not(:focus-visible) {
 	border-top: none;
 	border-collapse: collapse;
 	background: none;
-	font-size: 14px;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-spark__table thead th {
@@ -3738,7 +3785,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-spark__table tbody tr:nth-child(odd) {
-	background: var(--bastionland-paper-deep);
+	background: color-mix(in srgb, var(--bastionland-ink) 6%, transparent);
 }
 
 .bastionland-spark__table tbody th {
@@ -3905,21 +3952,6 @@ a.button:focus:not(:focus-visible) {
 	gap: 0.4rem;
 }
 
-.bastionland-page .bastionland-site__tools button {
-	height: 2rem;
-	padding: 0 0.75rem;
-	border: 1px solid var(--bastionland-ink);
-	border-radius: 3px;
-	background: var(--bastionland-paper-deep);
-	font-family: var(--bastionland-font-caps);
-	font-size: 0.95rem;
-}
-
-.bastionland-page .bastionland-site__tools button:hover {
-	background: var(--bastionland-ink);
-	color: var(--bastionland-paper);
-}
-
 .bastionland-site__history {
 	display: flex;
 	gap: 0.2rem;
@@ -3952,7 +3984,7 @@ a.button:focus:not(:focus-visible) {
 .bastionland-site__canvas {
 	aspect-ratio: 1;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 6px;
+	border-radius: 3px;
 	background:
 		radial-gradient(circle at center, rgb(var(--bastionland-sheen-rgb) / calc(0.4 * var(--bastionland-sheen))), transparent 70%),
 		var(--bastionland-paper);
@@ -4070,7 +4102,7 @@ a.button:focus:not(:focus-visible) {
 	border: 1.5px solid var(--bastionland-ink);
 	border-radius: 6px;
 	background: var(--bastionland-paper);
-	box-shadow: 0 4px 14px rgb(35 31 26 / 0.3);
+	box-shadow: var(--bastionland-float);
 	transform: translateX(calc(-50% + var(--site-shift)));
 }
 
@@ -4155,9 +4187,14 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-site__tally {
+	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-floor);
 	font-variant-numeric: lining-nums tabular-nums;
-	opacity: 0.75;
+}
+
+/* A pressed chip is filled with ink, so its tally keeps the chip's own pale lettering. */
+.bastionland-site__chip[aria-pressed="true"] .bastionland-site__tally {
+	color: inherit;
 }
 
 .bastionland-page .bastionland-site__note {
@@ -4260,7 +4297,7 @@ a.button:focus:not(:focus-visible) {
 	align-items: center;
 	gap: 0.25rem;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 	cursor: help;
 }
 
@@ -4276,7 +4313,7 @@ a.button:focus:not(:focus-visible) {
 .bastionland-site__step-detail {
 	flex-basis: 100%;
 	margin: 0;
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-site__step-state {
@@ -4327,7 +4364,7 @@ a.button:focus:not(:focus-visible) {
 	margin: 0;
 	padding: 0.2rem 0.5rem 0.5rem;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 }
 
 .bastionland-site__rule-group legend {
@@ -4347,7 +4384,7 @@ a.button:focus:not(:focus-visible) {
 	align-items: center;
 	gap: 0.3rem;
 	min-width: 0;
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-page .bastionland-site__rule .bastionland-box {
@@ -4382,7 +4419,7 @@ a.button:focus:not(:focus-visible) {
 	margin: 0;
 	padding: 0;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 	list-style: none;
 }
 
@@ -4423,7 +4460,7 @@ a.button:focus:not(:focus-visible) {
 	background: transparent;
 	box-shadow: none;
 	font-family: var(--bastionland-font-display);
-	font-size: 1.9rem;
+	font-size: 2.3rem;
 }
 
 .bastionland-page .bastionland-site__name:focus {
@@ -4485,7 +4522,7 @@ a.button:focus:not(:focus-visible) {
 .bastionland-site__at {
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -4515,7 +4552,7 @@ a.button:focus:not(:focus-visible) {
 	gap: 0.1rem;
 	margin: 0;
 	padding: 0 0 0 0.2rem;
-	font-size: var(--bastionland-font-floor);
+	font-size: var(--bastionland-font-note);
 	list-style: none;
 }
 
@@ -4650,7 +4687,7 @@ a.button:focus:not(:focus-visible) {
 	width: 100%;
 	padding: 0.35rem 0.5rem;
 	border: 1px dashed var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 }
 
 .bastionland-page .bastionland-chooser__start.is-active {
@@ -4722,7 +4759,7 @@ a.button:focus:not(:focus-visible) {
 	width: 2.25rem;
 	height: 2.25rem;
 	border: 1.5px solid var(--bastionland-rule);
-	border-radius: 6px;
+	border-radius: 3px;
 }
 
 /* A die's number is drawn from the body face, whose line box centres on figures
@@ -4811,7 +4848,7 @@ a.button:focus:not(:focus-visible) {
 	width: 100%;
 	padding: 0.3rem;
 	border: 1px solid transparent;
-	border-radius: 4px;
+	border-radius: 3px;
 	text-align: center;
 }
 
@@ -4923,7 +4960,7 @@ a.button:focus:not(:focus-visible) {
 	border: none;
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-display);
-	font-size: 2rem;
+	font-size: 2.3rem;
 	font-weight: normal;
 	line-height: 1.05;
 }
@@ -5058,9 +5095,9 @@ a.button:focus:not(:focus-visible) {
 	max-width: min(40rem, 70vw);
 	padding: 0.2rem 0.7rem;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 0.7rem;
+	border-radius: 6px;
 	background: var(--bastionland-paper);
-	box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+	box-shadow: var(--bastionland-lift);
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-body);
 	font-size: 0.95rem;
@@ -5087,11 +5124,10 @@ a.button:focus:not(:focus-visible) {
 
 /*
  * Travel and Exploration down the sides of the screen while a Realm Scene is
- * up, as the Blank Realm sheet prints them beside its map. They're furniture
- * of the screen rather than of the map, so panning and zooming the Realm
- * leaves them the same size in the same place: where they stand, and how tall
- * they may grow, is set from the room the interface leaves them. How wide they
- * are is one knob, read back when they are placed. They sit over the canvas,
+ * up, as the Blank Realm sheet prints them beside its map, from its top to its
+ * foot: where they stand, and how tall they may grow, is set from the map on
+ * screen, or without one from the room the interface leaves them. How wide
+ * they are is one knob, read back when they are placed. They sit over the canvas,
  * under the Token HUD (which comes after it on the page), the sidebar and
  * windows, and grow with the interface scale and Text Size. Neither is a
  * window, so Text Size can't zoom them as it zooms the system's pages: they
@@ -5102,7 +5138,7 @@ a.button:focus:not(:focus-visible) {
 	position: fixed;
 	z-index: calc(var(--z-index-canvas, 0) + 1);
 	display: flex;
-	width: var(--bastionland-travel-rules-width, 380px);
+	width: 380px;
 	max-height: var(--travel-rules-max-height, 60vh);
 	pointer-events: none;
 	transform: scale(calc(var(--ui-scale, 1) * var(--bastionland-text-size, 1)));
@@ -5132,13 +5168,13 @@ a.button:focus:not(:focus-visible) {
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 6px;
 	background:
-		radial-gradient(ellipse at top left, rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen))), transparent 60%),
+		var(--bastionland-page-sheen),
 		var(--bastionland-paper);
-	box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+	box-shadow: var(--bastionland-lift);
 	color: var(--bastionland-ink);
 	color-scheme: var(--bastionland-color-scheme);
 	font-family: var(--bastionland-font-body);
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 	line-height: 1.35;
 	pointer-events: all;
 }
@@ -5197,11 +5233,13 @@ a.button:focus:not(:focus-visible) {
 	margin: 0;
 	padding: 0.35rem 0 0.15rem;
 	border: none;
-	/* Foundry colours h3s for its dark interface, so the heading takes the sheet's ink back. */
-	color: var(--bastionland-ink);
+	/* Foundry colours h3s for its dark interface, so the heading takes the sheet's rubric, as every
+	   section heading does. It keeps its own rule: it holds a page number and folds. */
+	color: var(--bastionland-rubric);
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.2rem;
 	font-weight: normal;
+	letter-spacing: 0.05em;
 }
 
 .bastionland-travel-rules__summary {
@@ -5351,7 +5389,7 @@ button.bastionland-dice:focus-visible {
 .bastionland-travel-rules__page {
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-travel-rules button.bastionland-travel-rules__page {
@@ -5390,16 +5428,21 @@ button.bastionland-dice:focus-visible {
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.1rem;
 	font-weight: normal;
-	letter-spacing: 0.02em;
+	letter-spacing: 0.03em;
 }
 
+/* A pill, trimmed and padded through the pill sums as the Timeline's "Now" is. */
 .bastionland-travel-rules__now {
-	padding: 0 0.35rem;
+	--pill-pad: 0.25em;
+	display: inline-block;
+	padding: var(--pill-padding-top, 0) 0.55em var(--pill-padding-bottom, 0);
+	border: var(--pill-border, 1px) solid var(--bastionland-blood);
 	border-radius: 999px;
 	background: var(--bastionland-blood);
 	color: var(--bastionland-paper);
 	font-family: var(--bastionland-font-body);
 	font-size: var(--bastionland-font-note);
+	letter-spacing: 0;
 }
 
 .bastionland-travel-rules__section p {
@@ -5463,8 +5506,9 @@ button.bastionland-dice:focus-visible {
 	height: auto;
 	margin-top: 0.2rem;
 	padding: 0.15rem 0.4rem;
-	font-family: var(--bastionland-font-body);
-	font-size: 0.95rem;
+	border-radius: 3px;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
 }
 
 /* The hardship the calendar makes due is the one to press. */
@@ -5560,7 +5604,7 @@ button.bastionland-dice:focus-visible {
 .bastionland-realm-drawing__fold > summary {
 	color: var(--bastionland-ink-soft);
 	cursor: pointer;
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-realm-drawing__fold[open] > summary {
@@ -5624,7 +5668,7 @@ button.bastionland-dice:focus-visible {
 /* How to paint with the brush in hand, under its swatches. */
 .bastionland-realm-drawing .bastionland-realm-drawing__hint {
 	margin-top: 0.4rem;
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 /* The counts run along the line and wrap, so six kinds of Landmark take a
@@ -5638,7 +5682,7 @@ button.bastionland-dice:focus-visible {
 	padding: 0;
 	list-style: none;
 	color: var(--bastionland-blood);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-realm-drawing__tally li {
@@ -5798,7 +5842,7 @@ button.bastionland-dice:focus-visible {
 	margin: 0.6rem 0 0;
 	padding: 0.3rem 0.6rem 0.5rem;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 }
 
 .bastionland-realm-layout > legend {
@@ -5823,7 +5867,7 @@ button.bastionland-dice:focus-visible {
 	gap: 0.3rem;
 	padding: 0.5rem 0.4rem;
 	border: 1.5px solid transparent;
-	border-radius: 4px;
+	border-radius: 3px;
 	background: rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen)));
 	line-height: 1.2;
 	text-align: center;
@@ -5864,6 +5908,138 @@ button.bastionland-dice:focus-visible {
 	stroke: var(--bastionland-ink);
 	stroke-width: 1.4;
 	stroke-linejoin: round;
+}
+
+/* Expand the map: the sides and the map, the numbers and the backup in the first column, the new land in
+   the second, one after the other in a narrow window. */
+.bastionland-expand {
+	container-type: inline-size;
+}
+
+.bastionland-expand__columns {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 0.5rem 1.6rem;
+}
+
+.bastionland-expand__column {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+@container (width < 40rem) {
+	.bastionland-expand__columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* Each side's box on its own side of the map drawn small, its new hexes round it. */
+.bastionland-expand__compass {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	grid-template-areas:
+		". north ."
+		"west map east"
+		". south .";
+	align-items: center;
+	justify-items: center;
+	gap: 0.4rem 0.6rem;
+}
+
+.bastionland-expand__side--north {
+	grid-area: north;
+}
+
+.bastionland-expand__side--south {
+	grid-area: south;
+}
+
+.bastionland-expand__side--west {
+	grid-area: west;
+}
+
+.bastionland-expand__side--east {
+	grid-area: east;
+}
+
+.bastionland-expand .bastionland-expand__side {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0;
+}
+
+/* West and East stand beside the map, so their names go under their boxes. */
+.bastionland-expand .bastionland-expand__side--west,
+.bastionland-expand .bastionland-expand__side--east {
+	flex-direction: column-reverse;
+	gap: 0.2rem;
+}
+
+.bastionland-expand .bastionland-expand__side > label,
+.bastionland-expand .bastionland-expand__side > .form-fields {
+	flex: none;
+}
+
+.bastionland-expand .bastionland-expand__side input {
+	width: 4.5rem;
+}
+
+.bastionland-expand__preview {
+	grid-area: map;
+	display: flex;
+	justify-content: center;
+	width: 100%;
+	margin: 0;
+}
+
+.bastionland-expand__map {
+	width: 100%;
+	max-width: 18rem;
+	max-height: 14rem;
+}
+
+.bastionland-expand__size {
+	text-align: center;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-expand__old,
+.bastionland-expand__added {
+	stroke-width: 1;
+	stroke-linejoin: round;
+}
+
+.bastionland-expand__old {
+	fill: color-mix(in srgb, var(--bastionland-ink) 14%, transparent);
+	stroke: var(--bastionland-ink);
+}
+
+.bastionland-expand__added {
+	fill: color-mix(in srgb, var(--bastionland-rubric) 16%, transparent);
+	stroke: var(--bastionland-rubric);
+	stroke-dasharray: 2 1.5;
+}
+
+.bastionland-expand__problem {
+	color: var(--bastionland-blood);
+}
+
+/* Should the column be too narrow for its label, the button grows taller to hold it rather than spill it. */
+.bastionland-expand .bastionland-expand__restore {
+	flex: none;
+	align-self: flex-start;
+	min-width: 0;
+	max-width: 100%;
+	height: auto;
+	min-height: 2.1rem;
+	padding-block: 0.3rem;
+	/* Not 1.15, which sets the small capitals a pixel high (see chat.css's footer buttons). */
+	line-height: 1.2;
+	text-align: center;
 }
 
 .bastionland-realm-layout__edge {
@@ -5910,23 +6086,29 @@ button.bastionland-dice:focus-visible {
    RealmDrawing, and Place the Company over it, placed by CompanyButton. */
 button.bastionland-realm-drawing__finish,
 button.bastionland-company-button {
-	--map-button-lift: 0 2px 8px rgb(0 0 0 / 45%);
 	position: fixed;
 	z-index: calc(var(--z-index-canvas, 0) + 1);
 	width: auto;
 	height: auto;
 	min-height: 0;
 	padding: 0.4rem 1.1rem;
+	font-size: 1.2rem;
+	transform: scale(calc(var(--ui-scale, 1) * var(--bastionland-text-size, 1)));
+	transform-origin: top left;
+}
+
+/* Every button floating over the map, these two and the combat ring's below:
+   paper, the floating panel's corner and the lift, filled in ink when pointed at. */
+button.bastionland-realm-drawing__finish,
+button.bastionland-company-button,
+#hud #bastionland-combat-ring .bastionland-combat-ring__button {
 	border: 1px solid var(--bastionland-ink);
 	border-radius: 6px;
 	background: var(--bastionland-paper);
-	box-shadow: var(--map-button-lift);
+	box-shadow: var(--bastionland-lift);
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-caps);
-	font-size: 1.2rem;
 	white-space: nowrap;
-	transform: scale(calc(var(--ui-scale, 1) * var(--bastionland-text-size, 1)));
-	transform-origin: top left;
 	/* Foundry gives every button a half-second transition on every property it has,
 	   which would set these sliding across the screen after a map that has already
 	   been panned. They are held against the map, not animated to it. */
@@ -5936,9 +6118,71 @@ button.bastionland-company-button {
 button.bastionland-realm-drawing__finish:hover,
 button.bastionland-realm-drawing__finish:focus-visible,
 button.bastionland-company-button:hover,
-button.bastionland-company-button:focus-visible {
+button.bastionland-company-button:focus-visible,
+#hud #bastionland-combat-ring .bastionland-combat-ring__button:hover,
+#hud #bastionland-combat-ring .bastionland-combat-ring__button:focus-visible {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
+}
+
+/*
+ * The combat buttons round a Token in a Combat (module/canvas/combat-ring.js):
+ * Attack, Take Damage and Morale in a column on its left, its Saves on its
+ * right, each column centred on the Token and growing away from it. They float
+ * over the map, so they're drawn as the Company's button is, above. Foundry places and scales the window
+ * as it does its own Token HUD; the columns are set beside it here, under
+ * #hud so Foundry's own rules for its HUD's columns don't outweigh them.
+ */
+#hud #bastionland-combat-ring {
+	position: absolute;
+	pointer-events: none;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col {
+	position: absolute;
+	top: 50%;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	translate: 0 -50%;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col.left {
+	right: calc(100% + 0.75rem);
+	align-items: flex-end;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__col.right {
+	left: calc(100% + 0.75rem);
+	align-items: flex-start;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__button {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.4rem;
+	width: max-content;
+	height: 2.1rem;
+	min-height: 0;
+	margin: 0;
+	padding: 0 0.75rem;
+	font-size: 1rem;
+	pointer-events: auto;
+	cursor: pointer;
+}
+
+#hud #bastionland-combat-ring .bastionland-combat-ring__button > i {
+	flex: none;
+	width: 1.25em;
+	margin: 0;
+	text-align: center;
+}
+
+/* The Virtue's score beside its name, in the figures the sheet's score boxes use. */
+#hud #bastionland-combat-ring .bastionland-combat-ring__value {
+	font-family: var(--bastionland-font-body);
+	font-variant-numeric: tabular-nums;
 }
 
 /* The Company off the map is the one thing standing between the Referee and
@@ -5973,6 +6217,16 @@ button.bastionland-company-button:is(:hover, :focus-visible)::after {
 	content: none;
 }
 
+/* The system's own Reduce Motion stills the ring as the browser's does below: the setting's
+   blanket rule reaches what is inside a window, not a button's own ring. */
+:root.bastionland-reduce-motion button.bastionland-company-button::after {
+	content: none;
+}
+
+:root.bastionland-reduce-motion button.bastionland-company-button {
+	box-shadow: var(--bastionland-lift), 0 0 0 3px color-mix(in srgb, var(--bastionland-rubric) 45%, transparent);
+}
+
 @keyframes bastionland-company-call {
 	0% {
 		opacity: 1;
@@ -5992,7 +6246,7 @@ button.bastionland-company-button:is(:hover, :focus-visible)::after {
 	}
 
 	button.bastionland-company-button {
-		box-shadow: var(--map-button-lift), 0 0 0 3px color-mix(in srgb, var(--bastionland-rubric) 45%, transparent);
+		box-shadow: var(--bastionland-lift), 0 0 0 3px color-mix(in srgb, var(--bastionland-rubric) 45%, transparent);
 	}
 }
 
@@ -6010,7 +6264,7 @@ button.bastionland-company-button:is(:hover, :focus-visible)::after {
 	border: 1px solid var(--bastionland-ink);
 	border-radius: 6px;
 	background: var(--bastionland-paper);
-	box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+	box-shadow: var(--bastionland-lift);
 	color: var(--bastionland-ink);
 	transform: scale(calc(var(--ui-scale, 1) * var(--bastionland-text-size, 1)));
 	transform-origin: top left;
@@ -6019,7 +6273,7 @@ button.bastionland-company-button:is(:hover, :focus-visible)::after {
 .bastionland-map-slide__hint {
 	flex: 1 1 auto;
 	margin: 0;
-	font-size: 15px;
+	font-size: var(--bastionland-font-note);
 	line-height: 1.3;
 }
 
@@ -6049,11 +6303,11 @@ button.bastionland-company-button:is(:hover, :focus-visible)::after {
 	min-height: 0;
 	padding: 0.25rem 0.8rem;
 	border: 1px solid var(--bastionland-ink);
-	border-radius: 4px;
+	border-radius: 3px;
 	background: transparent;
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-caps);
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 	white-space: nowrap;
 	transition: none;
 }
@@ -6112,7 +6366,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	padding: 0.5rem 0.6rem;
 }
 
-.bastionland-realm-panel__heading,
+/* A hex's name is the pane's one title. The Realm palette's groups are headed by .bastionland-heading. */
 .bastionland-hex-lore__heading {
 	margin: 0;
 	border: none;
@@ -6218,7 +6472,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* A heading of its own needs air above it, but not where it opens a column. */
-.bastionland-realm-panel__group > .bastionland-realm-panel__heading:not(:first-child) {
+.bastionland-realm-panel__group > .bastionland-heading:not(:first-child) {
 	margin-top: 0.4rem;
 }
 
@@ -6301,7 +6555,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-realm-panel__swatch .bastionland-realm-panel__tally.is-none {
 	border-color: color-mix(in srgb, var(--bastionland-rule) 45%, transparent);
 	color: var(--bastionland-ink-soft);
-	opacity: 0.85;
 }
 
 /* As many as the book asks for, and more than it asks for: green and red, on
@@ -6364,7 +6617,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	height: auto;
 	min-height: var(--button-size, 2rem);
 	padding: 0.25rem 0.4rem;
-	line-height: 1.15;
+	/* Not 1.15, which sets the small capitals a pixel high (see chat.css's footer buttons). */
+	line-height: 1.2;
 	white-space: normal;
 	text-align: center;
 	overflow-wrap: break-word;
@@ -6416,12 +6670,12 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	--pill-pad: 0.45em;
 	padding: var(--pill-padding-top, 0.1rem) 0.4rem var(--pill-padding-bottom, 0.1rem);
 	border: var(--pill-border, 1px) solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-hex-lore__terrain {
-	font-variant: small-caps;
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
 }
 
@@ -6433,7 +6687,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-hex-lore__landmark > label {
 	flex: 0 0 auto;
-	font-variant: small-caps;
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
 }
 
@@ -6520,7 +6774,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-hex-lore__omen-label {
 	margin-right: 0.25rem;
-	font-variant: small-caps;
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
 	color: var(--bastionland-ink-soft);
 }
@@ -6536,7 +6790,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	--pill-pad: 0.45em;
 	padding: var(--pill-padding-top, 0.1rem) 0.4rem var(--pill-padding-bottom, 0.1rem);
 	border: var(--pill-border, 1px) solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 	font-size: var(--bastionland-font-note);
 }
 
@@ -6548,7 +6802,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-hex-lore__cast > .is-unmade {
 	border-style: dashed;
-	opacity: 0.75;
+	color: var(--bastionland-ink-soft);
 }
 
 /* The note is a paragraph, not a field, so its label sits above it and the box
@@ -6619,6 +6873,21 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-blood);
 }
 
+/* Lift the fog here too, the tick box after Tell the players while the Fog of War lies over the hex. */
+.bastionland-hex-lore__told-lift {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	margin-inline-start: 0.6em;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.bastionland-hex-lore__told-lift > input {
+	flex: none;
+	margin: 0;
+}
+
 .bastionland-hex-lore__told-state.is-current > i {
 	color: var(--bastionland-verdigris);
 }
@@ -6643,7 +6912,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin: 0;
 	padding: 0.4rem 0.5rem;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 }
 
 .bastionland-hex-lore__row {
@@ -6672,7 +6941,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	min-height: 2.25rem;
 	margin: 0;
 	padding: 0.3rem 0.55rem;
-	line-height: 1.15;
+	/* Not 1.15, which set Roll a Person and the rest 1–1.5px high (see chat.css's footer buttons). */
+	line-height: 1.2;
 	white-space: normal;
 	text-align: left;
 	overflow-wrap: break-word;
@@ -6724,7 +6994,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-page button.bastionland-hex-lore__tab:is(:hover, :focus-visible) {
-	background: var(--bastionland-paper-deep);
+	background: color-mix(in srgb, var(--bastionland-rule) 22%, transparent);
 	color: var(--bastionland-ink);
 }
 
@@ -6926,8 +7196,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-hex-lore__when {
 	margin-left: auto;
-	color: color-mix(in srgb, var(--bastionland-ink-soft), var(--bastionland-ink-faint));
-	font-size: var(--bastionland-font-floor);
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
 	white-space: nowrap;
 }
 
@@ -6959,8 +7229,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-hex-lore__go-when {
 	grid-column: 1;
-	color: color-mix(in srgb, var(--bastionland-ink-soft), var(--bastionland-ink-faint));
-	font-size: var(--bastionland-font-floor);
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -7060,7 +7330,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-caps);
 	font-size: var(--bastionland-font-note);
-	font-variant: small-caps;
 	font-weight: normal;
 	letter-spacing: 0.03em;
 }
@@ -7306,14 +7575,89 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	flex: 0 1 12rem;
 }
 
-.bastionland-travels__section {
+/* A section; the places of note gathered by kind, one heading over a folding group
+   for each kind; and what a folding head folds away: a section's hint, rows and
+   button, or a Season's days. */
+.bastionland-travels__section,
+.bastionland-travels__groups,
+.bastionland-travels__fold-body {
 	display: flex;
 	flex-direction: column;
 	gap: 0.3rem;
 }
 
-.bastionland-travels__section .bastionland-heading {
+.bastionland-travels__section .bastionland-heading,
+.bastionland-travels__groups > .bastionland-heading {
 	margin: 0.35rem 0 0;
+}
+
+/* Folded, the body goes; capped, so do the rows past the cap. A page narrowed by a
+   search or a filter opens every fold and lifts every cap by itself, and puts them
+   back when it's narrowed no longer. Never done with `hidden`, which is the
+   filter's alone: the chart fades the hexes whose rows are hidden. */
+.bastionland-travels__view:not([data-narrowed]) [data-folded] > [data-fold-body],
+.bastionland-travels__view:not([data-narrowed]) [data-capped] > [data-over],
+.bastionland-travels__view[data-narrowed] [data-travels-more] {
+	display: none;
+}
+
+/* A heading that folds: its chevron, its words and how many it holds are one
+   button, in the heading's own hand, and the hairline runs on from it. */
+.bastionland-page .bastionland-travels__fold {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 0.4rem;
+	letter-spacing: inherit;
+	text-transform: inherit;
+}
+
+.bastionland-page .bastionland-travels__fold:hover {
+	color: var(--bastionland-blood);
+}
+
+/* The chevron, at the size of the Referee Toolkit's folds, points down once open.
+   It and the count rise to the middle of the heading's capitals, as its hairline does:
+   a heading is all capitals, which stand above the middle of the Caps face's line box.
+   Measured offline against the capitals at both heading sizes (≤0.3px at 1×, 1.25× and 1.5×). */
+.bastionland-travels__fold > i {
+	position: relative;
+	top: -0.21rem;
+	width: 0.7rem;
+	font-size: 0.7rem;
+	text-align: center;
+	transition: rotate 120ms;
+}
+
+.bastionland-travels__fold[aria-expanded="true"] > i,
+.bastionland-travels__view[data-narrowed] .bastionland-travels__fold > i,
+.bastionland-travels__view:not([data-narrowed]) .bastionland-travels-journey__unfold[aria-expanded="true"] > i {
+	rotate: 90deg;
+}
+
+/* How many a head or a filter holds, in the softer ink. */
+.bastionland-travels__count {
+	margin-inline-start: 0.35rem;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+}
+
+.bastionland-travels__fold > .bastionland-travels__count {
+	position: relative;
+	top: -0.24rem;
+	margin-inline-start: 0;
+	font-family: var(--bastionland-font-body);
+	letter-spacing: 0;
+}
+
+.bastionland-travels__fold:hover > .bastionland-travels__count {
+	color: inherit;
+}
+
+/* The quiet button under a capped list, at the list's left edge. */
+.bastionland-page .bastionland-travels__more {
+	flex: none;
+	align-self: flex-start;
 }
 
 .bastionland-travels__list {
@@ -7325,10 +7669,10 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	list-style: none;
 }
 
-/* Each place is one row: the whole of its words open it, its chips get a line
-   of their own above the visits, and the far right of the title's line holds
-   the Company's here chip and the crosshairs that show it on the map. The words
-   share the row's columns, so only the title gives way to that corner; every
+/* Each place is one row of two lines: the whole of its words open it, and the
+   far right of the title's line holds the marks for a telling and a note, the
+   Company's here chip and the crosshairs that show it on the map. The words
+   share the row's columns, so only the title gives way to that corner; the
    line under it runs the full width. */
 .bastionland-travels__row {
 	display: grid;
@@ -7354,7 +7698,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	background: none;
 	color: var(--bastionland-ink);
 	font-family: inherit;
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 	line-height: 1.3;
 	text-align: left;
 }
@@ -7368,20 +7712,26 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	grid-column: 1 / -1;
 }
 
-/* The title's line, beside the corner: the title, then the hex's terrain in the
-   Lay of the Land's square chip, which wraps under the title when it can't fit.
-   A line that the Told and Note chips end wraps under it the same way. */
-.bastionland-travels__open > .bastionland-travels__head,
-.bastionland-travels__more {
+/* The title's line, beside the corner: the title, where a named hex is, then
+   its terrain in the Lay of the Land's square chip, which wraps under the title
+   when it can't fit. */
+.bastionland-travels__open > .bastionland-travels__head {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.15rem 0.5rem;
-}
-
-.bastionland-travels__open > .bastionland-travels__head {
 	grid-column: 1;
 	min-height: 1.8rem;
+}
+
+/* A strut as tall as the corner opens the title's line, so the two share a middle
+   when the terrain wraps under the title too. Its margin takes back the gap after it. */
+.bastionland-travels__open > .bastionland-travels__head::before {
+	content: "";
+	flex: none;
+	width: 0;
+	height: 1.8rem;
+	margin-inline-end: -0.5rem;
 }
 
 .bastionland-travels__title {
@@ -7397,15 +7747,23 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-size: var(--bastionland-font-note);
 }
 
-.bastionland-travels__visits {
-	font-style: italic;
+/* Where a named hex is, beside its name. */
+.bastionland-travels__coords {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
 }
 
-.bastionland-travels__chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.25rem;
-	margin: 0.1rem 0;
+/* A small mark for a telling or a note: a glyph in the icon button's whole-pixel
+   box (24px round 14px), saying what it is when pointed at. Not a button. */
+.bastionland-travels__mark {
+	display: inline-grid;
+	flex: none;
+	place-items: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.875rem;
+	cursor: help;
 }
 
 /* A pill like the GM Toolkit's chips: trimmed to the capitals, then padded
@@ -7432,7 +7790,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin-top: 0.15rem;
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.3rem;
 	min-height: 1.8rem;
 }
 
@@ -7529,7 +7887,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-travels-hex textarea[readonly] {
-	opacity: 0.7;
+	color: var(--bastionland-ink-soft);
 }
 
 /* The Lay of the Land: what only a GM sees of the hex, below what the players know. */
@@ -7566,11 +7924,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	padding: 0.3rem 0.75rem;
 	border: 1px solid transparent;
 	border-bottom: none;
-	border-radius: 4px 4px 0 0;
+	border-radius: 3px 3px 0 0;
 	background: none;
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 }
 
 .bastionland-page .bastionland-travels__view-tab:hover {
@@ -7585,16 +7943,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-weight: bold;
 }
 
-/* The count of hexes visited, under the Places of Note hint in the same small print. */
+/* The count of hexes visited, topping the Places page in small print. */
 .bastionland-travels__summary {
 	margin: 0;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
-}
-
-/* The count tops the page only while the Places of Note section isn't there to hold it. */
-.bastionland-travels__view:has(> [data-counted]:not([hidden])) > .bastionland-travels__summary--top {
-	display: none;
 }
 
 /* What the places can be narrowed to, one at a time. */
@@ -7629,6 +7982,19 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-paper);
 }
 
+/* A pressed filter's count takes the pill's own ink, set back a little. */
+.bastionland-travels__filter[aria-pressed="true"] > .bastionland-travels__count {
+	color: inherit;
+	opacity: 0.7;
+}
+
+/* A filter with nothing behind it can't be pressed. */
+.bastionland-page .bastionland-travels__filter:disabled {
+	border-color: var(--bastionland-rule);
+	background: var(--bastionland-paper);
+	opacity: 0.5;
+}
+
 .bastionland-travels__view {
 	display: flex;
 	flex-direction: column;
@@ -7636,16 +8002,34 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-travels__view[hidden],
+.bastionland-travels__filters[hidden],
+.bastionland-travels__section[hidden],
+.bastionland-travels__groups[hidden],
+.bastionland-travels__row[hidden],
+.bastionland-travels-journey__season[hidden],
 .bastionland-travels-journey__day[hidden],
 .bastionland-travels-journey__entry[hidden] {
 	display: none;
+}
+
+/* How the places of note are arranged, at the left, and their order, at the right. */
+.bastionland-travels__arrange {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.3rem 0.5rem;
+}
+
+.bastionland-travels__arrange > .bastionland-choices {
+	margin: 0;
 }
 
 .bastionland-travels__sort {
 	display: flex;
 	align-items: center;
 	gap: 0.4rem;
-	align-self: flex-end;
+	margin-inline-start: auto;
 	font-size: var(--bastionland-font-note);
 }
 
@@ -7752,7 +8136,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	padding: 0;
 	list-style: none;
 	color: var(--bastionland-ink-soft);
-	font-size: var(--bastionland-font-floor);
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-travels-chart__legend li {
@@ -7801,9 +8185,82 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-travels-journey__phase {
 	color: var(--bastionland-ink-soft);
-	font-size: var(--bastionland-font-floor);
-	font-variant: small-caps;
+	font-size: var(--bastionland-font-note);
+	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;
+}
+
+/* The Phase is written once for each run of lines that share it; its place is
+   kept, so the lines stay in their column. Narrowed, each line that's left says its own. */
+.bastionland-travels__view:not([data-narrowed]) .bastionland-travels-journey__phase.is-repeat {
+	visibility: hidden;
+}
+
+/* What a Season held, under its head, read while it's folded too. */
+.bastionland-travels .bastionland-travels-journey__tally {
+	font-style: normal;
+}
+
+/* A ride: three or more arrivals in a row told in one line, which its chevron unfolds. */
+.bastionland-travels-journey__run {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+
+/* The chevron stands where a line's icon does, then the words, which wrap as prose. */
+.bastionland-travels-journey__ride {
+	display: grid;
+	grid-template-columns: 1.5rem minmax(0, 1fr);
+	align-items: baseline;
+	gap: 0 0.25rem;
+	padding: 0.1rem 0;
+	font-size: var(--bastionland-font-text);
+	line-height: 1.3;
+}
+
+/* The chevron's disc is taller than a line of the words, so it's centred on their first line. */
+.bastionland-page .bastionland-travels-journey__unfold {
+	align-self: start;
+	width: 1.5rem;
+	height: 1.5rem;
+	margin-block: calc((1.3 * var(--bastionland-font-text) - 1.5rem) / 2);
+}
+
+.bastionland-travels-journey__unfold > i {
+	font-size: 0.7rem;
+	transition: rotate 120ms;
+}
+
+/* The two ends of a ride, each opening its hex: a word in bold that reddens when pointed at. */
+.bastionland-page .bastionland-travels-journey__place {
+	display: inline;
+	font-weight: bold;
+}
+
+.bastionland-page .bastionland-travels-journey__place:hover {
+	color: var(--bastionland-blood);
+}
+
+/* Unfolded, a ride's arrivals stand in the lines' own column, ruled off down their left. */
+.bastionland-travels-journey__run-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-travels__view:not([data-narrowed]) .bastionland-travels-journey__run-lines .bastionland-travels-journey__open {
+	border-left: 2px solid var(--bastionland-rule);
+	border-radius: 0;
+	padding-left: 0.5rem;
+}
+
+/* Narrowed, a ride's line goes and the arrivals that match stand for themselves. */
+.bastionland-travels__view[data-narrowed] .bastionland-travels-journey__run-line {
+	display: none;
 }
 
 .bastionland-page .bastionland-travels-journey__open {
@@ -7818,7 +8275,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	background: none;
 	color: var(--bastionland-ink);
 	font-family: inherit;
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 	line-height: 1.3;
 	text-align: left;
 }
@@ -7863,6 +8320,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	.bastionland-travels-journey__entry {
 		grid-template-columns: minmax(0, 1fr);
 		gap: 0;
+	}
+
+	/* Stacked, a Phase said already leaves no blank line. */
+	.bastionland-travels__view:not([data-narrowed]) .bastionland-travels-journey__phase.is-repeat {
+		display: none;
 	}
 
 	.bastionland-travels-journey__entry--forgettable {
@@ -7926,7 +8388,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	align-items: stretch;
 	gap: 0.3rem;
 	border: 1px solid transparent;
-	border-radius: 4px;
+	border-radius: 3px;
 	background: var(--bastionland-paper-deep);
 }
 
@@ -8081,7 +8543,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-chooser__grid.is-searching .bastionland-chooser__card-roll {
 	padding: 0 0.35rem;
-	border-radius: 0.75rem;
+	border-radius: 999px;
 }
 
 .bastionland-myth-chooser__none {
@@ -8174,7 +8636,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	padding: 0;
 	overflow: hidden;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 	background: var(--bastionland-paper-deep);
 	color: var(--bastionland-rule);
 	font-size: 1.8rem;
@@ -8227,7 +8689,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	background: transparent;
 	box-shadow: none;
 	font-family: var(--bastionland-font-display);
-	font-size: 1.9rem;
+	font-size: 2.3rem;
 }
 
 .bastionland-page .bastionland-own-myth__name:focus {
@@ -8448,7 +8910,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	align-items: baseline;
 	gap: 0.4rem;
 	font-family: var(--bastionland-font-display);
-	font-size: 1.9rem;
+	font-size: 2.3rem;
 }
 
 .bastionland-page .bastionland-own-knight__name .bastionland-own-myth__name {
@@ -8549,7 +9011,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-seer-chooser__company .bastionland-chooser__card-roll {
 	padding: 0 0.35rem;
-	border-radius: 0.75rem;
+	border-radius: 999px;
 }
 
 .bastionland-seer-chooser__knighted,
@@ -8572,9 +9034,9 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: max-content;
 	padding: 0.4rem;
 	border: 1px solid var(--bastionland-ink);
-	border-radius: 4px;
+	border-radius: 3px;
 	background: var(--bastionland-paper);
-	box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+	box-shadow: var(--bastionland-float);
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-caps);
 	font-size: 1rem;
@@ -8630,9 +9092,9 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-timeline__menu-box {
 	padding: 0.25rem 0;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 	background: var(--bastionland-paper);
-	box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
+	box-shadow: var(--bastionland-float);
 	color: var(--bastionland-ink);
 	color-scheme: var(--bastionland-color-scheme);
 	animation: bastionland-dropdown-in 100ms ease-out;
@@ -8659,13 +9121,13 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 /*
  * The row under the pointer or the cursor. No bar of another colour: it takes
- * the parchment's deeper tone and the rubric's red, as every other pointed-at
- * word on the page does.
+ * the parchment's deeper tone and reddens, as every other pointed-at word on
+ * the page does.
  */
 .bastionland-dropdown__option.is-active,
 .bastionland-settings__pick-item:hover {
 	background: var(--bastionland-paper-deep);
-	color: var(--bastionland-rubric);
+	color: var(--bastionland-blood);
 }
 
 /* The one already chosen, marked in its own ink rather than by a highlight. */
@@ -8674,7 +9136,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-dropdown__option[aria-disabled="true"] {
-	color: var(--bastionland-ink-faint);
+	color: var(--bastionland-ink-soft);
 	cursor: default;
 }
 
@@ -8692,8 +9154,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-rubric);
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.15em;
-	font-weight: bold;
-	font-variant: small-caps;
 	letter-spacing: 0.05em;
 	white-space: nowrap;
 	cursor: default;
@@ -8825,8 +9285,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-realm-appearance__section h3 {
 	margin: 0;
-	border-bottom: 1px solid var(--bastionland-rule);
-	font-family: var(--bastionland-font-caps);
 }
 
 .bastionland-realm-appearance p {
@@ -8852,7 +9310,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-realm-appearance__fade output {
-	font-size: 15px;
+	font-size: var(--bastionland-font-text);
 	font-variant-numeric: tabular-nums;
 	text-align: right;
 }
@@ -9007,7 +9465,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	gap: 0.5rem;
 	padding: 0.6rem;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
+	border-radius: 3px;
 }
 
 /* A grid, so Foundry's own figure styles can't stack the tiles one per row. */
@@ -9085,13 +9543,13 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-rubric);
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.05rem;
-	letter-spacing: 0.08em;
+	letter-spacing: 0.05em;
 	text-transform: uppercase;
 }
 
 .bastionland-welcome .bastionland-title {
 	margin: 0;
-	font-size: 2.6rem;
+	font-size: 2.3rem;
 }
 
 .bastionland-welcome .bastionland-welcome__lead {
@@ -9156,13 +9614,13 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-welcome__use .hint {
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-welcome .bastionland-welcome__done {
 	margin-top: 0.3rem;
 	color: var(--bastionland-verdigris);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-welcome .bastionland-welcome__found {
@@ -9328,7 +9786,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-frame__stage:focus-visible {
-	outline: 2px solid var(--bastionland-rubric, var(--bastionland-ink));
+	outline: 2px solid var(--bastionland-verdigris);
 	outline-offset: 2px;
 }
 
@@ -9529,6 +9987,35 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	flex: 1;
 }
 
+/* The Fog of War window (module/apps/RealmFog.js): two tick boxes, then the
+   buttons that lift the fog, bring it back, or pick up its brush. */
+.bastionland-realm-fog__intro {
+	margin: 0;
+}
+
+.bastionland-realm-fog__tools {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+/* One under another, the column's width: no 8rem basis, which a column would take as height.
+   As tall as a solid button on a sheet, not Foundry's shorter dialog button. */
+.bastionland-realm-fog__tools > .bastionland-button {
+	--button-size: 2.1rem;
+	flex: none;
+}
+
+/* With the fog off, what only works with it on fades, as a row that can't be used does. */
+.bastionland-realm-fog .bastionland-button:disabled,
+.bastionland-realm-fog .bastionland-check:has(input:disabled) {
+	opacity: 0.5;
+}
+
+.bastionland-realm-fog-window .form-footer button {
+	flex: 1;
+}
+
 /* The Company's pace on Foundry's Token ruler as it's dragged on a Realm
    (realm-token-ruler.js): a pill in the ink its stretch of the path is drawn
    in, beside the distance, which the label sets as --pace-ink. White letters
@@ -9537,7 +10024,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	--pill-pad: 0.35em;
 	padding: var(--pill-padding-top, 0.2em) 0.5em var(--pill-padding-bottom, 0.2em);
 	border: var(--pill-border, 1px) solid rgb(255 255 255 / 35%);
-	border-radius: 4px;
+	border-radius: 3px;
 	background: var(--pace-ink);
 	color: #fff;
 	font-size: 16px;

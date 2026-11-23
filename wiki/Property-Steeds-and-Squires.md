@@ -67,7 +67,8 @@ Nobody, person or pack beast, can carry two Remedies. Giving a second to someone
 ## Adding things
 
 - **Click + Weapon, + Armour or + Gear** under the list. The item's window opens over a new, unsaved item: fill it in and press **Save** to add it, or **Cancel** (or close the window) to add nothing.
-- **Drag an item** from the Items tab, a compendium or another sheet onto the Knight's sheet to add a copy.
+- **Drag an item** from the Items tab or a compendium onto the Knight's sheet to add a copy.
+- **Drag a weapon, armour or gear from another sheet** to hand it over: it moves, and a note in chat says who gave it to whom. You can hand something to a Knight you don't play, as long as a Referee is logged in. A Knight who already carries a Remedy can't take a second, so it stays with the giver.
 
 An item with no picture of its own gets a matching game-icons.net picture (a sword, a helm, a horse head and so on), which follows its name if you rename it. A picture you choose yourself is never replaced.
 

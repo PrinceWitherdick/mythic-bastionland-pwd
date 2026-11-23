@@ -3,13 +3,27 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 import { createDuel } from "../../module/rules/duel.js";
 
 vi.mock("../../module/actions/attack.js", () => ({
+	joinAttack: vi.fn(async () => null),
+	showRolls: vi.fn()
+}));
+vi.mock("../../module/actions/attack-holders.js", async () => {
+	const { attackersOf } = await import("../../module/rules/attack.js");
+	const poolRerollers = vi.fn(() => []);
+	const sigilHolders = vi.fn(() => []);
+	// As the real ones find them: among those this user owns, where asked.
+	const found = (list, options) => list.some(({ actor }) => !options?.owned || actor.isOwner);
+	return {
+		attackingActors: (attack, options) => attackersOf(attack).map((uuid) => fromUuidSync(uuid)).filter(Boolean).filter((actor) => !options?.owned || actor.isOwner),
+		poolRerollers,
+		sigilHolders,
+		hasPoolReroller: vi.fn((attack, options) => found(poolRerollers(attack, options), options)),
+		hasSigilHolder: vi.fn((attack, options) => found(sigilHolders(attack, options), options))
+	};
+});
+vi.mock("../../module/chat/attack-view.js", () => ({
 	renderAttackCard: vi.fn(async () => "<section></section>"),
 	dieLabel: (die) => die.label,
-	cardTarget: () => ({}),
-	joinAttack: vi.fn(async () => null),
-	poolRerollers: vi.fn(() => []),
-	sigilHolders: vi.fn(() => []),
-	showRolls: vi.fn()
+	cardTarget: () => ({})
 }));
 vi.mock("../../module/actions/damage.js", async (importOriginal) => ({ ...(await importOriginal()), takeAttack: vi.fn(async () => true) }));
 vi.mock("../../module/actions/saves.js", () => ({ rollSave: vi.fn() }));
@@ -27,7 +41,8 @@ vi.mock("../../module/actions/feats.js", async (importOriginal) => ({
 
 const { confirmDialog, inputDialog } = await import("../../module/apps/ui.js");
 const { payFeat, postFeat, rollFeat } = await import("../../module/actions/feats.js");
-const { joinAttack, poolRerollers, showRolls, sigilHolders } = await import("../../module/actions/attack.js");
+const { joinAttack, showRolls } = await import("../../module/actions/attack.js");
+const { hasSigilHolder, poolRerollers, sigilHolders } = await import("../../module/actions/attack-holders.js");
 const { rollSave } = await import("../../module/actions/saves.js");
 const { takeAttack } = await import("../../module/actions/damage.js");
 const { registerAttackCards } = await import("../../module/chat/attack-card.js");
@@ -255,12 +270,20 @@ describe("applying the Damage", () => {
 		expect(confirmDialog).not.toHaveBeenCalled();
 		expect(takeAttack).toHaveBeenCalledOnce();
 
+		// Whoever only takes the blow can't spend the attacker's dice, so they aren't asked about them.
+		const taken = renderCard(attackState({ dice, gambits: [{ key: "bolster", die: 1 }] }));
+		await taken.click("apply");
+		expect(confirmDialog).not.toHaveBeenCalled();
+
+		// The attacker's own user, as a Referee applying a foe's blow is, is told of the die left.
+		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: () => true };
 		const one = renderCard(attackState({ dice, gambits: [{ key: "bolster", die: 1 }] }));
 		await one.click("apply");
 		expect(confirmDialog.mock.calls[0][0].message).toEqual([
 			"bastionland.attack.unspentGambitsOne",
 			"bastionland.attack.applyAnyway"
 		]);
+		delete tokens["Actor.foe"];
 	});
 
 	it("asks nothing once the target is Fatigued and no die can pay for a Gambit", async () => {
@@ -703,6 +726,8 @@ describe("turning a die with a rune (p100)", () => {
 		expect(renderCard(attackState()).sigil.hidden).toBe(true);
 		sigilHolders.mockReturnValue([{ actor: { uuid: "Actor.y", name: "Ysolde", isOwner: true }, item: abilityWithUses(3), number: 3 }]);
 		expect(renderCard(attackState()).sigil.hidden).toBe(false);
+		// Only this user's Knights are scanned for a rune.
+		expect(hasSigilHolder).toHaveBeenLastCalledWith(expect.anything(), { owned: true });
 	});
 
 	it("turns the die picked to the face asked for, and spends one of the rune's turns", async () => {
@@ -808,6 +833,7 @@ describe("combat audit of 2026-10-23", () => {
 		tokens["Actor.other"] = combatant({ uuid: "Actor.other", name: "Other", owners: ["player-1"] });
 		const card = renderCard(attackState({ gambits: [{ key: "stop", die: 0, strong: null, save: null }] }));
 		const save = { type: "gambitSave", index: 0, total: 4, target: 10, passed: true };
+		expect(await ask(save)).toBe(false);
 		expect(await ask({ ...save, actor: "Actor.other" })).toBe(false);
 		expect(card.message.update).not.toHaveBeenCalled();
 		expect(await ask({ ...save, actor: "Actor.k" })).toBe(true);

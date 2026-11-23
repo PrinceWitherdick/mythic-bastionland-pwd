@@ -43,12 +43,15 @@ let isRealm;
 let journey;
 let shown;
 let stored;
+/** The hexes the Fog of War keeps this client from seeing into. */
+let fogged;
 
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: () => isRealm,
 	sceneGeometry: () => g
 }));
 vi.mock("../../module/actions/journey.js", () => ({ getJourney: () => journey }));
+vi.mock("../../module/actions/realm-fog.js", () => ({ foggedForMe: () => fogged }));
 vi.mock("../../module/canvas/travels-controls.js", () => ({ refreshTravelsButtons: () => {} }));
 
 const { drawVisitedMarks, setVisitedMarksShown, visitedMarksShown } = await import("../../module/canvas/visited-marks.js");
@@ -59,6 +62,7 @@ beforeEach(() => {
 	shown = true;
 	journey = recordVisits(emptyJourney(), [hex(2, 2), hex(3, 3)]);
 	stored = {};
+	fogged = new Set();
 	globalThis.game = {
 		settings: {
 			get: (_scope, key) => (key === "visitedMarksShown" ? shown : stored[key]),
@@ -143,6 +147,12 @@ describe("drawVisitedMarks", () => {
 		stored = { visitedMarkStyle: "smudge", visitedMarkColours: { tick: "red" } };
 		drawVisitedMarks();
 		expect(marks()[0].pens.map((pen) => pen.color)).toEqual([0xf4ecd8, 0x2f7d32]);
+	});
+
+	it("leaves out a hex the Referee brought the fog back over", () => {
+		fogged = new Set(["3,3"]);
+		drawVisitedMarks();
+		expect(marks()[0].strokes).toBe(2 * 2);
 	});
 
 	it("draws none where the marks are hidden, or off a Realm", () => {

@@ -1,7 +1,8 @@
 import { hexTarget } from "../chat/hex-target.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
+import { cardHexes } from "../chat/card-hexes.js";
 import { featureAt } from "../rules/realm.js";
-import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
+import { hexKey, sameHex } from "../rules/realm-geometry.js";
 import { COMPANY_PACE_SETTING, companyPace, paceSoFar } from "../rules/journey.js";
 import { keyedSerialWrites } from "../rules/queue.js";
 import { samePhase } from "../rules/time.js";
@@ -23,7 +24,8 @@ import { revealSighted } from "./sighted.js";
 import { timelineArrivals } from "./timeline-events.js";
 import { gallop } from "./steeds.js";
 import { advancePhase } from "./time.js";
-import { markOmenOnEntering, wildernessRoll } from "./wilderness.js";
+import { wildernessRoll } from "./wilderness.js";
+import { shiftKeyed } from "../rules/realm-growth.js";
 
 /**
  * What the book has happen as the Company comes into a hex, beyond the
@@ -471,10 +473,8 @@ const ARRIVAL_ACTIONS = {
 	gallop: () => gallop(),
 	async omen(scene, hex, arrived) {
 		if (!hex) return null;
-		const outcome = await wildernessRoll({ scene, hex });
 		// Shown as they came in, so the Phase they came in has had its Omen, whenever the button was pressed.
-		if (outcome) await markOmenOnEntering(scene, hex, arrived.when ?? getCalendar());
-		return outcome;
+		return wildernessRoll({ scene, hex, enteredAt: arrived.when ?? getCalendar() });
 	},
 	mood: () => rollRefereeTable("mood"),
 	// The Phase the Company travelled in ends (p18), in the window that asks how it was spent, ticked as travelling.
@@ -509,8 +509,17 @@ export function registerArrivals() {
 				return false;
 			}
 			const act = ARRIVAL_ACTIONS[button.dataset.arrival];
-			const hex = button.dataset.arrivalHex ? parseHexKey(button.dataset.arrivalHex) : null;
-			return Boolean(act && (await act(scene, hex, message.flags[SYSTEM_ID].arrived ?? {})));
+			// A card posted before the map grew names its hexes as they were numbered then.
+			// Land a put-back took away, east and south as well as west and north, leaves no hex.
+			const card = cardHexes(message, scene);
+			const hex = card.hex(button.dataset.arrivalHex);
+			const arrived = message.flags[SYSTEM_ID].arrived ?? {};
+			const now = {
+				...arrived,
+				...(Array.isArray(arrived.held) ? { held: arrived.held.map(card.shift).filter(Boolean) } : {}),
+				...(arrived.orders ? { orders: shiftKeyed(arrived.orders, card.offset, card.g) } : {})
+			};
+			return Boolean(act && (await act(scene, hex, now)));
 		}
 	});
 }

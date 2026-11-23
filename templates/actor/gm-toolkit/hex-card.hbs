@@ -1,6 +1,6 @@
 {{!-- One hex of a Realm on the GM Toolkit's Places page, on one row: what stands there and when the Company was there.
       Clicked, it opens the hex in Places, where everything kept for it is read and changed. --}}
-<article class="bastionland-gm-toolkit__card bastionland-gm-toolkit__hex" data-hex="{{key}}" data-search="{{search}}">
+<article class="bastionland-gm-toolkit__card bastionland-gm-toolkit__hex bastionland-reveal-host" data-hex="{{key}}" data-search="{{search}}">
 	<button type="button" class="bastionland-gm-toolkit__hex-head" data-action="openHex" data-tooltip="{{localize 'bastionland.gmToolkit.places.openHex'}}">
 		<span class="bastionland-gm-toolkit__name">{{title}}</span>
 		{{#if kind}}<span class="bastionland-gm-toolkit__kind">{{kind}}</span>{{/if}}

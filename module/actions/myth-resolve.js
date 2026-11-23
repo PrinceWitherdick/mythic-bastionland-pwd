@@ -5,7 +5,7 @@ import { resolvedMyths } from "../rules/gm-toolkit.js";
 import { mythGloryFor, mythNoteFor } from "../rules/myth-notes.js";
 import { oncePerKey } from "../rules/queue.js";
 import { completedMythId } from "../rules/season-log.js";
-import { takeBackGlory } from "./glory.js";
+import { awardGloryTo, takeBackGlory } from "./glory.js";
 import { rollFreeMyth } from "./gm-toolkit.js";
 import { hexLabel } from "./hex-names.js";
 import { editMythNote, getMythNotes } from "./myth-notes.js";
@@ -21,6 +21,12 @@ import { timelineMythCompleted, timelineMythUndone } from "./timeline-events.js"
 
 /** Myths this client is resolving, or giving the Glory of, now: one award window each. */
 const awarding = oncePerKey();
+
+/**
+ * Ask the Referee who gains a Myth's Glory (p27), and give it them.
+ * @returns {Promise<Actor[]>} Those given it.
+ */
+const awardToChosen = async () => (await awardGloryTo("myth"))?.knights ?? [];
 
 /**
  * @param {Scene} scene
@@ -39,11 +45,11 @@ const isResolved = (scene, myth) => Boolean(mythNoteFor(getMythNotes(scene), myt
  * @param {object} myth As the Realm keeps it.
  * @param {object} options
  * @param {string} options.name
- * @param {() => Promise<Actor[]>} options.award Gives the Glory, saying to whom.
+ * @param {() => Promise<Actor[]>} [options.award] Gives the Glory, saying to whom: by default, to those the Referee chooses.
  * @param {string} [options.note] Written on its note as it's resolved.
  * @returns {Promise<boolean>} Whether it was resolved here.
  */
-export async function resolveMyth(scene, myth, { name, award, note }) {
+export async function resolveMyth(scene, myth, { name, award = awardToChosen, note }) {
 	const completed = { id: completedMythId(scene.id, myth), name };
 	const resolved = await awarding(completed.id, async () => {
 		if (isResolved(scene, myth)) return false;
@@ -65,10 +71,10 @@ export async function resolveMyth(scene, myth, { name, award, note }) {
  * been given since, gives none. GMs only.
  * @param {Scene} scene
  * @param {object} myth
- * @param {() => Promise<Actor[]>} award Gives the Glory, saying to whom.
+ * @param {() => Promise<Actor[]>} [award] Gives the Glory, saying to whom: by default, to those the Referee chooses.
  * @returns {Promise<Actor[]>} Those given it.
  */
-export async function awardMythGlory(scene, myth, award) {
+export async function awardMythGlory(scene, myth, award = awardToChosen) {
 	if (!game.user.isGM) return [];
 	const given = await awarding(completedMythId(scene.id, myth), async () => {
 		if (!isResolved(scene, myth) || mythGloryFor(getMythNotes(scene), myth).length) {

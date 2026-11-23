@@ -9,6 +9,7 @@ import {
 	knightTypeFromName,
 	knightTypeTakenBy,
 	knightUpdate,
+	scoresMissing,
 	seerAutoFill,
 	seerForKnight,
 	seerBook,
@@ -125,6 +126,18 @@ describe("knightTypeTakenBy", () => {
 	});
 });
 
+describe("scoresMissing", () => {
+	it("names each Virtue and GD not yet rolled or typed in", () => {
+		expect(scoresMissing({ vig: null, cla: null, spi: null, guard: null })).toEqual(["vig", "cla", "spi", "guard"]);
+		expect(scoresMissing({ vig: 12, cla: 9, spi: null, guard: 4 })).toEqual(["spi"]);
+		expect(scoresMissing()).toEqual(["vig", "cla", "spi", "guard"]);
+	});
+
+	it("finds nothing missing once all four are there, a GD of 0 among them", () => {
+		expect(scoresMissing({ vig: 12, cla: 9, spi: 7, guard: 0 })).toEqual([]);
+	});
+});
+
 describe("knightUpdate", () => {
 	it("sets everything that was chosen and rolled", () => {
 		const update = knightUpdate({
@@ -166,11 +179,6 @@ describe("knightUpdate", () => {
 		const update = knightUpdate({ start: startFor("wanderer"), knight: { ...lantern, token: undefined } });
 		expect(update.img).toBe(lantern.path);
 		expect(update).not.toHaveProperty(["prototypeToken.texture.src"]);
-	});
-
-	it("keeps the Seer's scores as data beside their text, so the sheet can roll their Saves", () => {
-		const update = knightUpdate({ start: startFor("wanderer"), knight: lantern, seer: glassSeer });
-		expect(update["system.seerBook"]).toEqual(glassBook);
 	});
 
 	it("leaves out what wasn't rolled or chosen", () => {

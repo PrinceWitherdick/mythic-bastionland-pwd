@@ -45,7 +45,7 @@
 		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.places.sites"}}</h2>
 		<p class="bastionland-hint">{{hint}}</p>
 		{{#each rows}}
-		<article class="bastionland-gm-toolkit__card bastionland-gm-toolkit__site" data-uuid="{{uuid}}" data-search="{{search}}">
+		<article class="bastionland-gm-toolkit__card bastionland-gm-toolkit__site bastionland-reveal-host" data-uuid="{{uuid}}" data-search="{{search}}">
 			<div class="bastionland-gm-toolkit__site-line">
 				<span class="bastionland-gm-toolkit__name">{{name}}</span>
 				<span class="bastionland-gm-toolkit__chips">
@@ -54,9 +54,9 @@
 				<span class="bastionland-gm-toolkit__visits">{{found}}</span>
 			</div>
 			{{#if journal}}
-			<button type="button" class="bastionland-gm-toolkit__site-open" data-action="siteJournal" data-tooltip="{{localize "bastionland.siteJournal.openHint"}}"><i class="fa-solid fa-book" inert></i> {{localize "bastionland.siteJournal.open"}}</button>
+			<button type="button" class="bastionland-button bastionland-gm-toolkit__site-open" data-action="siteJournal" data-tooltip="{{localize "bastionland.siteJournal.openHint"}}"><i class="fa-solid fa-book" inert></i> {{localize "bastionland.siteJournal.open"}}</button>
 			{{/if}}
-			<button type="button" class="bastionland-gm-toolkit__site-open" data-action="openSite"><i class="fa-solid fa-dungeon" inert></i> {{localize "bastionland.gmToolkit.places.openSite"}}</button>
+			<button type="button" class="bastionland-button bastionland-gm-toolkit__site-open" data-action="openSite"><i class="fa-solid fa-dungeon" inert></i> {{localize "bastionland.gmToolkit.places.openSite"}}</button>
 			{{> "bastionland.track-pin" kind="Site" trackLabel="bastionland.gmToolkit.places.track.site"}}
 		</article>
 		{{else}}

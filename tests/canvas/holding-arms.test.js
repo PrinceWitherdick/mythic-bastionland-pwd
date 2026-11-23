@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { holdingArmsBadge } from "../../module/rules/holding-arms.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
+import { hexAt, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 /** Just enough of a PIXI display object to be drawn into and thrown away. */
@@ -87,6 +88,10 @@ let isRealm;
 let drawing;
 let look;
 let domains;
+/** The Fog of War: the hexes this client can't see into, and whether Holdings show through. */
+let fogged;
+let fog;
+const fogGeometry = realmGeometry({ cols: 6, rows: 6 });
 
 vi.mock("../../module/actions/realm.js", () => ({
 	REALM_LOOK_HOOK: "look",
@@ -95,8 +100,10 @@ vi.mock("../../module/actions/realm.js", () => ({
 	tileCentreOn: () => ({ id, ...data }) => ({ _id: id, ...data }),
 	isRealmScene: () => isRealm,
 	isDrawingRealm: () => drawing,
-	realmLookShown: () => look
+	realmLookShown: () => look,
+	sceneGeometry: () => fogGeometry
 }));
+vi.mock("../../module/actions/realm-fog.js", () => ({ holdingsFoggedForMe: () => (fog.on && fog.holdings ? new Set() : fogged) }));
 vi.mock("../../module/actions/homecoming.js", () => ({ realmHoldings: () => [] }));
 vi.mock("../../module/actions/dominion.js", () => ({ worldDomains: () => domains }));
 vi.mock("../../module/actions/domain-arms.js", () => ({ domainArmsView: (domain) => domain.shown, knightChangesArms: () => false }));
@@ -124,6 +131,8 @@ beforeEach(() => {
 	drawing = false;
 	look = { arms: true };
 	domains = [domain("castle", { heraldry: "arms.webp", bearer: "Sir A" }), domain("tower", { heraldry: "", bearer: "Sir B" })];
+	fogged = new Set();
+	fog = { on: false, holdings: false };
 	globalThis.game = { user: { isGM: false } };
 	globalThis.canvas = {
 		ready: true,
@@ -149,6 +158,20 @@ describe("drawHoldingArms", () => {
 		const image = source.calls.find(([name]) => name === "drawImage");
 		expect(image[1]).toBe("image:arms.webp");
 		expect(names.indexOf("drawImage")).toBeGreaterThan(names.indexOf("clip"));
+	});
+
+	it("flies none in a hex the Fog of War hides, unless the Holdings show through it", async () => {
+		fog = { on: true, holdings: false };
+		fogged = new Set([hexKey(hexAt(fogGeometry, { x: 140, y: 140 }))]);
+		let drawn = drawHoldingArms();
+		await finishLoads();
+		await drawn;
+		expect(layer()?.children ?? []).toHaveLength(0);
+		fog = { on: true, holdings: true };
+		drawn = drawHoldingArms();
+		await finishLoads();
+		await drawn;
+		expect(layer().children).toHaveLength(1);
 	});
 
 	it("throws its painted shield away with it", async () => {

@@ -1,4 +1,5 @@
 import { takeExplorationAct } from "../actions/exploration.js";
+import { leaveOpen, settleThread, threadView, threadsInHex } from "../actions/threads.js";
 import { openGmToolkit, theGmToolkit } from "../actions/gm-toolkit.js";
 import {
 	editHexPerson,
@@ -23,6 +24,7 @@ import { rollUpHolding } from "../actions/people.js";
 import { calendarLabel, getCalendar, momentLabel } from "../actions/calendar.js";
 import { castActors, castKey } from "../actions/myth-cast.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
+import { hexFoggedForPlayers, realmFogOn, toggleRealmFogAt } from "../actions/realm-fog.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { realmKnown, secretsKeptOn } from "../actions/solo.js";
 import { findCompany, wildernessRoll } from "../actions/wilderness.js";
@@ -31,7 +33,7 @@ import { t } from "../chat/cards.js";
 import { hexTarget, ringHexesOnHover } from "../chat/hex-target.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { isOwnRecord, isSeerRecord, ownRef } from "../rules/knight-refs.js";
-import { omenStage } from "../rules/gm-toolkit.js";
+import { omenRows } from "../rules/gm-toolkit.js";
 import { toldState } from "../rules/hex-shared.js";
 import { MAX_SPARK_NAME, MAX_SPARK_PROMPT, sparkBatches } from "../rules/hex-lore.js";
 import { gatherCast } from "../rules/myth-cast.js";
@@ -61,15 +63,17 @@ import { inputDialog } from "./ui.js";
 /**
  * What the window showing the part keeps between draws: the tab of rolls last
  * shown, the page the Landmark's name was last flipped to, and whether a roll
- * is under way.
+ * is under way, and the hex last drawn.
  * @typedef {object} HexGmState
- * @property {HexGmTab} tab
+ * @property {HexGmTab} tab The tab last chosen.
+ * @property {string|null} [drawn] The key of the hex last drawn, so a hex drawn again, as after a roll, stays on its tab.
+ * @property {HexGmTab|null} [showing] The tab it was drawn on.
  * @property {{key: string, myth: string, page: number}|null} prompted
  * @property {boolean} rolling
  */
 
 /** @returns {HexGmState} */
-export const hexGmState = () => ({ prompted: null, rolling: false, tab: "land" });
+export const hexGmState = () => ({ prompted: null, rolling: false, tab: "land", drawn: null, showing: null });
 
 /** The line under the GM's note for each way the players' telling can stand beside it, and its icon. */
 const TOLD_SAYS = Object.freeze({
@@ -106,6 +110,24 @@ export function sparkTab(spark, holding) {
 	return "land";
 }
 
+/** What stands in a hex, in the order its tab is opened on: a Myth first, then a Holding, then a Landmark. */
+const STANDING_TABS = Object.freeze(["myth", "holding", "landmark"]);
+
+/**
+ * The tab a hex opens on: the one last chosen, where the hex has it, unless that
+ * was The Land and something stands here, when it opens on what stands here.
+ * A hex drawn again, as after a roll, stays on the tab it's on.
+ * @param {Record<HexGmTab, boolean>} shown Which tabs the hex has.
+ * @param {HexGmTab} remembered The tab last chosen.
+ * @param {HexGmTab|null} [showing] The tab the hex is on, where it's the hex drawn last.
+ * @returns {HexGmTab}
+ */
+export function openingTab(shown, remembered, showing = null) {
+	if (showing && shown[showing]) return showing;
+	if (remembered !== "land" && shown[remembered]) return remembered;
+	return STANDING_TABS.find((key) => shown[key]) ?? "land";
+}
+
 /**
  * What only a GM sees of a hex, below what the players know of it.
  * @param {object} data
@@ -138,7 +160,9 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 	const land = keptRolls(under("land"));
 	const held = holding ? keptRolls(under("holding")) : null;
 	const shown = { people: true, land: true, myth: Boolean(myth), landmark: Boolean(landmark), holding };
-	const tab = shown[state.tab] ? state.tab : "land";
+	const tab = openingTab(shown, state.tab, state.drawn === hexKey(hex) ? state.showing : null);
+	state.drawn = hexKey(hex);
+	state.showing = tab;
 	const counts = { people: people.length, land: land.count, myth: 0, landmark: 0, holding: held?.count ?? 0 };
 	const pages = index?.spark ?? [];
 	let notice = null;
@@ -146,6 +170,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 	else if (!pages.length) notice = t("spark.noText");
 	const landmarkLabel = landmark ? t(landmarkLabelKey(landmark)) : null;
 	const bookPrompt = Boolean(landmark) && hasBookPrompt(landmark.type);
+	// Whether the Fog of War still lies over the hex for the players, while the Realm has it on.
+	const fogged = realmFogOn(scene) ? hexFoggedForPlayers(scene, hex) : null;
 	return {
 		// The players' part names the land of a hex they know; a hex they don't is named here.
 		terrain: !view.openable && terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
@@ -178,7 +204,10 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		// may be keeping it out till the Referee lets it on.
 		explore: !secretsKeptOn(scene) || (sameHex(findCompany(scene, g, { selected: false }).hex, hex) && !heldBackFrom(scene, hex)),
 		note: record?.note ?? "",
-		told: toldContext(record?.note ?? "", view.told),
+		// Telling the players of a hex in the fog offers to lift it as well, never by itself.
+		told: { ...toldContext(record?.note ?? "", view.told), liftFog: fogged === true },
+		// The fog's own button, beside the visits, while the Realm has it on.
+		fog: fogged === null ? null : { fogged },
 		// Any hex can have a Journal entry, where the setting makes them: one with nothing kept gets it when the GM asks.
 		journal: hexJournalsOn(),
 		// A tab for each kind of roll here, the Landmark's named by its type; only the one last chosen is shown.
@@ -198,6 +227,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		ruler: holding ? rulerContext(scene, holdingHere) : null,
 		// Out in the wilderness, the nearest Holding's rule (p20).
 		ruledFrom: holding ? null : ruledFrom(scene, entry.realm, g, hex),
+		// What the table has left open here: favours, contacts and unsettled situations tied to this hex.
+		threads: threadsInHex(scene, hex).map((thread) => threadView(thread)),
 		notice,
 		forget: hexForgetContext(scene, hex, { lore: record, visits })
 	};
@@ -239,8 +270,11 @@ function toldContext(note, told) {
 function mythContext(scene, myth, index) {
 	const { name, page, entry } = mythLookup(index, myth);
 	const solo = secretsKeptOn(scene);
-	const { current, next } = omenStage(myth.omen);
-	const omen = (number, label) => number && { label: t(`gmToolkit.myths.${label}`), text: entry?.omens?.[number - 1] ?? t("myths.omenNumber", { number }) };
+	// The one playing out and, unless played alone, the one to come.
+	const omens = omenRows(myth.omen).filter((row) => row.current || (row.next && !solo)).map(({ number, current }) => ({
+		label: current ? t("gmToolkit.myths.current") : t("gmToolkit.myths.next"),
+		text: entry?.omens?.[number - 1] ?? t("myths.omenNumber", { number })
+	}));
 	const { members, extras } = gatherCast(entry?.cast, castActors(), castKey(scene, myth));
 	return {
 		number: myth.number,
@@ -248,7 +282,7 @@ function mythContext(scene, myth, index) {
 		seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
 		none: myth.omen <= 0,
 		all: myth.omen >= OMEN_COUNT,
-		omens: [omen(current, "current"), solo ? null : omen(next, "next")].filter(Boolean),
+		omens,
 		// Each of the Cast by name, opening the first actor made of them; anyone dropped in by hand after them.
 		cast: [
 			...members.map((member) => ({ name: member.name, uuid: member.actors[0]?.uuid ?? null })),
@@ -498,6 +532,7 @@ function wireHexGmTabs(part, state) {
 	const tabs = [...part.querySelectorAll("[data-hex-tab]")];
 	const show = (chosen) => {
 		state.tab = chosen.dataset.hexTab;
+		state.showing = state.tab;
 		for (const tab of tabs) {
 			const active = tab === chosen;
 			tab.classList.toggle("is-active", active);
@@ -562,11 +597,17 @@ export const HEX_GM_ACTIONS = Object.freeze({
 		const { spark } = target.dataset;
 		if (spark) return editPerson(scene, hex, spark);
 	},
-	// The note as it stands in its box, saved or not.
+	// The note as it stands in its box, saved or not, and the fog lifted too where the box beside the button is ticked.
 	tellHex({ scene, hex }, target) {
 		const note = target.closest(".bastionland-travels-hex__gm")?.querySelector('[name="note"]')?.value;
-		return tellPlayersAboutHex({ scene, hex, note });
+		const liftFog = Boolean(target.closest("[data-told-say]")?.querySelector('[name="tellLiftsFog"]')?.checked);
+		return tellPlayersAboutHex({ scene, hex, note, liftFog });
 	},
+	// Lift the Fog of War from this hex, or let it back over it.
+	toggleFog: ({ scene, hex }) => toggleRealmFogAt(scene, hex),
+	// Leave something open in this hex, or settle what was: the Toolkit's change draws Places again (THREADS_CHANGED_HOOK).
+	leaveOpenHere: ({ scene, hex }) => leaveOpen({ scene, hex, tied: true }),
+	settleThreadHere: (at, target) => settleThread(target.closest("[data-thread-id]")?.dataset.threadId),
 	hexJournal: ({ scene, hex }) => openHexJournal(scene, hex),
 	markVisited: ({ scene, hex }) => markHexVisited(scene, hex),
 	// Name the Landmark here from the prompt a random page prints for its type (p14, p179).

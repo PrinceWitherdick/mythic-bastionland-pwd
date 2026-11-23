@@ -1,5 +1,6 @@
 import { editRealmByHand, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
+import { hexFoggedForPlayers, liftRealmFog, realmFogOn, toggleRealmFogAt, veilRealmFog } from "../actions/realm-fog.js";
 import { brushRefused, realmKnown } from "../actions/solo.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { toolActivated } from "../compat.js";
@@ -9,12 +10,13 @@ import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, setRealmBrush, setRealmSeat } from "../apps/RealmPanel.js";
 import { refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { INK_HEX, PAPER_HEX as PAPER } from "../rules/colour.js";
-import { REALM_BUTTONS, REALM_TOOLS, REALM_TOOL_ICONS, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { REALM_BUTTONS, REALM_TOOL_ICONS, TERRAIN, featureAt, realmToolNames, terrainAt } from "../rules/realm.js";
 import { t } from "../chat/cards.js";
 import { barrierState, featureStands, layRiver, paintTerrain, placeFeature, riverEnds, setBarrier, traceCourse, trimRiver } from "../rules/realm-edits.js";
 import { MARK_ALPHA, hidesTerrain, markedHexLettering, terrainMark } from "../rules/realm-map.js";
 import { allHexes, edgeAt, edgeSegment, hexAt, hexCentre, hexIndex, hexKey, hexTopLeft, sameHex } from "../rules/realm-geometry.js";
 import { BLOOD, VERDIGRIS, WATER } from "./inks.js";
+import { drawRealmFog } from "./realm-fog.js";
 
 /** The grid highlight the Realm tools draw in. */
 const HIGHLIGHT = "bastionland-realm";
@@ -56,14 +58,19 @@ const FEATURE_BRUSHES = {
  * @property {(g: object, hex: {col: number, row: number}|null) => boolean} extend Take in the hex under the pointer.
  *   Whether that changed anything.
  * @property {() => boolean} ready Whether dropping it lays anything.
- * @property {(realm: object, g: object) => object} lay
+ * @property {(realm: object, g: object) => object} [lay] The Realm edit that lays it.
+ * @property {() => Promise<unknown>} [write] What's written in its place, for a drag that leaves the Realm as it is.
  */
 
-/** @returns {PaintDrag} Terrain painted on every hex crossed, in the palette's brush. */
-function terrainDrag() {
+/**
+ * @param {{color: number, alpha: number}} highlight
+ * @returns {Pick<PaintDrag, "highlight"|"course"|"hexes"|"extend"|"ready">} A drag taking in every hex it
+ *   crosses, once each, in no order.
+ */
+function crossingDrag(highlight) {
 	const crossed = new Map();
 	return {
-		highlight: { color: VERDIGRIS, alpha: 0.3 },
+		highlight,
 		course: false,
 		hexes: () => [...crossed.values()],
 		extend(_g, hex) {
@@ -71,18 +78,41 @@ function terrainDrag() {
 			crossed.set(hexKey(hex), hex);
 			return true;
 		},
-		ready: () => crossed.size > 0,
-		lay: (realm, g) => paintTerrain(realm, g, [...crossed.values()], RealmPanel.terrain)
+		ready: () => crossed.size > 0
 	};
 }
 
+/** @returns {PaintDrag} Terrain painted on every hex crossed, in the palette's brush. */
+function terrainDrag() {
+	const drag = crossingDrag({ color: VERDIGRIS, alpha: 0.3 });
+	return { ...drag, lay: (realm, g) => paintTerrain(realm, g, drag.hexes(), RealmPanel.terrain) };
+}
+
 /**
- * @param {object} g
- * @param {{col: number, row: number}|null} start
- * @returns {PaintDrag} A river drawn hex to hex from where the drag began.
+ * @param {Scene} scene
+ * @returns {PaintDrag} The Fog of War lifted from every hex crossed, or brought back over each, as the
+ *   first hex's goes: a drag that starts in the fog lifts it, one that starts in the clear brings it back.
+ *   Written once, as it's dropped.
  */
-function riverDrag(g, start) {
-	let course = traceCourse(g, [], start);
+function fogDrag(scene) {
+	let lifting = null;
+	const drag = crossingDrag({ color: VERDIGRIS, alpha: 0.3 });
+	return {
+		...drag,
+		extend(g, hex) {
+			if (lifting === null && hex) {
+				lifting = hexFoggedForPlayers(scene, hex);
+				drag.highlight.color = lifting ? VERDIGRIS : INK_HEX;
+			}
+			return drag.extend(g, hex);
+		},
+		write: () => (lifting ? liftRealmFog(scene, drag.hexes(), "hand") : veilRealmFog(scene, drag.hexes()))
+	};
+}
+
+/** @returns {PaintDrag} A river drawn hex to hex from where the drag began. */
+function riverDrag() {
+	let course = [];
 	return {
 		highlight: { color: WATER, alpha: 0.25 },
 		course: true,
@@ -110,12 +140,13 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	}
 
 	/**
-	 * Only GMs get the Realm tools, and only on a Realm Scene.
+	 * Only GMs get the Realm tools, and only on a Realm Scene. The fog brush
+	 * only while the Realm's Fog of War is on.
 	 * @override
 	 */
 	static prepareSceneControls() {
 		if (!game.user.isGM || !isRealmScene(canvas.scene)) return null;
-		const tools = Object.fromEntries(REALM_TOOLS.map((name, index) => {
+		const tools = Object.fromEntries(realmToolNames({ fogOn: realmFogOn(canvas.scene) }).map((name, index) => {
 			const tool = { name, order: index + 1, title: `bastionland.realm.tools.${name}`, icon: REALM_TOOL_ICONS[name] };
 			if (REALM_BUTTONS.includes(name)) Object.assign(tool, { button: true, onChange: () => canvas.realm?.runButton(name) });
 			return [name, tool];
@@ -141,6 +172,19 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			tools,
 			activeTool: "inspect"
 		};
+	}
+
+	/**
+	 * Draw the Realm controls again once the fog brush comes or goes with the
+	 * Realm's Fog of War, which is turned on and off from its own window.
+	 */
+	static refreshFogTool() {
+		if (!game.user.isGM || !isRealmScene(canvas?.scene)) return;
+		const listed = Boolean(ui.controls?.controls?.realm?.tools?.fog);
+		if (listed === realmFogOn(canvas.scene)) return;
+		// Put down a brush that's going, so the layer isn't left holding it.
+		if (listed && canvas.realm?.tool === "fog") canvas.realm.setTool("inspect");
+		ui.controls?.render({ reset: true });
 	}
 
 	/** Bring back Creating a Realm while the Realm is being drawn, or go back into drawing it. */
@@ -226,6 +270,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		// While a Realm is drawn by hand, Creating a Realm holds each part of the palette beside the step it draws.
 		if (name === "terrain" && isRealmScene(canvas.scene) && !isDrawingRealm(canvas.scene)) openRealmPanel({ scene: canvas.scene });
 		this.redrawTool();
+		// The fog lies thicker for the Referee while its brush is in hand.
+		drawRealmFog();
 	}
 
 	/** Drop a drag under way and draw what the tool in hand shows again, after the tool or the terrain brush changed. */
@@ -244,7 +290,10 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		if (name === "wilderness") return wildernessRoll({ scene });
 		if (name === "reroll") return rerollRealm(scene);
 		if (name === "appearance") return openRealmAppearance();
+		if (name === "fogOfWar") return import("../apps/RealmFog.js").then(({ openRealmFog }) => openRealmFog());
 		if (name === "picture") return changeRealmPicture(scene);
+		// Loaded only when asked for: the window, the backup and the rolling of new land.
+		if (name === "expand") return import("../actions/realm-expand.js").then(({ openExpandRealm }) => openExpandRealm(scene));
 		return null;
 	}
 
@@ -304,6 +353,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	/** @override */
 	_activate() {
 		canvas.stage.on("pointermove", this.#onPointerMove);
+		drawRealmFog();
 		// Creating a Realm marks the swatch in hand only while the Realm tools are.
 		if (canvas.scene) refreshRealmDrawing(canvas.scene.id);
 	}
@@ -316,6 +366,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		this.hoveredEdge = null;
 		this.refreshHighlight();
 		if (canvas.scene) refreshRealmDrawing(canvas.scene.id);
+		drawRealmFog();
 	}
 
 	/**
@@ -378,7 +429,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 		if (!this.hovered) return;
 		const { x, y } = hexTopLeft(g, this.hovered);
-		const color = this.drawsRiver ? WATER : this.brush === "terrain" ? VERDIGRIS : BLOOD;
+		const color = this.drawsRiver ? WATER : this.brush === "terrain" || this.tool === "fog" ? VERDIGRIS : BLOOD;
 		grid.highlightPosition(HIGHLIGHT, { x, y, color, border: INK_HEX, alpha: 0.18 });
 	}
 
@@ -495,8 +546,38 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			return;
 		}
 
+		if (this.tool === "fog") {
+			this.#fogClick();
+			return;
+		}
 		if (this.tool !== "terrain") return;
 		this.#brushClick(event, false);
+	}
+
+	/**
+	 * The fog brush's click, which lifts the fog from the hex or brings it
+	 * back. Foundry calls it as the button goes down, before it knows whether
+	 * a drag follows, and a drag paints instead, so it waits for the button to
+	 * come up and a drag calls it off, as stepping a terrain on does.
+	 */
+	#fogClick() {
+		const scene = canvas.scene;
+		const hex = this.hexAtPointer();
+		if (hex) this.#onClickUp(() => toggleRealmFogAt(scene, hex));
+	}
+
+	/**
+	 * Do something once the mouse button comes up, unless a drag starts first and calls it off.
+	 * @param {() => void} action
+	 */
+	#onClickUp(action) {
+		const stepping = {};
+		this.#stepping = stepping;
+		window.addEventListener("pointerup", () => {
+			if (this.#stepping !== stepping) return;
+			this.#stepping = null;
+			action();
+		}, { once: true, capture: true });
 	}
 
 	/**
@@ -583,13 +664,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		// Clicking a hex of the brush's terrain steps it on to its next picture. Foundry calls the click
 		// when the button goes down, before it knows whether a drag follows, and a drag out from a forest
 		// should leave the forest be, so the step waits for the button to come up and a drag calls it off.
-		const stepping = {};
-		this.#stepping = stepping;
-		window.addEventListener("pointerup", () => {
-			if (this.#stepping !== stepping) return;
-			this.#stepping = null;
-			editRealmByHand(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain, { step: true }));
-		}, { once: true, capture: true });
+		this.#onClickUp(() => editRealmByHand(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain, { step: true })));
 	}
 
 	/**
@@ -608,6 +683,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	 * @override
 	 */
 	_canDragLeftStart(_user, _event) {
+		if (this.tool === "fog") return realmFogOn(canvas.scene);
 		return ["terrain", "river"].includes(this.brush) && isRealmScene(canvas.scene);
 	}
 
@@ -615,9 +691,12 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	_onDragLeftStart(event) {
 		this.#stepping = null;
 		const g = sceneGeometry(canvas.scene);
-		// Where the drag began, not where the pointer has got to by now.
+		if (this.tool === "fog") this.#drag = fogDrag(canvas.scene);
+		else this.#drag = this.drawsRiver ? riverDrag() : terrainDrag();
+		// Every drag takes in where it began first, then where the pointer has got to by now. One begun
+		// off the map goes as the first hex it crosses.
 		const origin = event.interactionData?.origin;
-		this.#drag = this.drawsRiver ? riverDrag(g, (origin && hexAt(g, origin)) ?? this.hexAtPointer()) : terrainDrag();
+		if (this.#drag.extend(g, (origin && hexAt(g, origin)) ?? this.hexAtPointer())) this.refreshHighlight();
 		this.#paintHere();
 	}
 
@@ -631,7 +710,9 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		const drag = this.#drag;
 		this.#drag = null;
 		this.refreshHighlight();
-		if (drag?.ready()) await editRealmByHand(canvas.scene, drag.lay);
+		if (!drag?.ready()) return;
+		if (drag.write) await drag.write();
+		else await editRealmByHand(canvas.scene, drag.lay);
 	}
 
 	/** @override */

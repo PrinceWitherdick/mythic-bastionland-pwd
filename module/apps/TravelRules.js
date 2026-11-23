@@ -1,5 +1,6 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
 import { askReferee, askable, doFromRules } from "../actions/ask-referee.js";
+import { morningSettled } from "../actions/phase-end.js";
 import { isDrawingRealm, isRealmScene } from "../actions/realm.js";
 import { sufferHardship } from "../actions/time.js";
 import { BOOK_TEXT_HOOK, bookTextRead } from "../book-art/book-text.js";
@@ -109,7 +110,8 @@ export class TravelRules extends MapSidePanel {
 		const context = await super._prepareContext(options);
 		const view = getView();
 		const folded = view.folded.includes(this.side);
-		const pressing = pressingSections(getCalendar());
+		const calendar = getCalendar();
+		const pressing = pressingSections(calendar, { morningSettled: morningSettled(calendar) });
 		const isGM = game.user.isGM;
 		const text = (key, data) => t(`travelRules.${key}`, data);
 		// The rules are the book's own words, so until Import PDF has read them there are only headings and buttons.

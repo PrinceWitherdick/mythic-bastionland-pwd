@@ -12,6 +12,7 @@ const { postCard } = await import("../../module/chat/cards.js");
 const { chooseCompany } = await import("../../module/actions/time.js");
 const { chooseOne } = await import("../../module/apps/actor-pick.js");
 const { timelineGloryAwarded, timelineRank } = await import("../../module/actions/timeline-events.js");
+const { isKnight } = await import("../../module/rules/knight-types.js");
 
 const knight = (glory) => ({ system: { glory, gainsGlory: true }, update: vi.fn(async () => {}) });
 
@@ -84,8 +85,17 @@ describe("awardGloryTo", () => {
 			const { knights } = await awardGloryTo("battle");
 			const [options] = vi.mocked(chooseCompany).mock.calls[0];
 			expect(options.later).toEqual([rival]);
-			expect(options.gainsGlory).toBe(true);
+			// Only Knights who can gain Glory, of the Company or the NPC Knights after them.
+			expect([ash, tam, rival, { ...ash, type: "npc" }].map(options.include)).toEqual([true, false, true, false]);
 			expect(knights).toEqual([ash, rival]);
+		});
+
+		it("asks any other award of the Company's Knights alone, Squires among them", async () => {
+			vi.mocked(chooseCompany).mockResolvedValueOnce([]);
+			await awardGloryTo("myth");
+			const [options] = vi.mocked(chooseCompany).mock.calls[0];
+			expect(options.include).toBe(isKnight);
+			expect(options.later).toBeUndefined();
 		});
 	});
 });
@@ -101,7 +111,7 @@ describe("takeBackGlory", () => {
 		const lost = knight(5);
 		vi.mocked(chooseCompany).mockResolvedValueOnce([{ actor: lost }]);
 		expect(await takeBackGlory("myth", [kept, lost])).toEqual([lost]);
-		expect(vi.mocked(chooseCompany).mock.calls[0][0]).toMatchObject({ present: [kept, lost], onlyGiven: true, knightsOnly: true });
+		expect(vi.mocked(chooseCompany).mock.calls[0][0]).toMatchObject({ present: [kept, lost], onlyGiven: true, include: isKnight });
 		expect(lost.update).toHaveBeenCalledWith({ "system.glory": 4 }, {});
 		expect(kept.update).not.toHaveBeenCalled();
 		expect(postCard).toHaveBeenCalledTimes(1);

@@ -15,6 +15,10 @@ A hex is one of your places once the Company has:
 
 Only those hexes open in Places, and only those show a name the Referee has given them. Every Holding you can see on the map is drawn on the chart, even before you visit it. Myths, Landmarks and Barriers stay off your record until they are revealed or found.
 
+If the Referee plays with the **Fog of War**, a hex you haven't reached shows only its edges on the map, and the label under the pointer says **Unexplored**. The fog clears as the Company arrives, or when the Referee lifts it. The chart leaves out Holdings in fogged hexes, unless the Referee lets them show through.
+
+![A Realm under the Fog of War as the players see it: plain paper hexes with only their edges, and the Company's trail of ticked hexes showing their terrain](images/painting-and-editing-the-realm-fog-players.webp)
+
 ## Opening Places
 
 - **Places**, the map-and-pin button just left of the sidebar on a Realm.
@@ -23,23 +27,29 @@ Only those hexes open in Places, and only those show a name the Referee has give
 - **Double-click the Company Token** to open the hex it stands in.
 - **Click a row** on your Knight's **Travels** tab. See [below](#the-travels-tab).
 
-![The Places window as a player sees it, the Chart on the left, and on the right the hex with What the Referee Told You, two told notes with their dates, and The Company's Note](images/travels-and-places-player-window.webp)
+![The Places window as a player sees it, the Chart on the left under the Show only pills and their counts, and on the right the hex with What the Referee Told You, two told notes with their dates, and The Company's Note](images/travels-and-places-player-window.webp)
 
 ## The three pages
 
 | Page | What it shows |
 | --- | --- |
-| **Places** | Your places in three lists: **Places of Note** (where you found something, were told something or wrote a note), **Wilderness**, and **Heard Of** (not reached yet). |
+| **Places** | Your places in folding lists: **Places of Note** (where you found something, were told something or wrote a note), gathered into **Holdings**, **Myths**, **Landmarks** and **Other Finds**; then **Heard Of** (not reached yet); then **Wilderness**, which starts folded. Each heading shows how many it holds. |
 | **Chart** | A drawn chart of the Realm as your Company knows it, with a key. |
-| **Journey** | Where the Company went, Season by Season, each line with its Phase: arrivals, tellings, Barriers met and notes written. |
+| **Journey** | Where the Company went, Season by Season: arrivals, tellings, Barriers met and notes written. The latest Season is open and the rest are folded, each with a tally of what it held. |
 
-- **Search the places** narrows all three pages.
-- **Show only** narrows the Places list: **All**, **Holdings**, **Landmarks**, **Myths**, **Told**, **Noted** or **Not Visited**.
-- **Order** sorts it by **Last reached first**, **By name** or **Most visited first**.
+- **Search the places** narrows all three pages. While you search, every fold opens and every list shows in full.
+- **Show only** narrows the Places list and the Chart: **All**, **Holdings**, **Landmarks**, **Myths**, **Told**, **Noted** or **Not Visited**. Each shows how many places it would leave.
+- **By Kind** or **One List** arranges the Places of Note in groups or as a single list.
+- **Order** sorts each list by **Last reached first**, **By name** or **Most visited first**.
+- **Click a heading** to fold or unfold it. A long list shows its first 8 places; **Show all** under it shows the rest.
+- A row's small **speech bubble** and **pen** say the Referee told you something of that hex, and that the Company wrote a note there.
+- On the **Journey**, three or more hexes ridden through in one Phase are told in one line; the **chevron** beside it shows each hex. Its own **Show only** narrows it to **First Visits**, **Arrivals**, **Told**, **Barriers** or **Notes**. An open Season shows its latest 7 days, with a button for the earlier ones.
 - **Hover a row** to ring that hex on the map. The **crosshair** at a row's end shows the hex on the map, ringed in green until your next click.
 - **Click a row, a hex on the chart, or a line of the Journey** to open that hex on the right.
 
 The page you last chose is remembered in your browser.
+
+![The Journey page, the latest Season open with its tally, a Morning ride through 3 hexes unfolded under its chevron, a Barrier met and a note, and the earlier Seasons folded with their tallies](images/travels-and-places-journey.webp)
 
 ### Zooming the chart
 
@@ -70,7 +80,7 @@ The note is kept through the Referee's browser, so a Referee has to be signed in
 
 ## The Travels tab
 
-![The Knight sheet's Travels page open on the Chart, the places the Company has been drawn on a small hex map below the filter pills](images/travels-and-places-travels-tab.webp)
+![The Knight sheet's Travels page open on the Chart, the places the Company has been drawn on a small hex map below the filter pills and their counts](images/travels-and-places-travels-tab.webp)
 
 Every Knight's sheet, and every Squire's, has a **Travels** tab with the same three pages for the Realm. Clicking a place there opens Places on that hex. On the sheet the chart is kept to a comfortable size and centred, so widening the sheet doesn't grow it.
 

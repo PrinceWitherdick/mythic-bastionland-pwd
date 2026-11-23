@@ -1,6 +1,6 @@
 import { wentSomewhere } from "../actions/company.js";
 import { hexesReached } from "../actions/held-back.js";
-import { forcedTravel, movesAsCompany } from "../actions/journey.js";
+import { forcedTravel, movesAsCompany, restingPoint } from "../actions/journey.js";
 import { hexLorePromptMode, rollFirstArrival, rollsFirstArrivals } from "../actions/hex-lore.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { openHex } from "../apps/TravelsPlaces.js";
@@ -150,7 +150,8 @@ function noticeArrival(token, movement, operation) {
 	if (!atRest(movement)) return;
 
 	const g = sceneGeometry(scene);
-	const hex = hexAt(g, token.getCenterPoint());
+	// Where this leg leaves it: a dragged Token is still read where it set off from as the hook runs.
+	const hex = hexAt(g, restingPoint(token, movement));
 	if (!hex) return;
 	// Its last leg is all that's seen here, which is enough to tell whether dire weather may hold it back.
 	const from = movement.origin ? hexAt(g, token.getCenterPoint(movement.origin)) : null;

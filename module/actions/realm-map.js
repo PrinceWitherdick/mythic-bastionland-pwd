@@ -271,7 +271,7 @@ async function layOutAnew(scene, layout) {
  * @param {Scene} scene
  * @returns {Promise<void>}
  */
-function canvasRedrawn(scene) {
+export function canvasRedrawn(scene) {
 	if (canvas.scene?.id !== scene.id || (canvas.ready && !canvas.loading)) return Promise.resolve();
 	return new Promise((resolve) => {
 		const timer = setTimeout(() => {

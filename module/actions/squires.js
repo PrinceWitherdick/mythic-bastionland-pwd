@@ -163,7 +163,7 @@ export async function claimSquire(knight, squire) {
 
 	await knight.update({ "system.squire": squire.uuid });
 	await squire.update({ "system.serves": knight.uuid, ...sharedOwnership(squire, knight) });
-	await shareMade([squire], knight);
+	await shareMade([squire], knight, { taken: true });
 	if (masterKeeps) await master.update({ "system.squire": "" });
 	if (before?.isOwner && before.system.serves === knight.uuid) await before.update({ "system.serves": "" });
 	// On both threads, as taking a new Squire writes it.

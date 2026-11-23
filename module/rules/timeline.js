@@ -56,7 +56,7 @@ const UNDATED = "";
  */
 export const KIND_GROUPS = Object.freeze({
 	hand: Object.freeze(["hand"]),
-	time: Object.freeze(["season", "age", "distant", "session", "aged"]),
+	time: Object.freeze(["season", "age", "distant", "session", "aged", "thread"]),
 	myth: Object.freeze(["myth", "omen"]),
 	glory: Object.freeze(["rank", "duel", "award"]),
 	wounds: Object.freeze(["scar", "death", "mortal", "ward", "settled", "revenge"]),
@@ -91,6 +91,35 @@ export const realmTrackId = (sceneId) => `${REALM_PREFIX}${String(sceneId ?? "")
 export const realmSceneId = (trackId) => String(trackId ?? "").slice(REALM_PREFIX.length);
 
 /**
+ * @param {"visit"|"note"} kind
+ * @param {string} sceneId
+ * @param {string} key The hex's key, or "gone" for one a Realm no longer has.
+ * @returns {string} The key of a Timeline row recording something of one hex of a Realm.
+ */
+const hexRowKey = (kind, sceneId, key) => `${kind}:${sceneId}:${key}`;
+
+/** The keys hexRowKey writes for a hex still on the map. */
+const HEX_ROW_KEY = /^(visit|note):([^:]+):(\d+,\d+)$/;
+
+/**
+ * @param {string} key A Timeline row's key.
+ * @returns {{kind: "visit"|"note", sceneId: string, hex: string}|null} The hex of a Realm it records, if any.
+ */
+export function readHexRowKey(key) {
+	const match = HEX_ROW_KEY.exec(String(key ?? ""));
+	return match ? { kind: /** @type {"visit"|"note"} */ (match[1]), sceneId: match[2], hex: match[3] } : null;
+}
+
+/**
+ * A hex row's key once its hex has moved, as a Realm's growth moves it.
+ * @param {{kind: "visit"|"note", sceneId: string}} row From readHexRowKey.
+ * @param {string|null} hex The hex's key now; null for one that's gone, so the row neither lands on
+ *   another hex nor is lost.
+ * @returns {string}
+ */
+export const movedHexRowKey = ({ kind, sceneId }, hex) => hexRowKey(kind, sceneId, hex ?? "gone");
+
+/**
  * What each milestone is, so the same thing recorded twice finds the row it
  * already wrote (upsertByKey). Kept here so each is spelled once. One that is
  * a row of its own each time it happens (a Crisis Roll, a wound, a seat in a
@@ -110,9 +139,11 @@ export const timelineKeys = Object.freeze({
 	domain: (domainId) => `domain:${domainId}`,
 	// A Holding granted again, in another Season or to another Knight, is a row of its own.
 	holding: (sceneId, holdingId, season, knightId) => `holding:${sceneId}:${holdingId}:${season}:${knightId}`,
-	visit: (sceneId, hex) => `visit:${sceneId}:${hexKey(hex)}`,
-	note: (sceneId, hex) => `note:${sceneId}:${hexKey(hex)}`,
+	visit: (sceneId, hex) => hexRowKey("visit", sceneId, hexKey(hex)),
+	note: (sceneId, hex) => hexRowKey("note", sceneId, hexKey(hex)),
 	duel: (messageId) => `duel:${messageId}`,
+	// A thread settled.
+	thread: (threadId) => `thread:${threadId}`,
 	// A Scar settles once, by revenge or otherwise.
 	settled: (itemId) => `settled:${itemId}`,
 	joined: (knightId = "") => (knightId ? `joined:${knightId}` : "joined"),

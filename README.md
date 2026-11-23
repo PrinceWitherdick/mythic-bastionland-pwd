@@ -46,11 +46,13 @@ Click the shield to paint it with heraldry's tinctures and divisions. **Add a ch
 
 **Duel** runs a duel or a joust, with Glory staked if the fighters choose. Both Attacks resolve at the same time.
 
+**Combat buttons:** click a Token that's in a Combat and Attack, Take Damage and its three Saves come up beside it, with Morale for an NPC, so nobody has to open a sheet in the middle of a fight.
+
 #### Property
 
 Weapons, armour and gear sort themselves by die and by armour piece. Worn armour adds up to the Armour score, one piece of each type. Items can have a rarity, a count, a restock, a **Broken** mark, armour that only counts in some situations, bucklers, wooden weapons, a second way to fight, poisons, and Remedies that restore a Virtue.
 
-### For Game Masters
+### For Referees
 
 #### Referee Toolkit
 
@@ -173,6 +175,8 @@ npm run unpack    # extract packs back to packs/src
 ```
 
 A checkout runs straight from the source files. A release runs from the single bundled file. Game arithmetic lives in `module/rules/` as plain functions with no Foundry dependency, so all of it is unit tested. The system id is defined only in `module/system-id.js`.
+
+How the sheets, windows, dialogs and chat cards should look is written down in [STYLE-GUIDE.md](STYLE-GUIDE.md); the Knight sheet is the reference.
 
 No words of the book belong in the repository, code comments and tests included. A passage the system shows in the book's words is added to `module/rules/book-prints.js` as a page and fingerprint with `node scripts/book-text.js print`, and `node scripts/book-text.js overlap` checks, against your own PDFs, that nothing else has crept in. Both take Foundry's copy of pdf.js through `PDFJS` (see the top of `scripts/book-text.js`).
 

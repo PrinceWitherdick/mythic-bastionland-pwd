@@ -1,0 +1,41 @@
+<div class="bastionland-dialog__body">
+	{{!-- Something left open: a favour, a contact or an unsettled situation. Its words are kept on the
+	      Referee Toolkit and read again in its hex and as a session ends. --}}
+	<fieldset class="bastionland-choice-list bastionland-choice-list--full">
+		<legend>{{localize "bastionland.threads.kindLegend"}}</legend>
+		{{#each kinds}}
+		<label class="bastionland-check">
+			<input type="radio" name="kind" value="{{key}}" {{checked checked}}>
+			<span class="bastionland-check__label">
+				<strong>{{label}}</strong>
+				<span class="bastionland-check__detail">{{detail}}</span>
+			</span>
+		</label>
+		{{/each}}
+	</fieldset>
+	<div class="form-group">
+		<label for="bastionland-thread-name">{{localize "bastionland.threads.name"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-thread-name" type="text" name="name" value="{{name}}" placeholder="{{localize 'bastionland.threads.namePlaceholder'}}" autocomplete="off" autofocus>
+		</div>
+	</div>
+	{{#if knights.length}}
+	<div class="form-group">
+		<label for="bastionland-thread-knight">{{localize "bastionland.threads.knight"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-thread-knight" name="knight">
+				<option value="">{{localize "bastionland.threads.company"}}</option>
+				{{#each knights}}
+				<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+		</div>
+	</div>
+	{{/if}}
+	{{#if place}}
+	<label class="bastionland-check">
+		<input type="checkbox" name="place" {{checked place.checked}}>
+		<span class="bastionland-check__label">{{place.label}}</span>
+	</label>
+	{{/if}}
+</div>

@@ -6,13 +6,15 @@ const g = realmGeometry();
 const barred = edgeKey({ col: 3, row: 3 }, { col: 4, row: 3 });
 const realm = { ...emptyRealm(g), barriers: [{ id: "b1", edge: barred, revealed: false }] };
 
+let expanding = null;
 vi.mock("../../module/actions/realm.js", () => ({
+	expansionUnderWay: () => expanding,
 	getRealm: () => ({ realm }),
 	isRealmScene: (scene) => Boolean(scene?.realm),
 	sceneGeometry: () => g
 }));
 vi.mock("../../module/actions/journey.js", () => ({ movesAsCompany: (token) => Boolean(token.company) }));
-vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key }));
+vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key, warn: (key) => ui.notifications.warn(key) }));
 // Telling the Referee what turned it back is barrier-found.js's to test.
 vi.mock("../../module/canvas/barrier-found.js", () => ({ reportTurnedBack: vi.fn() }));
 
@@ -32,6 +34,7 @@ beforeEach(() => {
 	globalThis.ui = { notifications: { warn } };
 	globalThis.game = { user: { isGM: false }, users: { activeGM: { id: "referee" } } };
 	vi.mocked(reportTurnedBack).mockClear();
+	expanding = null;
 });
 
 describe("a move on a Realm", () => {
@@ -89,6 +92,19 @@ describe("a move on a Realm", () => {
 		game.user.isGM = true;
 		expect(allowRealmMove(token, move([3, 3], [3, 4]))).toBe(true);
 		expect(warn).not.toHaveBeenCalled();
+	});
+
+	it("lets an expansion move its own Tokens, and refuses every other move while one is unfinished", () => {
+		expanding = { by: "referee" };
+		expect(allowRealmMove(token, move([3, 3], [4, 3]), { bastionlandNotAMove: true })).toBe(true);
+		expect(warn).not.toHaveBeenCalled();
+		// A player's, across a Barrier with no Referee here, as the Referee's own: the expansion would pull it back.
+		game.users.activeGM = null;
+		expect(allowRealmMove(token, move([3, 3], [4, 3]))).toBe(false);
+		game.user.isGM = true;
+		expect(allowRealmMove(token, move([3, 3], [3, 4]), { bastionlandForced: true })).toBe(false);
+		expect(warn).toHaveBeenCalledWith("realm.movement.expanding");
+		expect(reportTurnedBack).not.toHaveBeenCalled();
 	});
 
 	it("is anybody's business off a Realm", () => {

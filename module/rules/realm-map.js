@@ -91,7 +91,7 @@ const withinSizeLimits = (g, rect) => [[rect.width, g.width], [rect.height, g.he
 const MOST_TURNED = 10;
 
 /** Kept to the hundredth of a pixel, so a Realm read back and written again doesn't rewrite itself. */
-const round = (value) => Math.round(value * 100) / 100;
+export const round = (value) => Math.round(value * 100) / 100;
 
 /**
  * @typedef {object} MapPicture One of a Realm's pictures. `x` and `y` are its
@@ -123,7 +123,9 @@ export function normaliseMapPicture(picture) {
 	// Said either way: the Scene's flag is merged into, so a word left out would leave the last one written standing.
 	const bare = picture.bare === true;
 	const measured = [x, y, width, height].every((value) => Number.isFinite(value)) && width > 0 && height > 0;
-	return measured ? { src, bare, x: round(x), y: round(y), width: round(width), height: round(height) } : { src, bare };
+	// Only ever set, by an expansion whose new land the Referee has drawn in the Realm's own ink (hexHidesTerrain).
+	const ink = picture.inkOutside === true ? { inkOutside: true } : {};
+	return measured ? { src, bare, x: round(x), y: round(y), width: round(width), height: round(height), ...ink } : { src, bare, ...ink };
 }
 
 /**
@@ -467,7 +469,18 @@ export function steppedMapSize(size, now, step, layout = BOOK_LAYOUT) {
 }
 
 /** Kept to the tenth of a pixel, which is finer than a preview is drawn. */
-const tenth = (value) => Math.round(value * 10) / 10;
+export const tenth = (value) => Math.round(value * 10) / 10;
+
+/**
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @param {(corner: {x: number, y: number}) => string} [at] Where a corner is drawn, as SVG path coordinates.
+ * @returns {string} The hex's outline as SVG path data, its corners kept to the tenth of a pixel where `at` isn't given.
+ */
+export function hexPath(g, hex, at = ({ x, y }) => `${tenth(x)} ${tenth(y)}`) {
+	const [first, ...rest] = hexVertices(g, hex);
+	return `M${at(first)}${rest.map((corner) => `L${at(corner)}`).join("")}Z`;
+}
 
 /**
  * The Realm's hexes laid over a map edge to edge, drawn in the picture's own
@@ -492,10 +505,7 @@ export function hexOverlay(size, { cols, rows, layout = BOOK_LAYOUT } = {}) {
 	const [across, down] = [g.width / scale, g.height / scale];
 	const [left, top] = [(width - across) / 2, (height - down) / 2];
 	const at = ({ x, y }) => `${tenth(left + x / scale)} ${tenth(top + y / scale)}`;
-	const hexes = allHexes(g).map((hex) => {
-		const [first, ...rest] = hexVertices(g, hex);
-		return `M${at(first)}${rest.map((corner) => `L${at(corner)}`).join("")}Z`;
-	}).join("");
+	const hexes = allHexes(g).map((hex) => hexPath(g, hex, at)).join("");
 	const outside = left >= 0.5 || top >= 0.5
 		? `M0 0H${width}V${height}H0Z M${tenth(left)} ${tenth(top)}h${tenth(across)}v${tenth(down)}h${tenth(-across)}Z`
 		: "";
@@ -578,6 +588,26 @@ export const realmPictures = (realm, g) => MAP_ROLES.flatMap((role) => {
  * @returns {boolean} Whether the system's own terrain, river and lake drawings give way to a picture.
  */
 export const hidesTerrain = (realm) => Boolean(realm.picture);
+
+/**
+ * Whether the system's own ground and water give way to the picture in one
+ * hex. Every hex of a Realm laid over a picture does, but for one whose map
+ * has grown past its picture and whose Referee chose to draw the new land in
+ * the Realm's own ink (`inkOutside`): there a hex whose centre lies outside the
+ * picture is drawn. Realms with no such word look as they always did, even
+ * where a hex at the edge lies outside the picture.
+ * @param {import("./realm.js").Realm} realm
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @returns {boolean}
+ */
+export function hexHidesTerrain(realm, g, hex) {
+	if (!hidesTerrain(realm)) return false;
+	const picture = realm.picture.players;
+	if (!picture?.inkOutside || !(picture.width > 0)) return true;
+	const { x, y } = hexCentre(g, hex);
+	return Math.abs(x - picture.x) <= picture.width / 2 && Math.abs(y - picture.y) <= picture.height / 2;
+}
 
 /**
  * The two hexes a picture is lined up by: the first of the map and the last.

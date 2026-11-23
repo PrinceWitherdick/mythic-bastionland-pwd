@@ -79,9 +79,11 @@ The collection's card names the Domains that gather it. The Season's events are 
 
 ## Months Pass: turning the Season
 
-**Click Months Pass** (on the Time page or the bar). A window opens listing, under **Who takes part**, every Knight: ticked when a player owns them or their Token is selected. Each ticked Knight picks a pursuit (Pilgrimage, Courtesy or Service). Service and Courtesy then offer a second menu for what came of it, or **Ask once the Season turns**. Untick anyone who isn't part of it.
+**Click Months Pass** (on the Time page or the bar). A window opens listing, under **Who takes part**, every Knight: ticked when a player owns them or their Token is selected. Each ticked Knight picks a pursuit (Pilgrimage, Courtesy or Service). Each then offers a second menu for what came of it, or **Ask once the Season turns**. Untick anyone who isn't part of it.
 
 Courtesy's **A place at Court** makes the Knight a Courtier. With more than one Domain whose Court they aren't in, **Whose Court does (name) join?** asks from a list. A Knight already at every Court gains no second place, and a Squire isn't offered a place at Court.
+
+Pilgrimage's **Where a Myth lies** and **Where a Landmark lies** show one the players' map still hides, on the Realm in view (or the active one). With more than one hidden, a list asks which. Service's **A Dwelling added to the map** takes up the Dwelling brush once everyone has been asked.
 
 **Click Months Pass** in that window. Then:
 
@@ -102,6 +104,7 @@ On top of everything a Season's turn does:
 - The new Age begins in Spring.
 - Each ticked Knight gains 1 Glory.
 - The Old lose d12 VIG from their maximum. Anyone it takes to VIG 0 dies peacefully.
+- **Duty** offers what came of it, as a Season's pursuits do. **A grand project begun** starts one under Grand Designs on the Domain the Knight rules, to be named there. **A Holding added to the map** takes up the Holding brush.
 - **Succession** asks the Knight to name a successor, and offers to Knight one who is still a Squire. **Legacy** gives the successor half the Knight's Glory, asking for a successor if none is named or the named one is Slain. A Squire can't hold Glory, so a Squire successor is offered Knighting first; declined, the Glory is lost. Squires themselves are offered only Duty. See [Scars, Death and Successors](Scars-Death-and-Successors).
 - NPCs and Referee-played Knights who are Old lose their VIG too, on one card.
 - Knights ticked to grow older reroll their Virtues for it. Then a second window offers every NPC with an Age, unticked, so you choose who else grows older.

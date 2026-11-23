@@ -16,6 +16,9 @@ import { openOfferedKnights, registerUnchosenKnightHooks } from "./module/action
 import { watchTableRenewals } from "./module/actions/knight-tables.js";
 import { watchRestocks } from "./module/actions/restock.js";
 import { KNIGHT_TOKEN_NAMES_STEP, registerKnightTokenNames, showExistingKnightNames } from "./module/actions/knight-token-names.js";
+import { KNIGHT_TOKEN_LINK_STEP, linkExistingKnightTokens, registerKnightTokenLink } from "./module/actions/knight-token-link.js";
+import { registerThreadsWatch } from "./module/actions/threads.js";
+import { registerMuster } from "./module/actions/muster.js";
 import { markTheSlain, SLAIN_STEP } from "./module/actions/slain.js";
 import { COUNCIL_RETAINERS_STEP, seatCouncilRetainers } from "./module/actions/court.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
@@ -35,7 +38,7 @@ import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_LINES_STEP, COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, POSSESSION_EFFECTS_STEP, POSSESSION_SPLITS_STEP, THROWN_AND_PAIRS_STEP, catchUpThrownAndPairs, dropCompanionLines, dropOwnerFromCompanionNames, fillPossessionDetails, fillPossessionEffects, retypeKnightProperty, splitKnightGear } from "./module/actions/property.js";
 import { TABLE_RESULTS_STEP, routeTableResults } from "./module/actions/table-stats.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
-import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights, registerNpcKnightCreateChoice } from "./module/actions/npc-knights.js";
+import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights, registerNpcKnightCreateChoice, watchHeldNpcKnights } from "./module/actions/npc-knights.js";
 import { KNIGHT_TYPES, NPC_KNIGHT_TYPE } from "./module/rules/knight-types.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { advancePhase, turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
@@ -76,6 +79,7 @@ import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { BastionlandToken, registerTokenHeraldryHooks } from "./module/canvas/BastionlandToken.js";
+import { registerCombatRingHooks, registerCombatRingSetting } from "./module/canvas/combat-ring.js";
 import { registerRealmTokenRuler } from "./module/canvas/realm-token-ruler.js";
 import { registerSoloPlaceables } from "./module/canvas/solo-placeables.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
@@ -96,6 +100,8 @@ import { FXMASTER_CARD_STEP, WELCOME_CARDS_STEP, postFxMasterCard, postWelcomeCa
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
 import { registerHexTargets } from "./module/chat/hex-target.js";
+import { registerPostedAt } from "./module/chat/posted-at.js";
+import { learnServerClock } from "./module/server-now.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
@@ -128,12 +134,12 @@ import { registerFonts } from "./module/fonts.js";
 import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
 import { DomainSheet } from "./module/sheets/DomainSheet.js";
 import { GmToolkitSheet } from "./module/sheets/GmToolkitSheet.js";
-import { KnightSheet } from "./module/sheets/KnightSheet.js";
+import { KnightSheet, registerDomainButtonHooks } from "./module/sheets/KnightSheet.js";
 import { NpcSheet } from "./module/sheets/NpcSheet.js";
 import { registerSettingsTabHooks } from "./module/sheets/settings-tab.js";
 import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
-import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
+import { openRulebook, openRulebookOrSetup, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
 import { adoptKeptRulebook, bringInRulebook, rereadOldImport } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
@@ -157,7 +163,8 @@ import { watchQuerySenders } from "./module/compat.js";
 import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
-import { registerRemedyQuery, restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
+import { registerRemedyQuery, registerRestAfterCombat, restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
+import { registerHandOverQuery } from "./module/actions/hand-over.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
 import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, POWER_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, fillPowerKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
@@ -170,6 +177,58 @@ const ITEM_MODELS = {
 	passion: PassionModel,
 	scar: ScarModel
 };
+
+/** What macros reach the system through, such as Import PDF. */
+const API = Object.freeze({
+	bringInRulebook,
+	// Only the art and tables, for macros written before Import PDF kept a copy to read as well.
+	importBookArt,
+	openKnightChooser,
+	newRealm,
+	openRealmAppearance,
+	wildernessRoll,
+	rollSurprise,
+	openRefereeRolls,
+	rollRefereeTable,
+	rollLuck,
+	// An Attack with whoever's Token is selected, or a player's own Knight, for the Attack macro.
+	attackFromHotbar,
+	openSparkTables,
+	// The Lay of the Land is the GM's part of a hex in Places now; macros that open it open that.
+	openHexLore: openHex,
+	// The Company's own record of the places it has been, for the players' Places macro.
+	openPlaces,
+	// The campaign's Timeline, every thread side by side, for the players' Timeline macro.
+	openTimeline,
+	// The Time window became the GM Toolkit's Time page; macros that open it still work, and
+	// a player's, which once showed the calendar to read, says where it stands.
+	openTimePanel: () => (game.user.isGM ? openGmToolkit("time") : ui.notifications.info(calendarLabel(getCalendar()))),
+	openSessionEnd,
+	newSite,
+	newOwnMyth,
+	newOwnKnight,
+	openGmToolkit,
+	// The Myths window became the GM Toolkit's first page; macros that open it still work.
+	openMythsPanel: () => openGmToolkit("myths"),
+	// The NPC chooser gave way to the NPCs compendium; macros that open it open that instead.
+	openNpcChooser: openNpcPack,
+	rollCityOmen,
+	awardGlory,
+	getCalendar,
+	pickWeather,
+	openRulebook,
+	openRulebookSetup,
+	toggleRulebook,
+	openWelcome,
+	// The (TEST ONLY) Populate World macro, which can't import populate.js by path under the release bundle.
+	populateTestWorld
+});
+
+/**
+ * @param {string} what What couldn't be done, such as "Couldn't rename the Homebrew Knights folder".
+ * @returns {(error: unknown) => void} A catch handler that logs the failure under the system's name.
+ */
+const logFailure = (what) => (error) => console.error(`${SYSTEM_ID} | ${what}`, error);
 
 /** The Referee's tools GMs get in the Roll Tables directory, in order. */
 const REFEREE_TOOLS = [
@@ -371,6 +430,9 @@ Hooks.once("init", () => {
 	registerExplorationCards();
 	// A hex a card names rings on the map when pointed at, and takes the map there when clicked.
 	registerHexTargets();
+	// Each message is stamped with the time of day, which the Realm's growth log is kept by; this computer's clock is set by the server's first.
+	learnServerClock();
+	registerPostedAt();
 	registerFallenCards();
 	// A Humiliation's dealer brought down asks whether that was the revenge (p9).
 	registerRevengeCards();
@@ -458,6 +520,9 @@ Hooks.once("init", () => {
 	// Solo play keeps the Realm's secrets off the Referee's map too.
 	registerSoloPlaceables();
 	registerTokenHeraldryHooks();
+	// A click on a Token in a Combat puts Attack, Take Damage and its Saves round it.
+	registerCombatRingSetting();
+	registerCombatRingHooks();
 	// Foundry's own Undo key reaches the Realm layer; Redo has no key of Foundry's.
 	game.keybindings.register(SYSTEM_ID, "redoRealm", {
 		name: "bastionland.realm.keybinding.redo.name",
@@ -569,6 +634,12 @@ Hooks.once("init", () => {
 
 	// Everyone at the table sees a Knight's name when hovering over their Token.
 	registerKnightTokenNames();
+	// A Knight's Token is the Knight: what lands on it lands on their sheet.
+	registerKnightTokenLink();
+	// The Combat tracker's button that brings the Company onto the Scene and into the fight.
+	registerMuster();
+	// What's left open is drawn again on every client once the Toolkit's list of it changes.
+	registerThreadsWatch();
 
 	// A steed renamed by its Knight keeps what the book called it under the name.
 	registerSteedNames();
@@ -577,6 +648,10 @@ Hooks.once("init", () => {
 	// parting a Knight and Squire, and restoring the Company members a Remedy reaches.
 	registerCompanionQueries();
 	registerRemedyQuery();
+	// A possession a player hands to a character they don't own.
+	registerHandOverQuery();
+	// The card that offers everybody their rest once a Combat ends.
+	registerRestAfterCombat();
 
 	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
 	registerWelcome();
@@ -594,50 +669,7 @@ Hooks.once("init", () => {
 	registerCompanyButton();
 
 	// Macros reach the system through here, such as Import PDF.
-	game.system.api = Object.freeze({
-		bringInRulebook,
-		// Only the art and tables, for macros written before Import PDF kept a copy to read as well.
-		importBookArt,
-		openKnightChooser,
-		newRealm,
-		openRealmAppearance,
-		wildernessRoll,
-		rollSurprise,
-		openRefereeRolls,
-		rollRefereeTable,
-		rollLuck,
-		// An Attack with whoever's Token is selected, or a player's own Knight, for the Attack macro.
-		attackFromHotbar,
-		openSparkTables,
-		// The Lay of the Land is the GM's part of a hex in Places now; macros that open it open that.
-		openHexLore: openHex,
-		// The Company's own record of the places it has been, for the players' Places macro.
-		openPlaces,
-		// The campaign's Timeline, every thread side by side, for the players' Timeline macro.
-		openTimeline,
-		// The Time window became the GM Toolkit's Time page; macros that open it still work, and
-		// a player's, which once showed the calendar to read, says where it stands.
-		openTimePanel: () => (game.user.isGM ? openGmToolkit("time") : ui.notifications.info(calendarLabel(getCalendar()))),
-		openSessionEnd,
-		newSite,
-		newOwnMyth,
-		newOwnKnight,
-		openGmToolkit,
-		// The Myths window became the GM Toolkit's first page; macros that open it still work.
-		openMythsPanel: () => openGmToolkit("myths"),
-		// The NPC chooser gave way to the NPCs compendium; macros that open it open that instead.
-		openNpcChooser: openNpcPack,
-		rollCityOmen,
-		awardGlory,
-		getCalendar,
-		pickWeather,
-		openRulebook,
-		openRulebookSetup,
-		toggleRulebook,
-		openWelcome,
-		// The (TEST ONLY) Populate World macro, which can't import populate.js by path under the release bundle.
-		populateTestWorld
-	});
+	game.system.api = API;
 });
 
 // Tokens keep facing the same way when moved around the map, unless the GM turns
@@ -653,6 +685,9 @@ Hooks.once("setup", () => {
 
 // Roll Surprise sits in the Combat Tracker's encounter menu.
 Hooks.on("getCombatContextOptions", addSurpriseOption);
+
+/** Each macro's hotbar slot, given in this order once world setup is done. */
+const HOTBAR_MACROS = [ensureToolkitHotbar, ensureSessionHotbar, ensureRulebookHotbar, ensureLuckHotbar, ensureAttackHotbar, ensurePlacesHotbar, ensureTimelineHotbar, ensureSiteHotbar];
 
 /** One-time work for each world, run in this order by the active GM. */
 const WORLD_SETUP = Object.freeze([
@@ -725,6 +760,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.
 	{ key: KNIGHT_TOKEN_NAMES_STEP, run: showExistingKnightNames },
+	// Knights made while their Tokens took a copy of them, so a blow on the map never reached the sheet.
+	{ key: KNIGHT_TOKEN_LINK_STEP, run: linkExistingKnightTokens },
 	// Worlds from before Slain was a mark, when VIG 0 alone told the dead.
 	{ key: SLAIN_STEP, run: markTheSlain },
 	// Domains from before the Council was filled from the Court, when its seats were names written in.
@@ -753,7 +790,7 @@ Hooks.once("ready", async () => {
 	// Each kind of Timeline entry in the colour the Referee chose for it.
 	applyKindColours();
 	// A world from when the Timeline was on or off has that as a choice of where it shows.
-	migrateTimelineReach().catch((error) => console.error(`${SYSTEM_ID} | Couldn't update the Timeline setting`, error));
+	migrateTimelineReach().catch(logFailure("Couldn't update the Timeline setting"));
 	// Nothing else waits on this.
 	squareKnightTokens();
 	// A world imported before the rules text was read has it found in the rulebook it keeps.
@@ -762,11 +799,13 @@ Hooks.once("ready", async () => {
 	watchCompanySize();
 	// A Knight brought in from an older compendium, marked as the Referee's own, comes in as an NPC Knight.
 	convertImportedNpcKnights();
+	// An NPC Knight given to a player joins the Company.
+	watchHeldNpcKnights();
 	// Knights made while no GM was on get their folders now.
 	fileWaitingKnights();
 	// The written Knights' and Myths' folders, made as "Your Knights" and "Your Myths", are called Homebrew now.
-	renameOldOwnKnightsFolder().catch((error) => console.error(`${SYSTEM_ID} | Couldn't rename the Homebrew Knights folder`, error));
-	renameOldOwnMythsFolder().catch((error) => console.error(`${SYSTEM_ID} | Couldn't rename the Homebrew Myths folder`, error));
+	renameOldOwnKnightsFolder().catch(logFailure("Couldn't rename the Homebrew Knights folder"));
+	renameOldOwnMythsFolder().catch(logFailure("Couldn't rename the Homebrew Myths folder"));
 	// A Knight given to this player while they were away opens for them to choose.
 	openOfferedKnights();
 	// A Knight's table rolled again each Season, Night or Day is marked, and its player told, when that time comes.
@@ -782,19 +821,19 @@ Hooks.once("ready", async () => {
 	// A world with no rulebook takes up the one another world kept on this server, however old the world.
 	// Setup waits on the look only while a new world's welcome cards are still to post, so they don't ask
 	// for a book that's already there; after that, the hotbars and the Toolkit don't wait on the server.
-	const finding = game.users.activeGM?.isSelf ? findKeptRulebook().catch((error) => console.error(`${SYSTEM_ID} | Couldn't look for a kept rulebook`, error)) : Promise.resolve();
+	const finding = game.users.activeGM?.isSelf ? findKeptRulebook().catch(logFailure("Couldn't look for a kept rulebook")) : Promise.resolve();
 	const setup = (isSetupDone(WELCOME_CARDS_STEP) ? Promise.resolve() : finding).then(() => runWorldSetup(WORLD_SETUP));
 	// Its import runs beside the load rather than holding it up, and a failure is logged rather than thrown.
 	// A world last imported by an older Import PDF reads its book again, for what the new one reads better.
 	Promise.all([finding, setup])
 		.then(() => adoptKeptRulebook(welcomesThisWorld))
 		.then((adopted) => adopted || rereadOldImport(welcomesThisWorld))
-		.catch((error) => console.error(`${SYSTEM_ID} | Couldn't take up the kept rulebook`, error));
+		.catch(logFailure("Couldn't take up the kept rulebook"));
 	await Promise.all([
 		restoreOpenSheets(),
 		// Once every macro has its slot, the GM Toolkit (a player's Attack) is put in the first,
 		// a GM's Import PDF and End the Session in the last two, and a player's Luck Roll in the last.
-		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureAttackHotbar).then(ensurePlacesHotbar).then(ensureTimelineHotbar).then(ensureSiteHotbar)])
+		Promise.all([ensureImportMacro(), HOTBAR_MACROS.reduce((placed, ensure) => placed.then(ensure), setup)])
 			.then(ensureHotbarOrder),
 		setup.then(syncTestWorldMacro),
 		// Once world setup has decided whether this world is new, which it does by its having no Actors.
@@ -807,19 +846,8 @@ Hooks.once("ready", async () => {
 	greetGM();
 });
 
-/**
- * The Domain button on a Knight's sheet reads that Domain's name, so it
- * follows the Domain being renamed or deleted.
- * @param {Actor} actor
- */
-const refreshDomainButtons = (actor) => {
-	if (actor.type !== "domain") return;
-	for (const app of foundry.applications.instances.values()) {
-		if (app instanceof KnightSheet && app.actor.system.domain === actor.uuid) app.refreshHeaderButtons();
-	}
-};
-Hooks.on("updateActor", (actor, changes) => "name" in changes && refreshDomainButtons(actor));
-Hooks.on("deleteActor", refreshDomainButtons);
+// The Domain button on a Knight's sheet follows the Domain being renamed or deleted.
+registerDomainButtonHooks();
 
 // New Site sits in the Journal directory for GMs, and the rulebook for GMs and
 // for players the GM offers it to.
@@ -827,13 +855,13 @@ Hooks.on("renderJournalDirectory", (_directory, element) => {
 	addNewSiteButton(element);
 	addNewMythButton(element);
 	addNewKnightButton(element);
-	const canSetUp = canKeepRulebook() && !hasRulebook();
-	if (!canSetUp && !(hasRulebook() && canReadRulebook())) return;
+	// A book kept here is offered to whoever may read it; with none, to whoever may set one up.
+	if (hasRulebook() ? !canReadRulebook() : !canKeepRulebook()) return;
 	addDirectoryButton(element, {
 		className: "bastionland-rulebook",
 		icon: "fa-solid fa-book",
 		label: t("rulebook.open"),
-		onClick: () => openRulebook() ?? openRulebookSetup()
+		onClick: openRulebookOrSetup
 	});
 });
 

@@ -1,13 +1,17 @@
 import { renameHex } from "../actions/hex-names.js";
+import { keepClearOfCompany } from "./clear-of-company.js";
 import { TRAVELS_CHANGED_HOOK, forgetHexBarrierMet, forgetHexPartyNote, forgetHexTold, writePartyNote } from "../actions/hex-shared.js";
 import { forgetHexVisit } from "../actions/journey.js";
+import { THREADS_CHANGED_HOOK } from "../actions/threads.js";
 import { showHexOnMap, travelsHexDetail, travelsListContext } from "../actions/travels.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
-import { TRAVELS_SORTS, TRAVELS_VIEWS } from "../rules/travels.js";
+import { shiftHexKey } from "../rules/realm-growth.js";
+import { realmFlag } from "../rules/realm-documents.js";
+import { TRAVELS_GROUPS, TRAVELS_SORTS, TRAVELS_VIEWS } from "../rules/travels.js";
 import { chartScrollBy, haloPoints } from "../rules/travels-chart.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -58,6 +62,10 @@ function storedView() {
  * @property {string} view
  * @property {string} filter
  * @property {string} sort
+ * @property {string} group One of TRAVELS_GROUPS: the places of note by kind, or as one list.
+ * @property {string} kind What the journey is narrowed to: one of JOURNEY_KINDS, or "" for every line.
+ * @property {Record<string, boolean>} folds What was folded (true) or opened (false) by hand, by key; the rest keep to how they start.
+ * @property {Set<string>} more The keys of the lists whose cap was lifted.
  * @property {string|null} selected
  * @property {boolean} route
  * @property {boolean} charted
@@ -65,7 +73,7 @@ function storedView() {
  */
 
 /** @returns {TravelsListState} A list's state as it first opens. */
-export const travelsState = () => ({ realm: null, search: "", view: storedView(), filter: "", sort: TRAVELS_SORTS[0], selected: null, route: false, charted: false, zoom: null });
+export const travelsState = () => ({ realm: null, search: "", view: storedView(), filter: "", sort: TRAVELS_SORTS[0], group: TRAVELS_GROUPS[0], kind: "", folds: {}, more: new Set(), selected: null, route: false, charted: false, zoom: null });
 
 /**
  * @param {HTMLElement|SVGElement} target Anything standing for a hex.
@@ -127,16 +135,57 @@ function forgetJourneyLine(_event, target) {
 }
 
 /**
- * Hide what the search and the tag chosen leave out: rows of the list and
- * lines of the journey go, and hexes of the chart fade.
+ * Fold or open what a fold's button heads: a section of places, a Season or a
+ * ride. Only an attribute changes, never `hidden`, which is the filter's.
+ * @param {HTMLElement} button The fold's button, carrying its key.
+ * @param {TravelsListState} state
+ * @param {boolean} folded
+ */
+function setFold(button, state, folded) {
+	button.closest("[data-search-section]")?.toggleAttribute("data-folded", folded);
+	button.setAttribute("aria-expanded", String(!folded));
+	state.folds[button.dataset.travelsFold] = folded;
+}
+
+/**
+ * Bring a row out from under whatever keeps it from sight: every fold over it
+ * opened, and its list's cap lifted if it waits behind that.
+ * @param {TravelsListState} state
+ * @param {HTMLElement|null|undefined} row
+ */
+function revealRow(state, row) {
+	if (!row) return;
+	for (let fold = row.closest("[data-folded]"); fold; fold = fold.parentElement?.closest("[data-folded]")) {
+		const button = [...fold.querySelectorAll("[data-travels-fold]")].find((each) => each.closest("[data-search-section]") === fold);
+		if (button) setFold(button, state, false);
+		else fold.removeAttribute("data-folded");
+	}
+	const capped = row.hasAttribute("data-over") ? row.closest("[data-capped]") : null;
+	if (!capped) return;
+	capped.removeAttribute("data-capped");
+	const key = capped.parentElement?.querySelector("[data-travels-more]")?.dataset.travelsMore;
+	if (key) state.more.add(key);
+}
+
+/**
+ * Hide what the search and the filter chosen leave out: rows of the list and
+ * lines of the journey go, and hexes of the chart fade. The places and the
+ * chart are narrowed by what a hex holds, the journey by what happened.
+ * A page that's narrowed says so, and its folds open and its caps lift by
+ * themselves (the stylesheet's doing) until it's narrowed no longer.
  * @param {HTMLElement} list
  * @param {TravelsListState} state
  */
 function applyTravelsFilter(list, state) {
 	const words = searchable(state.search.trim());
 	const tag = state.filter;
-	const kept = (element) => (!words || element.dataset.search.includes(words))
-		&& (!tag || (element.dataset.tags ?? "").split(" ").includes(tag));
+	const journey = list.querySelector('[data-view="journey"]');
+	const kept = (element) => {
+		if (words && !element.dataset.search.includes(words)) return false;
+		if (journey?.contains(element)) return !state.kind || (element.dataset.kinds ?? "").split(" ").includes(state.kind);
+		return !tag || (element.dataset.tags ?? "").split(" ").includes(tag);
+	};
+	for (const page of list.querySelectorAll("[data-view]")) page.toggleAttribute("data-narrowed", Boolean(words || (page === journey ? state.kind : tag)));
 	const shown = new Set();
 	for (const element of list.querySelectorAll("[data-search]")) {
 		element.hidden = !kept(element);
@@ -158,7 +207,7 @@ function applyTravelsFilter(list, state) {
 	const page = list.querySelector(`[data-view="${state.view}"]`);
 	const found = state.view === "chart" ? shown.size : page?.querySelectorAll("[data-search]:not([hidden])").length ?? 0;
 	const none = list.querySelector(".bastionland-travels__no-match");
-	if (none) none.hidden = !(words || tag) || found > 0;
+	if (none) none.hidden = !page?.hasAttribute("data-narrowed") || found > 0;
 }
 
 /**
@@ -252,12 +301,41 @@ export function wireTravelsList(root, state, redraw) {
 			state.view = tab.dataset.travelsView;
 			for (const each of list.querySelectorAll("[data-travels-view]")) each.setAttribute("aria-pressed", String(each === tab));
 			for (const page of list.querySelectorAll("[data-view]")) page.hidden = page.dataset.view !== state.view;
+			// The journey is narrowed by its own pills, on its own page.
+			const filters = list.querySelector("[data-travels-filters]");
+			if (filters) filters.hidden = state.view === "journey";
 			game.settings.set(SYSTEM_ID, TRAVELS_VIEW_SETTING, state.view).catch(() => null);
 			apply();
 			if (state.view === "chart") {
 				state.charted = true;
 				showChartPlace(list);
 			}
+			return;
+		}
+		const fold = event.target.closest?.("[data-travels-fold]");
+		if (fold) {
+			// A narrowed page shows everything that matches, folded or not, so there's nothing to fold.
+			if (!fold.closest("[data-narrowed]")) setFold(fold, state, fold.getAttribute("aria-expanded") === "true");
+			return;
+		}
+		const more = event.target.closest?.("[data-travels-more]");
+		if (more) {
+			const key = more.dataset.travelsMore;
+			if (!state.more.delete(key)) state.more.add(key);
+			redraw();
+			return;
+		}
+		const group = event.target.closest?.("[data-travels-group]");
+		if (group) {
+			state.group = group.dataset.travelsGroup;
+			redraw();
+			return;
+		}
+		const kind = event.target.closest?.("[data-travels-kind]");
+		if (kind) {
+			state.kind = kind.dataset.travelsKind;
+			for (const each of list.querySelectorAll("[data-travels-kind]")) each.setAttribute("aria-pressed", String(each === kind));
+			apply();
 			return;
 		}
 		const filter = event.target.closest?.("[data-travels-filter]");
@@ -278,7 +356,7 @@ export function wireTravelsList(root, state, redraw) {
 
 	// Whatever stands for a hex rings it on the map while the pointer is over it, as "Show on the map" does.
 	list.addEventListener("pointerover", (event) => {
-		const holder = event.target.closest?.(".bastionland-travels__row, .bastionland-travels-chart__place, .bastionland-travels-journey__entry");
+		const holder = event.target.closest?.(".bastionland-travels__row, .bastionland-travels-chart__place, .bastionland-travels-journey__place, .bastionland-travels-journey__entry");
 		const button = holder?.matches("[data-hex]") ? holder : holder?.querySelector("[data-hex]");
 		const row = button && rowOf(button);
 		if (row) ringHoveredHex(row.scene, row.hex, holder);
@@ -425,7 +503,10 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** Bring the chosen hex into view: its row scrolled to, and on the chart, the chart moved to it rather than the Company. */
 	showChosen() {
-		this.element?.querySelector(".bastionland-travels__row.is-selected")?.scrollIntoView({ block: "nearest" });
+		const row = this.element?.querySelector(".bastionland-travels__row.is-selected");
+		// Out from under a folded section or a list's cap first.
+		revealRow(this.state, row);
+		row?.scrollIntoView({ block: "nearest" });
 		const list = this.element?.querySelector(".bastionland-travels");
 		if (list && this.state.view === "chart") showChartPlace(list, this.state.selected);
 	}
@@ -486,11 +567,13 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/**
 	 * Draw again when anything the Company knows of the Realm changes, or a GM
-	 * comes or goes, which decides whether the note can be written.
+	 * comes or goes, which decides whether the note can be written. Opening
+	 * over the Company's Token, it moves aside from it.
 	 * @override
 	 */
 	_onFirstRender(context, options) {
 		super._onFirstRender(context, options);
+		keepClearOfCompany(this);
 		const redraw = (sceneId) => {
 			if (!sceneId || sceneId === this.state.realm) renderWhenIdle(this);
 		};
@@ -503,6 +586,8 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 				renderWhenIdle(this);
 			})]
 		];
+		// What's left open in the hex shown, changed here, in the Toolkit or by another Referee: the GM's alone to see.
+		if (game.user?.isGM) this.#hooks.push([THREADS_CHANGED_HOOK, Hooks.on(THREADS_CHANGED_HOOK, () => redraw(null))]);
 	}
 
 	/** @override */
@@ -591,4 +676,19 @@ export function reopenablePlaces() {
 export function refreshPlaces(sceneId) {
 	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
 	if (app?.rendered && app.state.realm === sceneId) renderWhenIdle(app);
+}
+
+/**
+ * Keep the hex chosen in Places chosen after a Realm's hexes moved, as an
+ * expansion to the north or west moves them.
+ * @param {string} sceneId
+ * @param {{cols: number, rows: number}} offset
+ */
+export function followMovedPlaces(sceneId, offset) {
+	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
+	if (!app || app.state.realm !== sceneId) return;
+	// A hex of land taken away again, as a Realm put back from its backup takes it, is chosen no longer.
+	const realm = realmFlag(game.scenes?.get(sceneId));
+	app.state.selected = realm ? shiftHexKey(app.state.selected ?? "", offset, realm) : null;
+	if (app.rendered) renderWhenIdle(app);
 }

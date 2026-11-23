@@ -5,6 +5,8 @@
  * Pure, so it can be tested without Foundry.
  */
 
+import { hardshipForAnybody } from "./time.js";
+
 /**
  * How the Company spent a Phase: on the move (travelling or exploring),
  * sleeping outdoors, or indoors as guests. Wording lives under
@@ -49,12 +51,15 @@ export function wildernessDue({ calls, mode, atBarrier = false }) {
 /**
  * Whether the Phase's end window ticks the Wilderness Roll to start with: when
  * it's due, except a Myth's Omen that showed already as the Company came into
- * its hex this Phase, which isn't shown again as the Phase ends (p27).
+ * its hex this Phase, which isn't shown again as the Phase ends (p27), and a
+ * roll the Referee already made for this hex this Phase, which was the Phase's
+ * roll. A Phase wasted at a Barrier still causes one of its own (p18).
  * @param {object} args As wildernessDue takes, and:
- * @param {boolean} [args.omenShown] The Omen of the Myth in this hex showed on entering.
+ * @param {boolean} [args.omenShown] This hex's Omen showed, or its roll was made, earlier this Phase.
  * @returns {boolean}
  */
-export const wildernessTicked = ({ omenShown = false, ...due }) => wildernessDue(due) && !(due.calls === "omen" && omenShown);
+export const wildernessTicked = ({ omenShown = false, ...due }) =>
+	wildernessDue(due) && !(omenShown && (due.calls === "omen" || (due.calls === "roll" && !due.atBarrier)));
 
 /**
  * What one of the Company loses as Morning comes, by the HARDSHIPS of rules/time.js
@@ -62,6 +67,8 @@ export const wildernessTicked = ({ omenShown = false, ...due }) => wildernessDue
  * a Winter night camped out or on the road, d6 CLA without proper sleep, and
  * d6 VIG where essential needs were deprived. Travelling through the Night
  * leaves no time for sleep, and dire weather lets nobody outdoors sleep properly.
+ * A Knight's steed or follower suffers only what the book deals to anybody:
+ * Winter's cold and lost sleep, never the Company's own Night SPI or want of supplies.
  * @param {object} night
  * @param {string} night.mode How the Company spent the Night, one of PHASE_END_MODES.
  * @param {boolean} [night.winter]
@@ -69,14 +76,15 @@ export const wildernessTicked = ({ omenShown = false, ...due }) => wildernessDue
  * @param {object} [member]
  * @param {boolean} [member.noSleep] Kept from proper sleep otherwise, as by a hostile Omen.
  * @param {boolean} [member.deprived] Deprived of essential needs.
+ * @param {boolean} [member.companion] A Knight's steed or follower rather than one of the Company.
  * @returns {string[]} HARDSHIPS keys, each a d6 to roll.
  */
-export function morningHardships({ mode, winter = false, dire = false }, { noSleep = false, deprived = false } = {}) {
+export function morningHardships({ mode, winter = false, dire = false }, { noSleep = false, deprived = false, companion = false } = {}) {
 	const outdoors = mode !== "indoors";
 	const kinds = [];
 	if (mode === "travel") kinds.push("night");
 	if (winter && outdoors) kinds.push("winter");
 	if (noSleep || mode === "travel" || (dire && outdoors)) kinds.push("sleep");
 	if (deprived) kinds.push("supplies");
-	return kinds;
+	return companion ? kinds.filter(hardshipForAnybody) : kinds;
 }

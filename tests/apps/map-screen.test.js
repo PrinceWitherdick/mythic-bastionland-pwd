@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { forgetNavigationFloor, hotbarFloor, navigationFloor, panelScreen } from "../../module/apps/map-screen.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { followMap, forgetNavigationFloor, hotbarFloor, navigationFloor, panelScreen } from "../../module/apps/map-screen.js";
 
 /**
  * The parts of Foundry's interface the panels held at the sides of the screen
@@ -104,11 +104,47 @@ describe("panelScreen", () => {
 		forgetNavigationFloor();
 		expect(panelScreen()).toEqual({ left: 384, top: 216, right: 1536, bottom: 864 });
 	});
+
+	it("measures once for everything placed in the same frame, and afresh on the next", async () => {
+		expect(panelScreen().right).toBe(1600);
+		parts.sidebar = { left: 1700, right: 1920, width: 220, height: 900 };
+		expect(panelScreen().right).toBe(1600);
+		await Promise.resolve();
+		expect(panelScreen().right).toBe(1700);
+	});
 });
 
 describe("hotbarFloor", () => {
 	it("leaves the foot of the window where the hotbar is hidden away", () => {
 		parts.hotbar = { top: 1000, bottom: 1060, width: 700, height: 0 };
 		expect(hotbarFloor()).toBe(1080);
+	});
+});
+
+describe("followMap", () => {
+	afterEach(() => {
+		for (const key of ["canvas", "Hooks"]) delete globalThis[key];
+	});
+
+	it("places again when the Scene's map grows under a view that stayed put, and not on a frame where nothing moved", () => {
+		let tick;
+		const sceneRect = { x: 100, y: 100, width: 1000, height: 800 };
+		globalThis.Hooks = { on: vi.fn(() => 1), off: vi.fn() };
+		globalThis.canvas = {
+			stage: { pivot: { x: 0, y: 0 }, scale: { x: 1 }, position: { x: 0, y: 0 } },
+			dimensions: { sceneRect },
+			app: { ticker: { add: (fn) => { tick = fn; }, remove: vi.fn() } }
+		};
+		const place = vi.fn();
+		const stop = followMap(place);
+		tick();
+		expect(place).toHaveBeenCalledTimes(1);
+		tick();
+		expect(place).toHaveBeenCalledTimes(1);
+		canvas.dimensions = { sceneRect: { ...sceneRect, height: 1200 } };
+		tick();
+		expect(place).toHaveBeenCalledTimes(2);
+		stop();
+		expect(canvas.app.ticker.remove).toHaveBeenCalledWith(tick);
 	});
 });

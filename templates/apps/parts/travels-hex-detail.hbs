@@ -29,6 +29,10 @@
 		{{#if gm}}{{#unless gm.visited}}
 		<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>
 		{{/unless}}
+		{{!-- The Fog of War over this hex, while the Realm has it on: lifted, or let back. --}}
+		{{#with gm.fog}}
+		<button type="button" class="bastionland-travels-hex__fog" data-action="toggleFog" data-tooltip="{{#if fogged}}{{localize "bastionland.realmFog.liftHint"}}{{else}}{{localize "bastionland.realmFog.veilHint"}}{{/if}}"><i class="fa-solid {{#if fogged}}fa-sun{{else}}fa-cloud{{/if}}" inert></i> {{#if fogged}}{{localize "bastionland.realmFog.lift"}}{{else}}{{localize "bastionland.realmFog.veil"}}{{/if}}</button>
+		{{/with}}
 		{{!-- Opens a dialog to forget every visit here, or everything kept here (hex-forget.js). One visit goes by its × on the Journey page. --}}
 		{{#with gm.forget}}
 		<span class="bastionland-travels-hex__forget">

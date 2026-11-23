@@ -11,6 +11,7 @@ import { keptFromMe } from "./solo.js";
 import { directionName } from "./told-where.js";
 import { landmarkLabelKey } from "../rules/landmarks.js";
 import { getCalendar } from "./calendar.js";
+import { hexNumbering, hexPointWords } from "../rules/hex-numbers.js";
 
 /**
  * Seen from afar (p183, p197, p199): the Referee marks on the players' map
@@ -69,16 +70,17 @@ export async function writeSightings(scene, { set = {}, drop = [] }) {
 /**
  * @param {object} g
  * @param {{direction: number, hex: object, landmark: object|null, holding: object|null}} step
+ * @param {unknown} [numbering] How the Realm's hexes are numbered (hexNumbering).
  * @returns {string} A hex seen from afar, as the Referee's window names it: which way, where, and what stands there.
  */
-function sightingLabel(g, { direction, hex, landmark, holding }) {
+function sightingLabel(g, { direction, hex, landmark, holding }, numbering = null) {
 	const what = [
 		landmark && [t(landmarkLabelKey(landmark)), landmark.name].filter(Boolean).join(": "),
 		holding && holdingName(holding, t)
 	].filter(Boolean).join(", ");
 	return t("seenFromAfar.row", {
 		direction: directionName(g, direction),
-		hex: t("realm.readout.coordinates", hex),
+		hex: hexPointWords(hex, numbering, t),
 		// Played alone, the Referee makes out no more than the Company does.
 		what: keptFromMe() ? t("solo.somethingThere") : t("realm.readout.hidden", { name: what })
 	});
@@ -113,9 +115,9 @@ export async function offerSightings({ scene, realm, g, where }) {
 			maxLength: MAX_SIGHTED_NOTE,
 			hexes: seen.map((step, index) => ({
 				index,
-				label: sightingLabel(g, step),
+				label: sightingLabel(g, step, hexNumbering(scene)),
 				note: sightedAt(sighted, step.hex)?.note ?? "",
-				noteLabel: t("seenFromAfar.noteLabel", { hex: t("realm.readout.coordinates", step.hex) })
+				noteLabel: t("seenFromAfar.noteLabel", { hex: hexPointWords(step.hex, hexNumbering(scene), t) })
 			}))
 		},
 		ok: { label: t("seenFromAfar.ok"), icon: "fa-solid fa-map-location-dot" }

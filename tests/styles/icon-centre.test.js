@@ -6,7 +6,7 @@ import { split } from "../mocks/css.js";
 
 const root = join(import.meta.dirname, "..", "..");
 const sheets = Object.fromEntries(
-	["mythic-bastionland.css", "chat.css", "gm-toolkit.css", "timeline.css"].map((name) => [
+	["mythic-bastionland.css", "chat.css", "gm-toolkit.css", "timeline.css", "core-windows.css"].map((name) => [
 		name,
 		readFileSync(join(root, "styles", name), "utf8")
 	])
@@ -23,6 +23,8 @@ const REM = 16;
  */
 const BADGES = [
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-icon" },
+	// The Places rows' marks for a telling and a note.
+	{ sheet: "mythic-bastionland.css", selector: ".bastionland-travels__mark" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page .bastionland-knighthood-help" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page .bastionland-heraldry-painter__arms-counterchange" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-site__step-number" },
@@ -213,6 +215,53 @@ describe("centring the letters", () => {
 	});
 
 	/*
+	 * The Time page's "This Season: Harvest" is a heading, so all capitals, with
+	 * the Season's leaf beside it at 0.75em: the leaf rises by the heading's
+	 * 0.125em, 0.1667em of its own size. Measured offline by ink
+	 * (probe-season-heading.mjs: 3.1–3.7px low before, ≤1px after, 2026-11-18).
+	 */
+	it("raises the Season's leaf to the middle of its heading's capitals", () => {
+		expect(rule("mythic-bastionland.css", ".bastionland-heading")["text-transform"]).toBe("uppercase");
+		const leaf = ".bastionland-gm-toolkit__section.bastionland-gm-toolkit__season > .bastionland-heading i";
+		expect(css).toMatch(new RegExp(`${leaf.replace(/[.>]/g, "\\$&")},[^{]*\\{[^}]*font-size: 0\\.75em;`));
+		expect(rule("gm-toolkit.css", leaf)).toEqual({ position: "relative", top: "-0.1667em" });
+		expect(readFileSync(join(root, "templates/actor/gm-toolkit/time.hbs"), "utf8")).toContain('<h2 class="bastionland-heading"><i class="{{thisSeason.icon}}" inert></i> {{thisSeason.label}}</h2>');
+	});
+
+	/*
+	 * The Places window's folding heads are headings, so all capitals, with a
+	 * chevron before the words and a count after them in the body face: both rise
+	 * to the capitals' middle, the same at either heading size. A ride's chevron,
+	 * in a disc taller than a line of its words, is centred on their first line,
+	 * and a row's title line opens with a strut as tall as the corner beside it,
+	 * so the two share a middle when the terrain wraps under the title. Measured
+	 * offline with render-tame.mjs's probe at 1×, 1.25× and 1.5× (2026-11-22):
+	 * chevrons and head counts ≤0.2px, a filter pill's count 0.5px, a ride's
+	 * chevron 0.2px, the corner against the title 0.3px; before, heads sat 0.6
+	 * to 1.8px low, the ride's chevron 2.5px and a wrapped row's corner 4.9px.
+	 */
+	it("raises a folding head's chevron and count to its capitals, and centres a ride's chevron on its first line", () => {
+		const fold = rule("mythic-bastionland.css", ".bastionland-page .bastionland-travels__fold");
+		expect(fold).toMatchObject({ display: "inline-flex", "align-items": "center", "text-transform": "inherit" });
+		expect(rule("mythic-bastionland.css", ".bastionland-travels__fold > i")).toMatchObject({ position: "relative", top: "-0.21rem", "font-size": "0.7rem" });
+		expect(rule("mythic-bastionland.css", ".bastionland-travels__fold > .bastionland-travels__count")).toMatchObject({ position: "relative", top: "-0.24rem", "font-family": "var(--bastionland-font-body)" });
+		// A filter pill's count is plain words inside the pill's block, moved by nothing.
+		const count = rule("mythic-bastionland.css", ".bastionland-travels__count");
+		expect(Object.keys(count).filter((name) => /^(display|line-height|padding|vertical-align|top|translate|transform|position)/.test(name))).toEqual([]);
+		const ride = rule("mythic-bastionland.css", ".bastionland-travels-journey__ride");
+		expect(ride).toMatchObject({ "font-size": "var(--bastionland-font-text)", "line-height": "1.3" });
+		expect(rule("mythic-bastionland.css", ".bastionland-page .bastionland-travels-journey__unfold")).toMatchObject({
+			"align-self": "start",
+			height: "1.5rem",
+			"margin-block": `calc((${ride["line-height"]} * ${ride["font-size"]} - 1.5rem) / 2)`
+		});
+		expect(rule("mythic-bastionland.css", ".bastionland-travels__open > .bastionland-travels__head::before").height)
+			.toBe(rule("mythic-bastionland.css", ".bastionland-travels__corner")["min-height"]);
+		const list = readFileSync(join(root, "templates/apps/parts/travels-list.hbs"), "utf8");
+		expect(list).toContain('<i class="fa-solid fa-chevron-right" inert></i>\n\t\t<span>{{heading}}</span>\n\t\t{{#if count}}<span class="bastionland-travels__count">{{count}}</span>{{/if}}');
+	});
+
+	/*
 	 * Icon-plus-label rows in the Caps face whose labels are mostly small
 	 * capitals, so they centre on its line box as it stands: the welcome
 	 * window's places (centred, not on the baseline) and the written Knight's
@@ -343,6 +392,36 @@ describe("centring the letters", () => {
 			// The caps and body faces are IM Fell, whose line box is centred on its capitals (above).
 			if (font) expect(["var(--bastionland-font-caps)", "var(--bastionland-font-body)"]).toContain(font);
 		}
+	});
+
+	/*
+	 * A button that grows with its label, centring an icon and words in the
+	 * caps face: at line height 1.15 Chrome set the words 1–2px above their
+	 * small-capitals middle at every zoom (seen on Bring the fog back
+	 * everywhere's Yes and No). At 1.2 they sit on it, within half a pixel, at
+	 * 1×, 1.25× and 1.5×: probe-button-ink.mjs and probe-jitter.mjs in the
+	 * offline gallery (fixture/delete-confirm, fixture/roll-resolver,
+	 * else/apps/travels-places.hbs, dialogs/realm-expand.hbs), 2026-11-22.
+	 */
+	it.each([
+		["chat.css", ".bastionland-dialog .form-footer button"],
+		["core-windows.css", ".mythic-bastionland-roll-resolver .form-footer button"],
+		["mythic-bastionland.css", ".bastionland-hex-lore__row button"],
+		["mythic-bastionland.css", ".bastionland-hex-lore__grid > button"],
+		["mythic-bastionland.css", ".bastionland-expand .bastionland-expand__restore"]
+	])("keeps %s's %s at line height 1.2, its words on their small capitals", (sheet, selector) => {
+		expect(rule(sheet, selector)["line-height"]).toBe("1.2");
+	});
+
+	/*
+	 * Came to pass's tick sits on the line, at its capitals' middle, 2px above
+	 * the small capitals; it drops by what a small-caps pill's icon does: half
+	 * IM Fell SC's capital less its small capital, (0.6875em − 0.4375em) / 2.
+	 */
+	it("drops Came to pass's tick to the small capitals' middle", () => {
+		const icon = rule("mythic-bastionland.css", ".bastionland-season-events__mark > i");
+		expect(icon.position).toBe("relative");
+		expect(icon.top).toBe("0.125em");
 	});
 
 	it("centres a radio or tick box on the first line of a two-line choice, with no fixed nudge", () => {
@@ -477,9 +556,67 @@ describe("centring the letters", () => {
 		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
 	});
 
+	/*
+	 * A Cast member on the Toolkit's Myths page carries a pawn, which brings them
+	 * into the fight, beside the × that takes them out of the Cast. The pawn is
+	 * drawn by the ×'s rules and nothing else, so it sits where the × does.
+	 */
+	it("draws a Cast member's pawn by the same rules as their ×, and moves it by none of its own", () => {
+		const chip = readFileSync(join(root, "templates/actor/gm-toolkit/cast-actor.hbs"), "utf8");
+		expect(chip).toMatch(/<button type="button" class="bastionland-gm-toolkit__cast-bring" data-action="bringCastActor"[^>]*><i class="[^"]+" inert><\/i><\/button>/);
+		expect(rule("gm-toolkit.css", ".bastionland-gm-toolkit__cast-actor")["align-items"]).toBe("center");
+		// Their shared rules name both in one :is(), so any mention of the class counts.
+		const naming = (name) => rules.filter(({ selectors }) => selectors.some((selector) => new RegExp(`\\.${name}(?![\\w-])`).test(selector)));
+		const [bring, drop] = ["bastionland-gm-toolkit__cast-bring", "bastionland-gm-toolkit__cast-drop"].map(naming);
+		expect(bring.length).toBeGreaterThan(0);
+		expect(bring.map(({ body }) => body.trim())).toEqual(drop.map(({ body }) => body.trim()));
+	});
+
+	/*
+	 * The Toolkit's Sites page had its own Journal and Open the Site buttons,
+	 * whose own line height and padding left their words off the middle in
+	 * Foundry. They are the sheet's button now, held at their label's width
+	 * beside the Site's line, and move their words by nothing of their own.
+	 */
+	it("draws a Site's Journal and Open the Site buttons as the sheet's own button", () => {
+		const places = readFileSync(join(root, "templates/actor/gm-toolkit/places.hbs"), "utf8");
+		const buttons = [...places.matchAll(/<button [^>]*bastionland-gm-toolkit__site-open[^>]*>/g)].map(([tag]) => tag);
+		expect(buttons).toHaveLength(2);
+		for (const tag of buttons) expect(tag).toMatch(/class="bastionland-button bastionland-gm-toolkit__site-open"/);
+		expect(rule("gm-toolkit.css", ".bastionland-page .bastionland-gm-toolkit__site-open")).toEqual({ flex: "none" });
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => selector.includes("bastionland-gm-toolkit__site-open")));
+		const moved = own.filter(({ body }) => /(^|;|\s)(display|height|min-height|line-height|padding|padding-(top|bottom|block)|align-items|vertical-align):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
+	// A Chronicle's or notes' words stand as far from the frame above as at the sides.
+	it("insets the words of rich text on a sheet alike at the top and the sides", () => {
+		expect(rule("mythic-bastionland.css", ".bastionland-page prose-mirror").padding).toBe("0");
+		expect(rule("mythic-bastionland.css", ".bastionland-page .editor-content > :first-child")).toEqual({ "margin-top": "0" });
+		expect(rule("mythic-bastionland.css", ".bastionland-page .editor-content > :last-child")).toEqual({ "margin-bottom": "0" });
+		const shared = rule("mythic-bastionland.css", ".bastionland-page prose-mirror,\n.bastionland-page .editor-content");
+		expect(shared.padding.split(/\s+/)).toHaveLength(1);
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");
 		expect(rule("mythic-bastionland.css", ".bastionland-page .bastionland-domain__footer .bastionland-button").flex).toMatch(/^0 0 /);
+	});
+
+	/*
+	 * The Fog of War's buttons, in its window, beside a hex's visits and on the
+	 * vantage card, and the tick box after Tell the players, were measured offline
+	 * (mythic-fog/render.mjs: 0 to 0.7px at 1x, 1.25x and 1.5x, 2026-11-22) as the
+	 * shared button and row draw them. The window's three, raised to a sheet button's
+	 * 2.1rem through --button-size, measured 0px at all three the same day. None may
+	 * move its words off what was measured.
+	 */
+	it("draws the Fog of War's buttons by the shared rules, and its tick box on its words' middle with no nudge", () => {
+		const own = rules.filter(({ selectors }) => selectors.some((selector) => /bastionland-(realm-fog__tools|travels-hex__fog)/.test(selector)));
+		const moved = own.filter(({ body }) => /(^|;|\s)(height|min-height|line-height|padding|padding-(top|bottom|block)|align-items|vertical-align|top|transform):/.test(body));
+		expect(moved.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+		expect(rule("mythic-bastionland.css", ".bastionland-hex-lore__told-lift")["align-items"]).toBe("center");
+		expect(rule("mythic-bastionland.css", ".bastionland-hex-lore__told-lift > input")).toEqual({ flex: "none", margin: "0" });
 	});
 });

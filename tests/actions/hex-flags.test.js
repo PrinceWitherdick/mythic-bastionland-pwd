@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../module/actions/realm.js", () => ({ isRealmScene: (scene) => Boolean(scene?.realm) }));
+vi.mock("../../module/actions/realm.js", () => ({ isRealmScene: (scene) => Boolean(scene?.realm), expansionUnderWay: (scene) => scene?.expanding ?? null }));
+vi.mock("../../module/chat/cards.js", () => ({ warn: vi.fn() }));
 
 const { hexFlagEditor } = await import("../../module/actions/hex-flags.js");
 const { SYSTEM_ID } = await import("../../module/system-id.js");
+const { warn } = await import("../../module/chat/cards.js");
 
 class ForcedDeletion {}
 const ForcedReplacement = { create: (value) => ({ replaced: value }) };
@@ -16,6 +18,8 @@ const edit = hexFlagEditor({ flag: "notes", version: 2, read: () => kept, beside
 beforeEach(() => {
 	kept = { version: 2, next: 1, hexes: { "1,1": { note: "A ford", sparks: [] }, "2,2": { note: "A tower" } } };
 	scene.update.mockClear();
+	delete scene.expanding;
+	warn.mockClear();
 	globalThis.game = { user: { isGM: true } };
 	globalThis.foundry = { data: { operators: { ForcedDeletion, ForcedReplacement } } };
 });
@@ -44,5 +48,27 @@ describe("hexFlagEditor", () => {
 		game.user.isGM = false;
 		await expect(edit(scene, () => ({ hexes: {} }))).resolves.toBe(false);
 		expect(scene.update).not.toHaveBeenCalled();
+	});
+
+	it("writes nothing while the Realm's map is being expanded, the Referee told so", async () => {
+		scene.expanding = { version: 1 };
+		await expect(edit(scene, () => ({ hexes: {} }))).resolves.toBe(false);
+		expect(warn).toHaveBeenCalledWith("realm.hexesExpanding");
+		expect(scene.update).not.toHaveBeenCalled();
+	});
+
+	it("writes nothing where an expansion began while the write waited its turn", async () => {
+		let release;
+		// A first write that waits on the server, during which the expansion's mark lands.
+		scene.update.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+		const first = edit(scene, (before) => ({ ...before, hexes: { ...before.hexes, "3,3": { note: "A well" } } }));
+		const second = edit(scene, (before) => ({ ...before, hexes: { ...before.hexes, "4,4": { note: "A mill" } } }));
+		await vi.waitFor(() => expect(scene.update).toHaveBeenCalledTimes(1));
+		scene.expanding = { version: 1 };
+		release();
+		await expect(first).resolves.toBe(true);
+		await expect(second).resolves.toBe(false);
+		expect(scene.update).toHaveBeenCalledTimes(1);
+		expect(warn).toHaveBeenCalledWith("realm.hexesExpanding");
 	});
 });

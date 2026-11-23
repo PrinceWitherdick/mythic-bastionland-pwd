@@ -2,12 +2,14 @@ import {
 	REALM_HISTORY_HOOK,
 	REALM_LOOK_FLAG,
 	REALM_LOOK_HOOK,
+	EXPANDED_OPTION,
 	forgetRealm,
 	forgetRealmHistory,
 	getRealm,
 	isDrawingRealm,
 	isRealmScene,
 	realmWritesSettled,
+	resumeExpansion,
 	syncRealmScene
 } from "../actions/realm.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
@@ -17,6 +19,7 @@ import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
 import { JOURNEY_FLAG } from "../actions/journey.js";
+import { REALM_FOG_FLAG, forgetRealmFog, realmFogOn } from "../actions/realm-fog.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
@@ -25,9 +28,10 @@ import { refreshSeerChooser } from "../apps/SeerChooser.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
-import { refreshHexEditor } from "../apps/HexEditor.js";
-import { refreshPlaces, registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
+import { followMovedHexes, refreshHexEditor } from "../apps/HexEditor.js";
+import { followMovedPlaces, refreshPlaces, registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
 import { registerVisitedMarksMenu } from "../apps/VisitedMarks.js";
+import { refreshRealmFog } from "../apps/RealmFog.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { registerTurnedBackQuery } from "./barrier-found.js";
@@ -36,6 +40,7 @@ import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
 import { drawHoldingArms, drawHoldingArmsSoon, registerHoldingArmsHooks } from "./holding-arms.js";
+import { clearRealmFog, drawRealmFog, refreshFoggedPlaceables } from "./realm-fog.js";
 import { registerTravelsClick } from "./travels-click.js";
 import { refreshTravelsButtons } from "./travels-controls.js";
 import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.js";
@@ -80,9 +85,23 @@ function showChanges() {
 			// What the Company saw from afar, which the Realm's Tiles or the Scene's marks may have changed,
 			// and where it has been, which only its Journey changes.
 			if (kind === "realm" || flags.has(SIGHTED_FLAG)) drawSightedMarks();
-			if (kind === "realm" || flags.has(JOURNEY_FLAG)) drawVisitedMarks();
+			// The Fog of War, which the Company's arrivals clear. A move that clears no hex leaves it as it was,
+			// and what it hides with it: who stands in its hexes, the marks of where it has been, and the arms.
+			const fogFlag = flags.has(REALM_FOG_FLAG);
+			const journey = flags.has(JOURNEY_FLAG);
+			const fogMoved = (kind === "realm" || fogFlag || journey) && drawRealmFog();
+			const hiding = kind === "realm" || fogFlag || fogMoved;
+			// Whether the Holdings show through it: nothing to do on a Realm whose fog is off and stays so.
+			// The Tokens only where the fog itself changed; a Holding may have moved into or out of it on any edit.
+			if (hiding && (fogFlag || realmFogOn(canvas.scene))) refreshFoggedPlaceables({ tokens: fogFlag || fogMoved });
+			// Its window, and its brush among the Realm tools, which comes and goes as it's turned on and off.
+			if (fogFlag) {
+				refreshRealmFog(sceneId);
+				canvas.realm?.constructor.refreshFogTool();
+			}
+			if (hiding || journey) drawVisitedMarks();
 			// The arms each Holding flies, which a Holding moved, hidden, faded, renamed or granted changes.
-			if (kind === "realm") drawHoldingArmsSoon();
+			if (hiding) drawHoldingArmsSoon();
 		}
 	}
 	changedScenes.clear();
@@ -187,9 +206,12 @@ export function registerRealmHooks() {
 	};
 	for (const name of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(name, onOwnMyth);
 	Hooks.on("updateScene", (scene, changes) => {
+		const { realm, system, hexFlags: written } = realmSceneChanges(changes);
+		// The hexes in the fog are read again after a change to what they're read from: the Realm and its size,
+		// its fog, its visits. Not after its weather, say, or a hex's notes.
+		if (realm || written.has(REALM_FOG_FLAG) || written.has(JOURNEY_FLAG)) forgetRealmFog(scene.id);
 		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
 		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").
-		const { realm, system, hexFlags: written } = realmSceneChanges(changes);
 		if (!isRealmScene(scene) && !system) return;
 		// Most writes are what's kept for its hexes -- the Company's visits, a hex's notes or name --
 		// which leave the Realm as it was read, and the weather, which no Realm window shows.
@@ -201,8 +223,14 @@ export function registerRealmHooks() {
 		// A Realm finished drawing swaps its rules back to Travel and Exploration, on every client.
 		if (scene.id === canvas?.scene?.id && foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`)) showRealmRules();
 	});
+	// An expansion moves every hex along the page: each client keeps looking at the land it was, and its windows on their hexes.
+	Hooks.on("updateScene", (scene, changes, options) => {
+		const moved = options?.[SYSTEM_ID]?.[EXPANDED_OPTION];
+		if (moved) followExpansion(scene, moved, { redrawn: ["width", "height", "grid"].some((key) => key in (changes ?? {})) });
+	});
 	Hooks.on("deleteScene", (scene) => {
 		forgetRealm(scene.id);
+		forgetRealmFog(scene.id);
 		forgetRealmHistory(scene.id);
 		forgetHexArrivals(scene.id);
 	});
@@ -221,6 +249,13 @@ export function registerRealmHooks() {
 		if (!sceneId) return;
 		refreshRealmPanel(sceneId);
 		refreshRealmDrawing(sceneId);
+		// The fog is the paper's own colour. Drawn here first, in the write that also moved the Company,
+		// the cover shows the hexes its Journey cleared, and the change shown later finds nothing new:
+		// what the fog hides is refreshed here instead.
+		if (sceneId === canvas?.scene?.id && drawRealmFog()) {
+			refreshFoggedPlaceables();
+			drawHoldingArmsSoon();
+		}
 	});
 
 	// The hex readout, and Travel and Exploration beside the map. The rules stay
@@ -232,21 +267,29 @@ export function registerRealmHooks() {
 	// `canvasReady` is what clears the rules away with the last Scene.
 	Hooks.on("canvasReady", () => {
 		attachHexReadout();
+		drawRealmFog();
 		drawSightedMarks();
 		drawVisitedMarks();
 		drawHoldingArms();
 		// Their show-or-hide and the Places window, beside the sidebar.
 		refreshTravelsButtons();
+		// The Fog of War window works on the Realm on the canvas.
+		refreshRealmFog();
 		showRealmRules();
 		// Where the Company got to while the GM was looking at another Scene.
 		offerWaitingArrival();
 		// And, for a Realm with no Company on it, the button that hands the Referee one.
 		showCompanyButton();
-		// Put right anything that drifted on the Scene's own layers, quietly: it writes nothing on a Realm in order.
-		syncRealmScene(canvas?.scene).catch((error) => console.error(`${SYSTEM_ID} | Couldn't put the Realm Scene back in order`, error));
+		// An expansion cut short, as by a browser closed part way, is finished first; then anything that drifted
+		// on the Scene's own layers is put right, quietly: it writes nothing on a Realm in order.
+		const scene = canvas?.scene;
+		resumeExpansion(scene)
+			.then(() => syncRealmScene(scene))
+			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't put the Realm Scene back in order`, error));
 	});
 	Hooks.on("canvasTearDown", () => {
 		detachHexReadout();
+		clearRealmFog();
 		setTimeout(() => {
 			if (!isRealmScene(canvas?.scene)) {
 				closeTravelRules();
@@ -255,5 +298,26 @@ export function registerRealmHooks() {
 				refreshTravelsButtons();
 			}
 		}, 0);
+	});
+}
+
+/**
+ * Follow an expansion on this client: the view panned by as far as the hexes
+ * moved, once the canvas is drawn again at its new size, and the windows
+ * open on a hex kept on it.
+ * @param {Scene} scene
+ * @param {{dx: number, dy: number, cols: number, rows: number}} moved
+ * @param {{redrawn: boolean}} options Whether the update changed the Scene's size or grid, which draws the
+ *   canvas again; one that didn't leaves no redraw to wait for, so the view stays as it is.
+ */
+function followExpansion(scene, moved, { redrawn }) {
+	followMovedHexes(scene.id, moved);
+	followMovedPlaces(scene.id, moved);
+	if (!redrawn || scene.id !== canvas?.scene?.id || !canvas.stage) return;
+	// Where this client was looking, before the redraw the new size sets off resets it.
+	const { x, y } = canvas.stage.pivot;
+	const scale = canvas.stage.scale.x;
+	Hooks.once("canvasReady", () => {
+		if (canvas.scene?.id === scene.id) canvas.pan({ x: x + moved.dx, y: y + moved.dy, scale });
 	});
 }

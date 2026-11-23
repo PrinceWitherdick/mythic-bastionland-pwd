@@ -7,7 +7,7 @@ import { armourCounts, armourWorn, displacedArmour, SITUATION_CONDITIONS } from 
 import { countAfter, isAtHand, isCounted, isUsedUp } from "../rules/restock.js";
 import { comparePropertyPlace, samePropertyPlace } from "../rules/property-tab.js";
 import { splitName } from "../rules/text.js";
-import { indulgePassion, rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
+import { indulgePassion, rest, restoreFromSheet, useRemedy } from "../actions/recovery.js";
 import { addAbilityDie, combatantOf, dropLastingDie, lastingDiceOf, lastingDieLabel } from "../actions/lasting-dice.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
@@ -30,6 +30,8 @@ import { inEffect } from "../rules/stances.js";
 import { isMoraleBreak } from "../rules/morale.js";
 import { clearMoraleBreak } from "../chat/morale-card.js";
 import { canBrowseFiles } from "../book-art/files.js";
+import { handOver, isHandOver, ownPowerDropped } from "../actions/hand-over.js";
+import { keepClearOfCompany } from "../apps/clear-of-company.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -274,11 +276,13 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 
 	/**
 	 * Follow the fights this actor is in: their dice for the fight show among
-	 * their conditions, and an Ability's die is offered only during one.
+	 * their conditions, and an Ability's die is offered only during one. A
+	 * sheet opening over the Company's Token moves aside from it.
 	 * @override
 	 */
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
+		keepClearOfCompany(this);
 		const theirs = (combatant) => combatant.actor?.uuid === this.actor.uuid;
 		this._watchHooks(["createCombatant", "deleteCombatant"], (combatant) => {
 			if (theirs(combatant)) renderWhenIdle(this);
@@ -384,6 +388,28 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			return;
 		}
 		return super._onSortItem(event, item);
+	}
+
+	/**
+	 * Anybody who can see a sheet may drop a possession on it, to hand it over;
+	 * anything else dropped still needs a sheet they can change.
+	 * @override
+	 */
+	_canDragDrop(selector) {
+		return super._canDragDrop(selector) || this.actor.testUserPermission(game.user, "LIMITED");
+	}
+
+	/**
+	 * A possession dropped from another character's sheet is handed over: it
+	 * leaves them, rather than being copied, and a weapon another's Ability
+	 * gives them stays theirs (see actions/hand-over.js).
+	 * @override
+	 */
+	async _onDropDocument(event, document) {
+		if (document?.documentName === "Item" && ownPowerDropped(document, this.actor)) return null;
+		if (document?.documentName === "Item" && isHandOver(document, this.actor)) return handOver(document, this.actor);
+		if (!this.isEditable) return null;
+		return super._onDropDocument(event, document);
 	}
 
 	/**
@@ -508,7 +534,7 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 
 	/** @this {BastionlandActorSheet} */
 	static #onRestore(_event, target) {
-		return restoreVirtue(this.actor, target.dataset.virtue);
+		return restoreFromSheet(this.actor, target.dataset.virtue);
 	}
 
 	/** @this {BastionlandActorSheet} */

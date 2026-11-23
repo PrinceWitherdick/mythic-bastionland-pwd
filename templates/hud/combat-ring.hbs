@@ -1,0 +1,21 @@
+{{!-- The combat buttons round a Token (module/canvas/combat-ring.js): Attack, Take Damage and Morale on its
+      left, its Saves on its right, in the two columns Foundry's Token HUD places beside a Token.
+      BOTH COLUMNS ALWAYS RENDER, even empty: this is a root part, and Foundry unwraps a root template that
+      renders a single element, so a Structure's lone column would lose its box and its place. --}}
+<div class="col left bastionland-combat-ring__col" role="group" aria-label="{{ringLabel}}: {{fightLabel}}">
+	{{#each fight}}
+	<button type="button" class="bastionland-combat-ring__button" data-action="ringPress" data-index="{{index}}" aria-label="{{aria}}" data-tooltip="{{aria}}" data-tooltip-direction="LEFT">
+		<i class="{{icon}}" inert></i>
+		<span class="bastionland-combat-ring__label">{{label}}</span>
+	</button>
+	{{/each}}
+</div>
+<div class="col right bastionland-combat-ring__col" role="group" aria-label="{{ringLabel}}: {{savesLabel}}">
+	{{#each saves}}
+	<button type="button" class="bastionland-combat-ring__button" data-action="ringPress" data-index="{{index}}" aria-label="{{aria}}" data-tooltip="{{aria}}" data-tooltip-direction="RIGHT">
+		<i class="{{icon}}" inert></i>
+		<span class="bastionland-combat-ring__label">{{label}}</span>
+		<span class="bastionland-combat-ring__value">{{value}}</span>
+	</button>
+	{{/each}}
+</div>

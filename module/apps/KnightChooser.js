@@ -4,7 +4,7 @@ import { isOwnKnightEntry, newOwnKnight, openOwnKnight, ownKnightIndexEntries } 
 import { clearCompanions, knightOwner, makeCompanions } from "../actions/property.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { knightWithLists, peekVerseForEntry } from "../book-art/myth-tables.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, t, warn } from "../chat/cards.js";
 import { PROPERTY_TYPES } from "../config.js";
 import { KNIGHT_VERSE_VERSION, spreads } from "../rules/book-art.js";
 import { COMPANY_START_FLAG, realmStart } from "../rules/company.js";
@@ -19,6 +19,7 @@ import {
 	STARTS,
 	knightItems,
 	knightUpdate,
+	scoresMissing,
 	startFor,
 	takenKnights
 } from "../rules/creation.js";
@@ -561,6 +562,14 @@ export class KnightChooser extends BastionlandChooser {
 			return this.render();
 		}
 		if (this.#knighting) return this.#applyKnighted(entry, name);
+		// A Knight not yet chosen has no scores of their own: without a roll they would keep the blank sheet's.
+		// One chosen before keeps the scores they have where none are rolled again.
+		const fresh = !this.actor || Boolean(this.actor.getFlag(SYSTEM_ID, UNCHOSEN_FLAG));
+		if (fresh && scoresMissing(this.#scores).length) {
+			warn("chooser.scoresNeeded");
+			this.element?.querySelector("[data-action=rollScores]")?.focus();
+			return;
+		}
 
 		const knightName = this.#knightName(entry);
 		const update = knightUpdate({

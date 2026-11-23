@@ -1,7 +1,9 @@
 import { domainArmsView, knightChangesArms } from "../actions/domain-arms.js";
 import { worldDomains } from "../actions/dominion.js";
 import { realmHoldings } from "../actions/homecoming.js";
-import { REALM_LOOK_HOOK, REALM_PREVIEW_HOOK, isDrawingRealm, isRealmScene, realmLookShown, tileCentreOn } from "../actions/realm.js";
+import { REALM_LOOK_HOOK, REALM_PREVIEW_HOOK, isDrawingRealm, isRealmScene, realmLookShown, sceneGeometry, tileCentreOn } from "../actions/realm.js";
+import { holdingsFoggedForMe } from "../actions/realm-fog.js";
+import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { holdingRulers } from "../rules/dominion.js";
 import { holdingArmsMarks, holdingArmsOf } from "../rules/holding-arms.js";
 import { isKnight } from "../rules/knight-types.js";
@@ -25,6 +27,21 @@ let draws = 0;
 
 /**
  * @param {Scene} scene
+ * @returns {(tile: {x: number, y: number}) => boolean} Whether a Holding, by its middle, flies its arms
+ *   where this client can see them: not in a hex the Fog of War hides, unless the Realm's Holdings show through it.
+ */
+function outOfFog(scene) {
+	const fogged = holdingsFoggedForMe(scene);
+	if (!fogged.size) return () => true;
+	const g = sceneGeometry(scene);
+	return (tile) => {
+		const hex = hexAt(g, tile);
+		return !hex || !fogged.has(hexKey(hex));
+	};
+}
+
+/**
+ * @param {Scene} scene
  * @returns {import("../rules/holding-arms.js").HoldingTile[]} The Holdings' Tiles, not their Seats' crowns, each
  *   boxed from its top-left corner. A Tile's x and y are read through tileCentreOn, since on v14 they're the
  *   point its picture is anchored on, its middle, and on v13 its corner.
@@ -32,6 +49,7 @@ let draws = 0;
 const holdingTiles = (scene) => scene.tiles
 	.filter((tile) => realmFlag(tile)?.kind === "holding")
 	.map(tileCentreOn(scene))
+	.filter(outOfFog(scene))
 	.map((tile) => ({
 		id: tile._id,
 		x: tile.x - tile.width / 2,

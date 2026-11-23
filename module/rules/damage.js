@@ -54,6 +54,32 @@ export function spiritOutcome(result) {
 	return ["mortal", "slain"].includes(result.outcome) ? { ...result, outcome: "broken" } : result;
 }
 
+/** Outcomes that take VIG, leaving the target Wounded (p8). */
+export const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
+
+/**
+ * What a blow writes on whoever it landed on: their GD, and the Virtue it came
+ * off, and what the outcome leaves them. Damage to SPI is no Wound (p68), and
+ * non-lethal Damage leaves them down, but not dying.
+ * @param {DamageResult} result As it finally stands, after Doom, a ward or SPI.
+ * @param {object} [target]
+ * @param {boolean} [target.character=true] Has Virtues, unlike a ship or wall.
+ * @param {"vig"|"spi"} [target.virtue="vig"] The Virtue past GD it came off.
+ * @param {boolean} [target.nonLethal] The blow's Damage never leaves anybody dying.
+ * @param {() => object} [target.fate] What their death writes beside it, asked for only once they're Slain.
+ * @returns {object} The actor update.
+ */
+export function damageUpdate(result, { character = true, virtue = "vig", nonLethal = false, fate = () => ({}) } = {}) {
+	const update = { "system.guard.value": result.guard };
+	if (character) update[`system.virtues.${virtue}.value`] = result.vigour;
+	if (result.outcome === "mortal" && !nonLethal) update["system.mortalWound"] = true;
+	// VIG 0 by Damage is Slain (p8), which Virtue Loss to 0 never is, so it's marked. The dead aren't dying.
+	if (character && result.outcome === "slain") Object.assign(update, { "system.slain": true, "system.mortalWound": false }, fate());
+	// Damage past GD Wounds them (p8), which some armour answers to.
+	if (character && virtue === "vig" && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
+	return update;
+}
+
 /** Outcomes an ally's ward takes on themself in the victim's place (p66). */
 export const WARDED_OUTCOMES = Object.freeze(["mortal", "slain"]);
 

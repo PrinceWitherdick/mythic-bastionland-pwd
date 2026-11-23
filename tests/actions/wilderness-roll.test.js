@@ -104,7 +104,40 @@ describe("an Omen shown as the Company came into a Myth's hex (p27)", () => {
 		expect(omenShownOnEntering(scene, mythHex, { ...calendar, phase: "midday" })).toBe(false);
 	});
 
+	it("stays met when a later roll in the same Phase and hex shows none", async () => {
+		const said = () => settings.get("omenEntered").omen;
+		await markOmenOnEntering(scene, mythHex, calendar, true);
+		await markOmenOnEntering(scene, mythHex, calendar, false);
+		expect(said()).toBe(true);
+		// Another Phase, hex or Realm starts afresh.
+		await markOmenOnEntering(scene, mythHex, { ...calendar, phase: "midday" }, false);
+		expect(said()).toBe(false);
+		await markOmenOnEntering(scene, mythHex, calendar, true);
+		await markOmenOnEntering(scene, wildHex, calendar, false);
+		expect(said()).toBe(false);
+		await markOmenOnEntering(scene, mythHex, calendar, true);
+		await markOmenOnEntering({ id: "other" }, mythHex, calendar, false);
+		expect(said()).toBe(false);
+	});
+
 	it("is nothing before any Omen has shown on entering", () => {
+		expect(omenShownOnEntering(scene, mythHex)).toBe(false);
+	});
+});
+
+describe("a Wilderness Roll the Referee makes by hand, before the Phase ends", () => {
+	it("is kept as this Phase's roll for the Company's hex, so the Phase's end doesn't tick another", async () => {
+		companyAt = wildHex;
+		await wildernessRoll({ scene, hex: wildHex, mode: "travel" });
+		expect(omenShownOnEntering(scene, wildHex)).toBe(true);
+		expect(omenShownOnEntering(scene, wildHex, { ...calendar, phase: "afternoon" })).toBe(false);
+	});
+
+	it("isn't kept when it's the Phase's end making it, or for a hex the Company isn't in", async () => {
+		companyAt = wildHex;
+		await wildernessRoll({ scene, hex: wildHex, phase: "morning", mode: "travel" });
+		expect(omenShownOnEntering(scene, wildHex)).toBe(false);
+		await wildernessRoll({ scene, hex: mythHex });
 		expect(omenShownOnEntering(scene, mythHex)).toBe(false);
 	});
 });

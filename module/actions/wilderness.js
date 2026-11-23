@@ -10,6 +10,7 @@ import {
 	companyHex,
 	mythChoices,
 	phaseEndCalls,
+	showedOmen,
 	situationResult,
 	wildernessOutcome,
 	wildernessSituation
@@ -109,9 +110,9 @@ export function realmAndCompany(scene, hex = null) {
  * The Realm the Company stands in, found without a word to anybody: the one on
  * the canvas, then the one the players are shown, then any other, each first
  * where the Company's own Token is.
- * @returns {Scene|null}
+ * @returns {Scene|null} Null where no Realm shows where the Company is.
  */
-function companyRealm() {
+export function companyRealm() {
 	const realms = [...new Set([canvas?.scene, game.scenes.active, ...game.scenes])].filter((scene) => scene && isRealmScene(scene));
 	return realms.find((scene) => findCompanyToken(scene)) ?? realms.find((scene) => findCompany(scene, sceneGeometry(scene)).hex) ?? null;
 }
@@ -130,8 +131,21 @@ export function companySituation(scene = null) {
 	return hex ? { scene: realm, situation: wildernessSituation(liveRealm(realm), g, hex) } : null;
 }
 
-/** The Myth hex whose Omen showed as the Company came in (p27): {when, scene, hex}, or null. */
-const OMEN_ENTERED_SETTING = "omenEntered";
+/**
+ * The hex whose Wilderness Roll was made before its Phase ended: a Myth's Omen
+ * shown as the Company came in (p27), or a roll the Referee made by hand for
+ * the Company's hex. {when, scene, hex}, or null.
+ */
+export const OMEN_ENTERED_SETTING = "omenEntered";
+
+/**
+ * @param {{scene?: string, hex?: {col: number, row: number}, when?: object}|null} said As OMEN_ENTERED_SETTING holds it.
+ * @param {Scene|null} scene
+ * @param {{col: number, row: number}} hex
+ * @param {import("../rules/time.js").Calendar} when
+ * @returns {boolean} Whether it was kept for this hex, in this Phase.
+ */
+const enteredHere = (said, scene, hex, when) => Boolean(said && said.scene === scene?.id && samePhase(said.when, when) && sameHex(said.hex, hex));
 
 /** Register where a Myth's Omen showed on entering. Called during init. */
 export function registerOmenEntered() {
@@ -139,14 +153,34 @@ export function registerOmenEntered() {
 }
 
 /**
- * Keep that a Myth's Omen showed as the Company came into its hex. GMs only.
+ * Keep that this Phase's Wilderness Roll was made for the Company's hex before
+ * the Phase ended, and whether it showed an Omen. GMs only.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @param {import("../rules/time.js").Calendar} [when] The Phase they came in, this one by default.
+ * @param {boolean} [omen] It showed an Omen, which may keep a camp from sleeping (p18). An Omen already
+ *   met in this Phase and hex stays met, whatever a later roll there shows.
  * @returns {Promise<unknown>}
  */
-export const markOmenOnEntering = (scene, hex, when = getCalendar()) =>
-	game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, { when: { ...when }, scene: scene.id, hex: { col: hex.col, row: hex.row } });
+export function markOmenOnEntering(scene, hex, when = getCalendar(), omen = false) {
+	const said = game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING);
+	const metHere = Boolean(said?.omen) && enteredHere(said, scene, hex, when);
+	return game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, { when: { ...when }, scene: scene.id, hex: { col: hex.col, row: hex.row }, omen: omen || metHere });
+}
+
+/**
+ * Whether the roll made this Phase before it ended, where the Company stands,
+ * showed an Omen: a Night's camp that met one is asked whether it slept (p18),
+ * though the Phase's end rolls nothing more.
+ * @param {import("../rules/time.js").Calendar} [now]
+ * @returns {boolean}
+ */
+export function omenMetThisPhase(now = getCalendar()) {
+	const said = game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING);
+	if (!said?.omen || !samePhase(said.when, now)) return false;
+	const standing = companySituation(game.scenes.get(said.scene) ?? null);
+	return Boolean(standing && sameHex(said.hex, standing.situation.hex));
+}
 
 /**
  * Whether the Omen of the Myth in this hex has already shown this Phase, as the
@@ -157,8 +191,7 @@ export const markOmenOnEntering = (scene, hex, when = getCalendar()) =>
  * @returns {boolean}
  */
 export function omenShownOnEntering(scene, hex, now = getCalendar()) {
-	const said = game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING);
-	return Boolean(said && said.scene === scene?.id && samePhase(said.when, now) && sameHex(said.hex, hex));
+	return enteredHere(game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING), scene, hex, now);
 }
 
 /**
@@ -191,9 +224,11 @@ async function chooseMode(scene, hex) {
  * @param {"travel"|"camp"|null} [options.mode] How the Company spent the Phase, when the Referee
  *   has already said: then nothing more is asked.
  * @param {boolean} [options.atBarrier] The Phase was wasted trying to cross a Barrier.
+ * @param {import("../rules/time.js").Calendar|null} [options.enteredAt] The Phase the Company came into
+ *   the hex, when it's the Omen shown as they came in (p27): kept as that Phase's roll.
  * @returns {Promise<object|null>} The outcome, or null when nothing was rolled.
  */
-export async function wildernessRoll({ scene = canvas.scene, hex = null, phase = null, mode: known = null, atBarrier = false } = {}) {
+export async function wildernessRoll({ scene = canvas.scene, hex = null, phase = null, mode: known = null, atBarrier = false, enteredAt = null } = {}) {
 	if (!game.user.isGM) return null;
 	const place = realmAndCompany(scene, hex);
 	if (!place) return null;
@@ -265,6 +300,9 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		recorded
 	]);
 	if (city) await rollCityOmen();
+	// Made for the Company's hex before the Phase ends, as they came in or from the rules beside the map or the
+	// hex's own page: it is this Phase's roll, so the Phase's end doesn't start with another ticked.
+	if (!phase && (enteredAt || companyMayBeAt(scene, g, where))) await markOmenOnEntering(scene, where, enteredAt ?? calendar, showedOmen(outcome));
 	return outcome;
 }
 

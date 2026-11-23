@@ -1,6 +1,7 @@
 import { getJourney } from "../actions/journey.js";
 import { read } from "../client-settings.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { foggedForMe } from "../actions/realm-fog.js";
 import { PAPER_HEX, colourNumber } from "../rules/colour.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { visitedMarkHexes } from "../rules/travels.js";
@@ -117,7 +118,9 @@ export function drawVisitedMarks() {
 	try {
 		const shown = isRealmScene(scene) && visitedMarksShown();
 		const g = shown ? sceneGeometry(scene) : null;
-		const hexes = shown ? visitedMarkHexes(getJourney(scene)) : [];
+		// Not where the Referee has brought the fog back over the Company's way, till it comes again.
+		const fogged = shown ? foggedForMe(scene) : null;
+		const hexes = shown ? visitedMarkHexes(getJourney(scene)).filter((hex) => !fogged.has(hexKey(hex))) : [];
 		const look = visitedMarkLook();
 		const key = hexes.length ? JSON.stringify([g, look, hexes.map(hexKey).sort()]) : "";
 		redraw(key, (layer) => {

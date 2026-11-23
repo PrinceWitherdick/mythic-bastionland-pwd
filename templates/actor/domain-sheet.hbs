@@ -26,11 +26,11 @@
 	</header>
 
 	{{#if editable}}
-	<nav class="bastionland-toolbar" aria-label="{{actor.name}}">
-		<button type="button" data-action="crisisRoll" data-tooltip="{{localize 'bastionland.domain.crisisRollHint'}}"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.domain.crisisRoll"}}</button>
-		<button type="button" data-action="addCrisis"><i class="fa-solid fa-fire" inert></i> {{localize "bastionland.domain.addCrisis"}}</button>
-		<button type="button" data-action="collections" data-tooltip="{{localize 'bastionland.domain.collectionsHint'}}"><i class="fa-solid fa-coins" inert></i> {{localize "bastionland.domain.collections"}}</button>
-		<button type="button" data-action="drama" data-tooltip="{{localize 'bastionland.domain.dramaHint'}}"><i class="fa-solid fa-masks-theater" inert></i> {{localize "bastionland.domain.drama"}}</button>
+	<nav class="bastionland-toolbar bastionland-toolbar--actions" aria-label="{{actor.name}}">
+		<button type="button" data-action="crisisRoll" data-tooltip="{{localize 'bastionland.domain.crisisRollHint'}}"><i class="fa-solid fa-dice-d6" inert></i> <span>{{localize "bastionland.domain.crisisRoll"}}</span></button>
+		<button type="button" data-action="addCrisis"><i class="fa-solid fa-fire" inert></i> <span>{{localize "bastionland.domain.addCrisis"}}</span></button>
+		<button type="button" data-action="collections" data-tooltip="{{localize 'bastionland.domain.collectionsHint'}}"><i class="fa-solid fa-coins" inert></i> <span>{{localize "bastionland.domain.collections"}}</span></button>
+		<button type="button" data-action="drama" data-tooltip="{{localize 'bastionland.domain.dramaHint'}}"><i class="fa-solid fa-masks-theater" inert></i> <span>{{localize "bastionland.domain.drama"}}</span></button>
 	</nav>
 	{{/if}}
 

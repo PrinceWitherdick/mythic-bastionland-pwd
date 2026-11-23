@@ -1,3 +1,4 @@
+import { selectedActors } from "../canvas/selected.js";
 import { t } from "../chat/cards.js";
 import { chooseActor } from "../apps/actor-pick.js";
 import { ownedAttackers } from "../chat/attack-card.js";
@@ -37,7 +38,7 @@ export { seedAttackMacro, ensureAttackHotbar };
  * @returns {Actor[]}
  */
 export function attackerPool() {
-	const selected = ownedAttackers((canvas?.tokens?.controlled ?? []).map((token) => token.actor));
+	const selected = ownedAttackers(selectedActors());
 	if (selected.length || game.user.isGM) return selected;
 	const own = ownedAttackers([game.user.character]);
 	return own.length ? own : ownedAttackers(worldKnights());

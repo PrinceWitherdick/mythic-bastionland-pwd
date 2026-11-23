@@ -6,14 +6,24 @@ import { emptyRealm, TERRAIN } from "../../module/rules/realm.js";
 import { edgeKey, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { sightedMarks } from "../../module/rules/sighted.js";
 import {
+	DAYS_CAP,
+	LIST_CAP,
+	PLACE_KINDS,
+	dayItems,
+	entryKinds,
+	groupByKind,
 	journeyLog,
 	knownToPlayers,
 	ofNote,
 	openableHex,
 	pickTravelsRealm,
+	placeKind,
 	playerHexView,
+	seasonTally,
 	seasonYearsOn,
+	shownOf,
 	sortViews,
+	tagCounts,
 	travelsList,
 	viewSearchWords,
 	viewTags,
@@ -173,6 +183,68 @@ describe("travelsList groups", () => {
 	});
 });
 
+describe("placeKind and groupByKind", () => {
+	/** The Company has found the Myth, and a Landmark stands in the town's hex. */
+	function found() {
+		const s = sources();
+		s.realm.myths[0].revealed = true;
+		s.realm.landmarks.push({ id: "l3", hex: town, type: "dwelling", name: "Mill", seer: null, revealed: true });
+		return s;
+	}
+
+	it("puts a hex under the first of a Holding, a Myth and a Landmark it has, else among the rest", () => {
+		const s = found();
+		expect(playerHexView(s, town)).toMatchObject({ holding: { name: "Ashford" }, landmark: { name: "Mill" } });
+		expect(placeKind(playerHexView(s, town))).toBe("holding");
+		expect(placeKind(playerHexView(s, mythHex))).toBe("myth");
+		expect(placeKind(playerHexView(s, wild))).toBe("landmark");
+		expect(placeKind(playerHexView(s, ruin))).toBe("other");
+	});
+
+	it("gathers each hex once, in the kinds' order, leaving out a kind with none and keeping the order within", () => {
+		const groups = groupByKind(travelsList(found()).ofNote);
+		expect(groups.map((group) => group.kind)).toEqual(PLACE_KINDS);
+		expect(groups.map((group) => group.views.map((view) => view.key))).toEqual([["2,2"], ["4,4"], ["5,5"], ["3,3"]]);
+		const plain = groupByKind(travelsList(sources()).ofNote);
+		expect(plain.map((group) => group.kind)).toEqual(["holding", "landmark", "other"]);
+		const views = travelsList(sources()).heardOf;
+		expect(groupByKind(views)).toEqual([{ kind: "other", views }]);
+	});
+});
+
+describe("shownOf", () => {
+	it("shows a cap's worth of a long list, and the whole of one only a little longer", () => {
+		expect(shownOf(20)).toBe(LIST_CAP);
+		expect(shownOf(LIST_CAP + 2)).toBe(LIST_CAP + 2);
+		expect(shownOf(LIST_CAP + 3)).toBe(LIST_CAP);
+		expect(shownOf(3)).toBe(3);
+		expect(shownOf(30, { cap: DAYS_CAP })).toBe(DAYS_CAP);
+	});
+
+	it("shows all of it once the cap is lifted, or when the chosen one would wait behind it", () => {
+		expect(shownOf(20, { lifted: true })).toBe(20);
+		expect(shownOf(20, { keep: 12 })).toBe(20);
+		expect(shownOf(20, { keep: LIST_CAP })).toBe(20);
+		expect(shownOf(20, { keep: 3 })).toBe(LIST_CAP);
+	});
+});
+
+describe("tagCounts", () => {
+	it("counts the hexes carrying each tag, as viewTags tags them", () => {
+		const list = travelsList(sources());
+		const views = [...list.visited, ...list.heardOf];
+		expect(tagCounts(views)).toEqual({ holding: 1, landmark: 1, here: 1, told: 1, noted: 1, sighted: 1, heardOf: 2 });
+		for (const [tag, count] of Object.entries(tagCounts(views))) {
+			expect(views.filter((view) => viewTags(view).includes(tag))).toHaveLength(count);
+		}
+	});
+
+	it("counts nothing for what the GM hid by hand", () => {
+		const s = sources();
+		expect(tagCounts([playerHexView(s, hiddenTown), playerHexView(s, mythHex)])).toEqual({});
+	});
+});
+
 describe("sortViews", () => {
 	it("keeps the last reached first, or puts them by name, or the most visited first", () => {
 		const s = sources();
@@ -252,6 +324,56 @@ describe("journeyLog", () => {
 
 	it("is empty for a Company that hasn't set out", () => {
 		expect(journeyLog({ ...sources(), journey: emptyJourney(), shared: emptyShared() })).toEqual([]);
+	});
+});
+
+describe("entryKinds", () => {
+	it("calls a first arrival an arrival and a first, and every other line its own kind", () => {
+		expect(entryKinds({ kind: "arrived", first: true })).toEqual(["arrived", "first"]);
+		expect(entryKinds({ kind: "arrived", first: false })).toEqual(["arrived"]);
+		for (const kind of ["told", "met", "noted"]) expect(entryKinds({ kind })).toEqual([kind]);
+	});
+});
+
+describe("dayItems", () => {
+	const at = (kind, ref, phase = "morning") => ({ kind, ref, when: phase ? { ...when(1), phase } : null });
+	const shape = (items) => items.map((item) => (item.run ? item.run.map((entry) => entry.ref) : item.entry.ref));
+
+	it("gathers three or more arrivals in a row within a Phase into one ride, and leaves two as they are", () => {
+		expect(shape(dayItems([at("arrived", "a"), at("arrived", "b"), at("arrived", "c")]))).toEqual([["a", "b", "c"]]);
+		expect(shape(dayItems([at("arrived", "a"), at("arrived", "b")]))).toEqual(["a", "b"]);
+		expect(dayItems([])).toEqual([]);
+	});
+
+	it("breaks a ride at a telling, and never joins arrivals of different Phases", () => {
+		const broken = [at("arrived", "a"), at("arrived", "b"), at("told", "t"), at("arrived", "c"), at("arrived", "d")];
+		expect(shape(dayItems(broken))).toEqual(["a", "b", "t", "c", "d"]);
+		const phases = [at("arrived", "a"), at("arrived", "b"), at("arrived", "c", "afternoon"), at("arrived", "d", "afternoon"), at("arrived", "e", "afternoon")];
+		expect(shape(dayItems(phases))).toEqual(["a", "b", ["c", "d", "e"]]);
+	});
+
+	it("keeps the order, and counts arrivals kept with no date as one Phase", () => {
+		const day = [at("noted", "n"), at("arrived", "a"), at("arrived", "b"), at("arrived", "c"), at("arrived", "d"), at("met", "m"), at("arrived", "e")];
+		expect(shape(dayItems(day))).toEqual(["n", ["a", "b", "c", "d"], "m", "e"]);
+		expect(shape(dayItems([at("arrived", "a", null), at("arrived", "b", null), at("arrived", "c", null)]))).toEqual([["a", "b", "c"]]);
+	});
+
+	it("gathers a day of the journey's own log", () => {
+		const [, first] = journeyLog(sources())[0].days;
+		expect(dayItems(first.entries)).toEqual([{ run: first.entries }]);
+	});
+});
+
+describe("seasonTally", () => {
+	it("counts a Season's arrivals, and what was told, met and written", () => {
+		const s = sources();
+		s.journey = recordVisits(s.journey, [town], when(3));
+		s.shared = recordTold(s.shared, wild, { id: "t3", note: "Teeth in the mud.", when: when(2), at: 5 });
+		s.shared = recordBarrierMet(s.shared, wild, { edge: edgeKey(wild, hex(5, 6)), byName: "Ada", when: when(2), at: 6 });
+		s.shared = setPartyNote(s.shared, wild, { text: "Bog.", byName: "Ada", when: when(3), at: 7 });
+		const [spring, undated] = journeyLog(s);
+		expect(seasonTally(spring)).toEqual({ reached: 6, told: 1, met: 1, noted: 1 });
+		expect(seasonTally(undated)).toEqual({ reached: 0, told: 2, met: 0, noted: 1 });
 	});
 });
 

@@ -3,6 +3,7 @@ import { COMPANY_LAST_HEX_FLAG } from "./company.js";
 import { HEX_LORE_FLAG } from "./hex-lore.js";
 import { COMPANY_MOVES_FLAG, HELD_BACK_FLAG, JOURNEY_FLAG } from "./journey.js";
 import { MYTH_NOTES_FLAG } from "./myth-notes.js";
+import { REALM_FOG_FLAG } from "./realm-fog.js";
 import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { HEX_SHARED_FLAG } from "../rules/hex-shared.js";
 import { TRACKED_HEXES_FLAG } from "../rules/hex-tracked.js";
@@ -41,6 +42,8 @@ export const hexStoreFlags = () => hexFlags ??= new Map([
 	[SIGHTED_FLAG, { journal: true, toolkit: [] }],
 	[TRACKED_HEXES_FLAG, { journal: false, toolkit: ["places"] }],
 	[MYTH_NOTES_FLAG, { journal: false, toolkit: ["myths", "time"] }],
+	// The Fog of War: the map, the readout and Places draw it, and the Lay of the Land lifts it.
+	[REALM_FOG_FLAG, { journal: false, toolkit: ["places"] }],
 	[COMPANY_LAST_HEX_FLAG, { journal: false, toolkit: [] }],
 	[COMPANY_MOVES_FLAG, { journal: false, toolkit: [] }]
 ]);

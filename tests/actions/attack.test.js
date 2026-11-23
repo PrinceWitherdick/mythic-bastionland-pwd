@@ -27,7 +27,8 @@ const { postCard } = await import("../../module/chat/cards.js");
 const { marksOn } = await import("../../module/chat/gambit-marks.js");
 const { knockedDownIn, openDuelFor } = await import("../../module/actions/duel.js");
 const { leaderCandidates } = await import("../../module/actions/leading.js");
-const { askPackGroups, attack, attackCardContext, joinAttack, joinPack, packRolled, rollPack, spendAttack, tellUsedUp } = await import("../../module/actions/attack.js");
+const { askPackGroups, attack, joinAttack, joinPack, packRolled, rollPack, spendAttack, tellUsedUp } = await import("../../module/actions/attack.js");
+const { attackCardContext } = await import("../../module/chat/attack-view.js");
 const { changePack } = await import("../../module/rules/pack.js");
 
 /** A weapon as the Attack dialog reads one off a sheet. */
@@ -110,6 +111,130 @@ afterEach(() => {
 
 /** @returns {object} What the Attack dialog opened on. */
 const opened = () => inputDialog.mock.calls[0][0].context;
+
+describe("who the Attack dialog says the blow is at", () => {
+	const tal = () => combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("sword", "Sword", "d8")] });
+
+	it("names those targeted, or says nobody is yet", async () => {
+		await attack(tal());
+		expect(opened().aim).toBe("bastionland.attack.againstNobody");
+
+		inputDialog.mockClear();
+		target(combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" }));
+		await attack(tal());
+		expect(opened().aim).toBe("bastionland.attack.against");
+	});
+
+	it("follows this user's targeting while the dialog stands open, and stops once it's answered", async () => {
+		const hooks = new Map();
+		globalThis.Hooks = { on: vi.fn((name, fn) => { hooks.set(name, fn); return 7; }), off: vi.fn() };
+		const line = { textContent: "" };
+		inputDialog.mockImplementationOnce(async ({ render }) => {
+			render(null, { element: { querySelector: (selector) => (selector === "[data-attack-aim]" ? line : null), querySelectorAll: () => [], addEventListener: () => {} } });
+			// Somebody else's targeting is theirs; this user's own moves the line.
+			hooks.get("targetToken")({ other: true });
+			expect(line.textContent).toBe("");
+			target(combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" }));
+			hooks.get("targetToken")(game.user);
+			expect(line.textContent).toBe("bastionland.attack.against");
+			return null;
+		});
+		await attack(tal());
+		expect(Hooks.off).toHaveBeenCalledWith("targetToken", 7);
+		delete globalThis.Hooks;
+	});
+
+	it("refuses a blow at their own Token, though it was targeted while the dialog stood open", async () => {
+		const self = tal();
+		inputDialog.mockImplementationOnce(async () => {
+			target(self);
+			return { "source.sword": true };
+		});
+		await attack(self);
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.selfTarget");
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("weighs a foe targeted while it stood open, opening again on what was answered where that foe changes the dialog", async () => {
+		const boar = combatant({ uuid: "Actor.boar", name: "Boar" });
+		boar.system.weakness = { text: "fire", die: "d10", known: true };
+		inputDialog.mockImplementationOnce(async () => {
+			target(boar);
+			return { "source.sword": true, bonus: "d6" };
+		});
+		inputDialog.mockImplementationOnce(async () => ({ "source.sword": true, bonus: "d6", "weakness.0": true }));
+		await attack(tal());
+		expect(inputDialog).toHaveBeenCalledTimes(2);
+		expect(ui.notifications.info).toHaveBeenCalledWith("bastionland.attack.retargeted");
+		const reopened = inputDialog.mock.calls[1][0];
+		expect(reopened.context.weaknesses).toHaveLength(1);
+		expect(reopened.context.aim).toBe("bastionland.attack.against");
+		// What was answered is filled in again, all but the boxes drawn for the targets.
+		const fields = [
+			{ name: "bonus", type: "text", value: "", disabled: false },
+			{ name: "weakness.0", type: "checkbox", checked: false, disabled: false }
+		];
+		reopened.render(null, { element: { querySelector: (selector) => (selector === "form" ? { querySelectorAll: () => fields, querySelector: () => null, addEventListener: () => {} } : null) } });
+		expect(fields[0].value).toBe("d6");
+		expect(fields[1].checked).toBe(false);
+		expect(postCard).toHaveBeenCalled();
+	});
+
+	it("checks the form again as this user's targets change, so several targets without a Blast show before it's rolled", async () => {
+		const hooks = new Map();
+		globalThis.Hooks = { on: vi.fn((name, fn) => { hooks.set(name, fn); return 7; }), off: vi.fn() };
+		const line = { textContent: "" };
+		const form = { dispatchEvent: vi.fn(), querySelectorAll: () => [], querySelector: () => null, addEventListener: () => {} };
+		inputDialog.mockImplementationOnce(async ({ render }) => {
+			render(null, { element: { querySelector: (selector) => (selector === "[data-attack-aim]" ? line : selector === "form" ? form : null), querySelectorAll: () => [], addEventListener: () => {} } });
+			hooks.get("targetToken")(game.user);
+			return null;
+		});
+		await attack(tal());
+		expect(form.dispatchEvent).toHaveBeenCalledOnce();
+		expect(form.dispatchEvent.mock.calls[0][0].type).toBe("change");
+		delete globalThis.Hooks;
+	});
+
+	it("opens again where a second foe is targeted while it stood open, since several need a Blast", async () => {
+		const moss = combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" });
+		target(moss);
+		inputDialog.mockImplementationOnce(async () => {
+			target(moss, combatant({ uuid: "Actor.wren", name: "Wren", type: "knight" }));
+			return { "source.sword": true };
+		});
+		await attack(tal());
+		expect(inputDialog).toHaveBeenCalledTimes(2);
+		expect(ui.notifications.info).toHaveBeenCalledWith("bastionland.attack.retargeted");
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("is rolled at those it was weighed at, though somebody else is targeted while its Smite is rolled", async () => {
+		const { rollFeat } = await import("../../module/actions/feats.js");
+		const moss = combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" });
+		target(moss);
+		inputDialog.mockImplementationOnce(async () => ({ "source.sword": true, smite: "bonus" }));
+		rollFeat.mockImplementationOnce(async () => {
+			target(combatant({ uuid: "Actor.wren", name: "Wren", type: "knight" }));
+			return null;
+		});
+		await attack(tal());
+		expect(rollFeat).toHaveBeenCalled();
+		const posted = JSON.stringify(postCard.mock.calls);
+		expect(posted).toContain("Scene.s.Token.Moss");
+		expect(posted).not.toContain("Scene.s.Token.Wren");
+	});
+
+	it("rolls at once where the foe targeted while it stood open changes nothing it weighed", async () => {
+		inputDialog.mockImplementationOnce(async () => {
+			target(combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" }));
+			return { "source.sword": true };
+		});
+		await attack(tal());
+		expect(inputDialog).toHaveBeenCalledOnce();
+		expect(postCard).toHaveBeenCalled();
+	});
+});
 
 describe("a Warband's Attack against individuals (p11)", () => {
 	const raiders = () => combatant({ uuid: "Actor.raiders", name: "Raiders", scale: "warband", items: [weapon("spear", "Spears", "d8")] });
@@ -249,16 +374,6 @@ describe("an improvised weapon (p10, p194)", () => {
 		expect(rolled().impaired).toBe(true);
 	});
 
-	it("isn't rolled, quietly unarmed, from text that names no die", async () => {
-		for (const improvised of ["barrel", "8", "d 8"]) {
-			postCard.mockClear();
-			inputDialog.mockResolvedValue({ improvised });
-			expect(await attack(brute())).toBeNull();
-			expect(ui.notifications.warn).toHaveBeenLastCalledWith("bastionland.attack.improvisedUnread");
-			expect(postCard).not.toHaveBeenCalled();
-		}
-	});
-
 	it("isn't rolled with bonus dice that can't all be read, so none is quietly dropped", async () => {
 		for (const bonus of ["8", "d8+2", "d6, x"]) {
 			postCard.mockClear();
@@ -281,7 +396,7 @@ describe("an improvised weapon (p10, p194)", () => {
 	});
 
 	it("isn't rolled from a name with no die, or with a slip beside it", async () => {
-		for (const improvised of ["barrel", "barrel d8+2", "d 8"]) {
+		for (const improvised of ["barrel", "8", "barrel d8+2", "d 8"]) {
 			postCard.mockClear();
 			inputDialog.mockResolvedValue({ improvised });
 			expect(await attack(brute())).toBeNull();

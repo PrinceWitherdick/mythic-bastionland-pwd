@@ -154,21 +154,6 @@ export function combineDice(dice, groups = []) {
 }
 
 /**
- * Gather the dice for one Attack. An Attack with no weapon dice is unarmed,
- * and unarmed or Impaired Attacks roll a single d4 with no bonus dice.
- * @param {object} args
- * @param {string[]} [args.sources]  Damage notation of each weapon and shield used.
- * @param {number[]} [args.bonus]    Extra die sizes, such as Smite's d12.
- * @param {boolean} [args.impaired]
- * @returns {{dice: number[], impaired: boolean}}
- */
-export function buildAttackPool({ sources = [], bonus = [], impaired = false }) {
-	const weaponDice = sources.flatMap(parseDice);
-	if (impaired || weaponDice.length === 0) return { dice: [4], impaired: true };
-	return { dice: [...weaponDice, ...bonus], impaired: false };
-}
-
-/**
  * Why a chosen weapon sits out an Attack: Slow after moving (p12), purely ranged when engaged in
  * melee (p10), or a shield a foe's Trap Gambit holds (p10).
  */
@@ -444,6 +429,35 @@ export function atIndividuals(targets) {
  */
 export function swarmImpairs({ blast = false, largeScale = false }, targets) {
 	return !blast && !largeScale && targets.some(({ swarm = false }) => swarm);
+}
+
+/**
+ * What can Impair an Attack, first to last in the order its cause is named
+ * where more than one holds: a Long weapon in a confined space; a swarm struck
+ * without a Blast (p61); Impaired before the Attack, marked so or by a foe's
+ * Impair on their whole next Attack (p9, p186); a foe's Impair on the weapon
+ * it's made with (p186); and nothing to strike with (p10).
+ */
+export const IMPAIRMENT_CAUSES = Object.freeze(["confined", "swarm", "condition", "weapon", "unarmed"]);
+
+/**
+ * Whether an Attack is Impaired, so it rolls a single d4 and can't benefit
+ * from Feats (p8, p9), and the one cause the card names for it, the first of
+ * IMPAIRMENT_CAUSES that holds. A held weapon is named only where nothing
+ * before it in that order Impairs the Attack already. A cause left out is
+ * taken not to hold.
+ * @param {object} [why]
+ * @param {boolean} [why.confined]  A Long weapon used in a confined space.
+ * @param {boolean} [why.swarm]     Struck at a swarm without a Blast (p61).
+ * @param {boolean} [why.condition] Impaired before the Attack is made.
+ * @param {string|null} [why.weapon] The name of the weapon a foe's Impair holds, where it's wielded.
+ * @param {boolean} [why.unarmed]   Nothing strikes (p10).
+ * @returns {{impaired: boolean, cause: string|null}} `cause` is one of IMPAIRMENT_CAUSES, or null when not Impaired.
+ */
+export function impairment({ confined = false, swarm = false, condition = false, weapon = null, unarmed = false } = {}) {
+	const holds = { confined, swarm, condition, weapon, unarmed };
+	const cause = IMPAIRMENT_CAUSES.find((key) => Boolean(holds[key])) ?? null;
+	return { impaired: cause !== null, cause };
 }
 
 /**
@@ -796,6 +810,23 @@ export const harmTargetOf = (system) => ({
 	structure: Boolean(system?.structure),
 	stone: Boolean(system?.stone)
 });
+
+/**
+ * What a joint Attack card's target is, for reckoning the Damage against it
+ * (p11): a Warband, a structure, a stone wall. A card at several reads them as
+ * one only where they all are. A lone attacker's card, and one whose target
+ * can't be found, is reckoned as it always was.
+ * @param {{joined?: object[], targets: {uuid: string}[]}} attack
+ * @param {(uuid: string) => {system: object}|null|undefined} actorOf A target's actor, from its Token's UUID.
+ * @returns {{warband?: boolean, structure?: boolean, stone?: boolean}}
+ */
+export function jointHarmTarget(attack, actorOf) {
+	if (!attack.joined?.length || !attack.targets.length) return {};
+	const actors = attack.targets.map((target) => actorOf(target.uuid));
+	if (!actors.every(Boolean)) return {};
+	const each = actors.map((actor) => harmTargetOf(actor.system));
+	return Object.fromEntries(HARM_BARS.map((bar) => [bar, each.every((target) => target[bar])]));
+}
 
 /**
  * Why one share of an Attack can't harm a target (p11): a Warband is harmed

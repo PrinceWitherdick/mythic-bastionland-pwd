@@ -27,6 +27,28 @@ export function omenStage(seen) {
 	return { current: count > 0 ? count : null, next: count < OMEN_COUNT ? count + 1 : null };
 }
 
+/**
+ * Each of a Myth's Omens, in order, and where it stands as the Myth plays out:
+ * met or not, met before the one playing out, playing out, or coming next.
+ * Any other is `cut`, read in brief.
+ * @param {number} seen How many of its Omens have been met, 0-6.
+ * @returns {{number: number, met: boolean, past: boolean, current: boolean, next: boolean, cut: boolean}[]}
+ */
+export function omenRows(seen) {
+	const { current, next } = omenStage(seen);
+	return Array.from({ length: OMEN_COUNT }, (_, index) => {
+		const number = index + 1;
+		return {
+			number,
+			met: number <= seen,
+			past: number < seen,
+			current: number === current,
+			next: number === next,
+			cut: number !== current && number !== next
+		};
+	});
+}
+
 /** @returns {number} Lowest column first, then lowest row, as the hex readout numbers them. */
 const byPlace = (a, b) => a.col - b.col || a.row - b.row;
 

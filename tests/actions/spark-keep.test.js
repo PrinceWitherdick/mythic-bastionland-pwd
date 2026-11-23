@@ -14,6 +14,7 @@ vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () =>
 vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: () => null,
 	isRealmScene: (scene) => Boolean(scene?.realm),
+	expansionUnderWay: () => null,
 	hexHiddenByHand: () => ({}),
 	sceneGeometry: () => ({})
 }));

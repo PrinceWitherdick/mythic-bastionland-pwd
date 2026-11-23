@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REALM_TABS, TOOLKIT_TABS, mythRollTaken, omenParts, omenStage, pointsOpposite, readMythTable, realmPlaces, resolvedMyths, tableView } from "../../module/rules/gm-toolkit.js";
+import { REALM_TABS, TOOLKIT_TABS, mythRollTaken, omenParts, omenRows, omenStage, pointsOpposite, readMythTable, realmPlaces, resolvedMyths, tableView } from "../../module/rules/gm-toolkit.js";
 
 const hex = (col, row) => ({ col, row });
 
@@ -14,6 +14,26 @@ describe("omenStage", () => {
 		expect(omenStage(-3)).toEqual({ current: null, next: 1 });
 		expect(omenStage(9)).toEqual({ current: 6, next: null });
 		expect(omenStage("x")).toEqual({ current: null, next: 1 });
+	});
+});
+
+describe("omenRows", () => {
+	it("gives all six Omens in order, the one playing out and the one to come in full", () => {
+		expect(omenRows(2)).toEqual([
+			{ number: 1, met: true, past: true, current: false, next: false, cut: true },
+			{ number: 2, met: true, past: false, current: true, next: false, cut: false },
+			{ number: 3, met: false, past: false, current: false, next: true, cut: false },
+			{ number: 4, met: false, past: false, current: false, next: false, cut: true },
+			{ number: 5, met: false, past: false, current: false, next: false, cut: true },
+			{ number: 6, met: false, past: false, current: false, next: false, cut: true }
+		]);
+	});
+
+	it("has none playing out before the first is met, and none to come after the last", () => {
+		expect(omenRows(0).filter((row) => row.met || row.current)).toEqual([]);
+		expect(omenRows(0).find((row) => row.next).number).toBe(1);
+		expect(omenRows(6).every((row) => row.met && !row.next)).toBe(true);
+		expect(omenRows(6).find((row) => row.current).number).toBe(6);
 	});
 });
 

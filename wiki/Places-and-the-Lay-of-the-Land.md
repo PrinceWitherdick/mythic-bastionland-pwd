@@ -15,7 +15,7 @@ This page is the Referee's side. What players see is on [Travels and Places](Tra
 
 The window is the same one players have, wider for a Referee. A hint at the top reminds you that players see these same pages, and that only the Lay of the Land is yours alone.
 
-![The Places window on Gravenmoor, the Places page list on the left with Places of Note, Wilderness and Heard Of, and on the right a visited hex with its name heading, the Company's Note, and the Lay of the Land below with its What's here not](images/places-and-the-lay-of-the-land-window.webp)
+![The Places window on Gravenmoor, the Places page on the left with a count on each Show only pill, By Kind, and the Places of Note gathered under folding Holdings, Landmarks and Other Finds headings, and on the right Merrow Tower with the Company's Note and the Lay of the Land open on its Holding tab](images/places-and-the-lay-of-the-land-window.webp)
 
 ## The three pages
 
@@ -23,14 +23,15 @@ The left side of the window has a **Realm** picker when there is more than one t
 
 | Page | What it shows |
 | --- | --- |
-| **Places** | Every hex the Company knows, in three lists: **Places of Note**, **Wilderness** and **Heard Of** (told of, written about or seen from afar, but not reached). |
+| **Places** | Every hex the Company knows, in folding lists: **Places of Note**, gathered into **Holdings**, **Myths**, **Landmarks** and **Other Finds**; **Heard Of** (told of, written about or seen from afar, but not reached); and **Wilderness**, which starts folded. Each heading shows how many it holds. |
 | **Chart** | A drawn chart of the Realm as the Company knows it, with a key. |
-| **Journey** | Where the Company went and what happened, by Season and Phase. |
+| **Journey** | Where the Company went and what happened, by Season and Phase. The latest Season is open and the rest are folded, each with a tally. |
 
 On the **Places** page:
 
-- **Show only** narrows the list: **All**, **Holdings**, **Landmarks**, **Myths**, **Told**, **Noted** or **Not Visited**. A Referee also gets **People**, for hexes with someone rolled up in them.
-- **Order** sorts by **Last reached first**, **By name** or **Most visited first**.
+- **Show only** narrows the list and the Chart: **All**, **Holdings**, **Landmarks**, **Myths**, **Told**, **Noted** or **Not Visited**, each with how many places it would leave. A Referee also gets **People**, for hexes with someone rolled up in them.
+- **By Kind** or **One List** arranges the Places of Note in groups or as a single list. **Order** sorts each list by **Last reached first**, **By name** or **Most visited first**.
+- **Click a heading** to fold or unfold it. A long list shows its first 8 places, and **Show all** under it shows the rest. A search or a filter opens every fold and shows every match.
 - **Hover a row** to ring that hex on the map. The **crosshair** at the row's end shows the hex on the map, ringed in green until your next click.
 - **Click a row** to open that hex on the right.
 
@@ -40,7 +41,9 @@ On the **Chart** page:
 - **Show the way the Company went** draws the route.
 - **Ctrl and the mouse wheel** zoom about the pointer. **Double-click** the chart to zoom in there, and again to go back to whole. Once zoomed, **drag with either mouse button** to move about; a throw glides a little. **Whole chart** zooms back out.
 
-On the **Journey** page, **click a line** to open its hex. **Hover a line** and an **×** appears at its end: forget that visit, that telling, that Barrier line, or the Company's note. A Barrier forgotten here stays on the map.
+On the **Journey** page, three or more hexes ridden through in one Phase are told in one line, and the **chevron** beside it shows each hex. Its own **Show only** narrows the page to **First Visits**, **Arrivals**, **Told**, **Barriers** or **Notes**. An open Season shows its latest 7 days, with a button for the earlier ones. **Click a line** to open its hex. **Hover a line** and an **×** appears at its end: forget that visit, that telling, that Barrier line, or the Company's note. A Barrier forgotten here stays on the map.
+
+![The Journey page, the latest Season open with its tally, a Morning ride through 3 hexes unfolded under its chevron, a Barrier met and a note, and the earlier Seasons folded with their tallies](images/travels-and-places-journey.webp)
 
 ## The chosen hex
 
@@ -82,7 +85,7 @@ A line under it says where the players stand:
 
 ### The tabs
 
-Under the note, a tab for each kind of thing that can be rolled in the hex. A tab shows only where the hex has one. Each tab shows its count, kept rolls come first, and its buttons sit at the foot. The tab you choose is kept as you move from hex to hex. The **arrow keys**, **Home** and **End** move between tabs.
+Under the note, a tab for each kind of thing that can be rolled in the hex. A tab shows only where the hex has one. Each tab shows its count, kept rolls come first, and its buttons sit at the foot. The tab you choose is kept as you move from hex to hex. While that's **The Land**, a hex with a Myth, Holding or Landmark opens on that tab instead, in that order. A hex drawn again after a roll stays on the tab it's on. The **arrow keys**, **Home** and **End** move between tabs.
 
 | Tab | What it holds |
 | --- | --- |

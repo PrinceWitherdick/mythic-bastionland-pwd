@@ -39,6 +39,7 @@ import { rollRefereeTable, rollSpark } from "../actions/referee-rolls.js";
 import { collectionEntry, markCollection, markSeasonEvent } from "../actions/season-events.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
 import { endTheSession } from "../actions/session-end.js";
+import { addThread, keepThreadRoll } from "../actions/threads.js";
 import { nameSuccessor } from "../actions/succession.js";
 import { deleteHexJournals } from "../actions/hex-journals.js";
 import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../actions/site-journals.js";
@@ -85,6 +86,7 @@ import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { deletionEntry, replacementEntry } from "../compat.js";
 import { barriersBeside, companionActorData, heraldrySvg, isSteed, isWilderness, pickPlaces, propertyItems, seasonRoad } from "./plan.js";
+import { hexNumberWords } from "../rules/hex-numbers.js";
 
 /** Marks every document the macro makes, so running it again can find and delete them. */
 export const TEST_FLAG = "testWorld";
@@ -488,6 +490,7 @@ async function removeTestWorld() {
 		await toolkit.update(Object.fromEntries([
 			["system.notes", before.notes ?? ""],
 			replacementEntry("system.seasons", before.seasons ?? {}),
+			replacementEntry("system.threads", before.threads ?? {}),
 			deletionEntry(`flags.${SYSTEM_ID}.${BEFORE_FLAG}`)
 		]));
 	}
@@ -548,6 +551,7 @@ async function buildTestWorld() {
 			calendar: getCalendar(),
 			notes: toolkit.system.notes,
 			seasons: foundry.utils.deepClone(toolkit.system.seasons ?? {}),
+			threads: foundry.utils.deepClone(toolkit.system.threads ?? {}),
 			settings: Object.fromEntries(SETTINGS.map((key) => [key, foundry.utils.deepClone(game.settings.get(SYSTEM_ID, key))])),
 			timeline: timelineBefore()
 		}
@@ -1416,7 +1420,7 @@ class TestGame {
 				const name = this.mythName(myth);
 				await resolveMyth(this.scene, myth, {
 					name,
-					note: `${name}: all six Omens met between Spring and Winter of Age 1. It ended at ${t("realm.hex", hex)}, with ${oswin.name} holding the line. The Knights each took Glory for it.`,
+					note: `${name}: all six Omens met between Spring and Winter of Age 1. It ended at ${hexNumberWords(hex, null, t)}, with ${oswin.name} holding the line. The Knights each took Glory for it.`,
 					award: async () => {
 						await this.award("myth", this.company);
 						return this.company;
@@ -1969,7 +1973,7 @@ class TestGame {
 		}));
 
 		let chapel = rollSite(emptySite(), createRandom(`${REALM_SEED}-chapel`));
-		chapel.notes = `${this.names.ruin}, at ${t("realm.hex", hex)}. A pilgrim chapel the mere rose over. Explored in Harvest of Age 1.`;
+		chapel.notes = `${this.names.ruin}, at ${hexNumberWords(hex, null, t)}. A pilgrim chapel the mere rose over. Explored in Harvest of Age 1.`;
 		const used = { feature: 0, danger: 0, treasure: 0 };
 		for (const key of numberedPoints(chapel)) {
 			const point = chapel.points[key];
@@ -2101,7 +2105,7 @@ class TestGame {
 	/** The Knights' Chronicles, what they know of their Seers, and the GM's own notes. */
 	async writeUp() {
 		const { isolde, corvin, oswin } = this.knights;
-		const chronicle = (deeds) => `<h2>Chronicle</h2>${list(...deeds.map((deed) => foundry.utils.escapeHTML(deed)))}`;
+		const chronicle = (deeds) => list(...deeds.map((deed) => foundry.utils.escapeHTML(deed)));
 		await isolde.update({
 			"system.notes": chronicle(this.deeds.isolde),
 			"system.seerNotes": html("Hasn't been seen since the Knighting. Isolde means to ask them what her Oath was really for.")
@@ -2143,16 +2147,30 @@ class TestGame {
 
 	/**
 	 * End the session where the game has got to, as the Ending a Session window
-	 * ends one (p16): no time passes, two threads left hanging are rolled on,
+	 * ends one (p16): no time passes, what's left open is kept and two of them rolled on,
 	 * and the recap and the players' plans go into this Season's notes.
 	 */
 	async endSession() {
-		const { corvin } = this.knights;
+		const { corvin, oswin } = this.knights;
+		// What the game has left open, as the Toolkit's Time page lists it: two situations nobody has settled,
+		// a favour owed at the Seat, where Places shows it, and a contact made on the road.
+		const seat = this.places.seat?.hex;
+		const tied = seat ? { scene: this.scene.id, hex: hexKey(seat) } : {};
+		const open = [
+			{ kind: "situation", name: "The smoke to the north" },
+			{ kind: "situation", name: "The steward's missing grain", ...tied },
+			{ kind: "favour", name: `The cook of ${this.names.seat} owes a quiet word`, knight: oswin.id, ...tied },
+			{ kind: "contact", name: "A drover who knows the high road", knight: corvin.id }
+		];
 		const situations = [];
-		// Numbered as the window numbers them: the smoke to the north, and the steward's missing grain.
-		for (const number of [1, 2]) {
+		for (const thread of open) {
+			const id = await addThread(thread);
+			if (thread.kind !== "situation") continue;
 			const rolled = await rollRefereeTable("unresolved");
-			if (rolled) situations.push({ number, d6: rolled.d6, result: rolled.result });
+			if (!rolled) continue;
+			situations.push({ id, name: thread.name, d6: rolled.d6, result: rolled.result });
+			// No Season turns as this session ends, so the roll is kept here, to show how the list reads one.
+			if (id) await keepThreadRoll(id, rolled);
 		}
 		await endTheSession({
 			step: "none",

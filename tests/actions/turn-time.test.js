@@ -61,9 +61,10 @@ vi.mock("../../module/actions/phase-end.js", () => ({
 	askPhaseEnd: vi.fn(),
 	dieUntended: vi.fn(),
 	forgetDeprived: vi.fn(async () => null),
+	markMorningSettled: vi.fn(async () => null),
 	takeMorningLosses: vi.fn(async () => null)
 }));
-vi.mock("../../module/actions/wilderness.js", () => ({ companySituation: () => standing, wildernessRoll: vi.fn() }));
+vi.mock("../../module/actions/wilderness.js", () => ({ companySituation: () => standing, omenMetThisPhase: () => false, wildernessRoll: vi.fn() }));
 vi.mock("../../module/actions/knights.js", () => ({
 	companyKnights: () => game.actors.filter((actor) => actor.type === "knight"),
 	inCompany: () => true,

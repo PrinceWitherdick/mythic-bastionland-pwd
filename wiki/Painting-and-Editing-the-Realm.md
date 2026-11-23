@@ -10,12 +10,15 @@ Click the **crown** (**Realm**) in the scene controls. Its tools, top to bottom:
 | --- | --- |
 | **Inspect hexes** | Click a hex to open it in Places. While a Realm is being drawn, **Edit this hex** opens beside Places too. |
 | **Paint the Realm** | Picks up the brush and opens the palette. See below. |
+| **Fog brush** | Lifts the Fog of War from a hex, or lets it back. Shows only while this Realm's fog is on. See [Fog of War](#fog-of-war). |
 | **Wilderness Roll** | Makes the Wilderness Roll for the hex the Company stands in. See [Exploring the Wilderness](Exploring-the-Wilderness#the-wilderness-roll). |
 | **Reroll the Realm** | Rolls a new Realm onto this Scene, after asking. Tokens and anything else on the Scene stay, and so do the parts you left to draw by hand. |
 | **Realm Appearance** | Opens the Realm Appearance window. See [Realm Appearance and Skins](Realm-Appearance-and-Skins). |
+| **Fog of War** | Opens the Fog of War window for this Realm. See [Fog of War](#fog-of-war). |
 | **Import map** | Lays a picture of your own map under the Realm, or changes or removes the one there. See [Making a Realm](Making-a-Realm#importing-a-map-you-drew). |
+| **Expand the map** | Adds hexes to any side of a Realm already in play, or puts it back from the backup kept first. See [Expand the map](#expand-the-map). |
 
-The last four act at once rather than staying in hand.
+The last five act at once rather than staying in hand.
 
 ## The palette
 
@@ -130,6 +133,71 @@ To change one hex's picture, click it again with the same terrain in the brush. 
 **Reroll the Realm** rolls a new Realm onto the Scene in view. It asks first, and names any parts you set up to draw by hand, which it keeps. Tokens, Tiles and Drawings of your own stay. A new Realm Key is whispered to the Referees, and the Undo history is cleared.
 
 On a Realm already in play, the warning says what stays and what goes. The Company's visits and hex notes stay. Marks of things seen from afar are cleared, and so are Barriers met that the new roll takes away. A Courtier Company at the old Seat of Power moves to the new one. Any Domain ruling a Holding here is named, so you can give it its new Holding on its sheet.
+
+## Expand the map
+
+**Expand the map** makes a Realm bigger once play is under way: when the Knights come to rule more land, or the Company walks off the edge. Say how many hexes to add to the north, south, west and east. The map is drawn small with the new hexes round it, with the size it will be, such as "14 by 12, 168 hexes". A map can run to 60 hexes a side and 900 in all.
+
+Every hex keeps what it holds, and every Token, Tile, Drawing, Note, light, sound, Wall and Region stands on the land it stood on. So does everything kept for a hex: its name, the Lay of the Land, visits, what the players were told, things seen from afar, its Journal entry, threads in the Referee Toolkit, and its Timeline rows. Each player's view stays on the same land.
+
+**The new land.** **Roll its terrain** grows clusters of terrain out from the land already there, as a Realm is rolled. **Leave it blank to paint** leaves the new hexes empty for the brush. Roll is chosen for a rolled Realm, blank for one drawn by hand or laid over a picture. Tick **Roll Landmarks and Barriers into it too** for as many as a Realm has for that many hexes, hidden from the players. Barriers run only along the new hexes and never wall a hex off. No Myths, Holdings or rivers are added.
+
+**A Realm laid over a picture.** The picture stays where it was under its hexes, and the new hexes fall on bare paper. Tick **Draw the new land in the Realm's own ink** to show the system's terrain in hexes outside your picture; it won't match your drawing. Or bring in a bigger picture afterwards with **Import map**, which keeps what every hex holds.
+
+**Hex numbers.** Once hexes are added to the north or west, choose how hexes are numbered. **Keep every hex's number** leaves old hexes as they were, so new columns to the west and new rows to the north are numbered 0, -1, -2 and so on. Old chat cards and any numbers printed on your map stay right. **Number the map again from 1** gives every hex a new number, counting from Column 1, Row 1 at the top left, with no negative numbers. The hexes on old chat cards still open the right place, but the numbers printed on them and in some Timeline rows are then out of date. You can choose again at the next expansion.
+
+**The backup.** **Keep a backup of this Realm first** is ticked to start. It saves the whole Scene, with what is kept for its hexes, in a file with your world on the server, in place of the last one. If the backup can't be saved, you're asked whether to go on without it.
+
+Expanding forgets Undo on the map and Undo on recent Phase cards.
+
+### Putting the Realm back
+
+Once a Realm has a backup, Expand the map offers **Put the Realm back as it was on** the day it was kept. It asks first. The map, its Tokens and what is kept for its hexes go back to how they were then, and everything done on this Realm since is lost. Every expansion since the backup is undone, even one made without a backup of its own. Anything written down since for a hex that is still there follows it back, and chat cards posted since point at the right hex again; anything written for the land added loses its hex. The calendar, the Knights and everything else in the world stay as they are now. A backup is used up once the Realm is put back from it, so it can't be put back twice.
+
+### If an expansion is cut short
+
+An expansion is written in several steps. If the browser closes part way, the Realm is marked, and the next time a Referee opens it the expansion is finished from the start and you're told so. Putting a Realm back is finished the same way, from its backup. Should that backup no longer be readable, the mark is taken off so the Realm can be used again, and you're told to look it over for anything left out of place.
+
+## Fog of War
+
+A Realm can hide its land from the players until the Company gets there. This is a house rule, off on every Realm until you turn it on, and each Realm has its own.
+
+With the fog on, the players see the edge of every hex, and nothing inside one they haven't reached: no terrain, rivers, Holdings, Landmarks, Myths or map picture. A fogged hex looks like plain paper in the Realm's own paper colour. Barriers that have been revealed, the Company Token, the players' own Tokens and the marks of things seen from afar still show. Other Tokens in a fogged hex don't. The label under the pointer reads **Unexplored**.
+
+![A Realm as the players see it under the fog: plain paper hexes with only their edges, and the Company's winding trail of ticked hexes showing their terrain, the Company Token, a Barrier, a Seat with its arms and two things seen from afar](images/painting-and-editing-the-realm-fog-players.webp)
+
+You see the fog as a thin veil, so you can still read the map and see what the players can't. Played alone, you see it as the players do.
+
+![The same Realm as the Referee sees it: every hex's terrain, the river, Holdings, Barriers and Myth numbers drawn faintly under a pale veil, and the Company's trail clear and full strength](images/painting-and-editing-the-realm-fog-referee.webp)
+
+The fog lifts from a hex when:
+
+- the Company arrives there,
+- you lift it with the brush, the hex's own button, or the window,
+- you press **Mark it on the players' map** on a vantage point's card, which lifts it from the hex and the six around it (played alone, this happens by itself),
+- a Myth or Landmark there is marked on the players' map,
+- or you tell the players about the hex with **Lift the fog here too** ticked.
+
+### The Fog of War window
+
+Open it from **Fog of War** in the Realm tools.
+
+![The Fog of War window: a line on what the players see, Fog of War on this Realm ticked, Holdings show through the fog unticked, then Lift all the fog, Bring the fog back everywhere and Pick up the fog brush, and Done at the foot](images/painting-and-editing-the-realm-fog-window.webp)
+
+- **Fog of War on this Realm** turns it on and off. Turning it off keeps what you lifted, for when you turn it on again.
+- **Holdings show through the fog** keeps every Holding and Seat, and the arms they fly, on the players' map.
+- **Lift all the fog** and **Bring the fog back everywhere** each ask first. A hex you fog again clears once more when the Company next arrives there.
+- **Pick up the fog brush** puts the brush in your hand.
+
+### The fog brush
+
+Click a hex to lift its fog, or click again to let it back. Drag across hexes to do the same to all of them: a drag that starts in the fog lifts it, and one that starts in the clear brings it back. While the brush is in hand, your veil lies thicker, so you can see what you've painted.
+
+### In Places
+
+![The top of a fogged hex in Places: its column and row, The Company knows nothing of this hex yet, and the visits line reading Not visited yet with Count a Visit and Lift the fog](images/painting-and-editing-the-realm-fog-places.webp)
+
+While the fog is on, a hex's visits line in Places has **Lift the fog** or **Let the fog back**. Under the Referee's note, **Tell the players** has a **Lift the fog here too** box beside it while the hex is fogged. It starts unticked each time.
 
 ## See also
 

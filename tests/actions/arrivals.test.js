@@ -51,12 +51,12 @@ vi.mock("../../module/actions/myth-notes.js", async () => {
 	const { withoutResolved } = await import("../../module/rules/myth-notes.js");
 	return { liveRealm: () => withoutResolved(realm, notes) };
 });
-vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }), isRealmScene: (scene) => Boolean(scene?.realm) }));
+vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }), isRealmScene: (scene) => Boolean(scene?.realm), sceneGeometry: () => g }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn(), weatherIn: () => weather }));
 vi.mock("../../module/actions/steeds.js", () => ({ gallop: vi.fn() }));
 // The Phase's end is time.js's to test: here only that it's asked, and what it answers.
 vi.mock("../../module/actions/time.js", () => ({ advancePhase: vi.fn(async () => ({ phase: "afternoon" })) }));
-vi.mock("../../module/actions/wilderness.js", () => ({ markOmenOnEntering: vi.fn(), wildernessRoll: vi.fn() }));
+vi.mock("../../module/actions/wilderness.js", () => ({ wildernessRoll: vi.fn() }));
 // What solo play finds in the hexes reached is solo.js's to work out; here only which hexes it's asked about.
 let solo = false;
 vi.mock("../../module/actions/solo.js", async () => {
@@ -68,7 +68,7 @@ const { noticeArrival, takeBackMove } = await import("../../module/actions/arriv
 const { advancePhase } = await import("../../module/actions/time.js");
 const { postCard, registerCardButtons } = await import("../../module/chat/cards.js");
 const { setCompanyHex } = await import("../../module/actions/company.js");
-const { markOmenOnEntering, wildernessRoll } = await import("../../module/actions/wilderness.js");
+const { wildernessRoll } = await import("../../module/actions/wilderness.js");
 const { revealMythsReached } = await import("../../module/actions/solo.js");
 const { forgetMoveVisits, setHeldBack } = await import("../../module/actions/journey.js");
 const { settleBlindTravel } = await import("../../module/actions/night-travel.js");
@@ -214,7 +214,7 @@ describe("a move followed", () => {
 	it("tells of the hex a blind roll drifted the Company into, not the one it made for (p18)", async () => {
 		landing = hex(2, 2);
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 		expect(lastCard().target).toEqual(hex(2, 2));
 		expect(lastCard().actions.map(({ key }) => key)).toEqual(["mood", "endPhase"]);
 	});
@@ -247,6 +247,15 @@ describe("a move followed", () => {
 		expect(lastCard().actions.map(({ key }) => key)).toEqual(["endPhase"]);
 	});
 
+	it("does nothing for a hex past the map's edge, as land a put-back took away leaves it", async () => {
+		weather = "dire";
+		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
+		const moves = vi.mocked(setCompanyHex).mock.calls.length;
+		expect(await press("stay", "14,5")).toBe(false);
+		expect(setCompanyHex).toHaveBeenCalledTimes(moves);
+		weather = null;
+	});
+
 	it("ends the Phase the Company travelled in, asked as spent travelling (p18)", async () => {
 		vi.mocked(advancePhase).mockClear();
 		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
@@ -270,7 +279,7 @@ describe("a move followed", () => {
 	it("takes a move back with Undo: its visits and its hexes of the Phase's pace are forgotten", async () => {
 		const scene = realmScene("undo1");
 		follow(scene, { entered: [hex(5, 5), hex(5, 6)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 4, "5,6": 5 }) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 		expect(settings.get("companyPace").count).toBe(2);
 		vi.mocked(forgetMoveVisits).mockClear();
 
@@ -286,9 +295,9 @@ describe("a move followed", () => {
 	it("takes moves back with Undo the last first", async () => {
 		const scene = realmScene("undo2");
 		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 1 }) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(1));
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(1), { interval: 1 });
 		follow(scene, { entered: [hex(5, 6)], ended: true, from: hex(5, 5), orders: Promise.resolve({ "5,6": 2 }) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2));
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2), { interval: 1 });
 		vi.mocked(forgetMoveVisits).mockClear();
 		expect(await takeBackMove(scene, hex(5, 5))).toBe(true);
 		expect(forgetMoveVisits).toHaveBeenLastCalledWith(scene, [hex(5, 6)], { "5,6": 2 });
@@ -299,7 +308,7 @@ describe("a move followed", () => {
 	it("keeps the moves for Undo on the Scene, so a reload or another Referee can still take one back", async () => {
 		const scene = realmScene("undo4");
 		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 7 }), movements: ["tokMove1"] });
-		await vi.waitFor(() => expect(scene.setFlag).toHaveBeenCalled());
+		await vi.waitFor(() => expect(scene.setFlag).toHaveBeenCalled(), { interval: 1 });
 		vi.mocked(forgetMoveVisits).mockClear();
 
 		// Nothing but the Scene's flags is left of the move after a reload.
@@ -313,10 +322,10 @@ describe("a move followed", () => {
 	it("takes back the move an Undo names, though another set off from the same hex since", async () => {
 		const scene = realmScene("undo5");
 		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 1 }), movements: ["first"] });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(1));
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(1), { interval: 1 });
 		calendar.phase = "afternoon";
 		follow(scene, { entered: [hex(5, 3)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,3": 2 }), movements: ["second"] });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2));
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2), { interval: 1 });
 		vi.mocked(forgetMoveVisits).mockClear();
 
 		// Another Knight's Undo of the same move, or one of a move never kept, takes back nothing.
@@ -332,13 +341,13 @@ describe("a move followed", () => {
 		const scene = realmScene("undo3");
 		weather = "dire";
 		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 3 }) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 		expect(heldMove).toBe("move1");
 		expect(await takeBackMove(scene, hex(5, 4))).toBe(true);
 		expect(heldMove).toBeNull();
 
 		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 6 }) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2));
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalledTimes(2), { interval: 1 });
 		await press("stay", "5,4", scene);
 		vi.mocked(forgetMoveVisits).mockClear();
 		expect(await takeBackMove(scene, hex(5, 4))).toBe(false);
@@ -350,14 +359,14 @@ describe("a move followed", () => {
 		await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
 		calendar.phase = "afternoon";
 		await press("omen", "8,6");
-		expect(markOmenOnEntering).toHaveBeenCalledWith(scene, hex(8, 6), expect.objectContaining({ phase: "morning" }));
+		expect(wildernessRoll).toHaveBeenLastCalledWith({ scene, hex: hex(8, 6), enteredAt: expect.objectContaining({ phase: "morning" }) });
 	});
 
 	it("finds a Myth only in the hexes the Company really came into, after a blind roll or dire weather (p18)", async () => {
 		vi.mocked(revealMythsReached).mockClear();
 		landing = hex(2, 2);
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
+		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled(), { interval: 1 });
 		expect(revealMythsReached).toHaveBeenLastCalledWith(scene, [hex(8, 5), hex(2, 2)]);
 
 		// Dire weather may hold a chosen move back, so only the hex set off from is found.
@@ -365,14 +374,14 @@ describe("a move followed", () => {
 		landing = null;
 		weather = "dire";
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
+		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled(), { interval: 1 });
 		expect(revealMythsReached).toHaveBeenLastCalledWith(scene, [hex(8, 5)]);
 
 		// A drift the Company didn't choose has no Stay to press: it is where it drifted. Put there, as by
 		// Stay or a blind roll sending it back, it was never in the hex it was put back from.
 		vi.mocked(revealMythsReached).mockClear();
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5), chosen: false });
-		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
+		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled(), { interval: 1 });
 		expect(revealMythsReached).toHaveBeenLastCalledWith(scene, [hex(8, 6)]);
 	});
 
@@ -381,7 +390,7 @@ describe("a move followed", () => {
 		// Circled back to where it set off: the hex it made for, seen from afar, keeps its secret.
 		landing = hex(8, 5);
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-		await vi.waitFor(() => expect(revealSighted).toHaveBeenCalled());
+		await vi.waitFor(() => expect(revealSighted).toHaveBeenCalled(), { interval: 1 });
 		expect(revealSighted).toHaveBeenCalledOnce();
 		expect(revealSighted).toHaveBeenLastCalledWith(scene, [hex(8, 5)]);
 
@@ -389,7 +398,7 @@ describe("a move followed", () => {
 		vi.mocked(revealSighted).mockClear();
 		landing = hex(2, 2);
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-		await vi.waitFor(() => expect(revealSighted).toHaveBeenCalled());
+		await vi.waitFor(() => expect(revealSighted).toHaveBeenCalled(), { interval: 1 });
 		expect(revealSighted).toHaveBeenLastCalledWith(scene, [hex(8, 5), hex(2, 2)]);
 		expect(vi.mocked(revealSighted).mock.calls.flat(2)).not.toContainEqual(hex(8, 6));
 	});
@@ -399,7 +408,7 @@ describe("a move followed", () => {
 		vi.mocked(revealMythsReached).mockImplementationOnce(async () => [realm.myths[0]]);
 		vi.mocked(revealSighted).mockImplementationOnce(async () => [hex(8, 6)]);
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-		await vi.waitFor(() => expect(timelineArrivals).toHaveBeenCalled());
+		await vi.waitFor(() => expect(timelineArrivals).toHaveBeenCalled(), { interval: 1 });
 		// The Myth's hex and the hex seen from afar are one hex, so one row.
 		expect(timelineArrivals).toHaveBeenCalledWith(scene, [hex(8, 6)]);
 
@@ -407,7 +416,7 @@ describe("a move followed", () => {
 		vi.mocked(timelineArrivals).mockClear();
 		vi.mocked(postCard).mockClear();
 		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 		expect(timelineArrivals).not.toHaveBeenCalled();
 	});
 
@@ -454,7 +463,7 @@ describe("a move followed", () => {
 		landing = null;
 		vi.mocked(setHeldBack).mockClear();
 		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 		// Played together, kept for its card's sake, with nothing kept from being found.
 		expect(setHeldBack).toHaveBeenLastCalledWith(scene, [hex(8, 6)], { move: "move1", kept: false });
 
@@ -462,7 +471,7 @@ describe("a move followed", () => {
 		try {
 			vi.mocked(postCard).mockClear();
 			follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-			await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+			await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 			// Under the move's own id, which its card keeps.
 			expect(setHeldBack).toHaveBeenLastCalledWith(scene, [hex(8, 6)], { move: "move2", kept: true });
 			expect(vi.mocked(postCard).mock.calls.at(-1)[3].flags[SYSTEM_ID].arrived).toMatchObject({ held: [hex(8, 6)], move: "move2" });
@@ -470,7 +479,7 @@ describe("a move followed", () => {
 			weather = null;
 			vi.mocked(setHeldBack).mockClear();
 			follow(scene, { entered: [hex(8, 7)], ended: true, from: hex(8, 6) });
-			await vi.waitFor(() => expect(setHeldBack).toHaveBeenCalled());
+			await vi.waitFor(() => expect(setHeldBack).toHaveBeenCalled(), { interval: 1 });
 			expect(setHeldBack).toHaveBeenLastCalledWith(scene, [], { move: null, kept: true });
 		} finally {
 			solo = false;
@@ -487,7 +496,7 @@ describe("a move followed", () => {
 				return null;
 			});
 			follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-			await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+			await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 			expect(keptWhileAsked).toEqual(["8,6"]);
 		} finally {
 			solo = false;
@@ -499,11 +508,11 @@ describe("a move followed", () => {
 		try {
 			weather = "dire";
 			follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
-			await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+			await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 			vi.mocked(setHeldBack).mockClear();
 			vi.mocked(revealMythsReached).mockClear();
 			follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(7, 6), chosen: false });
-			await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
+			await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled(), { interval: 1 });
 			// Still held back, so its Myth isn't found, and Stay or Onward still answers it.
 			expect(revealMythsReached).toHaveBeenLastCalledWith(scene, []);
 			expect(setHeldBack).not.toHaveBeenCalled();
@@ -511,7 +520,7 @@ describe("a move followed", () => {
 
 			// Put somewhere else by the Referee, it's settled.
 			follow(scene, { entered: [hex(2, 2)], ended: true, from: hex(8, 6), chosen: false });
-			await vi.waitFor(() => expect(setHeldBack).toHaveBeenCalledWith(scene, []));
+			await vi.waitFor(() => expect(setHeldBack).toHaveBeenCalledWith(scene, []), { interval: 1 });
 			expect(heldMove).toBeNull();
 		} finally {
 			solo = false;
@@ -521,10 +530,10 @@ describe("a move followed", () => {
 	it("does nothing on an old Stay once the Company has moved since, played together too", async () => {
 		weather = "dire";
 		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 		weather = null;
 		follow(scene, { entered: [hex(5, 6)], ended: true, from: hex(5, 5) });
-		await vi.waitFor(() => expect(heldMove).toBeNull());
+		await vi.waitFor(() => expect(heldMove).toBeNull(), { interval: 1 });
 		vi.mocked(setCompanyHex).mockClear();
 		vi.mocked(forgetMoveVisits).mockClear();
 		expect(await press("stay", "5,4")).toBe(true);
@@ -536,7 +545,7 @@ describe("a move followed", () => {
 	it("keeps on the card the arrivals the held move made, so Stay forgets those and no later one", async () => {
 		weather = "dire";
 		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 7, "9,9": 3 }) });
-		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled(), { interval: 1 });
 		expect(vi.mocked(postCard).mock.calls.at(-1)[3].flags[SYSTEM_ID].arrived.orders).toEqual({ "5,5": 7 });
 		vi.mocked(forgetMoveVisits).mockClear();
 		await press("stay", "5,4");

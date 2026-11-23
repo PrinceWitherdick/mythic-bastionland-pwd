@@ -171,7 +171,8 @@ export function tokenOnScene(ref) {
 /** Sequencer wants the placeable where there is one; the document is its fallback. */
 const placeable = (token) => token?.object ?? token;
 
-const gmIds = () => (game.users?.filter?.((user) => user.isGM) ?? []).map((user) => user.id);
+/** @returns {string[]} The ids of every GM. */
+export const gmIds = () => (game.users?.filter?.((user) => user.isGM) ?? []).map((user) => user.id);
 
 /**
  * Who may see and hear a blow, or null for everyone. A hidden Token keeps it
@@ -389,9 +390,9 @@ async function runBlow({ attacker, weapons, mounted, warband, impaired, targets,
  * @param {boolean} [args.warband]  A Warband's Attack (p11).
  * @param {boolean} [args.impaired] An Impaired Attack, which strikes one blow (p9).
  * @param {{uuid: string}[]} [args.targets] The Tokens the Attack card recorded.
- * @param {boolean} [args.whispered] The card wasn't posted for the whole table.
+ * @param {boolean} [args.whispered] The card wasn't posted for the whole table; left out, as this user's chat cards are: whispered unless chatIsPublic.
  */
-export function playBlowFx({ attacker = null, weapons = [], mounted = false, warband = false, impaired = false, targets = [], whispered = false } = {}) {
+export function playBlowFx({ attacker = null, weapons = [], mounted = false, warband = false, impaired = false, targets = [], whispered = !chatIsPublic() } = {}) {
 	fireAndForget(() => runBlow({ attacker, weapons, mounted, warband, impaired, targets, whispered }));
 }
 
@@ -423,9 +424,9 @@ async function runReaction({ actor, outcome, whispered }) {
  * @param {Actor} actor Whoever took it.
  * @param {string} outcome The DamageOutcome resolveDamage gave.
  * @param {object} [args]
- * @param {boolean} [args.whispered] The Damage card wasn't posted for the whole table.
+ * @param {boolean} [args.whispered] The Damage card wasn't posted for the whole table; left out, as this user's chat cards are: whispered unless chatIsPublic.
  */
-export function playDamageFx(actor, outcome, { whispered = false } = {}) {
+export function playDamageFx(actor, outcome, { whispered = !chatIsPublic() } = {}) {
 	fireAndForget(() => runReaction({ actor, outcome, whispered }));
 }
 
@@ -437,9 +438,9 @@ export function playDamageFx(actor, outcome, { whispered = false } = {}) {
  * when it counts: a Gambit nobody has Saved against yet holds
  * (module/rules/attack.js#gambitIgnored), and a Save that passes takes it back.
  * @param {object} [args]
- * @param {boolean} [args.whispered]
+ * @param {boolean} [args.whispered] The card wasn't posted for the whole table; left out, as this user's chat cards are: whispered unless chatIsPublic.
  */
-export function playDismountFx({ whispered = false } = {}) {
+export function playDismountFx({ whispered = !chatIsPublic() } = {}) {
 	fireAndForget(() => {
 		if (!attackSoundsReady()) return;
 		broadcastSound(DISMOUNT_SOUND, audienceFor([], whispered));
