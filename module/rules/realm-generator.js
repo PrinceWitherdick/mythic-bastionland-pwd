@@ -467,26 +467,35 @@ export const isConnected = (g, blocked) => reachedFrom(g, blocked, { col: 1, row
  * terrain changes, keep off the rivers so they stay navigable, and never cut off
  * part of the map.
  * @param {number} target How many: by the book, one sixth as many as there are hexes.
+ * @param {object} [options]
+ * @param {Set<string>} [options.standing] The edges already blocked, which are never chosen again and
+ *   which the new ones mustn't join in walling a hex off.
+ * @param {(key: string) => boolean} [options.allowed] Which edges may be chosen.
+ * @returns {object[]} The new Barriers alone.
  */
-function placeBarriers(random, g, realm, target) {
+function placeBarriers(random, g, realm, target, { standing = new Set(), allowed = () => true } = {}) {
 	const riverEdges = new Set(realm.rivers.flatMap((river) => river.slice(1).map((hex, index) => edgeKey(river[index], hex))));
 	const holdings = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
 	const weightOf = (key) => {
 		const [a, b] = parseEdgeKey(g, key);
-		let weight = realm.terrain[hexIndex(g, a)] === realm.terrain[hexIndex(g, b)] ? 1 : 3;
+		const [here, there] = [realm.terrain[hexIndex(g, a)], realm.terrain[hexIndex(g, b)]];
+		// A blank hex (0), as new land left to paint is, changes no terrain.
+		let weight = here && there && here !== there ? 3 : 1;
 		if (holdings.has(hexKey(a)) || holdings.has(hexKey(b))) weight *= 0.3;
 		return weight;
 	};
 
-	let candidates = interiorEdges(g).filter((key) => !riverEdges.has(key));
-	const chosen = new Set();
-	for (let tries = 0; chosen.size < target && tries < BARRIER_TRIES && candidates.length; tries++) {
+	let candidates = interiorEdges(g).filter((key) => !riverEdges.has(key) && !standing.has(key) && allowed(key));
+	const blocked = new Set(standing);
+	const chosen = [];
+	for (let tries = 0; chosen.length < target && tries < BARRIER_TRIES && candidates.length; tries++) {
 		const key = random.weighted(candidates, weightOf);
 		candidates = candidates.filter((candidate) => candidate !== key);
-		chosen.add(key);
-		if (!isConnected(g, chosen)) chosen.delete(key);
+		blocked.add(key);
+		if (isConnected(g, blocked)) chosen.push(key);
+		else blocked.delete(key);
 	}
-	return [...chosen].map((edge) => ({ id: null, edge, revealed: false }));
+	return chosen.map((edge) => ({ id: null, edge, revealed: false }));
 }
 
 /**
@@ -539,16 +548,10 @@ export function rollNewLand({ seed, realm, geometry: g, added, terrain: rollTerr
 		landmarks.push({ id: null, hex, type, name: "", seer: type === "sanctum" ? uniqueRoll(extra, seers) : null, revealed: false });
 	}
 
-	const blocked = barrierEdges(grown);
-	let candidates = interiorEdges(g).filter((key) => !blocked.has(key) && parseEdgeKey(g, key).some((hex) => isNew.has(hexIndex(g, hex))));
-	const barriers = [];
-	const target = barrierCount({ cols: added.length, rows: 1 });
-	for (let tries = 0; barriers.length < target && tries < BARRIER_TRIES && candidates.length; tries++) {
-		const key = extra.pick(candidates);
-		candidates = candidates.filter((candidate) => candidate !== key);
-		blocked.add(key);
-		if (isConnected(g, blocked)) barriers.push({ id: null, edge: key, revealed: false });
-		else blocked.delete(key);
-	}
+	// Weighed as the book's Barriers are (placeBarriers), on edges touching a new hex alone.
+	const barriers = placeBarriers(extra, g, grown, barrierCount({ cols: added.length, rows: 1 }), {
+		standing: barrierEdges(grown),
+		allowed: (key) => parseEdgeKey(g, key).some((hex) => isNew.has(hexIndex(g, hex)))
+	});
 	return { ...grown, landmarks: [...grown.landmarks, ...landmarks], barriers: [...grown.barriers, ...barriers] };
 }
