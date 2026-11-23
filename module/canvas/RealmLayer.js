@@ -93,12 +93,23 @@ function terrainDrag() {
  * @param {{col: number, row: number}|null} start
  * @returns {PaintDrag} The Fog of War lifted from every hex crossed, or brought back over each, as the
  *   first hex's goes: a drag that starts in the fog lifts it, one that starts in the clear brings it back.
- *   Written once, as it's dropped.
+ *   One begun off the map goes as the first hex it crosses. Written once, as it's dropped.
  */
 function fogDrag(scene, start) {
-	const lifting = hexFoggedForPlayers(scene, start);
-	const drag = crossingDrag({ color: lifting ? VERDIGRIS : INK_HEX, alpha: 0.3 });
-	return { ...drag, write: () => (lifting ? liftRealmFog(scene, drag.hexes(), "hand") : veilRealmFog(scene, drag.hexes())) };
+	let lifting = start ? hexFoggedForPlayers(scene, start) : null;
+	const highlight = { color: lifting === false ? INK_HEX : VERDIGRIS, alpha: 0.3 };
+	const drag = crossingDrag(highlight);
+	return {
+		...drag,
+		extend(g, hex) {
+			if (lifting === null && hex) {
+				lifting = hexFoggedForPlayers(scene, hex);
+				highlight.color = lifting ? VERDIGRIS : INK_HEX;
+			}
+			return drag.extend(g, hex);
+		},
+		write: () => (lifting ? liftRealmFog(scene, drag.hexes(), "hand") : veilRealmFog(scene, drag.hexes()))
+	};
 }
 
 /**
