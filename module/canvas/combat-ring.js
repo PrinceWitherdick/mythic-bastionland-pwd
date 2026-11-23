@@ -243,8 +243,9 @@ export function registerCombatRingHooks() {
 		return closeCombatRing();
 	});
 	// A Save's score drawn as it is now; a Token taken out of the Combat, or marked defeated, loses them.
-	Hooks.on("updateActor", (actor) => {
-		if (ring?.rendered && ring.actor === actor) ring.render();
+	// A write of flags alone, as an Attack's marks are, changes nothing the ring shows.
+	Hooks.on("updateActor", (actor, changes) => {
+		if (ring?.rendered && ring.actor === actor && ["system", "type", "name"].some((key) => key in changes)) ring.render();
 	});
 	for (const hook of ["updateCombatant", "deleteCombatant", "deleteCombat"]) Hooks.on(hook, syncCombatRing);
 }
