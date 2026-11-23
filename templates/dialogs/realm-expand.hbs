@@ -1,7 +1,7 @@
 <div class="bastionland-dialog__body bastionland-expand">
 	{{!-- Expand the map (module/apps/realm-expand.js), in two columns. The first: how many hexes to add on each side,
-	      round the map drawn small with its new hexes, how the hexes are numbered, and the backup kept first. The
-	      second: what the new land is. --}}
+	      round the map drawn small with its new hexes, and how the hexes are numbered once they move. The second:
+	      what the new land is, and the backup kept first. --}}
 	<p>{{localize "bastionland.realm.expand.intro"}}</p>
 
 	<div class="bastionland-expand__columns">
@@ -42,22 +42,6 @@
 					{{/each}}
 				</fieldset>
 			</div>
-
-			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.expand.backup.heading"}}</h3>
-			<label class="bastionland-check">
-				<input type="checkbox" name="backup" checked>
-				<span class="bastionland-check__label">
-					<strong>{{localize "bastionland.realm.expand.backup.keep"}}</strong>
-					<span class="bastionland-check__detail">{{localize "bastionland.realm.expand.backup.keepDetail"}}</span>
-				</span>
-			</label>
-			{{#if backup}}
-			<p class="hint">{{backup.said}}</p>
-			<button type="button" class="bastionland-button bastionland-expand__restore" data-expand-restore>
-				<i class="fa-solid fa-clock-rotate-left" inert></i>
-				<span>{{backup.label}}</span>
-			</button>
-			{{/if}}
 		</div>
 
 		<div class="bastionland-expand__column">
@@ -90,6 +74,22 @@
 					<span class="bastionland-check__detail">{{localize "bastionland.realm.expand.picture.inkDetail"}}</span>
 				</span>
 			</label>
+			{{/if}}
+
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.expand.backup.heading"}}</h3>
+			<label class="bastionland-check">
+				<input type="checkbox" name="backup" checked>
+				<span class="bastionland-check__label">
+					<strong>{{localize "bastionland.realm.expand.backup.keep"}}</strong>
+					<span class="bastionland-check__detail">{{localize "bastionland.realm.expand.backup.keepDetail"}}</span>
+				</span>
+			</label>
+			{{#if backup}}
+			<p class="hint">{{backup.said}}</p>
+			<button type="button" class="bastionland-button bastionland-expand__restore" data-expand-restore>
+				<i class="fa-solid fa-clock-rotate-left" inert></i>
+				<span>{{localize "bastionland.realm.expand.backup.restore"}}</span>
+			</button>
 			{{/if}}
 		</div>
 	</div>

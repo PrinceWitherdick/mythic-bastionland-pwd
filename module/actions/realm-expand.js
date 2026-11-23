@@ -7,7 +7,7 @@
  * Here too is Expand the map, the Realm tool that opens the window, keeps a
  * backup first, and puts a Realm back from it.
  */
-import { askToExpandRealm, dateText, realmBackup } from "../apps/realm-expand.js";
+import { askToExpandRealm, backupWords, realmBackup } from "../apps/realm-expand.js";
 import { confirmDialog } from "../apps/ui.js";
 import { ensureDirectories, uploadFile } from "../book-art/files.js";
 import { t, warn } from "../chat/cards.js";
@@ -16,7 +16,7 @@ import { HEX_JOURNAL_FLAG } from "../rules/hex-journal.js";
 import { randomSeed } from "../rules/random.js";
 import { rollNewLand } from "../rules/realm-generator.js";
 import { REALM_BACKUP_FLAG, newLandHexes, sameOmenEntered, shiftJournalFlag, shiftOmenEntered, shiftThreads, shiftTimelineKey } from "../rules/realm-growth.js";
-import { serverNow } from "../server-now.js";
+import { learntWallNow } from "../server-now.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { theGmToolkit } from "./gm-toolkit.js";
 import { hexJournalFlag } from "./hex-journals.js";
@@ -113,13 +113,14 @@ const backupDir = () => `worlds/${game.world.id}/bastionland-backups`;
 /**
  * @param {Scene} scene
  * @param {import("../rules/realm-growth.js").Growth} growth The growth about to be made.
+ * @param {number} when The time of day, shown to the Referee: Foundry's server time counts only from the server's start.
  * @returns {object} All a backup holds: the whole Scene, the growth, the system's version and the time.
  */
-const backupData = (scene, growth) => ({
+const backupData = (scene, growth, when) => ({
 	scene: scene.toObject(),
 	growth,
 	system: game.system?.version ?? "",
-	when: serverNow()
+	when
 });
 
 /**
@@ -132,7 +133,7 @@ const backupData = (scene, growth) => ({
  * @returns {Promise<boolean>} Whether to go on.
  */
 export async function keepRealmBackup(scene, growth) {
-	const data = backupData(scene, growth);
+	const data = backupData(scene, growth, await learntWallNow());
 	const text = JSON.stringify(data);
 	const name = `realm-${scene.id}.json`;
 	const dir = backupDir();
@@ -172,11 +173,11 @@ export async function readRealmBackup(scene, kept = realmBackup(scene)) {
 async function offerPutBack(scene) {
 	const kept = realmBackup(scene);
 	if (!kept) return false;
-	const when = dateText(kept.when);
+	const words = backupWords(kept.when, scene.name);
 	const confirmed = await confirmDialog({
 		title: t("realm.expand.restore.title"),
 		icon: "fa-solid fa-clock-rotate-left",
-		message: [t("realm.expand.restore.confirm", { when }), t("realm.expand.restore.kept")]
+		message: [words.confirm, t("realm.expand.restore.kept")]
 	});
 	if (!confirmed) return false;
 	const backup = await readRealmBackup(scene);
@@ -185,7 +186,7 @@ async function offerPutBack(scene) {
 		return false;
 	}
 	const done = await putRealmBack(scene, backup);
-	if (done) ui.notifications.info(t("realm.expand.restore.done", { realm: scene.name, when }));
+	if (done) ui.notifications.info(words.done);
 	return done;
 }
 

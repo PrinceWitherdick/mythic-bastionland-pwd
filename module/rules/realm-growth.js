@@ -678,7 +678,7 @@ export function shownRange(g, growth) {
 /**
  * How far the hexes have moved since a card was posted: by every expansion
  * logged after it.
- * @param {number|null|undefined} timestamp When the card was posted.
+ * @param {number|null|undefined} timestamp When the card was posted: nothing for one posted before cards were stamped, which every expansion came after.
  * @param {unknown} growth The Scene's growth flag.
  * @returns {Offset}
  */

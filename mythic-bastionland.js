@@ -101,6 +101,7 @@ import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
 import { registerHexTargets } from "./module/chat/hex-target.js";
 import { registerPostedAt } from "./module/chat/posted-at.js";
+import { learnServerClock } from "./module/server-now.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
@@ -429,7 +430,8 @@ Hooks.once("init", () => {
 	registerExplorationCards();
 	// A hex a card names rings on the map when pointed at, and takes the map there when clicked.
 	registerHexTargets();
-	// Each message is stamped with the server's time, which the Realm's growth log is kept by.
+	// Each message is stamped with the time of day, which the Realm's growth log is kept by; this computer's clock is set by the server's first.
+	learnServerClock();
 	registerPostedAt();
 	registerFallenCards();
 	// A Humiliation's dealer brought down asks whether that was the revenge (p9).

@@ -149,9 +149,9 @@ beforeEach(() => {
 		journal,
 		actors: [],
 		scenes: [scene],
-		time: { serverTime: 1000 },
 		settings: { get: (_scope, key) => settings.get(key), set: vi.fn(async (_scope, key, value) => settings.set(key, value)) }
 	};
+	vi.spyOn(Date, "now").mockReturnValue(1000);
 	globalThis.canvas = { scene: null };
 	globalThis.ui = { notifications: { info: vi.fn(), warn: vi.fn() } };
 	globalThis.Hooks = { callAll: vi.fn(), once: vi.fn(), on: vi.fn() };
@@ -172,6 +172,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	for (const key of ["game", "canvas", "ui", "Hooks", "foundry", "CONFIG"]) delete globalThis[key];
+	vi.restoreAllMocks();
 });
 
 const growth = { west: 3, north: 1, east: 1, south: 2 };
@@ -430,7 +431,7 @@ describe("putRealmBack", () => {
 		const before = snapshot(scene);
 		await expandRealm(scene, growth);
 		scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG] = { path: "worlds/w/b.json", when: 5 };
-		game.time.serverTime = 2000;
+		Date.now.mockReturnValue(2000);
 		await putRealmBack(scene, { scene: before, growth });
 		expect(scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG]).toBeUndefined();
 		const logged = scene.flags[SYSTEM_ID][REALM_GROWTH_FLAG];

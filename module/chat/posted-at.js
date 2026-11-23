@@ -1,31 +1,36 @@
 /**
- * When a chat message was posted, by the server's clock. A message's own
- * timestamp is the posting computer's clock, which may run apart from the
- * server's; the growth log a Realm's expansions keep is the server's, so a
- * card asking which expansions came after it reads this instead.
+ * When a chat message was posted: the time of day, set by the server's clock
+ * where it could be learnt. A message's own timestamp is the posting
+ * computer's clock, which may run apart from the others'; the growth log a
+ * Realm's expansions keep is stamped the same way as this, so a card asking
+ * which expansions came after it reads this instead.
  */
-import { serverNow } from "../server-now.js";
+import { wallNow } from "../server-now.js";
 import { SYSTEM_ID } from "../system-id.js";
 
-/** The flag a message carries with the server's time it was posted at. */
+/** The flag a message carries with the time of day it was posted at. */
 export const POSTED_AT_FLAG = "postedAt";
 
 /**
  * @param {ChatMessage|{flags?: object, timestamp?: number}|null|undefined} message
- * @returns {number|undefined} When it was posted, by the server's clock; by the poster's for a message
- *   posted before messages carried it.
+ * @returns {number|undefined} When it was posted, or nothing for a message posted before messages
+ *   carried it. Those came before any Realm's map could grow, as both came in 1.0.2, so every expansion
+ *   logged is after them; their own timestamp, a time of day, can't be set against expansions 1.0.2
+ *   stamped with the server's uptime.
  */
 export function postedAt(message) {
 	const at = message?.flags?.[SYSTEM_ID]?.[POSTED_AT_FLAG];
-	return Number.isFinite(at) ? at : message?.timestamp;
+	return Number.isFinite(at) ? at : undefined;
 }
 
 /**
- * Stamp a message about to be made by this client with the server's time.
+ * Stamp a message about to be made by this client with the time of day. A
+ * hook can't wait, so one made before the server's clock is learnt, as the
+ * world loads, is by this computer's own.
  * @param {ChatMessage} message
  */
 export function stampPostedAt(message) {
-	message.updateSource({ flags: { [SYSTEM_ID]: { [POSTED_AT_FLAG]: serverNow() } } });
+	message.updateSource({ flags: { [SYSTEM_ID]: { [POSTED_AT_FLAG]: wallNow() } } });
 }
 
 /** Called during init. */

@@ -5194,16 +5194,19 @@
           "keep": "Keep a backup of this Realm first",
           "keepDetail": "Saved on the server with your world, in place of the last one. It holds this Realm's map and what is kept for its hexes.",
           "kept": "A backup of this Realm was kept before it was expanded, on {when}. Putting it back undoes every expansion since.",
-          "restore": "Put the Realm back as it was on {when}",
+          "keptUndated": "A backup of this Realm was kept before it was expanded. Putting it back undoes every expansion since.",
+          "restore": "Put the Realm back from the backup",
           "failedTitle": "No Backup",
           "failed": "The backup couldn't be saved on the server. Expand the map without one?"
         },
         "restore": {
           "title": "Put the Realm Back",
           "confirm": "Put this Realm back as it was on {when}? Its map, its Tokens and what is kept for its hexes go back to how they were then. Everything done on this Realm since is lost, and anything written down for the land added since loses its hex.",
+          "confirmUndated": "Put this Realm back as it was when its backup was kept? Its map, its Tokens and what is kept for its hexes go back to how they were then. Everything done on this Realm since is lost, and anything written down for the land added since loses its hex.",
           "kept": "The calendar, the Knights and everything else in the world stay as they are now.",
           "unreadable": "The backup couldn't be read from the server, so the Realm is left as it is.",
           "done": "{realm} is back as it was on {when}.",
+          "doneUndated": "{realm} is back as it was when its backup was kept.",
           "finished": "Putting {realm} back from its backup was cut short, and has been finished.",
           "unfinished": "Putting {realm} back from its backup was cut short, and the backup can no longer be read. The Realm can be used again, but some of its Tiles, Tokens and Drawings may stand where the backup had them: look it over, and put right by hand what's out of place."
         }

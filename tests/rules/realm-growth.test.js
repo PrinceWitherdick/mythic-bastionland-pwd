@@ -356,6 +356,11 @@ describe("numbers shown and old chat cards", () => {
 		expect(cardHexKey("5,7", 250, log)).toBe("5,7");
 	});
 
+	it("moves a card posted before cards were stamped by every expansion, though 1.0.2 logged them by the server's uptime", () => {
+		const log = loggedGrowth(null, grow(2, 1), { when: 4_000_000, keepNumbers: true });
+		expect(cardHexKey("5,7", undefined, log)).toBe("7,8");
+	});
+
 	it("names no hex for one past the map's east or south edge now, as a put-back leaves it", () => {
 		const grown = loggedGrowth(null, grow(0, 0, 3, 2), { when: 100, keepNumbers: true });
 		const back = putBackGrowth(grown, null, growthSince(grown, null), { when: 200 });

@@ -4,7 +4,7 @@ import { REALM_BACKUP_FLAG } from "../../module/rules/realm-growth.js";
 
 vi.mock("../../module/book-art/files.js", () => ({ ensureDirectories: vi.fn(async () => {}), uploadFile: vi.fn(async () => "worlds/w/bastionland-backups/realm-vale.json") }));
 vi.mock("../../module/apps/ui.js", () => ({ confirmDialog: vi.fn(async () => true) }));
-vi.mock("../../module/apps/realm-expand.js", () => ({ askToExpandRealm: vi.fn(), realmBackup: vi.fn(() => null) }));
+vi.mock("../../module/apps/realm-expand.js", () => ({ askToExpandRealm: vi.fn(), backupWords: vi.fn(), realmBackup: vi.fn(() => null) }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key, warn: vi.fn() }));
 vi.mock("../../module/actions/realm.js", () => ({}));
 vi.mock("../../module/actions/gm-toolkit.js", () => ({ theGmToolkit: () => null }));
@@ -41,11 +41,14 @@ afterEach(() => {
 });
 
 describe("keepRealmBackup", () => {
-	it("keeps the server's backup and names it on the Scene", async () => {
+	it("keeps the server's backup and names it on the Scene, dated by the clock rather than the server's uptime", async () => {
+		const now = Date.UTC(2026, 10, 22, 16, 11);
+		vi.spyOn(Date, "now").mockReturnValue(now);
 		expect(await keepRealmBackup(scene, { west: 1 })).toBe(true);
 		expect(uploadFile).toHaveBeenCalledOnce();
 		expect(foundry.utils.saveDataToFile).not.toHaveBeenCalled();
-		expect(scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG]).toEqual({ path: "worlds/w/bastionland-backups/realm-vale.json", when: 1000 });
+		expect(scene.flags[SYSTEM_ID][REALM_BACKUP_FLAG]).toEqual({ path: "worlds/w/bastionland-backups/realm-vale.json", when: now });
+		vi.restoreAllMocks();
 	});
 
 	it("asks whether to go on when the server's backup can't be saved, naming no new one", async () => {

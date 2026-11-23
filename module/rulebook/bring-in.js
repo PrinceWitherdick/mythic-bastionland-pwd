@@ -2,7 +2,7 @@ import { loadArtIndex } from "../book-art/art-index.js";
 import { chooseRulebookPdf, importBookArt } from "../book-art/importer.js";
 import { openReader } from "./BookReader.js";
 import { t } from "../chat/cards.js";
-import { serverNow } from "../server-now.js";
+import { learntWallNow } from "../server-now.js";
 import { INDEX_VERSION } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
 import {
@@ -22,6 +22,9 @@ import {
 
 /** How long a re-read is taken to be under way on another client, past which it's taken for one that died. */
 const REREAD_STALE_MS = 15 * 60 * 1000;
+
+/** How far ahead of now a re-read may be marked, by two clocks the server set to within a second or so. */
+const AHEAD_MS = 60 * 1000;
 
 /**
  * The one gesture behind every way a GM hands the system their PDF: the Welcome,
@@ -138,9 +141,12 @@ export async function rereadOldImport(isGreeted) {
  * @returns {Promise<boolean>} Whether this Referee may read it.
  */
 async function takeReread() {
+	const now = await learntWallNow();
 	const { user, at } = rereadingBy();
-	if (user && user !== game.user.id && serverNow() - (Number(at) || 0) < REREAD_STALE_MS) return false;
-	await setRereadingBy({ user: game.user.id, at: serverNow() });
+	const age = now - (Number(at) || 0);
+	// A mark more than a minute ahead of now was made by a clock not set by the server's, so it holds nothing.
+	if (user && user !== game.user.id && age > -AHEAD_MS && age < REREAD_STALE_MS) return false;
+	await setRereadingBy({ user: game.user.id, at: now });
 	return true;
 }
 

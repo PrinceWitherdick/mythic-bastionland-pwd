@@ -18,6 +18,7 @@ import {
 	hasShifted,
 	normaliseGrowth
 } from "../rules/realm-growth.js";
+import { isTimeOfDay } from "../server-now.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { inputDialog } from "./ui.js";
 
@@ -47,6 +48,26 @@ export function realmBackup(scene) {
 export const dateText = (when) => new Date(when).toLocaleString();
 
 /**
+ * What is said of a backup kept, dated where its stamp is a time of day.
+ * Backups kept by 1.0.2 and earlier were stamped with how long the server had
+ * been up, which is no date to show.
+ * @param {number} when The backup's stamp.
+ * @param {string} realm The Realm's name.
+ * @returns {{kept: string, confirm: string, done: string}} The window's line, the question before putting it back, and the word after.
+ */
+export function backupWords(when, realm) {
+	if (!isTimeOfDay(when)) {
+		return { kept: t("realm.expand.backup.keptUndated"), confirm: t("realm.expand.restore.confirmUndated"), done: t("realm.expand.restore.doneUndated", { realm }) };
+	}
+	const date = dateText(when);
+	return {
+		kept: t("realm.expand.backup.kept", { when: date }),
+		confirm: t("realm.expand.restore.confirm", { when: date }),
+		done: t("realm.expand.restore.done", { realm, when: date })
+	};
+}
+
+/**
  * @param {Scene} scene
  * @param {object} realm
  * @param {object} g
@@ -71,7 +92,7 @@ function expandContext(scene, realm, g) {
 		// Offered once hexes are added north or west, or an earlier expansion has already moved them.
 		numberingShown: hasShifted(hexNumbering(scene)),
 		numberings: NUMBERINGS.map((key, index) => ({ key, label: t(`realm.expand.numbers.${key}`), detail: t(`realm.expand.numbers.${key}Detail`), checked: index === 0 })),
-		backup: backup ? { said: t("realm.expand.backup.kept", { when: dateText(backup.when) }), label: t("realm.expand.backup.restore", { when: dateText(backup.when) }) } : null
+		backup: backup ? { said: backupWords(backup.when, scene.name).kept } : null
 	};
 }
 

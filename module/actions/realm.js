@@ -59,7 +59,7 @@ import {
 	shiftHex,
 	shiftedHexFlags
 } from "../rules/realm-growth.js";
-import { serverNow } from "../server-now.js";
+import { learntWallNow } from "../server-now.js";
 import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
@@ -1220,6 +1220,8 @@ export const EXPANDED_OPTION = "realmExpanded";
  * @returns {Promise<object>}
  */
 async function expansionPlan(scene, growth, { keepNumbers, land = (grown) => grown }) {
+	// Asked first, so the Scene is read as it stands once the stamp is had.
+	const when = await learntWallNow();
 	const from = sceneGeometry(scene);
 	const to = grownGeometry(from, growth);
 	const offset = growthOffset(growth);
@@ -1247,7 +1249,7 @@ async function expansionPlan(scene, growth, { keepNumbers, land = (grown) => gro
 			gridType: to.gridType,
 			realm: realmFlagChanges(realmFlag(scene), target, to) ?? { set: {}, drop: [] },
 			initial: Number.isFinite(initial?.x) && Number.isFinite(initial?.y) ? { x: Math.round(initial.x + shift.dx), y: Math.round(initial.y + shift.dy) } : null,
-			growth: loggedGrowth(flags[REALM_GROWTH_FLAG], growth, { when: serverNow(), keepNumbers })
+			growth: loggedGrowth(flags[REALM_GROWTH_FLAG], growth, { when, keepNumbers })
 		},
 		outside: outsideShifts(scene.id, offset),
 		target
@@ -1474,6 +1476,7 @@ async function resumePutBack(scene, plan) {
  * @returns {Promise<object>}
  */
 async function putBackPlan(scene, backup) {
+	const when = await learntWallNow();
 	const saved = backup.scene;
 	const g = sceneGeometry(saved);
 	const now = hexNumbering(scene);
@@ -1487,7 +1490,7 @@ async function putBackPlan(scene, backup) {
 		restoring: true,
 		kept: scene.flags?.[SYSTEM_ID]?.[REALM_BACKUP_FLAG] ?? null,
 		outside: outsideShifts(scene.id, reverseOffset(offset), g),
-		growth: putBackGrowth(now, was, undone, { when: serverNow() }),
+		growth: putBackGrowth(now, was, undone, { when }),
 		follow: { dx: -shift.dx, dy: -shift.dy, ...reverseOffset(offset) }
 	};
 }

@@ -338,6 +338,18 @@ describe("a Pack whose Attack card never came", () => {
 		expect(packRolled).toHaveBeenCalledOnce();
 	});
 
+	it("waits no longer than a whole stall on a roll stamped ahead of this computer's clock", () => {
+		vi.useFakeTimers();
+		try {
+			const card = renderCard(stalled(-5 * 60_000));
+			expect(card.recover.hidden).toBe(true);
+			vi.advanceTimersByTime(30_000);
+			expect(card.recover.hidden).toBe(false);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("waits on one timer however often the card is drawn, and shows Open Again on every drawing", () => {
 		vi.useFakeTimers();
 		try {
