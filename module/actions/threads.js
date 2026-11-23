@@ -18,6 +18,7 @@ import { GM_TOOLKIT_TYPE, theGmToolkit } from "./gm-toolkit.js";
 import { hexLabel } from "./hex-names.js";
 import { companyKnights } from "./knights.js";
 import { recordOnTrack } from "./timeline-record.js";
+import { wallNow } from "../server-now.js";
 
 /** Told to whoever shows the list, once it has changed. */
 export const THREADS_CHANGED_HOOK = "bastionlandThreadsChanged";
@@ -174,7 +175,8 @@ async function writeThreads(update) {
  */
 export async function addThreads(given) {
 	const opened = getCalendar();
-	const now = Date.now();
+	// The time of day by the server's clock, so two Referees' threads keep the order they were added in.
+	const now = wallNow();
 	const update = {};
 	const ids = [];
 	given.forEach((one, index) => {

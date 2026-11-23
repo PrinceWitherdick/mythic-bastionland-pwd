@@ -116,7 +116,7 @@ function withRecords(fog, changes) {
  * @param {object} fog From normaliseFog.
  * @param {string[]} keys
  * @param {string} by One of FOG_LIFTERS.
- * @param {number} at When, as Date.now() gives it.
+ * @param {number} at When, as wallNow (server-now.js) gives it.
  * @param {Record<string, object>} journeyHexes
  * @returns {object} `fog` itself when every hex was clear already, with no fog kept to come back over it.
  */

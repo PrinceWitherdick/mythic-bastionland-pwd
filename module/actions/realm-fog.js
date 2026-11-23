@@ -1,5 +1,6 @@
 import { FOG_VERSION, fogLook, foggedKeys, liftFog, normaliseFog, toggleFogAt, veilFog } from "../rules/realm-fog.js";
 import { allHexes, hexKey } from "../rules/realm-geometry.js";
+import { wallNow } from "../server-now.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { hexFlagEditor } from "./hex-flags.js";
 import { getJourney } from "./journey.js";
@@ -88,7 +89,7 @@ const keysOf = (hexes) => hexes.filter(Boolean).map(hexKey);
  * @returns {Promise<boolean>} Whether anything was written.
  */
 export function liftRealmFogBy(scene, groups) {
-	const at = Date.now();
+	const at = wallNow();
 	return editRealmFog(scene, (fog) => {
 		const journey = getJourney(scene).hexes;
 		return groups.reduce((lifted, { hexes, by }) => liftFog(lifted, keysOf(hexes), by, at, journey), fog);
@@ -119,7 +120,7 @@ export const veilRealmFog = (scene, hexes) => editRealmFog(scene, (fog) => veilF
  * @returns {Promise<boolean>}
  */
 export const toggleRealmFogAt = (scene, hex) =>
-	editRealmFog(scene, (fog) => toggleFogAt(fog, hexKey(hex), Date.now(), getJourney(scene).hexes));
+	editRealmFog(scene, (fog) => toggleFogAt(fog, hexKey(hex), wallNow(), getJourney(scene).hexes));
 
 /** @param {Scene} scene */
 const everyHex = (scene) => (isRealmScene(scene) ? allHexes(sceneGeometry(scene)) : []);
