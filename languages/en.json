@@ -862,7 +862,8 @@
       "card": "{from} hands {item} to {to}.",
       "notYours": "{item} is {from}’s to hand over. Ask their player, or the Referee, to do it.",
       "needsReferee": "Only the Referee can hand {item} to {to}, as you don’t play them, and no Referee is here. It stays with {from}.",
-      "refused": "{item} couldn’t be handed to {to}, so it stays with {from}."
+      "refused": "{item} couldn’t be handed to {to}, so it stays with {from}.",
+      "ownPower": "{item} is part of {from}, given by their Ability, so it can’t be handed to {to}."
     },
     "ability": {
       "label": "Ability",
@@ -5116,6 +5117,7 @@
         "travelNeedsGM": "The Company can’t travel until a Referee is logged in: nothing of the journey would be kept.",
         "expanding": "This Realm’s map is still being expanded. Nothing on it can move until the Referee finishes."
       },
+      "hexesExpanding": "This Realm’s map is still being expanded. Its hexes can’t be changed until it’s finished.",
       "ruler": {
         "trek": "Trek",
         "gallop": "Gallop: each steed loses d6 VIG",

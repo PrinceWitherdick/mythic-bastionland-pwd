@@ -14,11 +14,28 @@ const HAND_QUERY = `${SYSTEM_ID}.handOver`;
 /**
  * Whether an item is a weapon an Ability gives that fills no hand, such as a
  * bite or a burst of light: part of whoever has the Ability, not carried, so
- * it can't leave them. One that's a real thing, such as a chain, can.
+ * it can't leave them, nor be copied onto another (ownPowerDropped). One
+ * that's a real thing, such as a chain, can.
  * @param {Item|null|undefined} item
  * @returns {boolean}
  */
 const isOwnPower = (item) => Boolean(item?.type === "weapon" && item.system?.noHand && item.flags?.[SYSTEM_ID]?.[KIT_FLAG]);
+
+/**
+ * Whether an Item dropped on an actor's sheet is such a weapon brought from
+ * another character, which stays theirs: no copy is made, and whoever dropped
+ * it is told why.
+ * @param {Item|null|undefined} item
+ * @param {Actor} to Whose sheet it was dropped on.
+ * @returns {boolean}
+ */
+export function ownPowerDropped(item, to) {
+	const from = item?.parent;
+	if (item?.pack || from?.pack || !isOwnPower(item)) return false;
+	if (from?.documentName !== "Actor" || from.uuid === to?.uuid) return false;
+	warn("handOver.ownPower", { item: item.name, from: from.name, to: to.name });
+	return true;
+}
 
 /**
  * Whether an Item dropped on an actor's sheet is a possession handed on from

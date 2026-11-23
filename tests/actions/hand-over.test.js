@@ -9,7 +9,7 @@ vi.mock("../../module/ask-gm-warn.js", () => ({
 }));
 vi.mock("../../module/compat.js", () => ({ queryAsker: (context) => context?.user ?? null }));
 
-const { handOver, isHandOver, onHandOverQuery } = await import("../../module/actions/hand-over.js");
+const { handOver, isHandOver, onHandOverQuery, ownPowerDropped } = await import("../../module/actions/hand-over.js");
 const { askActiveGMOrWarn } = await import("../../module/ask-gm-warn.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
 
@@ -98,6 +98,38 @@ describe("isHandOver", () => {
 		const sword = carried(pattern);
 		sword.pack = pattern.pack;
 		expect(isHandOver(sword, actor("Bram"))).toBe(false);
+	});
+});
+
+describe("ownPowerDropped", () => {
+	/** A weapon Alys's Ability gives her. */
+	const power = (carrier, { noHand = true } = {}) => {
+		const item = carried(carrier, "weapon", "radiance");
+		item.name = "Radiance";
+		item.system = { noHand };
+		item.flags = { [SYSTEM_ID]: { [KIT_FLAG]: "radiance" } };
+		return item;
+	};
+
+	it("keeps a weapon another's Ability gives off the sheet it's dropped on, and says why", () => {
+		const alys = actor("Alys");
+		const bram = actor("Bram");
+		expect(ownPowerDropped(power(alys), bram)).toBe(true);
+		expect(warn).toHaveBeenCalledWith("handOver.ownPower", { item: "Radiance", from: "Alys", to: "Bram" });
+	});
+
+	it("leaves the drop alone for sorting it on its own sheet, a real thing, a possession, or a pattern from a compendium", () => {
+		const alys = actor("Alys");
+		const bram = actor("Bram");
+		expect(ownPowerDropped(power(alys), alys)).toBe(false);
+		expect(ownPowerDropped(power(alys, { noHand: false }), bram)).toBe(false);
+		expect(ownPowerDropped(carried(alys), bram)).toBe(false);
+		const pattern = actor("Brigand");
+		pattern.pack = "mythic-bastionland.npcs";
+		const kept = power(pattern);
+		kept.pack = pattern.pack;
+		expect(ownPowerDropped(kept, bram)).toBe(false);
+		expect(warn).not.toHaveBeenCalled();
 	});
 });
 

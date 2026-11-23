@@ -6,6 +6,7 @@ let journeyHexes = {};
 
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => Boolean(scene?.realm),
+	expansionUnderWay: (scene) => scene?.expanding ?? null,
 	sceneGeometry: () => realmGeometry({ cols: 3, rows: 3 })
 }));
 vi.mock("../../module/actions/solo.js", () => ({ secretsKeptOn: () => solo.kept }));
@@ -124,6 +125,19 @@ describe("liftRealmFog and the rest", () => {
 		await expect(liftRealmFog(scene, [{ col: 1, row: 1 }], "told")).resolves.toBe(false);
 		await expect(toggleRealmFogAt(scene, { col: 1, row: 1 })).resolves.toBe(false);
 		expect(scene.update).not.toHaveBeenCalled();
+	});
+
+	it("writes nothing while the Realm's map is being expanded, as the hexes under the brush are moving", async () => {
+		const warned = vi.fn();
+		globalThis.ui = { notifications: { warn: warned } };
+		game.i18n = { localize: (key) => key };
+		const scene = realmScene({ on: true });
+		scene.expanding = { version: 1 };
+		await expect(toggleRealmFogAt(scene, { col: 1, row: 1 })).resolves.toBe(false);
+		await expect(liftRealmFog(scene, [{ col: 2, row: 2 }], "hand")).resolves.toBe(false);
+		expect(scene.update).not.toHaveBeenCalled();
+		expect(warned).toHaveBeenCalledWith("bastionland.realm.hexesExpanding");
+		delete globalThis.ui;
 	});
 
 	it("writes nothing for a player", async () => {

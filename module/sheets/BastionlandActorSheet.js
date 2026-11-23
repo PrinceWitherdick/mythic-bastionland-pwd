@@ -30,7 +30,7 @@ import { inEffect } from "../rules/stances.js";
 import { isMoraleBreak } from "../rules/morale.js";
 import { clearMoraleBreak } from "../chat/morale-card.js";
 import { canBrowseFiles } from "../book-art/files.js";
-import { handOver, isHandOver } from "../actions/hand-over.js";
+import { handOver, isHandOver, ownPowerDropped } from "../actions/hand-over.js";
 import { keepClearOfCompany } from "../apps/clear-of-company.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -401,10 +401,12 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 
 	/**
 	 * A possession dropped from another character's sheet is handed over: it
-	 * leaves them, rather than being copied (see actions/hand-over.js).
+	 * leaves them, rather than being copied, and a weapon another's Ability
+	 * gives them stays theirs (see actions/hand-over.js).
 	 * @override
 	 */
 	async _onDropDocument(event, document) {
+		if (document?.documentName === "Item" && ownPowerDropped(document, this.actor)) return null;
 		if (document?.documentName === "Item" && isHandOver(document, this.actor)) return handOver(document, this.actor);
 		if (!this.isEditable) return null;
 		return super._onDropDocument(event, document);

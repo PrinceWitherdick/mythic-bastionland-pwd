@@ -1,15 +1,19 @@
+import { warn } from "../chat/cards.js";
 import { deletionEntry, replacementEntry } from "../compat.js";
 import { changedHexes } from "../rules/journey.js";
 import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { isRealmScene } from "./realm.js";
+import { expansionUnderWay, isRealmScene } from "./realm.js";
 
 /**
  * How a Scene flag that keeps something for each hex of a Realm, such as the
  * Lay of the Land's notes or the Company's visits, is changed: one write at a
  * time, and only the hexes that changed, each written whole or taken out, so a
  * change to another hex, or to the Realm itself, isn't written over, and what
- * was rubbed out of a hex really goes. GMs only.
+ * was rubbed out of a hex really goes. GMs only. Nothing is written while
+ * the Realm's map is being expanded (expansionUnderWay), as its hexes move
+ * under it: a hex picked before would be written in the wrong place, or the
+ * write lost under the expansion's own.
  * @param {object} options
  * @param {string} options.flag The flag, under the system's own.
  * @param {number} options.version Written beside the hexes.
@@ -24,7 +28,10 @@ export function hexFlagEditor({ flag, version, read, besides = () => ({}) }) {
 	const flagPath = (...parts) => `flags.${SYSTEM_ID}.${flag}.${parts.join(".")}`;
 	return (scene, edit) => {
 		if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve(false);
+		if (refusedWhileExpanding(scene)) return Promise.resolve(false);
 		return queue(async () => {
+			// An expansion begun while this write waited its turn.
+			if (refusedWhileExpanding(scene)) return false;
 			const before = read(scene);
 			const after = edit(before);
 			const keys = after === before ? [] : changedHexes(before, after);
@@ -41,4 +48,14 @@ export function hexFlagEditor({ flag, version, read, besides = () => ({}) }) {
 			return true;
 		});
 	};
+}
+
+/**
+ * @param {Scene} scene
+ * @returns {boolean} Whether the Realm's map is being expanded, the Referee told so.
+ */
+function refusedWhileExpanding(scene) {
+	if (!expansionUnderWay(scene)) return false;
+	warn("realm.hexesExpanding");
+	return true;
 }

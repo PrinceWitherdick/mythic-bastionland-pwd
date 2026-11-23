@@ -21,6 +21,7 @@ vi.mock("../../module/actions/sighted.js", () => ({ sightedMarkAt: () => null })
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelinePartyNote: vi.fn(async () => {}), timelineNoteForgotten: vi.fn(async () => {}) }));
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => Boolean(scene?.isRealm),
+	expansionUnderWay: () => null,
 	sceneGeometry: () => g,
 	getRealm: (scene) => (scene?.isRealm ? { realm: emptyRealm(g) } : null),
 	hexHiddenByHand: () => ({})
