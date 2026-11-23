@@ -148,10 +148,12 @@ export function tokenInFog(token) {
 /**
  * Have the Tokens and the Holdings on the canvas look at the fog again, after
  * it was lifted, brought back, or turned on or off.
+ * @param {object} [options]
+ * @param {boolean} [options.tokens] Whether the Tokens look again too, as they need only where the fog changed.
  */
-export function refreshFoggedPlaceables() {
+export function refreshFoggedPlaceables({ tokens = true } = {}) {
 	if (!canvas?.ready || !isRealmScene(canvas.scene)) return;
-	for (const token of canvas.tokens?.placeables ?? []) token.renderFlags?.set({ refreshVisibility: true });
+	if (tokens) for (const token of canvas.tokens?.placeables ?? []) token.renderFlags?.set({ refreshVisibility: true });
 	for (const tile of canvas.tiles?.placeables ?? []) {
 		if (HOLDING_KINDS.has(realmFlag(tile.document)?.kind)) tile.renderFlags?.set({ refreshState: true });
 	}

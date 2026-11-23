@@ -92,7 +92,8 @@ function showChanges() {
 			const fogMoved = (kind === "realm" || fogFlag || journey) && drawRealmFog();
 			const hiding = kind === "realm" || fogFlag || fogMoved;
 			// Whether the Holdings show through it: nothing to do on a Realm whose fog is off and stays so.
-			if (hiding && (fogFlag || realmFogOn(canvas.scene))) refreshFoggedPlaceables();
+			// The Tokens only where the fog itself changed; a Holding may have moved into or out of it on any edit.
+			if (hiding && (fogFlag || realmFogOn(canvas.scene))) refreshFoggedPlaceables({ tokens: fogFlag || fogMoved });
 			// Its window, and its brush among the Realm tools, which comes and goes as it's turned on and off.
 			if (fogFlag) {
 				refreshRealmFog(sceneId);
@@ -248,8 +249,13 @@ export function registerRealmHooks() {
 		if (!sceneId) return;
 		refreshRealmPanel(sceneId);
 		refreshRealmDrawing(sceneId);
-		// The fog is the paper's own colour.
-		if (sceneId === canvas?.scene?.id) drawRealmFog();
+		// The fog is the paper's own colour. Drawn here first, in the write that also moved the Company,
+		// the cover shows the hexes its Journey cleared, and the change shown later finds nothing new:
+		// what the fog hides is refreshed here instead.
+		if (sceneId === canvas?.scene?.id && drawRealmFog()) {
+			refreshFoggedPlaceables();
+			drawHoldingArmsSoon();
+		}
 	});
 
 	// The hex readout, and Travel and Exploration beside the map. The rules stay
