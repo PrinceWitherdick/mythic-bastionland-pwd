@@ -1179,8 +1179,6 @@ async function planAttack(actor, joining = null) {
 	let weighedIn = duel;
 	// Who the Attack is aimed at as the dialog opens.
 	let aimedAt = aimFor(joining, weighedIn);
-	// What was answered before the targets changed, opened on again.
-	let answered = null;
 	let data;
 	let aimWeighed = null;
 	for (;;) {
@@ -1198,27 +1196,31 @@ async function planAttack(actor, joining = null) {
 		if (retargeted) {
 			// What these targets change, such as a weakness or a steed's trample, is shown before it's rolled.
 			ui.notifications.info(t("attack.retargeted", { name: actor.name }));
-			answered = data;
 		}
 		const { chargeBarred, weaknesses, individuals, lasting, said } = aimWeighed;
 		let stopFollowingAim = () => {};
-		const prefill = answered;
-		data = await Promise.resolve(inputDialog({
-			title: joining ? t("attack.joinTitle", { name: joining.attackerName ?? fromUuidSync(joining.attacker)?.name ?? "" }) : t("attack.title"),
-			icon: "fa-solid fa-swords",
-			template: "attack",
-			context: attackDialogContext({
-				actor, joining, sources, armed, wielded, remembered, ticks, individuals, mounted, duel, mount, chargeBarred,
-				startsImpaired, marks, aimedAt, said, weaknesses, offers, sides, lasting, combatant, warband, leaders
-			}),
-			ok: { label: t(joining ? "attack.joinRoll" : "attack.roll"), icon: "fa-solid fa-dice" },
-			render: (_event, dialog) => {
-				if (prefill) refillAttackForm(dialog, prefill);
-				watchWielding(dialog, actor, sources, marks, aim, { mount, leaders });
-				// A joined Attack's targets are its card's; a blow of one's own follows the targeting, or the duel while it's ticked.
-				if (!joining) stopFollowingAim = followAim(dialog, duel);
-			}
-		})).finally(() => stopFollowingAim());
+		// What was answered before the targets changed, opened on again.
+		const prefill = data;
+		try {
+			data = await inputDialog({
+				title: joining ? t("attack.joinTitle", { name: joining.attackerName ?? fromUuidSync(joining.attacker)?.name ?? "" }) : t("attack.title"),
+				icon: "fa-solid fa-swords",
+				template: "attack",
+				context: attackDialogContext({
+					actor, joining, sources, armed, wielded, remembered, ticks, individuals, mounted, duel, mount, chargeBarred,
+					startsImpaired, marks, aimedAt, said, weaknesses, offers, sides, lasting, combatant, warband, leaders
+				}),
+				ok: { label: t(joining ? "attack.joinRoll" : "attack.roll"), icon: "fa-solid fa-dice" },
+				render: (_event, dialog) => {
+					if (prefill) refillAttackForm(dialog, prefill);
+					watchWielding(dialog, actor, sources, marks, aim, { mount, leaders });
+					// A joined Attack's targets are its card's; a blow of one's own follows the targeting, or the duel while it's ticked.
+					if (!joining) stopFollowingAim = followAim(dialog, duel);
+				}
+			});
+		} finally {
+			stopFollowingAim();
+		}
 		if (!data || joining) break;
 		// Targeted while it stood open, or the duel unticked: the blow lands on those aimed at now, so it's weighed at them.
 		const inDuelNow = duel && data.duel ? duel : null;
