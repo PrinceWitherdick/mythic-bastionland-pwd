@@ -320,6 +320,36 @@ describe("resumeExpansion", () => {
 		expect(scene.flags[SYSTEM_ID].hexNames).toEqual(whole.flags[SYSTEM_ID].hexNames);
 	});
 
+	it("finishes a plan kept with its size and grid loose, as older plans were", async () => {
+		const whole = fakeScene({ realm, g });
+		game.scenes.push(whole);
+		const id = whole.id;
+		whole.id = "whole";
+		await expandRealm(whole, growth);
+		whole.id = id;
+
+		const realUpdate = scene.updateEmbeddedDocuments.getMockImplementation();
+		let cut = false;
+		scene.updateEmbeddedDocuments.mockImplementation(async (type, updates) => {
+			await realUpdate(type, updates);
+			if (type === "Tile" && !cut) {
+				cut = true;
+				throw new Error("closed");
+			}
+		});
+		await expect(expandRealm(scene, growth)).rejects.toThrow("closed");
+		scene.updateEmbeddedDocuments.mockImplementation(realUpdate);
+		const plan = scene.flags[SYSTEM_ID][EXPANDING_FLAG];
+		const { grid: { grid: { type: gridType }, width, height }, ...rest } = plan.scene;
+		plan.scene = { ...rest, width, height, gridType };
+
+		expect(await resumeExpansion(scene)).toBe(true);
+		expect(scene.flags[SYSTEM_ID][EXPANDING_FLAG]).toBeUndefined();
+		expect(scene._source.width).toBe(whole._source.width);
+		expect(scene._source.height).toBe(whole._source.height);
+		expect(scene._source.grid.type).toBe(whole._source.grid.type);
+	});
+
 	it("moves nothing twice when cut short after the Scene itself was written", async () => {
 		const realUpdate = scene.update.getMockImplementation();
 		let cut = false;

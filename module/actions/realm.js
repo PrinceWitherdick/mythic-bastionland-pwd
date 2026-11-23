@@ -1244,9 +1244,7 @@ async function expansionPlan(scene, growth, { keepNumbers, land = (grown) => gro
 		tokens,
 		company: shiftHex(companyTokenHex(scene), offset),
 		scene: {
-			width: to.width,
-			height: to.height,
-			gridType: to.gridType,
+			grid: realmGridChanges(to),
 			realm: realmFlagChanges(realmFlag(scene), target, to) ?? { set: {}, drop: [] },
 			initial: Number.isFinite(initial?.x) && Number.isFinite(initial?.y) ? { x: Math.round(initial.x + shift.dx), y: Math.round(initial.y + shift.dy) } : null,
 			growth: loggedGrowth(flags[REALM_GROWTH_FLAG], growth, { when, keepNumbers })
@@ -1270,11 +1268,11 @@ async function expansionPlan(scene, growth, { keepNumbers, land = (grown) => gro
 function expansionSceneUpdate(scene, { scene: changes, growth }) {
 	const flag = (key) => `flags.${SYSTEM_ID}.${key}`;
 	const hexFlags = shiftedHexFlags(scene.flags?.[SYSTEM_ID] ?? {}, growthOffset(growth));
+	// A plan kept from before its size and grid were kept together (realmGridChanges) had them loose.
+	const grid = changes.grid ?? { grid: { type: changes.gridType }, width: changes.width, height: changes.height };
 	return Object.fromEntries([
 		[`${flag(EXPANDING_FLAG)}.sceneWritten`, true],
-		["width", changes.width],
-		["height", changes.height],
-		["grid.type", changes.gridType],
+		...Object.entries(foundry.utils.flattenObject(grid)),
 		...realmFlagEntries(changes.realm),
 		...Object.entries(hexFlags).map(([key, value]) => (value === null || value === undefined ? deletionEntry(flag(key)) : replacementEntry(flag(key), value))),
 		...(changes.initial ? [["initial.x", changes.initial.x], ["initial.y", changes.initial.y]] : []),
