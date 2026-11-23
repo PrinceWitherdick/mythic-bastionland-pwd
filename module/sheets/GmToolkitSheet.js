@@ -1303,6 +1303,14 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		return target.closest("[data-scene-id]")?.dataset.sceneId;
 	}
 
+	/**
+	 * @param {HTMLElement} target
+	 * @returns {string|undefined} The thread left open that a control belongs to.
+	 */
+	static #threadIdFrom(target) {
+		return target.closest("[data-thread-id]")?.dataset.threadId;
+	}
+
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
@@ -1610,12 +1618,12 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	/** @this {GmToolkitSheet} */
 	static #onEditThread(_event, target) {
 		const scene = this.scene;
-		return editThread(target.closest("[data-thread-id]")?.dataset.threadId, scene, scene ? companyTokenHex(scene) : null);
+		return editThread(GmToolkitSheet.#threadIdFrom(target), scene, scene ? companyTokenHex(scene) : null);
 	}
 
 	/** @this {GmToolkitSheet} */
 	static #onSettleThread(_event, target) {
-		return settleThread(target.closest("[data-thread-id]")?.dataset.threadId);
+		return settleThread(GmToolkitSheet.#threadIdFrom(target));
 	}
 
 	/** @this {GmToolkitSheet} */

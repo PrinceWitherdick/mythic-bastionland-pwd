@@ -7575,7 +7575,12 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	flex: 0 1 12rem;
 }
 
-.bastionland-travels__section {
+/* A section; the places of note gathered by kind, one heading over a folding group
+   for each kind; and what a folding head folds away: a section's hint, rows and
+   button, or a Season's days. */
+.bastionland-travels__section,
+.bastionland-travels__groups,
+.bastionland-travels__fold-body {
 	display: flex;
 	flex-direction: column;
 	gap: 0.3rem;
@@ -7584,20 +7589,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-travels__section .bastionland-heading,
 .bastionland-travels__groups > .bastionland-heading {
 	margin: 0.35rem 0 0;
-}
-
-/* The places of note gathered by kind: one heading over a folding group for each kind. */
-.bastionland-travels__groups {
-	display: flex;
-	flex-direction: column;
-	gap: 0.3rem;
-}
-
-/* What a folding head folds away: a section's hint, rows and button, or a Season's days. */
-.bastionland-travels__fold-body {
-	display: flex;
-	flex-direction: column;
-	gap: 0.3rem;
 }
 
 /* Folded, the body goes; capped, so do the rows past the cap. A page narrowed by a

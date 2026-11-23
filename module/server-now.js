@@ -110,19 +110,11 @@ async function serverGap(fetcher, url) {
  * @returns {Promise<T>} The promise, or a refusal should it take longer than ANSWER_MS.
  */
 function inTime(promise) {
-	return new Promise((resolve, reject) => {
-		const timer = setTimeout(() => reject(new Error("The server's clock didn't answer in time")), ANSWER_MS);
-		promise.then(
-			(value) => {
-				clearTimeout(timer);
-				resolve(value);
-			},
-			(error) => {
-				clearTimeout(timer);
-				reject(error);
-			}
-		);
+	let timer;
+	const late = new Promise((_resolve, reject) => {
+		timer = setTimeout(() => reject(new Error("The server's clock didn't answer in time")), ANSWER_MS);
 	});
+	return Promise.race([promise, late]).finally(() => clearTimeout(timer));
 }
 
 /** For tests: forget the skew learnt. */
